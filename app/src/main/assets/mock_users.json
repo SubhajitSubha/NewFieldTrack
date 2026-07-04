@@ -1,0 +1,38 @@
+ {
+  "version": "1.0",
+  "organization": {
+    "organizationId": "org_1",
+    "name": "Field Operations"
+  },
+  "users": [
+    {
+      "userId": "owner_1",
+      "displayName": "Subha",
+      "mobileNumber": "9999999999",
+      "role": "OWNER",
+      "organizationId": "org_1"
+    },
+    {
+      "userId": "manager_1",
+      "displayName": "Ravi",
+      "mobileNumber": "8888888888",
+      "role": "MANAGER",
+      "organizationId": "org_1"
+    },
+    {
+      "userId": "operator_1",
+      "displayName": "Kumar",
+      "mobileNumber": "7777777777",
+      "role": "OPERATOR",
+      "organizationId": "org_1"
+    },
+    {
+      "userId": "helper_1",
+      "displayName": "Arun",
+      "mobileNumber": "6666666666",
+      "role": "HELPER",
+      "organizationId": "org_1"
+    }
+  ]
+}
+

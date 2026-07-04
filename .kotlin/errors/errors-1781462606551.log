@@ -1,0 +1,346 @@
+kotlin version: 2.2.10
+error message: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+changeMemberRole (Ljava/lang/String;Lcom/example/fieldtrack/core/organization/MemberRole;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;:
+  @Lorg/jetbrains/annotations/Nullable;() // invisible
+    // annotable parameter count: 4 (visible)
+    // annotable parameter count: 4 (invisible)
+    @Lorg/jetbrains/annotations/NotNull;() // invisible, parameter 0
+    @Lorg/jetbrains/annotations/NotNull;() // invisible, parameter 1
+    @Lorg/jetbrains/annotations/NotNull;() // invisible, parameter 3
+    ALOAD 5
+    INSTANCEOF com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1
+    IFEQ L0
+    ALOAD 5
+    CHECKCAST com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1
+    ASTORE 17
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.label : I
+    LDC -2147483648
+    IAND
+    IFEQ L0
+    ALOAD 17
+    DUP
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.label : I
+    LDC -2147483648
+    ISUB
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.label : I
+    GOTO L1
+   L0
+    NEW com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1
+    DUP
+    ALOAD 0
+    ALOAD 5
+    INVOKESPECIAL com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.<init> (Lcom/example/fieldtrack/data/repository/OrganizationRepository;Lkotlin/coroutines/Continuation;)V
+    ASTORE 17
+   L1
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.result : Ljava/lang/Object;
+    ASTORE 16
+   L2
+   L3
+   L4
+    LINENUMBER 113 L4
+    GETSTATIC com/example/fieldtrack/domain/organization/ActorContextProvider.INSTANCE : Lcom/example/fieldtrack/domain/organization/ActorContextProvider;
+    INVOKEVIRTUAL com/example/fieldtrack/domain/organization/ActorContextProvider.current ()Lcom/example/fieldtrack/domain/organization/ActorContext;
+    ASTORE 6
+   L5
+   L6
+    LINENUMBER 114 L6
+    ALOAD 0
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository.memberDao : Lcom/example/fieldtrack/data/local/dao/OrganizationMemberDao;
+    ALOAD 1
+    ALOAD 17
+    ALOAD 17
+    ALOAD 1
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$0 : Ljava/lang/Object;
+    ALOAD 17
+    ALOAD 2
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$1 : Ljava/lang/Object;
+    ALOAD 17
+    ALOAD 6
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$2 : Ljava/lang/Object;
+    ALOAD 17
+    LLOAD 3
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.J$0 : J
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEINTERFACE com/example/fieldtrack/data/local/dao/OrganizationMemberDao.getById (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object; (itf)
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+   L7
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.J$0 : J
+    LSTORE 3
+   L8
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$2 : Ljava/lang/Object;
+    CHECKCAST com/example/fieldtrack/domain/organization/ActorContext
+    ASTORE 6
+   L9
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$1 : Ljava/lang/Object;
+    CHECKCAST com/example/fieldtrack/core/organization/MemberRole
+    ASTORE 2
+   L10
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$0 : Ljava/lang/Object;
+    CHECKCAST java/lang/String
+    ASTORE 1
+   L11
+    NOP
+   L12
+    CHECKCAST com/example/fieldtrack/data/local/entity/OrganizationMemberEntity
+    ASTORE 8
+   L13
+    ALOAD 8
+    IFNULL L14
+    ALOAD 8
+    GOTO L15
+   L14
+    NOP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    ARETURN
+   L16
+   L15
+   L17
+    ASTORE 7
+   L18
+   L19
+    LINENUMBER 115 L19
+    ALOAD 0
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository.memberDao : Lcom/example/fieldtrack/data/local/dao/OrganizationMemberDao;
+   L20
+    LINENUMBER 116 L20
+    ALOAD 7
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/OrganizationMemberEntity.getOrganizationId ()Ljava/lang/String;
+    ALOAD 17
+    ALOAD 17
+    ALOAD 1
+    PUTFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$0 : Ljava/lang/Object;
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEINTERFACE com/example/fieldtrack/data/local/dao/OrganizationMemberDao.getActiveByOrganization (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object; (itf)
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+   L21
+    ALOAD 17
+    GETFIELD com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$1.L$0 : Ljava/lang/Object;
+    CHECKCAST java/lang/String
+    ASTORE 1
+   L22
+    NOP
+   L23
+    CHECKCAST java/lang/Iterable
+    ASTORE 9
+   L24
+    LINENUMBER 117 L24
+    NOP
+   L25
+    ICONST_0
+    ISTORE 10
+   L26
+    LINENUMBER 183 L26
+    ALOAD 9
+    INSTANCEOF java/util/Collection
+    IFEQ L27
+    ALOAD 9
+    CHECKCAST java/util/Collection
+    INVOKEINTERFACE java/util/Collection.isEmpty ()Z (itf)
+    IFEQ L27
+    ICONST_0
+    NOP
+    GOTO L28
+   L29
+   L27
+    LINENUMBER 184 L27
+    ICONST_0
+    ISTORE 11
+   L30
+    LINENUMBER 185 L30
+    ALOAD 9
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 12
+   L31
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L32
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 13
+   L33
+    ALOAD 13
+    CHECKCAST com/example/fieldtrack/data/local/entity/OrganizationMemberEntity
+    ASTORE 14
+   L34
+    ICONST_0
+    ISTORE 15
+   L35
+    LINENUMBER 117 L35
+    ALOAD 14
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/OrganizationMemberEntity.getRole ()Ljava/lang/String;
+    LDC "OWNER"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.areEqual (Ljava/lang/Object;Ljava/lang/Object;)Z
+    IFEQ L36
+    ALOAD 14
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/OrganizationMemberEntity.getMemberId ()Ljava/lang/String;
+    ALOAD 7
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/OrganizationMemberEntity.getMemberId ()Ljava/lang/String;
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.areEqual (Ljava/lang/Object;Ljava/lang/Object;)Z
+    IFNE L36
+    ICONST_1
+    GOTO L37
+   L36
+    ICONST_0
+   L37
+    NOP
+    GOTO L38
+   L39
+   L40
+   L38
+    INVOKESTATIC kotlin/coroutines/jvm/internal/Boxing.boxBoolean (Z)Ljava/lang/Boolean;
+   L41
+    LINENUMBER 185 L41
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L31
+    IINC 11 1
+    ILOAD 11
+    IFGE L31
+    INVOKESTATIC kotlin/collections/CollectionsKt.throwCountOverflow ()V
+   L42
+    GOTO L31
+   L32
+    LINENUMBER 186 L32
+    ILOAD 11
+    NOP
+    GOTO L28
+   L43
+   L44
+   L28
+   L45
+    LINENUMBER 117 L45
+   L46
+    LINENUMBER 115 L46
+    ISTORE 8
+   L47
+   L48
+    LINENUMBER 118 L48
+    GETSTATIC com/example/fieldtrack/domain/organization/AuthorizationMutationExecutor.INSTANCE : Lcom/example/fieldtrack/domain/organization/AuthorizationMutationExecutor;
+   L49
+    LINENUMBER 119 L49
+    GETSTATIC com/example/fieldtrack/domain/organization/authority/TeamMutationAuthority.INSTANCE : Lcom/example/fieldtrack/domain/organization/authority/TeamMutationAuthority;
+    INVOKEVIRTUAL com/example/fieldtrack/domain/organization/authority/TeamMutationAuthority.authorityName ()Ljava/lang/String;
+   L50
+    LINENUMBER 120 L50
+    LDC "changeMemberRole"
+   L51
+    LINENUMBER 121 L51
+    GETSTATIC com/example/fieldtrack/domain/organization/authority/TeamMutationAuthority.INSTANCE : Lcom/example/fieldtrack/domain/organization/authority/TeamMutationAuthority;
+    ALOAD 6
+    ALOAD 7
+    ALOAD 2
+    ILOAD 8
+    INVOKEVIRTUAL com/example/fieldtrack/domain/organization/authority/TeamMutationAuthority.canChangeRole (Lcom/example/fieldtrack/domain/organization/ActorContext;Lcom/example/fieldtrack/data/local/entity/OrganizationMemberEntity;Lcom/example/fieldtrack/core/organization/MemberRole;I)Lcom/example/fieldtrack/domain/organization/AuthorizationResult;
+   L52
+    LINENUMBER 118 L52
+    NEW com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$2
+    DUP
+    ALOAD 0
+    ALOAD 1
+    ALOAD 2
+    LLOAD 3
+    ACONST_NULL
+    INVOKESPECIAL com/example/fieldtrack/data/repository/OrganizationRepository$changeMemberRole$2.<init> (Lcom/example/fieldtrack/data/repository/OrganizationRepository;Ljava/lang/String;Lcom/example/fieldtrack/core/organization/MemberRole;JLkotlin/coroutines/Continuation;)V
+    CHECKCAST kotlin/jvm/functions/Function1
+    ALOAD 17
+    ICONST_0
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+    INVOKEVIRTUAL com/example/fieldtrack/domain/organization/AuthorizationMutationExecutor.execute (Ljava/lang/String;Ljava/lang/String;Lcom/example/fieldtrack/domain/organization/AuthorizationResult;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+    ICONST_1
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.mark (I)V
+   L53
+    NOP
+   L54
+    POP
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+   L55
+    LINENUMBER 125 L55
+    ARETURN
+   L56
+   L57
+   L58
+    LOCALVARIABLE $i$a$-count-OrganizationRepository$changeMemberRole$ownerCountExcludingTarget$1\2\185\0 I L35 L40 15
+    LOCALVARIABLE it\2 Lcom/example/fieldtrack/data/local/entity/OrganizationMemberEntity; L34 L40 14
+    LOCALVARIABLE element\1 Ljava/lang/Object; L33 L42 13
+    LOCALVARIABLE $i$f$count\1\117 I L26 L44 10
+    LOCALVARIABLE count\1 I L30 L44 11
+    LOCALVARIABLE $this$count\1 Ljava/lang/Iterable; L25 L44 9
+    LOCALVARIABLE actor Lcom/example/fieldtrack/domain/organization/ActorContext; L5 L59 6
+    LOCALVARIABLE target Lcom/example/fieldtrack/data/local/entity/OrganizationMemberEntity; L18 L57 7
+    LOCALVARIABLE ownerCountExcludingTarget I L47 L57 8
+    LOCALVARIABLE this Lcom/example/fieldtrack/data/repository/OrganizationRepository; L3 L57 0
+    LOCALVARIABLE memberId Ljava/lang/String; L3 L59 1
+    LOCALVARIABLE newRole Lcom/example/fieldtrack/core/organization/MemberRole; L3 L59 2
+    LOCALVARIABLE now J L3 L59 3
+    LOCALVARIABLE $completion Lkotlin/coroutines/Continuation; L3 L57 5
+    LOCALVARIABLE $continuation Lkotlin/coroutines/Continuation; L1 L58 17
+    LOCALVARIABLE $result Ljava/lang/Object; L2 L58 16
+    LOCALVARIABLE memberId Ljava/lang/String; L11 L60 1
+    LOCALVARIABLE newRole Lcom/example/fieldtrack/core/organization/MemberRole; L10 L57 2
+    LOCALVARIABLE actor Lcom/example/fieldtrack/domain/organization/ActorContext; L9 L57 6
+    LOCALVARIABLE now J L8 L57 3
+    LOCALVARIABLE memberId Ljava/lang/String; L22 L57 1
+    MAXSTACK = 12
+    MAXLOCALS = 18
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: unknown
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.CoroutineCodegenKt.acceptWithStateMachine(CoroutineCodegen.kt:73)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:456)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:306)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+
+

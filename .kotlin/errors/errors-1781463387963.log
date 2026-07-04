@@ -1,0 +1,679 @@
+kotlin version: 2.2.10
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:build visibility:public modality:FINAL returnType:com.example.fieldtrack.core.reporting.WeeklyOperationalMemory
+  VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion
+  VALUE_PARAMETER kind:Regular name:endOfWeek index:1 type:kotlin.Long
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.Long
+  VALUE_PARAMETER kind:Regular name:completedJobs index:2 type:kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity>
+  VALUE_PARAMETER kind:Regular name:activeJobs index:3 type:kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity>
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity>
+  VALUE_PARAMETER kind:Regular name:financialEvents index:4 type:kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity>
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity>
+  VALUE_PARAMETER kind:Regular name:journal index:5 type:kotlin.collections.List<com.example.fieldtrack.core.persistence.MutationJournalEntry>
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.collections.List<com.example.fieldtrack.core.persistence.MutationJournalEntry>
+  BLOCK_BODY
+    VAR name:startOfWeek type:kotlin.Long [val]
+      CALL 'private final fun startOfDayMs (timestamp: kotlin.Long): kotlin.Long declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Long origin=null
+        ARG <this>: GET_VAR '<this>: com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion origin=IMPLICIT_ARGUMENT
+        ARG timestamp: CALL 'public final fun minus (other: kotlin.Long): kotlin.Long [operator] declared in kotlin.Long' type=kotlin.Long origin=MINUS
+          ARG <this>: GET_VAR 'endOfWeek: kotlin.Long declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+          ARG other: CONST Long type=kotlin.Long value=518400000
+    VAR name:endOfWindow type:kotlin.Long [val]
+      GET_VAR 'endOfWeek: kotlin.Long declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+    VAR name:weekJobs type:kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> [val]
+      CALL 'public final fun filter <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.filter>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.filter, kotlin.Boolean>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.filter> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+        TYPE_ARG T: com.example.fieldtrack.data.local.entity.JobEntity
+        ARG <this>: GET_VAR 'completedJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+        ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.JobEntity, kotlin.Boolean> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$0 ($startOfWeek: kotlin.Long, $endOfWindow: kotlin.Long, it: com.example.fieldtrack.data.local.entity.JobEntity): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.JobEntity, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+            ARG $startOfWeek: GET_VAR 'val startOfWeek: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+            ARG $endOfWindow: GET_VAR 'val endOfWindow: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+    VAR name:weekEvents type:kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> [val]
+      CALL 'public final fun filter <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.filter>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.filter, kotlin.Boolean>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.filter> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+        TYPE_ARG T: com.example.fieldtrack.data.local.entity.FinancialEventEntity
+        ARG <this>: GET_VAR 'financialEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+        ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$1 ($startOfWeek: kotlin.Long, $endOfWindow: kotlin.Long, it: com.example.fieldtrack.data.local.entity.FinancialEventEntity): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+            ARG $startOfWeek: GET_VAR 'val startOfWeek: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+            ARG $endOfWindow: GET_VAR 'val endOfWindow: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+    VAR name:worksCompleted type:kotlin.Int [val]
+      CALL 'public abstract fun <get-size> (): kotlin.Int declared in kotlin.collections.List' type=kotlin.Int origin=GET_PROPERTY
+        ARG <this>: GET_VAR 'val weekJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+    VAR name:collectionTypes type:kotlin.collections.Set<kotlin.String> [val]
+      CALL 'public final fun setOf <T> (vararg elements: T of kotlin.collections.SetsKt.setOf): kotlin.collections.Set<T of kotlin.collections.SetsKt.setOf> declared in kotlin.collections.SetsKt' type=kotlin.collections.Set<kotlin.String> origin=null
+        TYPE_ARG T: kotlin.String
+        ARG elements: BLOCK type=kotlin.Array<out kotlin.String> origin=null
+          VAR IR_TEMPORARY_VARIABLE name:tmp0 type:kotlin.Array<out kotlin.String> [val]
+            CALL 'public final fun arrayOfNulls <T> (size: kotlin.Int): kotlin.Array<T of kotlin.arrayOfNulls?> declared in kotlin' type=kotlin.Array<out kotlin.String> origin=null
+              TYPE_ARG T: kotlin.String
+              ARG size: CONST Int type=kotlin.Int value=4
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            ARG <this>: GET_VAR 'val tmp0: kotlin.Array<out kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Array<out kotlin.String> origin=null
+            ARG index: CONST Int type=kotlin.Int value=0
+            ARG value: CONST String type=kotlin.String value="PAYMENT_COLLECTED"
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            ARG <this>: GET_VAR 'val tmp0: kotlin.Array<out kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Array<out kotlin.String> origin=null
+            ARG index: CONST Int type=kotlin.Int value=1
+            ARG value: CONST String type=kotlin.String value="PARTIAL_PAYMENT"
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            ARG <this>: GET_VAR 'val tmp0: kotlin.Array<out kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Array<out kotlin.String> origin=null
+            ARG index: CONST Int type=kotlin.Int value=2
+            ARG value: CONST String type=kotlin.String value="OFFLINE_COLLECTION"
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            ARG <this>: GET_VAR 'val tmp0: kotlin.Array<out kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Array<out kotlin.String> origin=null
+            ARG index: CONST Int type=kotlin.Int value=3
+            ARG value: CONST String type=kotlin.String value="SETTLEMENT"
+          GET_VAR 'val tmp0: kotlin.Array<out kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Array<out kotlin.String> origin=null
+    VAR name:collectionsCompleted type:kotlin.Double [val]
+      CALL 'public final fun sumOf <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.sumOf>, selector: kotlin.Function1<T of kotlin.collections.CollectionsKt.sumOf, kotlin.Double>): kotlin.Double [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.Double origin=null
+        TYPE_ARG T: com.example.fieldtrack.data.local.entity.FinancialEventEntity
+        ARG <this>: CALL 'public final fun filter <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.filter>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.filter, kotlin.Boolean>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.filter> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+          TYPE_ARG T: com.example.fieldtrack.data.local.entity.FinancialEventEntity
+          ARG <this>: GET_VAR 'val weekEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+          ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=LAMBDA
+            COMPOSITE type=kotlin.Unit origin=null
+            FUNCTION_REFERENCE 'private final fun build$lambda$2 ($collectionTypes: kotlin.collections.Set<kotlin.String>, it: com.example.fieldtrack.data.local.entity.FinancialEventEntity): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+              ARG $collectionTypes: GET_VAR 'val collectionTypes: kotlin.collections.Set<kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.Set<kotlin.String> origin=null
+        ARG selector: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Double> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$3 (it: com.example.fieldtrack.data.local.entity.FinancialEventEntity): kotlin.Double declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Double> origin=INLINE_LAMBDA reflectionTarget=null
+    VAR name:pendingCarryForward type:kotlin.Int [val]
+      CALL 'public final fun count <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.count>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.count, kotlin.Boolean>): kotlin.Int [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.Int origin=null
+        TYPE_ARG T: com.example.fieldtrack.data.local.entity.FinancialEventEntity
+        ARG <this>: GET_VAR 'val weekEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+        ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$4 (it: com.example.fieldtrack.data.local.entity.FinancialEventEntity): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.FinancialEventEntity, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+    VAR name:machineIds type:kotlin.collections.Set<kotlin.String> [val]
+      CALL 'public final fun toSet <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.toSet>): kotlin.collections.Set<T of kotlin.collections.CollectionsKt.toSet> declared in kotlin.collections.CollectionsKt' type=kotlin.collections.Set<kotlin.String> origin=null
+        TYPE_ARG T: kotlin.String
+        ARG <this>: CALL 'public final fun plus <T> (<this>: kotlin.collections.Collection<T of kotlin.collections.CollectionsKt.plus>, elements: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.plus>): kotlin.collections.List<T of kotlin.collections.CollectionsKt.plus> [operator] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<kotlin.String> origin=PLUS
+          TYPE_ARG T: kotlin.String
+          ARG <this>: CALL 'public final fun mapNotNull <T, R> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.mapNotNull>, transform: kotlin.Function1<T of kotlin.collections.CollectionsKt.mapNotNull, R of kotlin.collections.CollectionsKt.mapNotNull?>): kotlin.collections.List<R of kotlin.collections.CollectionsKt.mapNotNull> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<kotlin.String> origin=null
+            TYPE_ARG T: com.example.fieldtrack.data.local.entity.JobEntity
+            TYPE_ARG R: kotlin.String
+            ARG <this>: GET_VAR 'val weekJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+            ARG transform: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.JobEntity, kotlin.String?> origin=LAMBDA
+              COMPOSITE type=kotlin.Unit origin=null
+              FUNCTION_REFERENCE 'private final fun build$lambda$5 (it: com.example.fieldtrack.data.local.entity.JobEntity): kotlin.String? declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.JobEntity, kotlin.String?> origin=INLINE_LAMBDA reflectionTarget=null
+          ARG elements: CALL 'public final fun mapNotNull <T, R> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.mapNotNull>, transform: kotlin.Function1<T of kotlin.collections.CollectionsKt.mapNotNull, R of kotlin.collections.CollectionsKt.mapNotNull?>): kotlin.collections.List<R of kotlin.collections.CollectionsKt.mapNotNull> [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.collections.List<kotlin.String> origin=null
+            TYPE_ARG T: com.example.fieldtrack.data.local.entity.ActiveJobsEntity
+            TYPE_ARG R: kotlin.String
+            ARG <this>: GET_VAR 'activeJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity> origin=null
+            ARG transform: BLOCK type=kotlin.Function1<com.example.fieldtrack.data.local.entity.ActiveJobsEntity, kotlin.String?> origin=LAMBDA
+              COMPOSITE type=kotlin.Unit origin=null
+              FUNCTION_REFERENCE 'private final fun build$lambda$6 (it: com.example.fieldtrack.data.local.entity.ActiveJobsEntity): kotlin.String? declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.data.local.entity.ActiveJobsEntity, kotlin.String?> origin=INLINE_LAMBDA reflectionTarget=null
+    VAR name:operatorIds type:kotlin.collections.Set<kotlin.String> [val]
+      CALL 'public final fun buildSet <E> (builderAction: @[ExtensionFunctionType] kotlin.Function1<kotlin.collections.MutableSet<E of kotlin.collections.SetsKt.buildSet>, kotlin.Unit>): kotlin.collections.Set<E of kotlin.collections.SetsKt.buildSet> [inline] declared in kotlin.collections.SetsKt' type=kotlin.collections.Set<kotlin.String> origin=null
+        TYPE_ARG E: kotlin.String
+        ARG builderAction: BLOCK type=@[ExtensionFunctionType] kotlin.Function1<kotlin.collections.MutableSet<kotlin.String>, kotlin.Unit> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$15 ($this$buildSet: kotlin.collections.MutableSet<kotlin.String>, $weekJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity>, $activeJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity>, $weekEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity>): kotlin.Unit declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=@[ExtensionFunctionType] kotlin.Function1<kotlin.collections.MutableSet<kotlin.String>, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+            ARG $weekJobs: GET_VAR 'val weekJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+            ARG $activeJobs: GET_VAR 'activeJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity> origin=null
+            ARG $weekEvents: GET_VAR 'val weekEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+    VAR name:interruptionRecoveries type:kotlin.Int [val]
+      CALL 'public final fun count <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.count>, predicate: kotlin.Function1<T of kotlin.collections.CollectionsKt.count, kotlin.Boolean>): kotlin.Int [inline] declared in kotlin.collections.CollectionsKt' type=kotlin.Int origin=null
+        TYPE_ARG T: com.example.fieldtrack.core.persistence.MutationJournalEntry
+        ARG <this>: GET_VAR 'journal: kotlin.collections.List<com.example.fieldtrack.core.persistence.MutationJournalEntry> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.core.persistence.MutationJournalEntry> origin=null
+        ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.core.persistence.MutationJournalEntry, kotlin.Boolean> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun build$lambda$16 ($startOfWeek: kotlin.Long, $endOfWindow: kotlin.Long, entry: com.example.fieldtrack.core.persistence.MutationJournalEntry): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.core.persistence.MutationJournalEntry, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+            ARG $startOfWeek: GET_VAR 'val startOfWeek: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+            ARG $endOfWindow: GET_VAR 'val endOfWindow: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+    VAR name:breakdown type:kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> [val]
+      CALL 'private final fun buildDailyBreakdown (jobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity>, events: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity>, startOfWeek: kotlin.Long): kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> origin=null
+        ARG <this>: GET_VAR '<this>: com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion origin=IMPLICIT_ARGUMENT
+        ARG jobs: GET_VAR 'val weekJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity> origin=null
+        ARG events: GET_VAR 'val weekEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity> origin=null
+        ARG startOfWeek: GET_VAR 'val startOfWeek: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+    VAR name:busiestLabel type:kotlin.String? [val]
+      BLOCK type=kotlin.String? origin=FOLDED_SAFE_CALL
+        WHEN type=kotlin.String? origin=FOLDED_SAFE_CALL
+          BRANCH
+            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+              ARG arg0: COMPOSITE type=kotlin.Boolean origin=null
+                VAR IR_TEMPORARY_VARIABLE name:tmp0_safe_receiver type:com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val]
+                  CALL 'public final fun maxByOrNull <T, R> (<this>: kotlin.collections.Iterable<T of kotlin.collections.CollectionsKt.maxByOrNull>, selector: kotlin.Function1<T of kotlin.collections.CollectionsKt.maxByOrNull, R of kotlin.collections.CollectionsKt.maxByOrNull>): T of kotlin.collections.CollectionsKt.maxByOrNull? [inline] declared in kotlin.collections.CollectionsKt' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+                    TYPE_ARG T: com.example.fieldtrack.core.reporting.DailyMemoryPoint
+                    TYPE_ARG R: kotlin.Int
+                    ARG <this>: GET_VAR 'val breakdown: kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> origin=null
+                    ARG selector: BLOCK type=kotlin.Function1<com.example.fieldtrack.core.reporting.DailyMemoryPoint, kotlin.Int> origin=LAMBDA
+                      COMPOSITE type=kotlin.Unit origin=null
+                      FUNCTION_REFERENCE 'private final fun build$lambda$17 (it: com.example.fieldtrack.core.reporting.DailyMemoryPoint): kotlin.Int declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.core.reporting.DailyMemoryPoint, kotlin.Int> origin=INLINE_LAMBDA reflectionTarget=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    ARG arg0: GET_VAR 'val tmp0_safe_receiver: com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+              ARG arg1: COMPOSITE type=kotlin.Boolean origin=null
+                VAR IR_TEMPORARY_VARIABLE name:tmp1_safe_receiver type:com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val]
+                  CALL 'public final fun takeIf <T> (<this>: T of kotlin.StandardKt.takeIf, predicate: kotlin.Function1<T of kotlin.StandardKt.takeIf, kotlin.Boolean>): T of kotlin.StandardKt.takeIf? [inline] declared in kotlin.StandardKt' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+                    TYPE_ARG T: com.example.fieldtrack.core.reporting.DailyMemoryPoint
+                    ARG <this>: GET_VAR 'val tmp0_safe_receiver: com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+                    ARG predicate: BLOCK type=kotlin.Function1<com.example.fieldtrack.core.reporting.DailyMemoryPoint, kotlin.Boolean> origin=LAMBDA
+                      COMPOSITE type=kotlin.Unit origin=null
+                      FUNCTION_REFERENCE 'private final fun build$lambda$18 (it: com.example.fieldtrack.core.reporting.DailyMemoryPoint): kotlin.Boolean declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion' type=kotlin.Function1<com.example.fieldtrack.core.reporting.DailyMemoryPoint, kotlin.Boolean> origin=INLINE_LAMBDA reflectionTarget=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    ARG arg0: GET_VAR 'val tmp1_safe_receiver: com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+            then: CALL 'public final fun <get-dayLabel> (): kotlin.String declared in com.example.fieldtrack.core.reporting.DailyMemoryPoint' type=kotlin.String origin=GET_PROPERTY
+              ARG <this>: GET_VAR 'val tmp1_safe_receiver: com.example.fieldtrack.core.reporting.DailyMemoryPoint? [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=com.example.fieldtrack.core.reporting.DailyMemoryPoint? origin=null
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: CONST Null type=kotlin.Nothing? value=null
+    RETURN type=kotlin.Nothing from='public final fun build (endOfWeek: kotlin.Long, completedJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.JobEntity>, activeJobs: kotlin.collections.List<com.example.fieldtrack.data.local.entity.ActiveJobsEntity>, financialEvents: kotlin.collections.List<com.example.fieldtrack.data.local.entity.FinancialEventEntity>, journal: kotlin.collections.List<com.example.fieldtrack.core.persistence.MutationJournalEntry>): com.example.fieldtrack.core.reporting.WeeklyOperationalMemory declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion'
+      CONSTRUCTOR_CALL 'public constructor <init> (startOfWeek: kotlin.Long, endOfWeek: kotlin.Long, worksCompleted: kotlin.Int, activeMachines: kotlin.Int, activeOperators: kotlin.Int, collectionsCompleted: kotlin.Double, pendingCarryForward: kotlin.Int, interruptionRecoveries: kotlin.Int, busiestDayLabel: kotlin.String?, dailyBreakdown: kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint>) [primary] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory' type=com.example.fieldtrack.core.reporting.WeeklyOperationalMemory origin=null
+        ARG startOfWeek: GET_VAR 'val startOfWeek: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+        ARG endOfWeek: GET_VAR 'val endOfWindow: kotlin.Long [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Long origin=null
+        ARG worksCompleted: GET_VAR 'val worksCompleted: kotlin.Int [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Int origin=null
+        ARG activeMachines: CALL 'public abstract fun <get-size> (): kotlin.Int declared in kotlin.collections.Set' type=kotlin.Int origin=GET_PROPERTY
+          ARG <this>: GET_VAR 'val machineIds: kotlin.collections.Set<kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.Set<kotlin.String> origin=null
+        ARG activeOperators: CALL 'public abstract fun <get-size> (): kotlin.Int declared in kotlin.collections.Set' type=kotlin.Int origin=GET_PROPERTY
+          ARG <this>: GET_VAR 'val operatorIds: kotlin.collections.Set<kotlin.String> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.Set<kotlin.String> origin=null
+        ARG collectionsCompleted: GET_VAR 'val collectionsCompleted: kotlin.Double [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Double origin=null
+        ARG pendingCarryForward: GET_VAR 'val pendingCarryForward: kotlin.Int [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Int origin=null
+        ARG interruptionRecoveries: GET_VAR 'val interruptionRecoveries: kotlin.Int [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.Int origin=null
+        ARG busiestDayLabel: GET_VAR 'val busiestLabel: kotlin.String? [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.String? origin=null
+        ARG dailyBreakdown: GET_VAR 'val breakdown: kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> [val] declared in com.example.fieldtrack.core.reporting.WeeklyOperationalMemory.Companion.build' type=kotlin.collections.List<com.example.fieldtrack.core.reporting.DailyMemoryPoint> origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:43)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:177)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:306)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't inline method call: CALL 'public final fun buildSet <E> (builderAction: @[ExtensionFunctionType] kotlin.Function1<kotlin.collections.MutableSet<E of kotlin.collections.SetsKt.buildSet>, kotlin.Unit>): kotlin.collections.Set<E of kotlin.collections.SetsKt.buildSet> [inline] declared in kotlin.collections.SetsKt' type=kotlin.collections.Set<kotlin.String> origin=null
+File is unknown
+The root cause org.jetbrains.kotlin.codegen.inline.InlineException was thrown at: org.jetbrains.kotlin.codegen.inline.MethodInliner.wrapException(MethodInliner.kt:1000)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:76)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCallGenerator.genCall(IrInlineCallGenerator.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:586)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:725)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:532)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:233)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:126)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	... 46 more
+Caused by: org.jetbrains.kotlin.codegen.inline.InlineException: Lambda inlining com/example/fieldtrack/core/reporting/WeeklyOperationalMemory$Companion$build$operatorIds$1: couldn't inline method call
+Cause: build$lambda$15 (Ljava/util/Set;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V:
+   L0
+    ICONST_0
+    ISTORE 4
+   L1
+    LINENUMBER 159 L1
+    GETSTATIC com/example/fieldtrack/core/reporting/WeeklyOperationalMemory$Companion$build$operatorIds$1.$$$$weekJobs : Ljava/util/List;
+    CHECKCAST java/lang/Iterable
+    ASTORE 5
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+    NOP
+   L2
+    ICONST_0
+    ISTORE 6
+   L3
+    LINENUMBER 284 L3
+    ALOAD 5
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 7
+   L4
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L5
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 8
+   L6
+    ALOAD 8
+    CHECKCAST com/example/fieldtrack/data/local/entity/JobEntity
+    ASTORE 9
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+   L7
+    ICONST_0
+    ISTORE 10
+   L8
+    LINENUMBER 159 L8
+    ALOAD 9
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/JobEntity.getUpdatedBy ()Ljava/lang/String;
+    ASTORE 11
+    ALOAD 11
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L9
+    LINENUMBER 285 L9
+   L10
+    ICONST_0
+    ISTORE 13
+   L11
+    NOP
+   L12
+    LINENUMBER 159 L12
+    ALOAD 12
+    CHECKCAST java/lang/CharSequence
+    INVOKESTATIC kotlin/text/StringsKt.isBlank (Ljava/lang/CharSequence;)Z
+    IFNE L13
+    ICONST_1
+    GOTO L14
+   L13
+    ICONST_0
+   L14
+    GOTO L15
+   L15
+    LINENUMBER 159 L15
+    GOTO L16
+   L16
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L17
+    LINENUMBER 159 L17
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L18
+    ALOAD 11
+    GOTO L19
+   L18
+    ACONST_NULL
+   L19
+    GOTO L20
+   L20
+    LINENUMBER 159 L20
+    CHECKCAST java/lang/String
+    DUP
+    IFNULL L21
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L22
+    LINENUMBER 285 L22
+   L23
+    ICONST_0
+    ISTORE 13
+   L24
+    LINENUMBER 159 L24
+    ALOAD 0
+    ALOAD 12
+    INVOKEINTERFACE java/util/Set.add (Ljava/lang/Object;)Z (itf)
+    GOTO L25
+   L25
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L26
+    LINENUMBER 159 L26
+    GOTO L27
+   L27
+    CHECKCAST java/lang/Boolean
+    GOTO L28
+   L21
+    POP
+    LINENUMBER 159 L21
+    ACONST_NULL
+   L28
+    POP
+    NOP
+    GOTO L29
+   L29
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L30
+    LINENUMBER 284 L30
+    POP
+   L31
+    GOTO L4
+   L5
+    LINENUMBER 286 L5
+    NOP
+    GOTO L32
+   L32
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L33
+    LINENUMBER 160 L33
+    GETSTATIC com/example/fieldtrack/core/reporting/WeeklyOperationalMemory$Companion$build$operatorIds$1.$$$$activeJobs : Ljava/util/List;
+    CHECKCAST java/lang/Iterable
+    ASTORE 5
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+    NOP
+   L34
+    ICONST_0
+    ISTORE 6
+   L35
+    LINENUMBER 287 L35
+    ALOAD 5
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 7
+   L36
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L37
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 8
+   L38
+    ALOAD 8
+    CHECKCAST com/example/fieldtrack/data/local/entity/ActiveJobsEntity
+    ASTORE 9
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+   L39
+    ICONST_0
+    ISTORE 10
+   L40
+    LINENUMBER 160 L40
+    ALOAD 9
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/ActiveJobsEntity.getOperatorId ()Ljava/lang/String;
+    DUP
+    IFNULL L41
+    ASTORE 11
+    ALOAD 11
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L42
+    LINENUMBER 285 L42
+   L43
+    ICONST_0
+    ISTORE 13
+   L44
+    NOP
+   L45
+    LINENUMBER 160 L45
+    ALOAD 12
+    CHECKCAST java/lang/CharSequence
+    INVOKESTATIC kotlin/text/StringsKt.isBlank (Ljava/lang/CharSequence;)Z
+    IFNE L46
+    ICONST_1
+    GOTO L47
+   L46
+    ICONST_0
+   L47
+    GOTO L48
+   L48
+    LINENUMBER 160 L48
+    GOTO L49
+   L49
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L50
+    LINENUMBER 160 L50
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L51
+    ALOAD 11
+    GOTO L52
+   L51
+    ACONST_NULL
+   L52
+    GOTO L53
+   L53
+    LINENUMBER 160 L53
+    CHECKCAST java/lang/String
+    DUP
+    IFNULL L41
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L54
+    LINENUMBER 285 L54
+   L55
+    ICONST_0
+    ISTORE 13
+   L56
+    LINENUMBER 160 L56
+    ALOAD 0
+    ALOAD 12
+    INVOKEINTERFACE java/util/Set.add (Ljava/lang/Object;)Z (itf)
+    GOTO L57
+   L57
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L58
+    LINENUMBER 160 L58
+    GOTO L59
+   L59
+    CHECKCAST java/lang/Boolean
+    GOTO L60
+   L41
+    POP
+    LINENUMBER 160 L41
+    ACONST_NULL
+   L60
+    POP
+    NOP
+    GOTO L61
+   L61
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L62
+    LINENUMBER 287 L62
+    POP
+   L63
+    GOTO L36
+   L37
+    LINENUMBER 288 L37
+    NOP
+    GOTO L64
+   L64
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L65
+    LINENUMBER 161 L65
+    GETSTATIC com/example/fieldtrack/core/reporting/WeeklyOperationalMemory$Companion$build$operatorIds$1.$$$$weekEvents : Ljava/util/List;
+    CHECKCAST java/lang/Iterable
+    ASTORE 5
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+    NOP
+   L66
+    ICONST_0
+    ISTORE 6
+   L67
+    LINENUMBER 289 L67
+    ALOAD 5
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 7
+   L68
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L69
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 8
+   L70
+    ALOAD 8
+    CHECKCAST com/example/fieldtrack/data/local/entity/FinancialEventEntity
+    ASTORE 9
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.beforeInlineCall ()V
+   L71
+    ICONST_0
+    ISTORE 10
+   L72
+    LINENUMBER 161 L72
+    ALOAD 9
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/FinancialEventEntity.getOperatorId ()Ljava/lang/String;
+    ASTORE 11
+    ALOAD 11
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L73
+    LINENUMBER 285 L73
+   L74
+    ICONST_0
+    ISTORE 13
+   L75
+    NOP
+   L76
+    LINENUMBER 161 L76
+    ALOAD 12
+    CHECKCAST java/lang/CharSequence
+    INVOKESTATIC kotlin/text/StringsKt.isBlank (Ljava/lang/CharSequence;)Z
+    IFNE L77
+    ICONST_1
+    GOTO L78
+   L77
+    ICONST_0
+   L78
+    GOTO L79
+   L79
+    LINENUMBER 161 L79
+    GOTO L80
+   L80
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L81
+    LINENUMBER 161 L81
+    CHECKCAST java/lang/Boolean
+    INVOKEVIRTUAL java/lang/Boolean.booleanValue ()Z
+    IFEQ L82
+    ALOAD 11
+    GOTO L83
+   L82
+    ACONST_NULL
+   L83
+    GOTO L84
+   L84
+    LINENUMBER 161 L84
+    CHECKCAST java/lang/String
+    DUP
+    IFNULL L85
+    CHECKCAST java/lang/String
+    ASTORE 12
+   L86
+    LINENUMBER 285 L86
+   L87
+    ICONST_0
+    ISTORE 13
+   L88
+    LINENUMBER 161 L88
+    ALOAD 0
+    ALOAD 12
+    INVOKEINTERFACE java/util/Set.add (Ljava/lang/Object;)Z (itf)
+    GOTO L89
+   L89
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L90
+    LINENUMBER 161 L90
+    GOTO L91
+   L91
+    CHECKCAST java/lang/Boolean
+    GOTO L92
+   L85
+    POP
+    LINENUMBER 161 L85
+    ACONST_NULL
+   L92
+    POP
+    NOP
+    GOTO L93
+   L93
+    GETSTATIC kotlin/Unit.INSTANCE : Lkotlin/Unit;
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L94
+    LINENUMBER 289 L94
+    POP
+   L95
+    GOTO L68
+   L69
+    LINENUMBER 290 L69
+    NOP
+    GOTO L96
+   L96
+    INVOKESTATIC kotlin/jvm/internal/InlineMarker.afterInlineCall ()V
+   L97
+    LINENUMBER 162 L97
+    NOP
+    RETURN
+   L98
+    LOCALVARIABLE $i$a$-takeIf-WeeklyOperationalMemory$Companion$build$operatorIds$1$1$1\28\159\27 I L11 L16 13
+    LOCALVARIABLE p0\28 Ljava/lang/String; L10 L16 12
+    LOCALVARIABLE $i$a$-let-WeeklyOperationalMemory$Companion$build$operatorIds$1$1$2\29\159\27 I L24 L25 13
+    LOCALVARIABLE p0\29 Ljava/lang/String; L23 L25 12
+    LOCALVARIABLE $i$a$-forEach-WeeklyOperationalMemory$Companion$build$operatorIds$1$1\27\284\25 I L8 L29 10
+    LOCALVARIABLE it\27 Lcom/example/fieldtrack/data/local/entity/JobEntity; L7 L29 9
+    LOCALVARIABLE element\26 Ljava/lang/Object; L6 L31 8
+    LOCALVARIABLE $i$f$forEach\26\159 I L3 L32 6
+    LOCALVARIABLE $this$forEach\26 Ljava/lang/Iterable; L2 L32 5
+    LOCALVARIABLE $i$a$-takeIf-WeeklyOperationalMemory$Companion$build$operatorIds$1$2$1\32\160\31 I L44 L49 13
+    LOCALVARIABLE p0\32 Ljava/lang/String; L43 L49 12
+    LOCALVARIABLE $i$a$-let-WeeklyOperationalMemory$Companion$build$operatorIds$1$2$2\33\160\31 I L56 L57 13
+    LOCALVARIABLE p0\33 Ljava/lang/String; L55 L57 12
+    LOCALVARIABLE $i$a$-forEach-WeeklyOperationalMemory$Companion$build$operatorIds$1$2\31\287\25 I L40 L61 10
+    LOCALVARIABLE it\31 Lcom/example/fieldtrack/data/local/entity/ActiveJobsEntity; L39 L61 9
+    LOCALVARIABLE element\30 Ljava/lang/Object; L38 L63 8
+    LOCALVARIABLE $i$f$forEach\30\160 I L35 L64 6
+    LOCALVARIABLE $this$forEach\30 Ljava/lang/Iterable; L34 L64 5
+    LOCALVARIABLE $i$a$-takeIf-WeeklyOperationalMemory$Companion$build$operatorIds$1$3$1\36\161\35 I L75 L80 13
+    LOCALVARIABLE p0\36 Ljava/lang/String; L74 L80 12
+    LOCALVARIABLE $i$a$-let-WeeklyOperationalMemory$Companion$build$operatorIds$1$3$2\37\161\35 I L88 L89 13
+    LOCALVARIABLE p0\37 Ljava/lang/String; L87 L89 12
+    LOCALVARIABLE $i$a$-forEach-WeeklyOperationalMemory$Companion$build$operatorIds$1$3\35\289\25 I L72 L93 10
+    LOCALVARIABLE it\35 Lcom/example/fieldtrack/data/local/entity/FinancialEventEntity; L71 L93 9
+    LOCALVARIABLE element\34 Ljava/lang/Object; L70 L95 8
+    LOCALVARIABLE $i$f$forEach\34\161 I L67 L96 6
+    LOCALVARIABLE $this$forEach\34 Ljava/lang/Iterable; L66 L96 5
+    LOCALVARIABLE $i$a$-buildSet-WeeklyOperationalMemory$Companion$build$operatorIds$1\25\158\0 I L1 L98 4
+    LOCALVARIABLE $this$build_u24lambda_u2415\25 Ljava/util/Set; L0 L98 0
+    LOCALVARIABLE $weekJobs\25 Ljava/util/List; L0 L98 1
+    LOCALVARIABLE $activeJobs\25 Ljava/util/List; L0 L98 2
+    LOCALVARIABLE $weekEvents\25 Ljava/util/List; L0 L98 3
+    MAXSTACK = 2
+    MAXLOCALS = 17
+
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.wrapException(MethodInliner.kt:1000)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.preprocessNodeBeforeInline(MethodInliner.kt:783)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.markPlacesForInlineAndRemoveInlinable(MethodInliner.kt:605)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.doInline(MethodInliner.kt:93)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.access$doInline(MethodInliner.kt:41)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner$doInline$lambdaInliner$1.visitMethodInsn(MethodInliner.kt:346)
+	at org.jetbrains.org.objectweb.asm.tree.MethodInsnNode.accept(MethodInsnNode.java:115)
+	at org.jetbrains.org.objectweb.asm.tree.InsnList.accept(InsnList.java:144)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:749)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.doInline(MethodInliner.kt:426)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.doInline(MethodInliner.kt:98)
+	at org.jetbrains.kotlin.codegen.inline.MethodInliner.doInline(MethodInliner.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.inlineCall(IrInlineCodegen.kt:314)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:68)
+	... 60 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+
+

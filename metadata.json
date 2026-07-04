@@ -1,0 +1,6 @@
+{
+  "name": "FieldTrack",
+  "description": "Production-grade Android application replacing paper notebooks for agricultural contracting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

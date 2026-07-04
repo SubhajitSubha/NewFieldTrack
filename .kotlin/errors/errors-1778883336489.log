@@ -1,0 +1,589 @@
+kotlin version: 2.2.10
+error message: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't transform method node:
+weeklyPeakPattern (Ljava/util/List;)Lcom/example/fieldtrack/core/reporting/OwnerInsight;:
+    // annotable parameter count: 1 (visible)
+    // annotable parameter count: 1 (invisible)
+   L0
+    LINENUMBER 162 L0
+    ALOAD 1
+    INVOKEINTERFACE java/util/List.size ()I (itf)
+    BIPUSH 7
+    IF_ICMPGE L1
+    ACONST_NULL
+    ARETURN
+   L2
+    NOP
+   L1
+    LINENUMBER 163 L1
+    ALOAD 1
+    CHECKCAST java/lang/Iterable
+    ASTORE 3
+    NOP
+   L3
+    ICONST_0
+    ISTORE 4
+   L4
+    LINENUMBER 387 L4
+    NEW com/example/fieldtrack/core/reporting/OwnerOperationalMemory$weeklyPeakPattern$$inlined$groupingBy$1
+    DUP
+    ALOAD 3
+    INVOKESPECIAL com/example/fieldtrack/core/reporting/OwnerOperationalMemory$weeklyPeakPattern$$inlined$groupingBy$1.<init> (Ljava/lang/Iterable;)V
+    CHECKCAST kotlin/collections/Grouping
+    NOP
+    GOTO L5
+   L5
+    LINENUMBER 163 L5
+    INVOKESTATIC kotlin/collections/GroupingKt.eachCount (Lkotlin/collections/Grouping;)Ljava/util/Map;
+    ASTORE 2
+   L6
+    LINENUMBER 164 L6
+    ALOAD 2
+    ASTORE 5
+    NOP
+   L7
+    ALOAD 5
+    INVOKEINTERFACE java/util/Map.entrySet ()Ljava/util/Set; (itf)
+    CHECKCAST java/lang/Iterable
+    ASTORE 6
+    ICONST_0
+    POP
+    ALOAD 6
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 7
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L8
+    ACONST_NULL
+    GOTO L9
+   L8
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 8
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L10
+    ALOAD 8
+    GOTO L9
+   L10
+    ALOAD 8
+    CHECKCAST java/util/Map$Entry
+    ASTORE 9
+   L11
+    LINENUMBER 263 L11
+   L12
+    ICONST_0
+    ISTORE 10
+   L13
+    LINENUMBER 164 L13
+    ALOAD 9
+    INVOKEINTERFACE java/util/Map$Entry.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.intValue ()I
+    NOP
+    GOTO L14
+   L14
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+   L15
+    LINENUMBER 164 L15
+    CHECKCAST java/lang/Comparable
+    ASTORE 9
+   L16
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 10
+    ALOAD 10
+    CHECKCAST java/util/Map$Entry
+    ASTORE 11
+   L17
+    LINENUMBER 263 L17
+   L18
+    ICONST_0
+    ISTORE 12
+   L19
+    LINENUMBER 164 L19
+    ALOAD 11
+    INVOKEINTERFACE java/util/Map$Entry.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.intValue ()I
+    NOP
+    GOTO L20
+   L20
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+   L21
+    LINENUMBER 164 L21
+    CHECKCAST java/lang/Comparable
+    ASTORE 11
+    ALOAD 9
+    ALOAD 11
+    INVOKEINTERFACE java/lang/Comparable.compareTo (Ljava/lang/Object;)I (itf)
+    IFGE L22
+    ALOAD 10
+    ASTORE 8
+    ALOAD 11
+    ASTORE 9
+   L22
+    ALOAD 7
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L16
+    ALOAD 8
+   L9
+    CHECKCAST java/util/Map$Entry
+    NOP
+    GOTO L23
+   L23
+   L24
+    LINENUMBER 164 L24
+    ASTORE 4
+   L25
+    ALOAD 4
+    IFNULL L26
+    ALOAD 4
+    GOTO L27
+   L26
+    NOP
+    ACONST_NULL
+    ARETURN
+   L28
+    NOP
+    ACONST_NULL
+   L27
+    ASTORE 3
+   L29
+    LINENUMBER 165 L29
+    ALOAD 3
+    INVOKEINTERFACE java/util/Map$Entry.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.intValue ()I
+    ICONST_3
+    IF_ICMPGE L30
+    ACONST_NULL
+    ARETURN
+   L31
+    NOP
+   L30
+    LINENUMBER 166 L30
+    ALOAD 0
+    ALOAD 3
+    INVOKEINTERFACE java/util/Map$Entry.getKey ()Ljava/lang/Object; (itf)
+    CHECKCAST java/lang/Number
+    INVOKEVIRTUAL java/lang/Number.intValue ()I
+    INVOKESPECIAL com/example/fieldtrack/core/reporting/OwnerOperationalMemory.dayOfWeekName (I)Ljava/lang/String;
+    ASTORE 4
+   L32
+    LINENUMBER 167 L32
+    ALOAD 1
+    CHECKCAST java/lang/Iterable
+    ASTORE 7
+    NOP
+   L33
+    ICONST_0
+    ISTORE 8
+   L34
+    LINENUMBER 388 L34
+    ALOAD 7
+    ASTORE 9
+    NEW java/util/LinkedHashMap
+    DUP
+    INVOKESPECIAL java/util/LinkedHashMap.<init> ()V
+    CHECKCAST java/util/Map
+    ASTORE 10
+   L35
+    ICONST_0
+    ISTORE 11
+   L36
+    LINENUMBER 389 L36
+    ALOAD 9
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 12
+   L37
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L38
+    ALOAD 12
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 13
+   L39
+    LINENUMBER 390 L39
+    ALOAD 13
+    CHECKCAST com/example/fieldtrack/data/local/entity/JobEntity
+    ASTORE 14
+   L40
+    ICONST_0
+    ISTORE 15
+   L41
+    LINENUMBER 167 L41
+    ALOAD 14
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/JobEntity.getMachineType ()Lcom/example/fieldtrack/data/local/entity/MachineType;
+    INVOKEVIRTUAL com/example/fieldtrack/data/local/entity/MachineType.name ()Ljava/lang/String;
+    NOP
+    GOTO L42
+   L42
+   L43
+    LINENUMBER 390 L43
+    ASTORE 16
+   L44
+    LINENUMBER 391 L44
+    ALOAD 10
+    ASTORE 17
+   L45
+    ICONST_0
+    ISTORE 18
+   L46
+    LINENUMBER 392 L46
+    ALOAD 17
+    ALOAD 16
+    INVOKEINTERFACE java/util/Map.get (Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    ASTORE 19
+   L47
+    LINENUMBER 393 L47
+    ALOAD 19
+    IFNONNULL L48
+   L49
+    LINENUMBER 394 L49
+    ICONST_0
+    ISTORE 20
+   L50
+    LINENUMBER 391 L50
+    NEW java/util/ArrayList
+    DUP
+    INVOKESPECIAL java/util/ArrayList.<init> ()V
+    CHECKCAST java/util/List
+   L51
+    LINENUMBER 394 L51
+    ASTORE 20
+   L52
+    LINENUMBER 395 L52
+    ALOAD 17
+    ALOAD 16
+    ALOAD 20
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+   L53
+    LINENUMBER 396 L53
+    ALOAD 20
+   L54
+    GOTO L55
+   L48
+    LINENUMBER 398 L48
+    ALOAD 19
+   L55
+    LINENUMBER 393 L55
+    NOP
+   L56
+    LINENUMBER 391 L56
+    CHECKCAST java/util/List
+    ASTORE 14
+   L57
+    LINENUMBER 399 L57
+    ALOAD 14
+    ALOAD 13
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+   L58
+    POP
+   L59
+    GOTO L37
+   L38
+    LINENUMBER 401 L38
+    ALOAD 10
+   L60
+    LINENUMBER 388 L60
+    NOP
+    GOTO L61
+   L61
+   L62
+    LINENUMBER 167 L62
+    ASTORE 7
+    NOP
+   L63
+    ALOAD 7
+    INVOKEINTERFACE java/util/Map.entrySet ()Ljava/util/Set; (itf)
+    CHECKCAST java/lang/Iterable
+    ASTORE 8
+    ICONST_0
+    POP
+    ALOAD 8
+    INVOKEINTERFACE java/lang/Iterable.iterator ()Ljava/util/Iterator; (itf)
+    ASTORE 9
+    ALOAD 9
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L64
+    ACONST_NULL
+    GOTO L65
+   L64
+    ALOAD 9
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 10
+    ALOAD 9
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L66
+    ALOAD 10
+    GOTO L65
+   L66
+    ALOAD 10
+    CHECKCAST java/util/Map$Entry
+    ASTORE 11
+   L67
+    LINENUMBER 263 L67
+   L68
+    ICONST_0
+    ISTORE 12
+   L69
+    LINENUMBER 167 L69
+    ALOAD 11
+    INVOKEINTERFACE java/util/Map$Entry.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST java/util/List
+    INVOKEINTERFACE java/util/List.size ()I (itf)
+    NOP
+    GOTO L70
+   L70
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+   L71
+    LINENUMBER 167 L71
+    CHECKCAST java/lang/Comparable
+    ASTORE 11
+   L72
+    ALOAD 9
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 12
+    ALOAD 12
+    CHECKCAST java/util/Map$Entry
+    ASTORE 13
+   L73
+    LINENUMBER 263 L73
+   L74
+    ICONST_0
+    ISTORE 14
+   L75
+    LINENUMBER 167 L75
+    ALOAD 13
+    INVOKEINTERFACE java/util/Map$Entry.getValue ()Ljava/lang/Object; (itf)
+    CHECKCAST java/util/List
+    INVOKEINTERFACE java/util/List.size ()I (itf)
+    NOP
+    GOTO L76
+   L76
+    INVOKESTATIC java/lang/Integer.valueOf (I)Ljava/lang/Integer;
+   L77
+    LINENUMBER 167 L77
+    CHECKCAST java/lang/Comparable
+    ASTORE 13
+    ALOAD 11
+    ALOAD 13
+    INVOKEINTERFACE java/lang/Comparable.compareTo (Ljava/lang/Object;)I (itf)
+    IFGE L78
+    ALOAD 12
+    ASTORE 10
+    ALOAD 13
+    ASTORE 11
+   L78
+    ALOAD 9
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFNE L72
+    ALOAD 10
+   L65
+    CHECKCAST java/util/Map$Entry
+    NOP
+    GOTO L79
+   L79
+   L80
+    LINENUMBER 167 L80
+    ASTORE 6
+   L81
+    ALOAD 6
+    IFNULL L82
+    ALOAD 6
+    INVOKEINTERFACE java/util/Map$Entry.getKey ()Ljava/lang/Object; (itf)
+    CHECKCAST java/lang/String
+    ASTORE 7
+   L83
+    ALOAD 7
+    IFNULL L82
+    NOP
+   L84
+    ALOAD 7
+    GETSTATIC java/util/Locale.ROOT : Ljava/util/Locale;
+    INVOKEVIRTUAL java/lang/String.toLowerCase (Ljava/util/Locale;)Ljava/lang/String;
+    DUP
+    LDC "toLowerCase(...)"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue (Ljava/lang/Object;Ljava/lang/String;)V
+    NOP
+    GOTO L85
+   L85
+    GOTO L86
+   L82
+    LINENUMBER 167 L82
+    NOP
+    ACONST_NULL
+   L86
+    ASTORE 5
+   L87
+    LINENUMBER 168 L87
+    ALOAD 5
+    ASTORE 7
+   L88
+    NOP
+   L89
+    LINENUMBER 169 L89
+    ALOAD 7
+    LDC "harvester"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.areEqual (Ljava/lang/Object;Ljava/lang/Object;)Z
+    IFEQ L90
+    LDC "Harvesting"
+    GOTO L91
+   L90
+    LINENUMBER 170 L90
+    ALOAD 7
+    LDC "tractor"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.areEqual (Ljava/lang/Object;Ljava/lang/Object;)Z
+    IFEQ L92
+    LDC "Field work"
+    GOTO L91
+   L92
+    LINENUMBER 171 L92
+    LDC "Activity"
+   L91
+    LINENUMBER 168 L91
+    ASTORE 6
+   L93
+    LINENUMBER 173 L93
+    NEW com/example/fieldtrack/core/reporting/OwnerInsight
+    DUP
+   L94
+    LINENUMBER 174 L94
+    GETSTATIC com/example/fieldtrack/core/reporting/OwnerInsightKind.WEEKLY_PEAK : Lcom/example/fieldtrack/core/reporting/OwnerInsightKind;
+   L95
+    LINENUMBER 175 L95
+    ALOAD 6
+    ALOAD 4
+    INVOKEDYNAMIC makeConcatWithConstants(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; [
+      // handle kind 0x6 : INVOKESTATIC
+      java/lang/invoke/StringConcatFactory.makeConcatWithConstants(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+      // arguments:
+      "\u0001 usually peaks on \u0001s"
+    ]
+   L96
+    LINENUMBER 173 L96
+    INVOKESPECIAL com/example/fieldtrack/core/reporting/OwnerInsight.<init> (Lcom/example/fieldtrack/core/reporting/OwnerInsightKind;Ljava/lang/String;)V
+    ARETURN
+   L97
+    NOP
+   L98
+    LOCALVARIABLE $i$f$groupingBy\1\163 I L4 L5 4
+    LOCALVARIABLE $this$groupingBy\1 Ljava/lang/Iterable; L3 L5 3
+    LOCALVARIABLE $i$a$-maxByOrNull-OwnerOperationalMemory$weeklyPeakPattern$top$1\3\164\0 I L13 L14 10
+    LOCALVARIABLE it\3 Ljava/util/Map$Entry; L12 L14 9
+    LOCALVARIABLE $i$a$-maxByOrNull-OwnerOperationalMemory$weeklyPeakPattern$top$1\4\164\0 I L19 L20 12
+    LOCALVARIABLE it\4 Ljava/util/Map$Entry; L18 L20 11
+    LOCALVARIABLE $i$a$-groupBy-OwnerOperationalMemory$weeklyPeakPattern$workTypeHint$1\9\390\0 I L41 L42 15
+    LOCALVARIABLE it\9 Lcom/example/fieldtrack/data/local/entity/JobEntity; L40 L42 14
+    LOCALVARIABLE $i$a$-getOrPut-CollectionsKt___CollectionsKt$groupByTo$list$1\8\394\6 I L50 L51 20
+    LOCALVARIABLE answer\7 Ljava/lang/Object; L52 L54 20
+    LOCALVARIABLE $i$f$getOrPut\7\391 I L46 L56 18
+    LOCALVARIABLE value\7 Ljava/lang/Object; L47 L56 19
+    LOCALVARIABLE $this$getOrPut\7 Ljava/util/Map; L45 L56 17
+    LOCALVARIABLE key\6 Ljava/lang/Object; L44 L58 16
+    LOCALVARIABLE list\6 Ljava/util/List; L57 L58 14
+    LOCALVARIABLE element\6 Ljava/lang/Object; L39 L59 13
+    LOCALVARIABLE $i$f$groupByTo\6\388 I L36 L60 11
+    LOCALVARIABLE $this$groupByTo\6 Ljava/lang/Iterable; L35 L60 9
+    LOCALVARIABLE destination\6 Ljava/util/Map; L35 L60 10
+    LOCALVARIABLE $i$f$groupBy\5\167 I L34 L61 8
+    LOCALVARIABLE $this$groupBy\5 Ljava/lang/Iterable; L33 L61 7
+    LOCALVARIABLE $i$a$-maxByOrNull-OwnerOperationalMemory$weeklyPeakPattern$workTypeHint$2\11\167\0 I L69 L70 12
+    LOCALVARIABLE it\11 Ljava/util/Map$Entry; L68 L70 11
+    LOCALVARIABLE $i$a$-maxByOrNull-OwnerOperationalMemory$weeklyPeakPattern$workTypeHint$2\12\167\0 I L75 L76 14
+    LOCALVARIABLE it\12 Ljava/util/Map$Entry; L74 L76 13
+    LOCALVARIABLE byDow Ljava/util/Map; L6 L98 2
+    LOCALVARIABLE top Ljava/util/Map$Entry; L29 L98 3
+    LOCALVARIABLE dayName Ljava/lang/String; L32 L98 4
+    LOCALVARIABLE workTypeHint Ljava/lang/String; L87 L98 5
+    LOCALVARIABLE verb Ljava/lang/String; L93 L98 6
+    LOCALVARIABLE this Lcom/example/fieldtrack/core/reporting/OwnerOperationalMemory; L0 L98 0
+    LOCALVARIABLE jobs Ljava/util/List; L0 L98 1
+    MAXSTACK = 5
+    MAXLOCALS = 21
+
+File is unknown
+The root cause java.lang.OutOfMemoryError was thrown at: org.jetbrains.org.objectweb.asm.tree.analysis.Frame.<init>(Frame.java:96)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:89)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:796)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:469)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$10$compile(IncrementalCompilerRunner.kt:254)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:272)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:124)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1570)
+Caused by: java.lang.OutOfMemoryError: Java heap space
+	at org.jetbrains.org.objectweb.asm.tree.analysis.Frame.<init>(Frame.java:96)
+	at org.jetbrains.kotlin.codegen.coroutines.UninitializedStoresProcessor$UninitializedNewValueFrame.<init>(processUninitializedStores.kt:133)
+	at org.jetbrains.kotlin.codegen.coroutines.UninitializedStoresProcessor.run$lambda$1(processUninitializedStores.kt:91)
+	at org.jetbrains.kotlin.codegen.coroutines.UninitializedStoresProcessor$$Lambda/0x000007f001968288.invoke(Unknown Source)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.fullMergeControlFlowEdge(FastAnalyzer.kt:233)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.mergeControlFlowEdge(FastAnalyzer.kt:216)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge(FastAnalyzer.kt:208)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.processControlFlowEdge$default(FastAnalyzer.kt:206)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitOpInsn(FastAnalyzer.kt:292)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.visitMeaningfulInstruction(FastAnalyzer.kt:281)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeInstruction(FastAnalyzer.kt:113)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyzeMainLoop(FastAnalyzer.kt:74)
+	at org.jetbrains.kotlin.codegen.optimization.common.FastAnalyzer.analyze(FastAnalyzer.kt:53)
+	at org.jetbrains.kotlin.codegen.coroutines.UninitializedStoresProcessor.run(processUninitializedStores.kt:92)
+	at org.jetbrains.kotlin.codegen.optimization.OptimizationMethodVisitor.performTransformations(OptimizationMethodVisitor.kt:71)
+	at org.jetbrains.kotlin.codegen.TransformationMethodVisitor.visitEnd(TransformationMethodVisitor.kt:67)
+	at org.jetbrains.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:796)
+	at org.jetbrains.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:770)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:469)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+
+
