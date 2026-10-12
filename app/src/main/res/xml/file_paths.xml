@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!--
+       Bills and statements are written here and shared out by content URI, so the
+       receiving app gets read access to one file and nothing else. Cache rather than
+       files: a sent bill can always be made again from the job.
+    -->
+    <cache-path name="documents" path="documents/" />
     <external-files-path name="my_images" path="Pictures" />
 </paths>

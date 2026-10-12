@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   The FieldTrack mark for the launch window.
+
+   Drawn on a 48-unit canvas with the 32-unit glyph inset by 8 on each side, because
+   the platform masks a splash icon to the middle two-thirds of its bounds and crops
+   anything that strays outside.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!--
+       Centred and scaled to sit inside the circle the platform masks a splash icon
+       to, rather than filling it edge to edge, which makes the strokes read as far
+       heavier than the mark is drawn.
+    -->
+    <group
+        android:translateX="11.2"
+        android:translateY="11.2"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <path
+            android:pathData="M14,21 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M3,25 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M3,21 V15 H9 V8 H16 V15"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M16,15 H23"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

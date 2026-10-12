@@ -1,6 +1,973 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every user-visible string in FieldTrack lives here.
+
+  v1 ships English only, but nothing in the app may hardcode a string: adding
+  values-hi/strings.xml (and later pa, mr, te, ta) must be a drop-in. Android lint
+  enforces this as an error for all new code — see app/lint.xml.
+
+  Conventions
+    - Name as <area>_<thing>: customer_add_title, work_start_button.
+    - Content descriptions end in _cd and describe the ACTION, not the picture:
+      "Add half an acre", not "Plus icon".
+    - Anything with a number uses a placeholder or a plural, never concatenation —
+      word order differs in Hindi and the sentence will come apart.
+    - Keep the voice plain. These are read by people who may not read fluently.
+-->
 <resources>
+
     <string name="app_name">FieldTrack</string>
+
+    <!-- ============================ common actions ============================ -->
+    <string name="action_continue">Continue</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_back_cd">Go back</string>
+    <string name="action_close_cd">Close</string>
+    <string name="action_more_cd">More options</string>
+    <string name="action_not_now">Not now</string>
+    <string name="action_see_all">See all</string>
+    <string name="action_change">Change</string>
+    <string name="action_try_again">Try again now</string>
+    <string name="action_send_whatsapp">Send on WhatsApp</string>
+    <string name="action_speak_cd">Speak instead of typing</string>
+    <string name="action_use_location_cd">Use my current location</string>
+    <string name="action_add_photo">Add photo</string>
+    <string name="action_call_cd">Call %1$s</string>
+    <string name="action_notifications_cd">Alerts</string>
+
+    <!-- ================================ status ================================ -->
+    <string name="status_running">Running</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_due">Payment due</string>
+    <string name="status_idle">Idle</string>
+    <string name="status_breakdown">Breakdown</string>
+    <string name="status_settled">Settled</string>
+    <string name="status_unpaid">Unpaid</string>
+    <string name="status_paid">Paid</string>
+    <!-- Marks a job typed in afterwards rather than timed. Kept short: it sits on a row. -->
+    <string name="status_added_by_hand">By hand</string>
+
+    <!-- =============================== navigation ============================= -->
+    <string name="nav_home">Home</string>
+    <string name="nav_jobs">Jobs</string>
+    <string name="nav_my_work">My work</string>
+    <string name="nav_customers">Customers</string>
+    <string name="nav_machines">Machines</string>
+    <string name="nav_fleet">Fleet</string>
+    <string name="nav_more">More</string>
+
+    <!-- ============================== work loop =============================== -->
+    <string name="work_start">Start work</string>
+    <string name="work_start_caption">Timer runs while you work</string>
+    <string name="work_start_offline_caption">Works without network</string>
+    <string name="work_pause">Pause</string>
+    <string name="work_resume">Carry on</string>
+    <string name="work_finish">Finish</string>
+    <string name="work_time_on_job">Time on this job</string>
+    <string name="work_area_done">Area done</string>
+    <string name="work_amount_done">Amount done</string>
+    <string name="work_next_trip_rate">Next trip %1$s</string>
+    <string name="finish_rate_varies">Different rates</string>
+    <string name="work_trips_done">Trips done</string>
+    <string name="work_earning_so_far">Earning so far</string>
+    <string name="work_one_more_trip">One more trip</string>
+    <string name="work_undo_trip_cd">Remove the last trip</string>
+    <string name="work_increase_cd">Add %1$s</string>
+    <string name="work_decrease_cd">Take away %1$s</string>
+    <string name="work_hand_over_title">Hand this job to someone else</string>
+    <string name="work_hand_over_caption">Owner or driver — the timer keeps running</string>
+    <string name="work_discard_title">Throw away this work</string>
+    <string name="work_discard_caption">Nothing will be saved</string>
+
+    <!-- The quick row and the "more actions" sheet on a running job. -->
+    <string name="work_type_amount_cd">Type the amount instead</string>
+    <string name="work_type_amount_title">How much is done?</string>
+    <string name="work_type_amount_save">Save it</string>
+    <string name="work_more">More</string>
+    <string name="work_more_cd">More things you can do on this job</string>
+    <string name="work_actions_title">More actions</string>
+    <string name="work_back_to_work">Back to work</string>
+    <string name="work_hand_over_nobody">Nobody else on your team yet</string>
+    <string name="work_rate_title">Change the rate</string>
+    <string name="work_rate_caption">Now %1$s</string>
+    <string name="work_rate_save">Save the rate</string>
+    <string name="work_breakdown_title">Machine broke down</string>
+    <string name="work_breakdown_caption">Stops the clock and logs it</string>
+    <string name="work_breakdown_what">What went wrong?</string>
+    <string name="work_breakdown_note">Anything else? (not needed)</string>
+    <string name="work_breakdown_note_hint">Lift not holding</string>
+    <string name="work_breakdown_save">Log it and stop the clock</string>
+    <string name="work_note_title">Add a note</string>
+    <string name="work_note_short">Note</string>
+    <string name="work_note_caption">Kept with this job</string>
+    <string name="work_note_hint">Field was very wet</string>
+    <string name="work_note_save">Save the note</string>
+    <string name="work_fuel_title">Fuel</string>
+    <string name="work_fuel_caption">Diesel put in on this job</string>
+    <string name="work_fuel_litres">Litres</string>
+    <string name="work_fuel_cost">What it cost</string>
+    <string name="work_fuel_note">Your cost — the customer is not billed for this.</string>
+    <string name="work_fuel_save">Save the fuel</string>
+    <string name="work_fuel_no_machine">Pick a machine on the job to keep fuel against it.</string>
+    <string name="work_discard_confirm">Throw this work away?</string>
+    <string name="work_discard_confirm_body">The timer, the measurements and anything you noted on this job are all lost. The customer is not billed.</string>
+    <string name="work_discard_confirm_action">Yes, throw it away</string>
+    <string name="breakdown_hydraulics">Hydraulics</string>
+    <string name="breakdown_engine">Engine</string>
+    <string name="breakdown_tyre">Tyre</string>
+    <string name="breakdown_electrical">Electrical</string>
+    <string name="breakdown_implement">Implement</string>
+    <string name="breakdown_other">Something else</string>
+
+    <!-- ============================= billing modes ============================ -->
+    <string name="billing_per_land">Per %1$s</string>
+    <string name="billing_per_acre_caption">Area you cover</string>
+    <string name="billing_per_hour">Per hour</string>
+    <string name="billing_per_hour_caption">Time on the job</string>
+    <string name="billing_per_trip">Per trip</string>
+    <string name="billing_per_trip_caption">Loads carried</string>
+    <string name="billing_per_unit">Per unit</string>
+    <string name="billing_per_unit_caption">Bag, quintal, piece</string>
+    <string name="billing_per_km">Per km</string>
+    <string name="billing_per_km_caption">Distance carried</string>
+    <string name="billing_fixed">Fixed price</string>
+    <string name="billing_fixed_caption">One agreed amount</string>
+
+    <!-- Land units are regional: the picker offers all of them, the business picks one. -->
+    <string name="unit_acre">Acre</string>
+    <string name="unit_bigha">Bigha</string>
+    <string name="unit_kanal">Kanal</string>
+    <string name="unit_guntha">Guntha</string>
+    <string name="unit_katha">Katha</string>
+    <string name="unit_hour">Hour</string>
+    <string name="unit_trip">Trip</string>
+    <string name="unit_piece">Piece</string>
+    <string name="unit_quintal">Quintal</string>
+    <string name="unit_bag">Bag</string>
+    <string name="unit_km">km</string>
+
+    <plurals name="count_jobs">
+        <item quantity="one">%d job</item>
+        <item quantity="other">%d jobs</item>
+    </plurals>
+    <plurals name="count_trips">
+        <item quantity="one">%d trip</item>
+        <item quantity="other">%d trips</item>
+    </plurals>
+    <string name="time_today">today</string>
+    <plurals name="count_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="count_customers">
+        <item quantity="one">%d customer</item>
+        <item quantity="other">%d customers</item>
+    </plurals>
+    <plurals name="count_machines">
+        <item quantity="one">%d machine</item>
+        <item quantity="other">%d machines</item>
+    </plurals>
+
+    <!-- ================================ money ================================= -->
+    <string name="money_today">Today</string>
+    <string name="money_owed_to_you">Owed to you</string>
+    <string name="money_total_due">Total due</string>
+    <string name="money_old_balance">Old balance</string>
+    <string name="money_paid_today">Paid today</string>
+    <string name="money_balance">Balance</string>
+    <string name="money_received">Money received</string>
+    <string name="money_did_they_pay">Did they pay now?</string>
+    <string name="money_paid_all">All of it</string>
+    <string name="money_paid_some">Some</string>
+    <string name="money_paid_none">Nothing</string>
+    <string name="money_paid_none_caption">on credit</string>
+    <string name="money_how_much_given">How much did they give?</string>
+    <string name="money_left_after">Still owed after this</string>
+    <string name="method_cash">Cash</string>
+    <string name="method_upi">UPI</string>
+    <string name="method_bank">Bank</string>
+    <string name="method_cheque">Cheque</string>
+
+    <!-- ============================== offline ================================= -->
+    <string name="sync_title">Saving &amp; backup</string>
+    <string name="sync_offline_title">No network right now</string>
+    <string name="sync_offline_body">Keep working. Everything is written on this phone and goes up by itself when signal comes back.</string>
+    <string name="sync_waiting">Waiting to go up</string>
+    <string name="sync_last_backup">Last backup %1$s</string>
+    <string name="sync_conflict_title">Two of you changed one job</string>
+    <string name="sync_conflict_action">Sort it out</string>
+    <string name="sync_all_safe">Everything is backed up</string>
+    <string name="sync_all_safe_body">Every job, payment and customer on this phone is on the server too.</string>
+    <string name="sync_sending">Backing up\u2026</string>
+    <string name="sync_sending_body">Sending what is waiting. You can carry on working \u2014 this goes on in the background.</string>
+    <string name="sync_never">Not backed up yet</string>
+    <string name="sync_nothing_waiting">Nothing waiting to go up</string>
+    <string name="sync_nothing_waiting_body">Nothing on this phone is waiting for the server. Work you record from now on goes up on its own.</string>
+    <string name="sync_waiting_title">Waiting for signal</string>
+    <string name="sync_blocked_title">One change could not be saved</string>
+    <string name="sync_blocked_body">Your work is safe on this phone and none of it has been lost. The server would not take one change, so the ones after it are waiting behind it.</string>
+    <string name="sync_no_backend_title">Backup is not switched on</string>
+    <string name="sync_no_backend_body">Everything is saved on this phone and kept, ready to go up as soon as backup is set up.</string>
+    <string name="sync_now">Back up now</string>
+    <string name="sync_destination">Backing up to %1$s</string>
+    <string name="sync_retry_at">Next try at %1$s</string>
+    <string name="sync_whats_waiting">What is waiting</string>
+    <string name="sync_reason">What the server said</string>
+    <string name="sync_set_aside">Set this one aside</string>
+    <string name="sync_set_aside_note">The rest will go up. This one stays on the phone, and nothing is deleted.</string>
+    <plurals name="sync_set_aside_count">
+        <item quantity="one">%1$d change set aside</item>
+        <item quantity="other">%1$d changes set aside</item>
+    </plurals>
+    <string name="sync_just_now">just now</string>
+    <string name="sync_safe_note">Nothing is removed from this phone until the server has it. If backup never works, your records are still here.</string>
+    <plurals name="sync_changes_waiting">
+        <item quantity="one">%1$d change waiting</item>
+        <item quantity="other">%1$d changes waiting</item>
+    </plurals>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <string name="sync_item_jobs">Jobs</string>
+    <string name="sync_item_job_events">Work records</string>
+    <string name="sync_item_ledger">Bills and payments</string>
+    <string name="sync_item_customers">Customers</string>
+    <string name="sync_item_machines">Machines</string>
+    <string name="sync_item_fuel">Fuel entries</string>
+    <string name="sync_item_breakdowns">Breakdowns</string>
+    <string name="sync_item_memberships">Team</string>
+    <string name="sync_item_orgs">Business details</string>
+    <string name="sync_item_rates">Rates</string>
+    <string name="sync_item_invites">Invite codes</string>
+    <string name="sync_item_other">Other changes</string>
+
+    <!-- ========================== service &amp; repairs ========================= -->
+    <string name="upkeep_title">Service &amp; repairs</string>
+    <string name="upkeep_broken">Needs fixing</string>
+    <string name="upkeep_coming_up">Coming up</string>
+    <string name="upkeep_done">Done</string>
+    <string name="upkeep_all_well">Nothing is broken and nothing is due.</string>
+    <string name="upkeep_reported">Broken since %1$s</string>
+    <string name="upkeep_job_waiting">A job is paused on this machine</string>
+    <string name="upkeep_mark_repaired">It is fixed</string>
+    <string name="upkeep_log_repair">Log the repair</string>
+    <string name="upkeep_log_service">Log a service</string>
+    <string name="upkeep_hours_to_go">%1$s to go</string>
+    <string name="upkeep_overdue">Overdue</string>
+    <string name="upkeep_last_at">Last at %1$s</string>
+    <string name="upkeep_due_at">Due at %1$s</string>
+    <string name="upkeep_hours_value">%1$s hr</string>
+    <string name="upkeep_new_service">Log a service</string>
+    <string name="upkeep_new_repair">Log the repair</string>
+    <string name="upkeep_which_machine">Which machine</string>
+    <string name="upkeep_what_was_done">What was done</string>
+    <string name="upkeep_what_hint">Like oil &amp; filter change, or new hydraulic pump</string>
+    <string name="upkeep_cost">What it cost (optional)</string>
+    <string name="upkeep_vendor">Who did it (optional)</string>
+    <string name="upkeep_save">Save</string>
+    <string name="upkeep_closes_breakdown">Saving this marks the machine working again</string>
+    <string name="upkeep_no_machines">Add a machine first.</string>
+    <string name="fleet_upkeep">Service &amp; repairs</string>
+    <plurals name="fleet_broken_count">
+        <item quantity="one">%1$d machine needs fixing</item>
+        <item quantity="other">%1$d machines need fixing</item>
+    </plurals>
+    <string name="fleet_nothing_broken">Nothing broken right now</string>
+
+    <!-- ============================== signing in ============================= -->
+    <string name="signin_phone_title">What is your\nmobile number?</string>
+    <string name="signin_phone_body">We will send a 6-digit code to confirm it is you.</string>
+    <string name="signin_phone_label">Mobile number</string>
+    <string name="signin_phone_hint">Use the number that has WhatsApp</string>
+    <string name="signin_privacy">Your number is only used to sign you in. We never show it to your customers.</string>
+    <string name="signin_send_code">Send code</string>
+    <string name="signin_code_title">Enter the code</string>
+    <string name="signin_code_sent_to">Sent to %1$s</string>
+    <string name="signin_change_number">Change number</string>
+    <string name="signin_code_label">6-digit code</string>
+    <string name="signin_verify">Verify</string>
+    <string name="signin_no_code">Did not get it?</string>
+    <string name="signin_resend">Send it again</string>
+    <string name="signin_resend_in">Send again in %1$s</string>
+    <string name="signin_sending">Sending\u2026</string>
+    <string name="signin_checking">Checking\u2026</string>
+    <string name="signin_err_bad_number">That does not look like a mobile number. Check it and try again.</string>
+    <string name="signin_err_wrong_code">That code is not right. Type it again.</string>
+    <string name="signin_err_expired">That code has run out. Ask for a new one.</string>
+    <string name="signin_err_too_many">Too many tries. Wait a while before asking again.</string>
+    <string name="signin_err_unreachable">No network. Your work is safe on this phone \u2014 try again when you have signal.</string>
+    <string name="signin_err_unknown">Could not sign you in just now. Try again in a moment.</string>
+    <string name="signin_err_detail">Details: %1$s</string>
+    <string name="signin_code_digit">Digit %1$d</string>
+
+    <!-- ============================ inviting a driver ======================== -->
+    <string name="invite_title">Invite a driver</string>
+    <string name="invite_blurb">Send this code on WhatsApp. They type it when they open FieldTrack for the first time.</string>
+    <string name="invite_your_code">Your invite code</string>
+    <string name="invite_valid_days_text">Works for %1$s</string>
+    <string name="invite_expires_today">Works until the end of today</string>
+    <string name="invite_none_title">No code right now</string>
+    <string name="invite_none_body">Make one when you are ready to add a driver. It works for seven days, and only one is live at a time.</string>
+    <string name="invite_make">Make a code</string>
+    <string name="invite_copy">Copy</string>
+    <string name="invite_copied">Code copied</string>
+    <string name="invite_new">New code</string>
+    <string name="invite_new_warning">The old code stops working</string>
+    <string name="invite_revoke">Stop this code</string>
+    <string name="invite_share">Send on WhatsApp</string>
+    <string name="invite_share_text">Join %1$s on FieldTrack. Your code is %2$s. Get the app, then type this code when it asks.</string>
+    <string name="invite_what_can_they_do">What can they do?</string>
+    <string name="invite_perm_jobs">Start and finish jobs</string>
+    <string name="invite_perm_jobs_note">Their own jobs only</string>
+    <string name="invite_perm_upkeep">Log fuel and breakdowns</string>
+    <string name="invite_perm_upkeep_note">On machines they drive</string>
+    <string name="invite_perm_money">See money and dues</string>
+    <string name="invite_perm_money_note">Rates, balances, earnings</string>
+    <string name="invite_perm_customers">Add new customers</string>
+    <string name="invite_perm_customers_note">Create records themselves</string>
+    <string name="invite_perm_bills">Close bills and take payment</string>
+    <string name="invite_perm_bills_note">Finish a job and collect for it</string>
+    <string name="invite_perm_locked">Every driver can do this</string>
+    <string name="invite_offline_note">They need signal once, to join. After that it all works without.</string>
+    <string name="team_invite">Invite a driver</string>
+
+    <!-- ========================= joining a business ========================== -->
+    <string name="join_title">Have a code?</string>
+    <string name="join_body">If someone has invited you to drive for them, type the code they sent.</string>
+    <string name="join_label">Invite code</string>
+    <string name="join_check">Check code</string>
+    <string name="join_checking">Checking\u2026</string>
+    <string name="join_skip">I do not have a code</string>
+    <string name="join_needs_signal">Joining a business needs signal, just this once. Everything after works without.</string>
+    <string name="join_err_not_found">No business found for that code. Check it with whoever sent it.</string>
+    <string name="join_err_expired">That code has run out. Ask them to send a new one.</string>
+    <string name="join_err_used">That code has already been used. Ask them to send a new one.</string>
+    <string name="join_err_unreachable">Could not check the code. You need signal for this one step.</string>
+    <string name="join_preview_title">Join this business?</string>
+    <string name="join_preview_as">You will join as a driver</string>
+    <string name="join_your_name">Your name</string>
+    <string name="join_name_note">Your boss will see this name against the work you do.</string>
+    <string name="join_confirm">Join %1$s</string>
+    <string name="join_joining">Joining\u2026</string>
+    <string name="join_you_can">What you will be able to do</string>
+    <string name="join_can_jobs">Start and finish your own jobs</string>
+    <string name="join_can_upkeep">Log fuel and breakdowns</string>
+    <string name="join_can_money">See rates, balances and earnings</string>
+    <string name="join_can_customers">Add new customers</string>
+    <string name="join_can_bills">Close bills and take payment</string>
+    <string name="join_cannot_money">You will not see money or dues</string>
+    <string name="join_privacy">Your boss sees the work you record here. Your other work, and anything from another business, stays yours.</string>
+
+    <!-- =========================== machine detail =========================== -->
+    <string name="machine_hours">Hours</string>
+    <string name="machine_earned">Earned</string>
+    <string name="machine_diesel">Diesel</string>
+    <string name="machine_edit_cd">Edit this machine</string>
+    <string name="machine_driving">%1$s driving</string>
+    <string name="machine_service_in">Service due in %1$s</string>
+    <string name="machine_service_overdue">Service overdue</string>
+    <string name="machine_service_last">Last done at %1$s</string>
+    <string name="machine_no_schedule">No service schedule set</string>
+    <string name="machine_action_fuel">Fuel</string>
+    <string name="machine_action_service">Service</string>
+    <string name="machine_action_breakdown">Breakdown</string>
+    <string name="machine_report_title">What went wrong with %1$s?</string>
+    <string name="machine_report_note">Say a bit more (optional)</string>
+    <string name="machine_report_save">Report it broken</string>
+    <string name="machine_report_note_hint">Like the pump is leaking, or it will not start</string>
+    <string name="machine_recent_jobs">Recent jobs</string>
+    <string name="machine_no_jobs">No work recorded on this machine yet.</string>
+    <string name="machine_gone">This machine is no longer here.</string>
+    <plurals name="machine_breakdowns_open">
+        <item quantity="one">%1$d fault still open</item>
+        <item quantity="other">%1$d faults still open</item>
+    </plurals>
+    <string name="fuel_title">Diesel</string>
+    <string name="fuel_spent_all">Spent on this machine</string>
+    <string name="fuel_litres_total">%1$s L</string>
+    <string name="fuel_per_hour">%1$s L per hour</string>
+    <string name="fuel_per_hour_note">Across the hours this machine has run</string>
+    <string name="fuel_no_hours">Not enough hours recorded to work out a rate yet</string>
+    <string name="fuel_entries">Entries</string>
+    <string name="fuel_none">No diesel recorded for this machine yet.</string>
+    <string name="fuel_add">Add diesel</string>
+    <string name="fuel_litres">Litres</string>
+    <string name="fuel_cost">What it cost</string>
+    <string name="fuel_save">Save</string>
+    <string name="fuel_by">%1$s</string>
+    <string name="fuel_on_job">On a job</string>
+    <string name="fuel_in_yard">In the yard</string>
+    <string name="more_backup_waiting">%1$s to go up</string>
+
+    <!-- =============================== rate card ============================= -->
+    <string name="rates_title">My rates</string>
+    <string name="rates_blurb">These load by themselves when you start a job, so you do not type them every time.</string>
+    <string name="rates_add">Add a rate</string>
+    <string name="rates_empty_title">No rates saved yet</string>
+    <string name="rates_empty_body">Add what you usually charge, or just start a job — whatever you type there is remembered here.</string>
+    <string name="rates_per_customer">Different rate per customer</string>
+    <string name="rates_per_customer_note">Remember what you charged each farmer last time</string>
+    <string name="rates_per_customer_off_note">One price list for everybody</string>
+    <plurals name="rates_customer_deals">
+        <item quantity="one">%1$d customer has their own rate</item>
+        <item quantity="other">%1$d customers have their own rates</item>
+    </plurals>
+    <string name="rates_new">New rate</string>
+    <string name="rates_edit">Edit rate</string>
+    <string name="rates_work">What work</string>
+    <string name="rates_charge_by">How you charge</string>
+    <string name="rates_amount">Rate</string>
+    <string name="rates_label">Name it (optional)</string>
+    <string name="rates_label_hint">Like wheat or paddy, when you charge differently</string>
+    <string name="rates_label_for">%1$s \u2014 %2$s</string>
+    <string name="rates_save">Save rate</string>
+    <string name="rates_delete">Remove this rate</string>
+    <string name="rates_delete_confirm">Remove this rate?</string>
+    <string name="rates_delete_body">Jobs you have already billed keep the rate they were billed at. This only changes what is offered next time.</string>
+    <string name="rates_delete_yes">Remove</string>
+    <string name="more_rates">My rates</string>
+    <plurals name="more_rates_count">
+        <item quantity="one">%1$d rate saved</item>
+        <item quantity="other">%1$d rates saved</item>
+    </plurals>
+    <string name="more_rates_none">Nothing saved yet</string>
+    <string name="start_usual_rate_labelled">%1$s %2$s</string>
+
+    <!-- ========================= backdated work entry ========================= -->
+    <string name="past_job_title">Work you did earlier</string>
+    <string name="past_job_why">Phone was off, out of charge, or you forgot to press start? Put the work in here.</string>
+    <string name="past_job_which_day">Which day?</string>
+    <string name="past_job_yesterday">Yesterday</string>
+    <string name="past_job_today">Today</string>
+    <string name="past_job_pick_date">Pick</string>
+    <string name="past_job_how_long">How long?</string>
+    <string name="past_job_from">From</string>
+    <string name="past_job_to">To</string>
+    <string name="past_job_forgot_times">I don\'t remember the times</string>
+    <string name="past_job_by_hand_note">Marked so you and the owner both know it was not timed.</string>
+    <string name="past_job_save">Save this work</string>
+
+    <!-- =========================== roles and access =========================== -->
+    <string name="role_question">How do you work?</string>
+    <string name="role_question_caption">This only changes what your home screen shows. Every owner can drive and record work too.</string>
+    <string name="role_solo">I work my own machines</string>
+    <string name="role_solo_caption">You own a tractor or harvester and do the work yourself for other farmers.</string>
+    <string name="role_business">I run a business</string>
+    <string name="role_business_caption">Several machines and drivers. See who is working where — and drive one yourself whenever you want.</string>
+    <string name="role_driver">I drive for an owner</string>
+    <string name="role_driver_caption">Join with a code — more than one is fine</string>
+    <string name="org_switch_title">Who you work for</string>
+    <string name="org_switch_right_now">Right now</string>
+    <string name="org_switch_also">Also work for</string>
+    <string name="org_switch_join_another">Join another business</string>
+    <string name="org_privacy_title">They are kept apart</string>
+    <string name="org_privacy_sees">You only see the customers, fields and machines of the business you are working for right now.</string>
+    <string name="org_privacy_hidden">No business can see your work for anyone else, or what you earn there.</string>
+    <string name="org_privacy_leaving">When a season ends, the records stay with that business. You stop seeing them.</string>
+    <string name="org_switch_cd">Switch to another business</string>
+
+    <!-- ================================ home ================================= -->
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_todays_work">Today\'s work</string>
+    <string name="home_nothing_yet_title">Nothing recorded today</string>
+    <string name="home_nothing_yet_body">Tap the green button when you start working.</string>
+    <string name="home_from_customers">from %1$s</string>
+    <string name="home_resume_running">Work is running</string>
+    <string name="home_resume_paused">Work is paused</string>
+    <string name="home_resume_action">Go back to it</string>
+
+    <!-- ============================ start a job =============================== -->
+    <string name="start_step">Step %1$d of 3</string>
+    <string name="start_who_for">Who is this work for?</string>
+    <string name="start_search_customers">Search by name or village</string>
+    <string name="start_new_customer">New customer</string>
+    <string name="start_recent">Recent</string>
+    <string name="start_no_customers_title">No customers yet</string>
+    <string name="start_no_customers_body">Add the farmer you are working for, then start the job.</string>
+    <string name="start_what_doing">What are you doing?</string>
+    <string name="start_machine">Machine</string>
+    <string name="start_machine_busy">%1$s · working</string>
+    <string name="start_machine_down">%1$s · broken down</string>
+    <string name="start_machine_busy_note">A machine already on a job can still be picked — hand that job over if it has moved on.</string>
+    <string name="start_new_machine">New machine</string>
+    <string name="start_new_machine_title">Add a machine</string>
+    <string name="start_new_machine_save">Add it and carry on</string>
+    <string name="start_no_machine">No machine</string>
+    <string name="start_add_machine">Add a machine</string>
+    <string name="start_machine_name">What do you call it?</string>
+    <string name="start_work_type">Work type</string>
+    <string name="start_how_charging">How are you charging?</string>
+    <string name="start_your_rate">Your rate</string>
+    <string name="start_counted_in">Counted in</string>
+    <string name="start_usual_rate">Usual rate</string>
+    <string name="start_begin">Start the timer</string>
+    <string name="start_next">Next</string>
+    <string name="start_rate_per">per %1$s</string>
+
+    <!-- Work types offered in the picker. -->
+    <string name="work_type_rotavator">Rotavator</string>
+    <string name="work_type_ploughing">Ploughing</string>
+    <string name="work_type_harvesting">Harvesting</string>
+    <string name="work_type_levelling">Levelling</string>
+    <string name="work_type_spraying">Spraying</string>
+    <string name="work_type_hauling">Hauling</string>
+    <string name="work_type_sowing">Sowing</string>
+    <string name="work_type_other">Other</string>
+
+    <!-- ============================ live tracking ============================= -->
+    <string name="live_started_at">Started %1$s</string>
+    <string name="live_rate_line">%1$s &#215; %2$s</string>
+    <string name="live_add_cd">Add half %1$s</string>
+    <string name="live_take_cd">Take away half %1$s</string>
+    <string name="live_add_one_trip">One more trip</string>
+    <string name="live_hourly_note">Charged by the hour — the clock is the bill.</string>
+    <string name="live_fixed_note">Agreed price. Nothing to count.</string>
+
+    <!-- =============================== finishing ============================== -->
+    <string name="finish_check_title">Check before saving</string>
+    <string name="finish_work_done">Work finished</string>
+    <string name="finish_time_worked">Time worked</string>
+    <string name="finish_amount_done">Amount done</string>
+    <string name="finish_rate">Rate</string>
+    <string name="finish_total">Total for this job</string>
+    <string name="finish_make_bill">Make the bill</string>
+    <string name="finish_bill_title">The bill</string>
+    <string name="finish_bill_for">Bill to</string>
+    <string name="finish_this_job">This job</string>
+    <string name="finish_save_and_send">Save and send</string>
+    <string name="finish_saved">Saved</string>
+    <string name="finish_saved_detail">%1$s received &#183; %2$s still due</string>
+    <string name="finish_saved_nothing">Nothing paid yet &#183; %1$s due</string>
+    <string name="finish_done">Done</string>
+    <string name="finish_receipt_preview">They will see this</string>
+    <string name="finish_bill_no">Bill %1$s</string>
+    <string name="finish_send_sms">SMS</string>
+    <string name="start_rate_per_amount">%1$s / %2$s</string>
+    <string name="finish_pdf">PDF</string>
+    <string name="finish_print">Print</string>
+    <string name="finish_pdf_making">Making the bill…</string>
+    <string name="finish_pdf_failed">Could not make the PDF. The bill is still saved.</string>
+    <string name="finish_pdf_chooser">Send the bill</string>
+    <string name="finish_copy">Copy</string>
+    <string name="finish_copied">Bill copied</string>
+    <string name="finish_made_with">made with FieldTrack</string>
+    <string name="finish_pay_upi">Pay by UPI: %1$s</string>
+
+    <!-- =========================== add a customer ============================= -->
+    <string name="customer_new_title">New customer</string>
+    <string name="customer_name">Name</string>
+    <string name="customer_name_hint">Farmer\'s name</string>
+    <string name="customer_speak_name_cd">Speak the name instead of typing</string>
+    <string name="customer_mobile">Mobile number</string>
+    <string name="customer_whatsapp_note">Bills will go to this WhatsApp</string>
+    <string name="customer_village">Village</string>
+    <string name="customer_already_owes">Do they already owe you?</string>
+    <string name="customer_already_owes_note">Old balance from your notebook. Leave at 0 if nothing.</string>
+    <string name="customer_save">Save customer</string>
+
+    <!-- =============================== machines ============================== -->
+    <string name="machine_tractor">Tractor</string>
+    <string name="machine_harvester">Harvester</string>
+    <string name="machine_rotavator">Rotavator</string>
+    <string name="machine_cultivator">Cultivator</string>
+    <string name="machine_trolley">Trolley</string>
+    <string name="machine_thresher">Thresher</string>
+    <string name="machine_sprayer">Sprayer</string>
+    <string name="machine_transplanter">Transplanter</string>
+    <string name="machine_power_tiller">Power tiller</string>
+    <string name="machine_baler">Baler</string>
+    <string name="machine_leveller">Leveller</string>
+    <string name="machine_other">Other</string>
+
+    <!-- ============================= onboarding ============================== -->
+    <string name="onboard_tagline">Your work. Your money.\nWritten down.</string>
+    <string name="onboard_welcome_title">No more notebook.</string>
+    <string name="onboard_welcome_body">Everything you do in the field, kept straight — and paid for.</string>
+    <string name="onboard_point_start">One tap to start</string>
+    <string name="onboard_point_start_body">The timer runs while you work</string>
+    <string name="onboard_point_owed">Know who owes you</string>
+    <string name="onboard_point_owed_body">Every customer, every rupee</string>
+    <string name="onboard_point_bill">Send the bill</string>
+    <string name="onboard_point_bill_body">Straight to their WhatsApp</string>
+    <string name="onboard_get_started">Get started</string>
+    <string name="onboard_no_signup">Everything saves on this phone. Signal not needed.</string>
+
+    <string name="onboard_role_title">How do you work?</string>
+    <string name="onboard_role_caption">This only changes what your home screen shows. Every owner can drive and record work too.</string>
+    <string name="onboard_role_solo">I work my own machines</string>
+    <string name="onboard_role_solo_body">You own a tractor or harvester and do the work yourself for other farmers.</string>
+    <string name="onboard_role_business">I run a business</string>
+    <string name="onboard_role_business_body">Several machines and drivers. See who is working where — and drive one yourself whenever you want.</string>
+    <string name="onboard_role_driver_note">Driving for someone else? Joining their business with a code is coming soon.</string>
+
+    <string name="onboard_you_title">Tell us about you</string>
+    <string name="onboard_you_caption">Your customers will see this name on their bill.</string>
+    <string name="onboard_your_name">Your name</string>
+    <string name="onboard_your_name_hint">Your full name</string>
+    <string name="onboard_speak_name_cd">Speak your name instead of typing</string>
+
+    <string name="onboard_business_title">Name your business</string>
+    <string name="onboard_business_caption">This appears on every bill you send.</string>
+    <string name="onboard_business_name">Business name</string>
+    <string name="onboard_business_name_hint">Singh Agro Services</string>
+    <string name="onboard_land_unit">You measure land in</string>
+
+    <string name="onboard_machine_title">What do you run?</string>
+    <string name="onboard_machine_caption">Tap your machine. You can add more later.</string>
+    <string name="onboard_machine_name">Call it what you call it</string>
+    <string name="onboard_machine_name_hint">Mahindra 575</string>
+    <string name="onboard_machine_skip">I will add it later</string>
+
+    <string name="onboard_done_title">You are set up</string>
+    <string name="onboard_done_body">%1$s is ready. Start your first job whenever you like.</string>
+    <string name="onboard_done_action">Start working</string>
+    <string name="onboard_finish">Finish</string>
+
+    <!-- ================================ jobs ================================= -->
+    <string name="jobs_title">Jobs</string>
+    <string name="jobs_filter_running">Running</string>
+    <string name="jobs_filter_today">Done today</string>
+    <string name="jobs_filter_week">This week</string>
+    <string name="jobs_none_running">Nobody is working right now.</string>
+    <string name="jobs_none_today">No work finished today yet.</string>
+    <string name="jobs_none_week">Nothing recorded this week.</string>
+    <string name="jobs_driving">%1$s driving</string>
+    <string name="jobs_by">by %1$s</string>
+    <string name="jobs_working_now">Working now</string>
+
+    <!-- ================================ fleet ================================ -->
+    <string name="fleet_title">Fleet</string>
+    <string name="fleet_working">Working</string>
+    <string name="fleet_idle">Idle</string>
+    <string name="fleet_down">Down</string>
+    <string name="fleet_hours_week">Hours used this week</string>
+    <string name="fleet_hours_total">%1$s hr</string>
+    <string name="fleet_attention">Needs attention</string>
+    <string name="fleet_all_well">Nothing needs attention.</string>
+    <string name="fleet_see_all">See all machines</string>
+    <string name="fleet_breakdown_since">Down since %1$s</string>
+    <string name="fleet_empty_title">No machines yet</string>
+    <string name="fleet_empty_body">Add your machines to see who is working where.</string>
+    <!-- Weekday initials for the hours chart. Kept separate so a translation can
+         use its own single letters rather than slicing an English word. -->
+    <string name="day_mon">M</string>
+    <string name="day_tue">T</string>
+    <string name="day_wed">W</string>
+    <string name="day_thu">T</string>
+    <string name="day_fri">F</string>
+    <string name="day_sat">S</string>
+    <string name="day_sun">S</string>
+
+    <!-- ============================== machines =============================== -->
+    <string name="machines_title">Machines</string>
+    <string name="machines_add_cd">Add a machine</string>
+    <string name="machines_empty_title">No machines yet</string>
+    <string name="machines_empty_body">Add the tractor or harvester you work with. You can still record jobs without one.</string>
+    <string name="machines_hours">%1$s hr</string>
+    <string name="machines_service_due">Service due in %1$s hr</string>
+    <string name="machines_service_overdue">Service overdue</string>
+    <string name="machines_new_title">Add a machine</string>
+    <string name="machines_kind">Type</string>
+    <string name="machines_name">Name</string>
+    <string name="machines_name_hint">Mahindra 575</string>
+    <string name="machines_plate">Number plate</string>
+    <string name="machines_plate_hint">HR 22 F 4411</string>
+    <string name="machines_hours_used">Hours on it now</string>
+    <string name="machines_service_every">Service every</string>
+    <string name="machines_service_every_hint">250</string>
+    <string name="machines_service_unit">hours</string>
+    <string name="machines_save">Save machine</string>
+
+    <!-- ================================= more ================================ -->
+    <string name="more_title">More</string>
+    <string name="more_owner">Owner</string>
+    <string name="more_operator">Driver</string>
+    <string name="more_your_work">Your work</string>
+    <string name="more_machines_count">%1$s</string>
+    <string name="more_customers_count">%1$s</string>
+    <string name="more_settings">Settings</string>
+    <string name="more_language">Language</string>
+    <string name="more_language_value">English</string>
+    <string name="more_language_soon">More languages are on the way</string>
+    <string name="more_backup">Backup</string>
+    <string name="more_help">Help</string>
+    <string name="more_help_offline_title">No signal in the field?</string>
+    <string name="more_help_offline_body">Everything keeps working. Your jobs and payments save on the phone, and go up on their own once you have network again.</string>
+    <string name="more_version">FieldTrack %1$s</string>
+
+    <!-- ================================ edits ================================ -->
+    <string name="edit_cd">Edit</string>
+    <string name="edit_customer_title">Edit customer</string>
+    <string name="edit_machine_title">Edit machine</string>
+    <!-- ================================ team ================================= -->
+    <string name="team_title">My team</string>
+    <string name="team_add_cd">Add someone to the team</string>
+    <string name="team_working_now">Working now</string>
+    <string name="team_everyone_else">Everyone else</string>
+    <string name="team_no_longer_here">No longer here</string>
+    <string name="team_you">you</string>
+    <string name="team_free">Free</string>
+    <string name="team_left">Left</string>
+    <string name="team_driver">Driver</string>
+    <string name="team_joined">joined %1$s</string>
+    <string name="team_empty_title">Just you so far</string>
+    <string name="team_empty_body">Add a driver and you can hand jobs to them, see who is out on which machine, and decide what each of them may do.</string>
+    <string name="team_add_title">Add a driver</string>
+    <string name="team_add_note">What they are allowed to do is set on their own screen afterwards.</string>
+    <string name="team_add_name_hint">Jaswant Kumar</string>
+    <string name="team_add_save">Add them</string>
+    <string name="team_details">Their details</string>
+    <string name="team_member_name">Name</string>
+    <string name="team_allowed_to">Allowed to</string>
+    <string name="team_perm_money">See money</string>
+    <string name="team_perm_money_note">Rates, totals and what customers owe</string>
+    <string name="team_perm_customers">Add and correct customers</string>
+    <string name="team_perm_customers_note">New names, villages and phone numbers</string>
+    <string name="team_perm_bills">Close bills and take payment</string>
+    <string name="team_perm_bills_note">Finish a job, bill it, and take the money. Includes seeing money.</string>
+    <string name="team_stat_jobs">JOBS</string>
+    <string name="team_stat_hours">HOURS</string>
+    <string name="team_stat_brought_in">BROUGHT IN</string>
+    <string name="team_privacy_note">%1$s may drive for other businesses too. These figures cover only their work for you — and they can see nothing of yours.</string>
+    <string name="team_not_yourself">You cannot change your own access here. Another owner can do it for you.</string>
+    <string name="team_call">Call</string>
+    <string name="team_remove">Remove from the team</string>
+    <string name="team_take_back">Take them back on</string>
+    <string name="more_team">My team</string>
+    <plurals name="count_members">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+
+    <string name="profile_title">Profile</string>
+    <string name="profile_you">You</string>
+    <string name="profile_business">Your business</string>
+    <string name="profile_measuring">How you measure</string>
+    <string name="profile_land_measured_in">Land measured in</string>
+    <string name="profile_address">Address</string>
+    <string name="profile_business_mode">Business mode</string>
+    <string name="profile_business_mode_note">Adds drivers, live jobs and a fleet view</string>
+    <string name="profile_not_set">Not set</string>
+    <string name="edit_profile_title">Your details</string>
+    <string name="edit_business_title">Your business</string>
+    <string name="edit_save">Save changes</string>
+    <string name="edit_business_name_note">This is the name at the top of every bill you send.</string>
+    <string name="edit_bill_details">On your bills</string>
+    <string name="edit_bill_details_note">These print in the heading of every bill you send. Leave out whatever you do not have.</string>
+    <string name="edit_business_phone">Phone number</string>
+    <string name="edit_business_address">Village and address</string>
+    <string name="edit_business_address_hint">Village Kheri, Tehsil Fatehabad</string>
+    <string name="edit_business_gstin">GSTIN</string>
+    <string name="edit_business_gstin_note">Only if you are registered. Most farm work is not.</string>
+    <string name="edit_business_upi">UPI id for payments</string>
+    <string name="edit_business_upi_hint">name@bank</string>
+    <string name="edit_business_upi_note">Shown on the bill so a customer can pay you from the field.</string>
+    <string name="edit_unit_note">New jobs will be measured in this. Work already recorded keeps the unit it was measured in.</string>
+    <string name="edit_not_allowed">Your owner has not given you permission to change this.</string>
+
+    <!-- ====================== work entered by hand =========================== -->
+    <string name="past_title">Work you did earlier</string>
+    <string name="past_why">Phone was off, out of charge, or you forgot to press start? Put the work in here.</string>
+    <string name="past_which_day">Which day?</string>
+    <string name="past_yesterday">Yesterday</string>
+    <string name="past_today">Today</string>
+    <string name="past_pick_day">Pick a day</string>
+    <string name="past_customer">Customer</string>
+    <string name="past_choose">Choose</string>
+    <string name="past_how_charged">How were you charging?</string>
+    <string name="past_how_much">How much did you do?</string>
+    <string name="past_how_long">How long? (not needed)</string>
+    <string name="past_forget_times">I don\'t remember</string>
+    <string name="past_from">From</string>
+    <string name="past_to">To</string>
+    <string name="past_hours">hours</string>
+    <string name="past_time_unset">Tap to set</string>
+    <string name="past_times_backwards">The finish time is before the start time.</string>
+    <string name="past_overlap">This machine is already on another job at that time. Save it anyway if that is what happened.</string>
+    <string name="past_by_hand">BY HAND</string>
+    <string name="past_by_hand_note">Marked so nobody mistakes it for a timed record.</string>
+    <string name="past_save">Save this work</string>
+    <string name="past_save_amount">Save this work · %1$s</string>
+    <string name="past_pick_customer_title">Who was it for?</string>
+    <string name="home_add_past">Work done earlier</string>
+
+    <!-- ============================= one job ================================= -->
+    <string name="job_detail_title">This job</string>
+    <string name="job_detail_gone">This job is no longer here.</string>
+    <string name="job_detail_what_happened">What happened</string>
+    <string name="job_detail_no_events">Nothing recorded on this job yet.</string>
+    <string name="job_detail_drove_it">Drove it</string>
+    <string name="job_detail_measure">%1$s %2$s</string>
+    <string name="job_detail_open">Go to the job</string>
+    <string name="job_detail_billed">Billed</string>
+    <string name="job_detail_thrown_away">Thrown away</string>
+    <string name="event_started">Work started</string>
+    <string name="event_paused">Paused</string>
+    <string name="event_paused_for">%1$s</string>
+    <string name="event_resumed">Carried on</string>
+    <string name="event_completed">Finished and billed</string>
+    <string name="event_quantity">Set to %1$s %2$s</string>
+    <string name="event_trip_added">Trip added at %1$s</string>
+    <string name="event_trip_removed">Trip taken off</string>
+    <string name="event_fuel">Diesel added — %1$s L</string>
+    <string name="event_breakdown">Machine broke down — %1$s</string>
+    <string name="event_photo">Photo added</string>
+    <string name="event_handed_over">Handed to %1$s</string>
+    <string name="event_rate_changed">Rate changed to %1$s</string>
+
+    <!-- Amending a job that has already been billed. -->
+    <string name="amend_title">Correct this job</string>
+    <string name="amend_billed_note">This job has already been billed. Correcting it adds a line to the customer\'s khata — the original bill stays as it was.</string>
+    <string name="amend_quantity">Amount done</string>
+    <string name="amend_rate">Rate</string>
+    <string name="amend_reason">Why are you changing it?</string>
+    <string name="amend_reason_hint">Measured again</string>
+    <string name="amend_was">Was %1$s</string>
+    <string name="amend_now_owes_more">They will owe %1$s more</string>
+    <string name="amend_now_owes_less">They will owe %1$s less</string>
+    <string name="amend_no_change">Nothing changes on the khata</string>
+    <string name="amend_reason_required">Write why you are changing it, then save.</string>
+    <string name="amend_save">Save the correction</string>
+
+    <!-- ====================== one customer's record ========================== -->
+    <string name="payment_clears">This money clears</string>
+    <string name="payment_clears_part">%1$s of it</string>
+    <string name="payment_clears_more">and %1$d more</string>
+    <string name="payment_leaves_credit">%1$s stays as credit on their account.</string>
+    <string name="customer_new_job_cd">Start a job for this customer</string>
+    <string name="customer_tab_khata">Khata</string>
+    <string name="customer_tab_jobs">Jobs</string>
+    <string name="customer_tab_payments">Payments</string>
+    <string name="customer_stat_lines">khata lines</string>
+    <string name="customer_stat_jobs">jobs</string>
+    <string name="customer_stat_billed">billed in all</string>
+    <string name="customer_stat_unpaid">unpaid</string>
+    <string name="customer_stat_received">received</string>
+    <string name="customer_stat_payments">payments</string>
+    <string name="customer_stat_last">last one</string>
+    <string name="customer_jobs_empty">No work recorded for this customer yet.</string>
+    <string name="customer_payments_empty">They have not paid anything yet.</string>
+    <string name="customer_job_unpaid">Unpaid</string>
+    <string name="customer_job_part_paid">%1$s left</string>
+    <string name="customer_job_settled">Settled</string>
+    <string name="customer_payment_against">against %1$s</string>
+    <string name="customer_payment_on_account">on account</string>
+    <!-- A received amount on a list. The sign is a true minus, not a hyphen. -->
+    <string name="customer_payment_amount">− %1$s</string>
+    <string name="customer_none">—</string>
+
+    <!-- ===================== statements and dues lists ======================= -->
+    <string name="statement_title">Statement</string>
+    <string name="statement_period">For which days</string>
+    <string name="statement_period_season">This season</string>
+    <string name="statement_period_year">This year</string>
+    <string name="statement_period_three_months">Last 3 months</string>
+    <string name="statement_period_settled">Since we last settled</string>
+    <string name="statement_period_everything">From the start</string>
+    <string name="statement_period_pick">Pick dates</string>
+    <string name="statement_range">%1$s to %2$s</string>
+    <string name="statement_range_open">Up to %1$s</string>
+    <string name="statement_never_settled">This account has not been squared yet.</string>
+    <string name="statement_content">What goes on it</string>
+    <string name="statement_everything">Work and payments</string>
+    <string name="statement_everything_note">The whole khata, with a running balance</string>
+    <string name="statement_unpaid">Only what is unpaid</string>
+    <string name="statement_unpaid_note">The jobs they still have to pay for</string>
+    <string name="statement_payments">Only payments</string>
+    <string name="statement_payments_note">What they have given you</string>
+    <string name="statement_pick_jobs">Pick the jobs myself</string>
+    <string name="statement_pick_jobs_note">One job, or just the few they are asking about</string>
+    <string name="statement_will_show">This will show</string>
+    <string name="statement_will_show_received">You have received</string>
+    <string name="statement_nothing">Nothing to show for these days</string>
+    <plurals name="statement_lines">
+        <item quantity="one">%1$d line</item>
+        <item quantity="other">%1$d lines</item>
+    </plurals>
+    <plurals name="statement_jobs">
+        <item quantity="one">%1$d job</item>
+        <item quantity="other">%1$d jobs</item>
+    </plurals>
+    <string name="statement_oldest">oldest %1$s</string>
+    <string name="statement_look">Look first</string>
+    <string name="statement_send">Send it</string>
+    <string name="statement_making">Making it…</string>
+    <string name="statement_failed">Could not make the document.</string>
+    <string name="statement_chooser">Send the statement</string>
+    <string name="statement_picker_title">Pick the jobs</string>
+    <string name="statement_picker_hint">Unpaid jobs come first, because that is usually what the argument is about.</string>
+    <string name="statement_picker_unpaid">Still unpaid</string>
+    <string name="statement_picker_settled">Already settled</string>
+    <string name="statement_picker_clear">Clear</string>
+    <string name="statement_picker_make">Make the statement</string>
+    <string name="statement_picked">%1$s picked</string>
+    <string name="statement_part_paid">%1$s of %2$s already paid</string>
+    <string name="statement_rate_note">%1$s per %2$s</string>
+    <string name="statement_paid_label">paid</string>
+    <string name="statement_brought_forward">Balance brought forward</string>
+    <string name="statement_payment_line">Payment received · %1$s</string>
+    <string name="statement_period_label_all">From the start</string>
+    <string name="statement_dues_credit_since">%1$s</string>
+
+    <!-- ============================= customers =============================== -->
+    <string name="customers_title">Customers</string>
+    <string name="customers_search">Search</string>
+    <string name="customers_filter_owes">Owes me</string>
+    <string name="customers_total_owed">Total owed to you</string>
+    <string name="customers_empty_title">No customers yet</string>
+    <string name="customers_empty_body">Add the farmers you work for. Their khata builds itself as you record jobs and payments.</string>
+    <string name="customers_none_owing">Nobody owes you anything right now.</string>
+    <string name="customers_add_cd">Add a customer</string>
+    <string name="customers_jobs_count">%1$s</string>
+
+    <!-- ========================== the khata (ledger) ========================== -->
+    <string name="ledger_they_owe">They owe you</string>
+    <string name="ledger_settled_title">All settled</string>
+    <string name="ledger_oldest">oldest %1$s</string>
+    <string name="ledger_got_money">Got money</string>
+    <string name="ledger_remind">Remind</string>
+    <string name="ledger_khata">Khata</string>
+    <string name="ledger_empty">Nothing recorded for this customer yet.</string>
+    <string name="ledger_opening_label">Old balance brought over</string>
+    <string name="ledger_payment_label">Paid &#183; %1$s</string>
+    <string name="ledger_adjustment_label">Adjustment</string>
+    <string name="ledger_reversed_note">cancels an earlier entry</string>
+    <string name="ledger_call_cd">Call this customer</string>
+    <!-- Sent to the customer on WhatsApp. Keep it short and never accusing. -->
+    <string name="ledger_reminder_text">%1$s\n\nYour balance is %2$s.\nThank you.</string>
+
+    <!-- =========================== record a payment =========================== -->
+    <string name="payment_title">Money received</string>
+    <string name="payment_from">From %1$s</string>
+    <string name="payment_currently_owes">Currently owes</string>
+    <string name="payment_amount">Amount</string>
+    <string name="payment_all_of_it">All of it</string>
+    <string name="payment_how_paid">How did they pay?</string>
+    <string name="payment_left_after">Left after this</string>
+    <string name="payment_save_and_send">Save and send receipt</string>
+    <string name="payment_just_save">Just save it</string>
+
+    <!-- ========================== payments received =========================== -->
+    <string name="history_title">Payments</string>
+    <string name="history_collected">Collected</string>
+    <string name="history_still_out">Still out</string>
+    <string name="history_this_month">This month</string>
+    <string name="history_all">Everything</string>
+    <string name="history_empty">No payments recorded yet.</string>
+
+    <!-- ============================ legacy (to remove) ========================
+         Used only by the pre-redesign screens under ui/. Delete each one as its
+         screen is replaced.
+    -->
     <string name="welcome_title">Welcome to FieldTrack</string>
     <string name="welcome_description">Keep all your farming work,\ncustomers,\npayments,\nmachines\nin one secure place.</string>
     <string name="continue_button">Continue</string>
@@ -13,4 +980,5 @@
     <string name="skip_for_now">Skip for now</string>
     <string name="skip_description">You can start recording work immediately.\nJoin a business later without losing your data.</string>
     <string name="settings_title">Settings</string>
+
 </resources>

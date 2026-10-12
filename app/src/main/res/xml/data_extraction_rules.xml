@@ -1,19 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What Android may carry to a reinstall, a new phone, or a direct device-to-device
+    transfer. API 31 and above; older devices read backup_rules.xml.
+
+    Naming only exclusions means everything else is carried, which is what we want:
+    the database holds work and money, there is no pull sync to restore it from, and
+    a restore onto a fresh install is the only thing standing between a reinstall and
+    a lost season.
+
+    See backup_rules.xml for why the device identity is left behind.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="sharedpref" path="fieldtrack.device.xml"/>
+        <exclude domain="sharedpref" path="fieldtrack.sync.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!--
+            Moving to a new phone retires the old one, but the two exist at once
+            while it happens, and a transferred identity would make both of them the
+            same writer for as long as the old handset is still being used.
+        -->
+        <exclude domain="sharedpref" path="fieldtrack.device.xml"/>
+        <exclude domain="sharedpref" path="fieldtrack.sync.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

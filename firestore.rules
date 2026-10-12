@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// FieldTrack — Cloud Firestore security rules.
+//
+// Two collections, and the difference between them is the whole design:
+//
+//   orgs/{orgId}/...        a business's work. Readable only by its members.
+//   inviteCodes/{code}      how somebody who is not a member yet gets in.
+//
+// Membership is checked by fetching a document at a path built from the caller's own
+// authenticated id. Rules can fetch a known path and cannot search a collection, so
+// the membership id is `{orgId}_{personId}` precisely to make this question
+// answerable — a random id with the person named in a field would be unfindable
+// here, and the only alternative would be leaving every organisation open.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membershipPath(orgId) {
+      return /databases/$(database)/documents/orgs/$(orgId)/memberships/$(orgId + '_' + request.auth.uid);
+    }
+
+    function isMember(orgId) {
+      return signedIn() && exists(membershipPath(orgId));
+    }
+
+    // An invite code, published outside any organisation because the person who
+    // needs it cannot name the organisation yet — finding that out is the point.
+    //
+    // `get` is allowed to any signed-in caller: holding the code IS the
+    // authorisation, and requiring a sign-in keeps a leaked code from being readable
+    // by the whole internet. `list` is refused, because a listable collection of
+    // open invites is a way to enumerate every business accepting drivers and walk
+    // into one. The code has to be the address, never a search result.
+    match /inviteCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Only a member of the organisation the code points at may publish or
+      // withdraw it, so nobody can mint invitations to somebody else's business.
+      allow create, update, delete: if isMember(request.resource.data.orgId)
+                                    || isMember(resource.data.orgId);
+    }
+
+    match /orgs/{orgId} {
+      allow read, write: if isMember(orgId);
+
+      // Creating your own membership is how both routes in actually happen: an owner
+      // setting up a new business, and a driver redeeming a code. Both are allowed
+      // only to write a membership that names themselves, at the path built from
+      // their own id — so this can never be used to add somebody else, or to add
+      // yourself under a different identity.
+      //
+      // It does leave one gap, and it is worth naming rather than hiding: a signed-in
+      // caller who learns an existing orgId could create their own membership in it
+      // and become a member. Closing that needs the rule to verify an invite code the
+      // caller holds, which needs the redeeming write to carry the code — the next
+      // thing to do here, and the reason this file is not finished.
+      match /memberships/{memberId} {
+        allow create: if signedIn()
+                      && memberId == orgId + '_' + request.auth.uid
+                      && request.resource.data.personId == request.auth.uid;
+        allow read, update, delete: if isMember(orgId);
+      }
+
+      match /{collection}/{document} {
+        allow read, write: if isMember(orgId);
+      }
+    }
+
+    // Anything not laid out above is not something this app writes.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

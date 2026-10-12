@@ -1,26 +1,60 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "dummy-project-id",
-    "storage_bucket": "dummy-project-id.appspot.com"
+    "project_number": "678306423611",
+    "firebase_url": "https://fieldflow-f0278-default-rtdb.firebaseio.com",
+    "project_id": "fieldflow-f0278",
+    "storage_bucket": "fieldflow-f0278.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:678306423611:android:477700c0d636d30e160d1e",
         "android_client_info": {
           "package_name": "com.example.fieldtrack"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "dummy-client-id",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "dummy-api-key"
+          "current_key": "AIzaSyDzYbAZ9sOjGNQNvUVSGDDPvFlRWhtqSLw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678306423611:android:9264760e7b49da3a160d1e",
+        "android_client_info": {
+          "package_name": "com.example.fieldtrack.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzYbAZ9sOjGNQNvUVSGDDPvFlRWhtqSLw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678306423611:android:073749b77bb22c55160d1e",
+        "android_client_info": {
+          "package_name": "com.example.fieldtrack.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzYbAZ9sOjGNQNvUVSGDDPvFlRWhtqSLw"
         }
       ],
       "services": {

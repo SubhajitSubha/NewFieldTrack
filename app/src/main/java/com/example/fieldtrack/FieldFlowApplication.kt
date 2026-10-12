@@ -2,7 +2,22 @@ package com.example.fieldtrack
 
 import android.app.Application
 import android.util.Log
+import com.example.fieldtrack.data.db.FieldTrackDatabase
+import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.local.database.FieldFlowDatabase
+import com.example.fieldtrack.data.repository.DirectoryRepository
+import com.example.fieldtrack.data.repository.LedgerRepository
+import com.example.fieldtrack.data.repository.TeamRepository
+import com.example.fieldtrack.data.repository.WorkRepository
+import com.example.fieldtrack.data.session.SessionStore
+import com.example.fieldtrack.data.sync.FirestoreInviteLookup
+import com.example.fieldtrack.data.sync.FirestoreTransport
+import com.example.fieldtrack.data.sync.InviteLookup
+import com.example.fieldtrack.data.sync.PrefsSyncJournal
+import com.example.fieldtrack.data.sync.SyncEngine
+import com.example.fieldtrack.data.sync.SyncTransport
+import com.example.fieldtrack.data.sync.SyncWorker
+import java.util.UUID
 import com.example.fieldtrack.data.repository.ActiveJobRepository
 import com.example.fieldtrack.data.repository.CustomBrandModelRepository
 import com.example.fieldtrack.data.repository.CustomerRepository
@@ -41,6 +56,79 @@ class FieldFlowApplication : Application() {
 
     val database: FieldFlowDatabase by lazy {
         FieldFlowDatabase.getInstance(this)
+    }
+
+    // ---------------------------------------------------------------------------
+    // The real data layer.
+    //
+    // Added alongside the old `database` above rather than replacing it, so the
+    // cut-over happens one screen at a time. `database` is not a Room database at
+    // all — it is a plain class whose DAO accessors return null, and every
+    // repository hanging off it is an empty shell that swallows its constructor
+    // arguments. Nothing it touches has ever persisted anything.
+    //
+    // Everything below is real: Room, real SQL, covered by tests under
+    // app/src/test/java/com/example/fieldtrack/data. As each redesigned screen
+    // lands it reads from here, and the stubs above are deleted with the last
+    // screen that referenced them.
+    // ---------------------------------------------------------------------------
+
+    val db: FieldTrackDatabase by lazy { FieldTrackDatabase.build(this) }
+
+    private val syncQueue: SyncQueue by lazy { SyncQueue(db.outboxDao()) }
+
+    /**
+     * Identifies this install when merging a job two people edited offline. Stored
+     * rather than derived from hardware: Android's device identifiers are either
+     * unavailable or user-resettable, and this only has to be stable and unique.
+     */
+    val deviceId: String by lazy {
+        val prefs = getSharedPreferences("fieldtrack.device", MODE_PRIVATE)
+        prefs.getString("id", null) ?: UUID.randomUUID().toString().also {
+            prefs.edit().putString("id", it).apply()
+        }
+    }
+
+    val workRepository: WorkRepository by lazy {
+        WorkRepository(db = db, syncQueue = syncQueue, deviceId = deviceId)
+    }
+
+    val ledgerRepository: LedgerRepository by lazy {
+        LedgerRepository(db = db, syncQueue = syncQueue, deviceId = deviceId)
+    }
+
+    val directoryRepository: DirectoryRepository by lazy {
+        DirectoryRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository)
+    }
+
+    val teamRepository: TeamRepository by lazy {
+        TeamRepository(db = db, syncQueue = syncQueue)
+    }
+
+    val sessionStore: SessionStore by lazy { SessionStore(this, db) }
+
+    /**
+     * Where local changes go. The only place in the app that names a server.
+     *
+     * Swapping this for null is all it takes to run with no backend at all: the
+     * queue then holds everything and the backup screen says so, which is how this
+     * was built and tested before the Firebase project existed.
+     */
+    private val syncTransport: SyncTransport by lazy {
+        FirestoreTransport(deviceId = deviceId)
+    }
+
+    /**
+     * The one read path in the app. See [InviteLookup] for why it is on its own.
+     */
+    val inviteLookup: InviteLookup by lazy { FirestoreInviteLookup() }
+
+    val syncEngine: SyncEngine by lazy {
+        SyncEngine(
+            outbox = db.outboxDao(),
+            transport = syncTransport,
+            journal = PrefsSyncJournal(this),
+        )
     }
 
     val syncManager: SyncManager by lazy {
@@ -138,6 +226,32 @@ class FieldFlowApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Work out who is using the app before the first frame is drawn, so the
+        // launch window can stay up until there is something real to show instead
+        // of a blank frame. Failure is swallowed deliberately: the startup gate in
+        // the UI handles an unresolved session, and the splash gives up on a timer
+        // rather than waiting on this.
+        appScope.launch {
+            // An install whose person id predates sign-in cannot satisfy a
+            // membership rule, so its queue would sit refused for ever. Carrying the
+            // records over to the authenticated identity is what unsticks it.
+            runCatching {
+                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                    ?.let { sessionStore.adoptAuthenticatedIdentity(it) }
+            }
+            runCatching { sessionStore.load() }
+                // Machines whose stored status disagrees with the facts are put
+                // right here. Failure is swallowed: a status that stays wrong is a
+                // cosmetic problem, and refusing to start over it is not.
+                .getOrNull()
+                ?.let { session ->
+                    runCatching { workRepository.reconcileMachineStatuses(session.orgId) }
+                }
+        }
+
+        // Wakes on a connection and drains whatever the day's work left queued.
+        SyncWorker.start(this, hasBackend = true)
 
         /*
         // Initialize device identity — must be first (other systems depend on it)

@@ -1,13 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What Android may carry to a reinstall or a new phone. Devices on API 30 and
+    below; API 31 and above read data_extraction_rules.xml instead.
+
+    The database is deliberately included. It is the only copy of work that was done
+    and money that was collected, and there is no pull sync yet — so if somebody
+    reinstalls, this backup is the difference between their season being there and
+    being gone. Auto Backup only ever restores onto a fresh install, never over a
+    running one, so it cannot overwrite anything newer.
+
+    The device identity is deliberately excluded. It is written into every job as
+    lastWriterDeviceId and decides whose edit wins when the same job was changed on
+    two phones; it has to be stable for one install and different between installs.
+    Carrying it to a second phone would leave both of them claiming to be the same
+    writer, and the merge would have no way to tell them apart. A fresh install
+    generates a new one, which is the correct answer.
 -->
 <full-backup-content>
+    <exclude domain="sharedpref" path="fieldtrack.device.xml"/>
     <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+        Backup bookkeeping. "Last backed up at" describes what this install sent, and
+        restoring it onto another phone would have that phone claim a backup it never
+        made — the one thing the backup screen must never say.
+    -->
+    <exclude domain="sharedpref" path="fieldtrack.sync.xml"/>
 </full-backup-content>
