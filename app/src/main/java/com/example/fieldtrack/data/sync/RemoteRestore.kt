@@ -21,6 +21,15 @@ data class RemoteRow(
 data class PullPage(
     val rows: List<RemoteRow>,
     val watermark: Long,
+    /**
+     * Collections the server would not let this person read.
+     *
+     * Not an error. A driver without sight of wages is refused `payouts` by
+     * design, and that refusal has to be survivable — reported here so the
+     * caller can tell "there is nothing new" from "you were not allowed to
+     * look", which matters the day somebody is allowed to look after all.
+     */
+    val refused: Set<String> = emptySet(),
 )
 
 sealed interface RestoreResult {

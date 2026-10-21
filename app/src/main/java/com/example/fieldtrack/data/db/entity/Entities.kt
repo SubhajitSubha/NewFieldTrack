@@ -316,6 +316,46 @@ data class PayoutEntity(
 )
 
 /**
+ * The public half of a job cost: who worked, and on what.
+ *
+ * What every member of the business may read. Deliberately carries no rupees:
+ * Firestore rules grant or refuse a whole document and cannot hide one field,
+ * so a row readable by the driver who counted the heads would have put the
+ * crew's wages on his phone — where the screen hides them and the database
+ * does not. A hidden figure is a courtesy; a figure that was never sent is a
+ * boundary.
+ */
+@Serializable
+data class JobCostDoc(
+    val id: String,
+    val orgId: String,
+    val jobId: String,
+    val kind: JobCostKind,
+    val headcount: Int? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    val atMillis: Long,
+    val createdAt: Long,
+    val deviceId: String? = null,
+)
+
+/**
+ * The money on a job cost, filed where only the money people can read it.
+ *
+ * Its own document under the same id as the cost it prices, guarded exactly
+ * like a payment. Absent, for a reader who may not see wages, is
+ * indistinguishable from not yet priced — and that is the right thing for
+ * them to see.
+ */
+@Serializable
+data class JobCostAmountDoc(
+    val id: String,
+    val orgId: String,
+    val amountRupees: Long,
+    val updatedAt: Long,
+)
+
+/**
  * What one job cost beyond the machine: the hands on it, and the money around it.
  *
  * Kept apart from [PayoutEntity] because the two answer different questions and

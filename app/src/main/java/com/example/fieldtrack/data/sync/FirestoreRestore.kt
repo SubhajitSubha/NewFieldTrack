@@ -3,6 +3,7 @@ package com.example.fieldtrack.data.sync
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.entity.membershipId
 import com.google.android.gms.tasks.Task
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -62,10 +63,17 @@ class FirestoreRestore(
                 rows += RemoteRow(SyncQueue.TABLE_ORGS, orgId, snapshot.data.orEmpty())
             }
 
+            // Each collection on its own. One the caller may not read — a
+            // driver has no business in `payouts` — used to throw out of the
+            // loop and take the whole fetch with it, so a driver who could not
+            // see wages received no customers, no machines and no jobs either:
+            // an empty app with nothing on screen saying why.
             for (table in RESTORED_COLLECTIONS) {
-                org.collection(table).get(Source.SERVER).await().documents.forEach { doc ->
-                    rows += RemoteRow(table, doc.id, doc.data.orEmpty())
-                }
+                runCatching {
+                    org.collection(table).get(Source.SERVER).await().documents.forEach { doc ->
+                        rows += RemoteRow(table, doc.id, doc.data.orEmpty())
+                    }
+                }.onFailure { Log.d(TAG, "Could not read $table in $orgId", it) }
             }
             rows
         }
@@ -102,23 +110,36 @@ class FirestoreRestore(
                 }
             }
 
-            for (table in RESTORED_COLLECTIONS) {
-                val page = org.collection(table)
-                    .whereGreaterThan(FIELD_SERVER_AT, Timestamp(Date(since)))
-                    .orderBy(FIELD_SERVER_AT)
-                    .limit(PAGE_LIMIT)
-                    .get(Source.SERVER)
-                    .await()
+            val refused = mutableSetOf<String>()
 
-                page.documents.forEach { doc ->
-                    rows += RemoteRow(table, doc.id, doc.data.orEmpty())
-                    high = maxOf(high, doc.serverAt())
-                }
-                if (page.size().toLong() == PAGE_LIMIT) {
-                    truncatedAt += page.documents.last().serverAt()
+            for (table in RESTORED_COLLECTIONS) {
+                runCatching {
+                    val page = org.collection(table)
+                        .whereGreaterThan(FIELD_SERVER_AT, Timestamp(Date(since)))
+                        .orderBy(FIELD_SERVER_AT)
+                        .limit(PAGE_LIMIT)
+                        .get(Source.SERVER)
+                        .await()
+
+                    page.documents.forEach { doc ->
+                        rows += RemoteRow(table, doc.id, doc.data.orEmpty())
+                        high = maxOf(high, doc.serverAt())
+                    }
+                    if (page.size().toLong() == PAGE_LIMIT) {
+                        truncatedAt += page.documents.last().serverAt()
+                    }
+                }.onFailure {
+                    // Named rather than swallowed, so the caller can notice the
+                    // day it stops being refused and read the history it missed.
+                    refused += table
+                    Log.d(TAG, "Could not read $table in $orgId", it)
                 }
             }
-            PullPage(rows, resumeFrom(since = since, newest = high, truncatedAt = truncatedAt))
+            PullPage(
+                rows = rows,
+                watermark = resumeFrom(since = since, newest = high, truncatedAt = truncatedAt),
+                refused = refused,
+            )
         }
 
     override suspend fun isAccountDisabled(personId: String): Boolean =
@@ -178,10 +199,13 @@ class FirestoreRestore(
             SyncQueue.TABLE_TEAM_EVENTS,
             SyncQueue.TABLE_PAYOUTS,
             SyncQueue.TABLE_JOB_COSTS,
+            SyncQueue.TABLE_JOB_COST_AMOUNTS,
             SyncQueue.TABLE_FIELDS,
         )
     }
 }
+
+private const val TAG = "FirestoreRestore"
 
 private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
     addOnSuccessListener { continuation.resume(it) }

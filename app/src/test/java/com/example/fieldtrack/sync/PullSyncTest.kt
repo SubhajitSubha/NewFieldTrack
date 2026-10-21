@@ -148,6 +148,46 @@ class PullSyncTest {
     )
 
     @Test
+    fun `a collection this phone may not read does not stop the rest`() = runTest {
+        // A driver without sight of wages is refused `payouts` by design. The
+        // refusal used to throw out of the fetch loop and take the whole pull
+        // with it, so that driver received no customers, no machines and no
+        // jobs either — an empty app, with nothing on screen saying why.
+        restore.pages += PullPage(
+            rows = listOf(customerRow("c1", "Balwinder", 10L)),
+            watermark = 500L,
+            refused = setOf("payouts"),
+        )
+
+        assertEquals(1, sync().pull(ORG))
+        assertEquals(500L, marks.watermark(ORG))
+    }
+
+    @Test
+    fun `a door that opens is read from the start, not from the mark`() = runTest {
+        restore.pages += PullPage(
+            rows = listOf(customerRow("c1", "Balwinder", 10L)),
+            watermark = 500L,
+            refused = setOf("payouts"),
+        )
+        sync().pull(ORG)
+        assertEquals(500L, marks.watermark(ORG))
+
+        // The owner grants sight of wages. Everything written while the door
+        // was shut is older than the mark, so a delta would never ask for it —
+        // the business has to be read from scratch once instead.
+        restore.pages += PullPage(
+            rows = emptyList(),
+            watermark = 900L,
+            refused = emptySet(),
+        )
+        sync().pull(ORG, force = true)
+
+        assertEquals("the next pass must seed, not delta", 0L, marks.watermark(ORG))
+        assertFalse(marks.hasSeeded(ORG))
+    }
+
+    @Test
     fun `writes rows down and remembers how far it got`() = runTest {
         restore.pages += PullPage(listOf(customerRow("c1", "Balwinder", 10L)), watermark = 500L)
 

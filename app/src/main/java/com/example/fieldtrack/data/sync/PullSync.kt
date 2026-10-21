@@ -86,6 +86,16 @@ class PullSync(
             // Only after the rows are safely down. Moving the mark first and
             // failing to write would skip those rows for good.
             marks.advance(orgId, page.watermark)
+
+            // Something this phone used to be refused is now readable — the
+            // owner has granted sight of wages, most likely. A delta would only
+            // bring back what changed since the mark, and everything written
+            // while the door was shut would stay invisible for ever. So the
+            // business is read from scratch once, on the next pass.
+            val wasRefused = marks.refused(orgId)
+            if (wasRefused.any { it !in page.refused }) marks.markUnseeded(orgId)
+            marks.rememberRefused(orgId, page.refused)
+
             written
         } catch (failure: Exception) {
             Log.d(TAG, "Could not read changes for $orgId", failure)

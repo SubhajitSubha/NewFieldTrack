@@ -444,32 +444,40 @@ service cloud.firestore {
       //
       // Any member may write one, because the person who knows how many
       // worked is the one who was standing there, and he holds no money
-      // switch. What he may not do is put a figure on it: a document arriving
-      // with amountRupees set needs the pay switch, whether it is being made
-      // or being changed. A cost already priced cannot have its figure
-      // rewritten by somebody without that switch either, which is what the
-      // second half of the update clause is for — otherwise a driver could
-      // quietly restate what the crew cost.
+      // switch.
+      //
+      // The figure is not in this document, and that is the point. A rule
+      // grants or refuses a whole document and cannot hide one field, so the
+      // first version of this — a single row carrying both the headcount and
+      // the rupees, readable by every member — put the crew's wages on the
+      // driver's phone. The screen stripped them before they were drawn; the
+      // database held them all the same. A hidden figure is a courtesy. A
+      // figure that was never sent is a boundary.
+      //
+      // So what a job cost says here is who worked and on what. The money
+      // lives next door under the same id, where only the money people can
+      // read it.
       //
       // Never deleted from a handset, the same as a payment. Work that was
       // done stays done.
       match /job_costs/{costId} {
         allow read: if isMember(orgId);
-        // Read through `get` with a default rather than naming the field
-        // directly. A document that simply omits it — an older build, a
-        // shorter encoder — would make the direct form error, and an erroring
-        // rule denies: the row would be refused for ever and, because the
-        // outbox sends in order, take the whole queue down with it. That has
-        // happened twice in this file already.
-        allow create: if isMember(orgId)
-                      && (request.resource.data.get('amountRupees', null) == null
-                          || isOwner(orgId) || may(orgId, 'canPayOut'));
-        allow update: if isMember(orgId)
-                      && (
-                        isOwner(orgId) || may(orgId, 'canPayOut')
-                        || (request.resource.data.get('amountRupees', null) == null
-                            && resource.data.get('amountRupees', null) == null)
-                      );
+        allow create, update: if isMember(orgId);
+        allow delete: if false;
+      }
+
+      // What that job cost, filed apart from who worked on it.
+      //
+      // Guarded exactly like a payment, because it is the same secret: in a
+      // crew of four, one man learning what another was paid is not a
+      // reporting detail, it is a quarrel, and it cannot be unlearned.
+      //
+      // Absent and not-yet-priced are deliberately indistinguishable to a
+      // reader who may not look. The app shows them "nobody has said what this
+      // cost", which is all they are entitled to know.
+      match /job_cost_amounts/{costId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost');
+        allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
         allow delete: if false;
       }
 
@@ -485,7 +493,8 @@ service cloud.firestore {
         allow read, write: if isMember(orgId)
                            && collection != 'memberships'
                            && collection != 'payouts'
-                           && collection != 'job_costs';
+                           && collection != 'job_costs'
+                           && collection != 'job_cost_amounts';
       }
     }
 

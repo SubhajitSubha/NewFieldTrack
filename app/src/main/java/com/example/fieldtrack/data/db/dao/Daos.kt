@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Upsert
+import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
@@ -158,6 +159,34 @@ interface OrgDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertJobCost(cost: JobCostEntity)
+
+    /**
+     * Writes the work facts without touching the figure.
+     *
+     * The row that comes down from the server carries no rupees — they travel
+     * in their own document — so a plain upsert would blank the amount on the
+     * phone of the very person who typed it.
+     */
+    @Query(
+        """
+        UPDATE job_costs
+           SET kind = :kind, headcount = :headcount, note = :note,
+               byPersonId = :byPersonId, atMillis = :atMillis, syncState = 'Synced'
+         WHERE orgId = :orgId AND id = :id
+        """
+    )
+    suspend fun updateJobCostFacts(
+        orgId: String,
+        id: String,
+        kind: JobCostKind,
+        headcount: Int?,
+        note: String?,
+        byPersonId: String?,
+        atMillis: Long,
+    ): Int
+
+    @Query("UPDATE job_costs SET amountRupees = :amount WHERE orgId = :orgId AND id = :id")
+    suspend fun setJobCostAmount(orgId: String, id: String, amount: Long): Int
 
     @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND id = :id")
     suspend fun findJobCost(orgId: String, id: String): JobCostEntity?

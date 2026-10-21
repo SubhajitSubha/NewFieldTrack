@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -243,13 +244,41 @@ class JobCostTest {
     }
 
     @Test
-    fun `a cost is sent up as its own row`() = runTest {
+    fun `a cost with no figure is sent as one row`() = runTest {
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
             kind = JobCostKind.Labour, headcount = 3,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
-        val queued = h.db.outboxDao().nextBatch(100)
-        assertTrue(queued.any { it.tableName == "job_costs" && it.entityId == cost.id })
+        val queued = h.db.outboxDao().nextBatch(100).filter { it.entityId == cost.id }
+        assertEquals(listOf("job_costs"), queued.map { it.tableName })
+    }
+
+    @Test
+    fun `the rupees travel apart from the headcount`() = runTest {
+        val cost = h.ledger.recordJobCost(
+            orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
+            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
+        )
+        val queued = h.db.outboxDao().nextBatch(100).filter { it.entityId == cost.id }
+
+        // Two documents: the work facts where every member may read them, the
+        // money where only the money people may. Facts first, so a pass that
+        // stops between them leaves a cost waiting to be priced rather than a
+        // price belonging to no cost.
+        assertEquals(listOf("job_costs", "job_cost_amounts"), queued.map { it.tableName })
+
+        // And the readable one must not carry the figure. A rule grants a
+        // whole document; it cannot hide a field.
+        val facts = queued.first { it.tableName == "job_costs" }.payloadJson
+        assertFalse(
+            "the wage must not ride along in the row every member can read",
+            facts.contains("amountRupees"),
+        )
+        assertTrue(facts.contains("headcount"))
+        assertTrue(
+            queued.first { it.tableName == "job_cost_amounts" }.payloadJson.contains("2000")
+        )
     }
 }

@@ -17,6 +17,8 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.SyncState
 import com.example.fieldtrack.data.db.dao.JobCostWithPaid
+import com.example.fieldtrack.data.db.entity.JobCostDoc
+import com.example.fieldtrack.data.db.entity.JobCostAmountDoc
 import com.example.fieldtrack.data.db.entity.JobCostEntity
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.session.Capabilities
@@ -255,6 +257,59 @@ class LedgerRepository(
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>> =
         db.orgDao().observePayouts(orgId)
 
+    /**
+     * Sends a job cost up as two documents, not one.
+     *
+     * The work facts go where every member can read them, because the driver
+     * who counted the four men has to see his own entry. The rupees go to a
+     * sibling document guarded like a payment.
+     *
+     * One row would have been simpler and wrong: Firestore grants or refuses a
+     * whole document and cannot hide a field, so making the headcount readable
+     * would have put the crew's wages in the pocket of somebody the app says
+     * may not see them. The screen hid them; the database did not.
+     *
+     * Both go in the caller's transaction, and the amount is queued second so
+     * that a pass which stops between them leaves a cost waiting to be priced
+     * rather than a price belonging to no cost.
+     */
+    private suspend fun enqueueJobCost(cost: JobCostEntity) {
+        syncQueue.enqueueUpsert(
+            cost.orgId,
+            SyncQueue.TABLE_JOB_COSTS,
+            cost.id,
+            OutboxJson.encodeToString(
+                JobCostDoc(
+                    id = cost.id,
+                    orgId = cost.orgId,
+                    jobId = cost.jobId,
+                    kind = cost.kind,
+                    headcount = cost.headcount,
+                    note = cost.note,
+                    byPersonId = cost.byPersonId,
+                    atMillis = cost.atMillis,
+                    createdAt = cost.createdAt,
+                    deviceId = cost.deviceId,
+                )
+            ),
+        )
+        cost.amountRupees?.let { amount ->
+            syncQueue.enqueueUpsert(
+                cost.orgId,
+                SyncQueue.TABLE_JOB_COST_AMOUNTS,
+                cost.id,
+                OutboxJson.encodeToString(
+                    JobCostAmountDoc(
+                        id = cost.id,
+                        orgId = cost.orgId,
+                        amountRupees = amount,
+                        updatedAt = clock.now(),
+                    )
+                ),
+            )
+        }
+    }
+
     fun observeJobCosts(orgId: String, jobId: String): Flow<List<JobCostWithPaid>> =
         db.orgDao().observeJobCosts(orgId, jobId)
 
@@ -306,9 +361,7 @@ class LedgerRepository(
         )
         db.withTransaction {
             db.orgDao().upsertJobCost(cost)
-            syncQueue.enqueueUpsert(
-                orgId, SyncQueue.TABLE_JOB_COSTS, cost.id, OutboxJson.encodeToString(cost)
-            )
+            enqueueJobCost(cost)
         }
         return cost
     }
@@ -332,9 +385,7 @@ class LedgerRepository(
         )
         db.withTransaction {
             db.orgDao().upsertJobCost(updated)
-            syncQueue.enqueueUpsert(
-                orgId, SyncQueue.TABLE_JOB_COSTS, updated.id, OutboxJson.encodeToString(updated)
-            )
+            enqueueJobCost(updated)
         }
         return updated
     }

@@ -22,6 +22,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import com.example.fieldtrack.data.db.entity.TeamEventEntity
 import com.example.fieldtrack.data.db.entity.PayoutEntity
+import com.example.fieldtrack.data.db.entity.JobCostDoc
+import com.example.fieldtrack.data.db.entity.JobCostAmountDoc
+import com.example.fieldtrack.data.db.SyncState
 import com.example.fieldtrack.data.db.entity.JobCostEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
 
@@ -102,8 +105,50 @@ class RestoreApplier(
                     db.machineDao().upsertBreakdown(decode<BreakdownEntity>(json))
                 SyncQueue.TABLE_PAYOUTS ->
                     db.orgDao().upsertPayout(decode<PayoutEntity>(json))
-                SyncQueue.TABLE_JOB_COSTS ->
-                    db.orgDao().upsertJobCost(decode<JobCostEntity>(json))
+                // Two documents make one row. The facts arrive without a
+                // figure, so an existing row is updated in place rather than
+                // replaced — overwriting it would blank the amount on the
+                // phone of the person who typed it.
+                SyncQueue.TABLE_JOB_COSTS -> {
+                    val doc = decode<JobCostDoc>(json)
+                    val touched = db.orgDao().updateJobCostFacts(
+                        orgId = doc.orgId,
+                        id = doc.id,
+                        kind = doc.kind,
+                        headcount = doc.headcount,
+                        note = doc.note,
+                        byPersonId = doc.byPersonId,
+                        atMillis = doc.atMillis,
+                    )
+                    if (touched == 0) {
+                        db.orgDao().upsertJobCost(
+                            JobCostEntity(
+                                id = doc.id,
+                                orgId = doc.orgId,
+                                jobId = doc.jobId,
+                                kind = doc.kind,
+                                headcount = doc.headcount,
+                                // Unpriced until its own document arrives, or
+                                // for ever if this person may not read it.
+                                amountRupees = null,
+                                note = doc.note,
+                                byPersonId = doc.byPersonId,
+                                atMillis = doc.atMillis,
+                                createdAt = doc.createdAt,
+                                syncState = SyncState.Synced,
+                                deviceId = doc.deviceId,
+                            )
+                        )
+                    }
+                }
+                // Lands on a row that is already there. If it is not — the
+                // page split between the two — the write is a no-op and the
+                // next pass resumes from the earlier of the two truncations
+                // and brings both down together.
+                SyncQueue.TABLE_JOB_COST_AMOUNTS -> {
+                    val doc = decode<JobCostAmountDoc>(json)
+                    db.orgDao().setJobCostAmount(doc.orgId, doc.id, doc.amountRupees)
+                }
                 SyncQueue.TABLE_FIELDS ->
                     db.customerDao().upsertField(decode<FieldEntity>(json))
                 SyncQueue.TABLE_TEAM_EVENTS ->

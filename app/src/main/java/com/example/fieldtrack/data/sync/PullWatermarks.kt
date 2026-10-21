@@ -54,9 +54,25 @@ class PullWatermarks(context: Context) {
         prefs.edit().putBoolean(seeded(orgId), true).apply()
     }
 
+    /** Undone when something this phone was refused becomes readable. */
+    fun markUnseeded(orgId: String) {
+        prefs.edit().remove(seeded(orgId)).putLong(mark(orgId), 0L).apply()
+    }
+
+    /** Which collections the server refused this phone on the last pass. */
+    fun refused(orgId: String): Set<String> =
+        prefs.getStringSet(refusedKey(orgId), emptySet()).orEmpty()
+
+    fun rememberRefused(orgId: String, tables: Set<String>) {
+        prefs.edit().putStringSet(refusedKey(orgId), tables).apply()
+    }
+
+    private fun refusedKey(orgId: String) = "refused.$orgId"
+
     /** Forgotten on removal, so rejoining later reads the business from scratch. */
     fun forget(orgId: String) {
-        prefs.edit().remove(mark(orgId)).remove(attempt(orgId)).remove(seeded(orgId)).apply()
+        prefs.edit().remove(mark(orgId)).remove(attempt(orgId)).remove(seeded(orgId))
+            .remove(refusedKey(orgId)).apply()
     }
 
     private fun mark(orgId: String) = "mark.$orgId"
