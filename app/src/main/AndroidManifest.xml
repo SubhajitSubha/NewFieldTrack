@@ -5,6 +5,19 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+      Dropping a pin on a field, so a driver who has never been there can find
+      it. Coarse is enough and is asked for first: a plot is hundreds of metres
+      across, and street-level precision buys nothing while costing the user a
+      harder permission to say yes to. Fine is declared because a device may
+      only offer the precise choice, and because the fix is quicker when it is
+      granted; neither is required for the app to work, and a field saves
+      perfectly well with no pin at all.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+
+    <!--
       Speech input. We launch the system recogniser by intent rather than recording
       audio ourselves, so this app never needs RECORD_AUDIO — the recogniser holds
       that permission and we only receive the text back.

@@ -69,6 +69,12 @@ import com.example.fieldtrack.feature.fleet.FleetViewModel
 import com.example.fieldtrack.feature.home.HomeViewModel
 import com.example.fieldtrack.feature.jobs.AmendJobScreen
 import com.example.fieldtrack.feature.jobs.AmendJobViewModel
+import com.example.fieldtrack.feature.fields.FieldDetailScreen
+import com.example.fieldtrack.feature.fields.FieldDetailViewModel
+import com.example.fieldtrack.feature.fields.FieldEditScreen
+import com.example.fieldtrack.feature.fields.FieldEditViewModel
+import com.example.fieldtrack.feature.fields.FieldsScreen
+import com.example.fieldtrack.feature.fields.FieldsViewModel
 import com.example.fieldtrack.feature.jobs.JobCostScreen
 import com.example.fieldtrack.feature.jobs.JobCostViewModel
 import com.example.fieldtrack.feature.jobs.JobDetailScreen
@@ -154,6 +160,11 @@ private object Routes {
     const val HOME = "home"
     const val START = "start"
     const val START_FOR = "start/{customerId}"
+    const val START_ON_FIELD = "start-on/{fieldId}"
+    const val FIELDS = "customer/{customerId}/fields"
+    const val FIELD_NEW = "customer/{customerId}/fields/new"
+    const val FIELD = "field/{fieldId}"
+    const val FIELD_EDIT = "field/{fieldId}/edit"
     const val PAST_WORK = "start/past"
     const val NEW_CUSTOMER = "customer/new"
     const val LIVE = "live/{jobId}"
@@ -213,6 +224,12 @@ private object Routes {
     const val STATEMENT_JOBS = "customer/{customerId}/statement/jobs"
 
     fun live(jobId: String) = "live/$jobId"
+
+    fun fields(customerId: String) = "customer/$customerId/fields"
+    fun newField(customerId: String) = "customer/$customerId/fields/new"
+    fun field(fieldId: String) = "field/$fieldId"
+    fun editField(fieldId: String) = "field/$fieldId/edit"
+    fun startOnField(fieldId: String) = "start-on/$fieldId"
 
     /** The cost sheet for one job, optionally opened on a cost already there. */
     fun jobCost(jobId: String, costId: String? = null) =
@@ -513,6 +530,76 @@ private fun MainNavHost(navController: NavHostController) {
             // page. Same screen; the second just arrives with the customer known.
             composable(Routes.START) { StartWorkDestination(navController, null) }
 
+            // A third way in: standing on a plot and tapping "start work here".
+            // The field names its own customer, so step one is answered too.
+            composable(Routes.START_ON_FIELD) { entry ->
+                StartWorkDestination(
+                    navController,
+                    forCustomerId = null,
+                    forFieldId = entry.arguments?.getString("fieldId"),
+                )
+            }
+
+            composable(Routes.FIELDS) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: FieldsViewModel = appViewModel(key = "fields-${'$'}customerId") {
+                    FieldsViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                FieldsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onAdd = { navController.navigate(Routes.newField(customerId)) },
+                    onOpen = { id -> navController.navigate(Routes.field(id)) },
+                )
+            }
+
+            composable(Routes.FIELD_NEW) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                FieldEditDestination(navController, customerId = customerId, fieldId = null)
+            }
+
+            composable(Routes.FIELD_EDIT) { entry ->
+                val fieldId = entry.arguments?.getString("fieldId").orEmpty()
+                FieldEditDestination(navController, customerId = "", fieldId = fieldId)
+            }
+
+            composable(Routes.FIELD) { entry ->
+                val fieldId = entry.arguments?.getString("fieldId").orEmpty()
+                val vm: FieldDetailViewModel = appViewModel(key = "field-${'$'}fieldId") {
+                    FieldDetailViewModel(it, fieldId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val noMaps = stringResource(R.string.field_maps_missing)
+                FieldDetailScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(Routes.editField(fieldId)) },
+                    onOpenMaps = {
+                        val lat = state.latitude
+                        val lng = state.longitude
+                        if (lat != null && lng != null) {
+                            // geo: with a label, so the pin arrives named rather
+                            // than as a bare dot the driver has to guess at.
+                            val label = Uri.encode(state.name)
+                            val geo = Uri.parse("geo:${'$'}lat,${'$'}lng?q=${'$'}lat,${'$'}lng(${'$'}label)")
+                            val intent = Intent(Intent.ACTION_VIEW, geo)
+                            // Tried rather than asked about. From Android 11,
+                            // resolveActivity answers null for anything outside
+                            // this app's <queries> declaration even when two map
+                            // apps are installed — so asking first reported "no
+                            // map app" on a phone that had one.
+                            runCatching { context.startActivity(intent) }
+                                .onFailure {
+                                    Toast.makeText(context, noMaps, Toast.LENGTH_LONG).show()
+                                }
+                        }
+                    },
+                    onStartWork = { navController.navigate(Routes.startOnField(fieldId)) },
+                )
+            }
+
             composable(Routes.START_FOR) { entry ->
                 StartWorkDestination(
                     navController,
@@ -630,6 +717,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onStatement = {
                         navController.navigate("customer/$customerId/statement")
                     },
+                    onFields = { navController.navigate(Routes.fields(customerId)) },
                     onNewJob = {
                         navController.navigate("start/$customerId") { launchSingleTop = true }
                     },
@@ -1712,6 +1800,39 @@ private fun receiptFor(
     }
 }
 
+/** Writing a plot down, or correcting one. One screen, two ways in. */
+@Composable
+private fun FieldEditDestination(
+    navController: NavHostController,
+    customerId: String,
+    fieldId: String?,
+) {
+    val vm: FieldEditViewModel = appViewModel(
+        key = "field-edit-${'$'}{fieldId ?: customerId}"
+    ) {
+        FieldEditViewModel(it, customerId, fieldId)
+    }
+    val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    FieldEditScreen(
+        state = state,
+        onBack = { navController.popBackStack() },
+        onName = vm::setName,
+        onArea = vm::setArea,
+        onUnit = vm::setUnit,
+        onCrop = vm::setCrop,
+        onDropPin = { vm.dropPin(context) },
+        onSave = { vm.save { navController.popBackStack() } },
+        // Back twice: the field's own screen is about to stop existing.
+        onRemove = {
+            vm.remove {
+                navController.popBackStack()
+                navController.popBackStack()
+            }
+        },
+    )
+}
+
 /**
  * The start-work wizard.
  *
@@ -1720,9 +1841,15 @@ private fun receiptFor(
  * already been answered.
  */
 @Composable
-private fun StartWorkDestination(navController: NavHostController, forCustomerId: String?) {
-            val vm: StartWorkViewModel = appViewModel(key = "start-${forCustomerId.orEmpty()}") {
-        StartWorkViewModel(it, forCustomerId)
+private fun StartWorkDestination(
+    navController: NavHostController,
+    forCustomerId: String?,
+    forFieldId: String? = null,
+) {
+            val vm: StartWorkViewModel = appViewModel(
+                key = "start-${forCustomerId.orEmpty()}-${forFieldId.orEmpty()}"
+            ) {
+        StartWorkViewModel(it, forCustomerId, forFieldId)
     }
             val state by vm.state.collectAsStateWithLifecycle()
             var addingMachine by remember { mutableStateOf(false) }
@@ -1741,6 +1868,7 @@ private fun StartWorkDestination(navController: NavHostController, forCustomerId
                 onNewMachine = { addingMachine = true },
                 onSelectCustomer = { vm.selectCustomer(it); vm.next() },
                 onSelectMachine = vm::selectMachine,
+                onSelectField = vm::selectField,
                 onSelectWorkType = vm::selectWorkType,
                 onBillingMode = vm::setBillingMode,
                 onUnit = vm::setUnit,

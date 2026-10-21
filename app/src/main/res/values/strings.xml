@@ -148,6 +148,18 @@
     <string name="unit_bag">Bag</string>
     <string name="unit_km">km</string>
 
+    <plurals name="field_earned_jobs">
+        <item quantity="one">from %d job</item>
+        <item quantity="other">from %d jobs</item>
+    </plurals>
+    <plurals name="fields_count">
+        <item quantity="one">%d plot</item>
+        <item quantity="other">%d plots</item>
+    </plurals>
+    <plurals name="fields_jobs_here">
+        <item quantity="one">%d job here</item>
+        <item quantity="other">%d jobs here</item>
+    </plurals>
     <plurals name="money_out_unpriced">
         <item quantity="one">%d cost nobody has priced</item>
         <item quantity="other">%d costs nobody has priced</item>
@@ -988,6 +1000,63 @@
     <string name="team_role_owner_note">Everything below, plus the team, the rates and your business details. An owner can take anyone off the team, you included.</string>
     <string name="team_role_driver">Driver</string>
     <string name="team_role_driver_note">Records work. You choose what else</string>
+
+    <!-- A customer's plots, under the names the farmer uses for them. -->
+    <string name="area_with_unit">%1$s %2$s</string>
+    <string name="field_job_line">%1$s · %2$s</string>
+    <string name="fields_title">Fields</string>
+    <string name="fields_none_yet">None written down yet</string>
+    <string name="fields_add">Add a field</string>
+    <string name="fields_total_land">Total land</string>
+    <string name="fields_mixed_units">Measured in different units, so they do not add up.</string>
+    <string name="fields_none_title">No fields written down yet</string>
+    <string name="fields_none_note">Add the plots this farmer has, under the names he uses. Then a job can say which one it was, and a driver sent out alone knows where to go.</string>
+    <string name="fields_worked_today">Worked today</string>
+    <string name="fields_last_worked">Last worked %1$s</string>
+    <string name="fields_never_worked">No work here yet</string>
+    <string name="fields_fallow">fallow</string>
+    <string name="field_add_title">Add a field</string>
+    <string name="field_edit_title">Edit this field</string>
+    <string name="field_name_label">What do they call it?</string>
+    <string name="field_name_hint">Name of the plot</string>
+    <string name="field_name_note">Use whatever name the farmer uses.</string>
+    <string name="field_size_label">How big?</string>
+    <string name="field_size_hint">Size</string>
+    <string name="field_crop_label">Crop right now</string>
+    <string name="field_crop_hint">Crop</string>
+    <string name="field_crop_wheat">Wheat</string>
+    <string name="field_crop_paddy">Paddy</string>
+    <string name="field_crop_cotton">Cotton</string>
+    <string name="field_crop_mustard">Mustard</string>
+    <string name="field_crop_sugarcane">Sugarcane</string>
+    <string name="field_crop_fallow">Fallow</string>
+    <string name="field_pin_title">Drop a pin here</string>
+    <string name="field_pin_note">So a driver who has never been can find it.</string>
+    <string name="field_pin_getting">Finding where you are…</string>
+    <string name="field_pin_saved">Pin dropped · %1$s</string>
+    <string name="field_pin_again">Drop it again where you are now</string>
+    <string name="field_pin_refused">Location is switched off for FieldTrack, so the pin cannot be dropped. Everything else saves.</string>
+    <string name="field_pin_nowhere">Could not find where you are. Try again out in the open.</string>
+    <string name="field_pin_stand">Stand in the field before you drop it — it records where this phone is now.</string>
+    <string name="field_save">Save field</string>
+    <string name="field_remove">Take this field off the list</string>
+    <string name="field_remove_title">Take %1$s off the list?</string>
+    <string name="field_remove_note">The work already done there stays on the job records, and keeps this name against it. The field just stops being offered when you start a job.</string>
+    <string name="field_remove_yes">Take it off</string>
+    <string name="field_earned">Earned from this field</string>
+    <string name="field_size">Size</string>
+    <string name="field_crop">Crop</string>
+    <string name="field_crop_none">Not said</string>
+    <string name="field_open_maps">Open in maps</string>
+    <string name="field_maps_missing">No map app on this phone to open it with.</string>
+    <string name="field_no_pin">No pin dropped on this one yet</string>
+    <string name="field_work_here">Work done here</string>
+    <string name="field_no_work">Nothing recorded on this field yet.</string>
+    <string name="field_start_here">Start work here</string>
+    <string name="field_which">Which field?</string>
+    <string name="field_not_said">Do not say</string>
+    <string name="field_not_said_note">The job is recorded against the customer either way.</string>
+
 
     <!-- What a job cost the owner, beyond the machine. Never the farmer's bill. -->
     <string name="profit_owed">%1$s of these costs is still owed. It is counted above, because the work cost it whether or not the cash has gone.</string>

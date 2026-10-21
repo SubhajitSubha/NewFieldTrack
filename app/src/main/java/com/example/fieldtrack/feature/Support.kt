@@ -60,6 +60,23 @@ inline fun <reified VM : ViewModel> appViewModel(
 fun rememberSimpleFactory(create: () -> ViewModel): ViewModelProvider.Factory =
     SimpleFactory(create)
 
+/**
+ * An amount of land with its unit — "5 acre", "2.5 bigha".
+ *
+ * One helper rather than the same interpolation at every call site, so the
+ * day a unit needs a different word order there is one place to change.
+ */
+@androidx.compose.runtime.Composable
+fun areaWithUnit(value: Double, unit: MeasureUnit): String = androidx.compose.ui.res.stringResource(
+    R.string.area_with_unit,
+    com.example.fieldtrack.designsystem.format.quantity(value),
+    androidx.compose.ui.res.stringResource(unit.labelRes),
+)
+
+/** Whether a moment falls inside the day the reader is having. */
+fun isToday(millis: Long, now: Long = System.currentTimeMillis()): Boolean =
+    millis >= startOfToday(now) && millis < startOfToday(now) + 24L * 60 * 60 * 1000
+
 /** Day boundaries, used for "today" on the home screen. */
 fun startOfToday(now: Long): Long = Calendar.getInstance().apply {
     timeInMillis = now

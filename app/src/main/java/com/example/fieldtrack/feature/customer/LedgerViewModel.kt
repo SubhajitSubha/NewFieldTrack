@@ -6,6 +6,7 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.CustomerEntity
+import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
@@ -73,6 +74,8 @@ data class CustomerPaymentRow(
 )
 
 data class LedgerState(
+    /** How many plots this farmer has written down, for the row that opens them. */
+    val fieldCount: Int = 0,
     val loaded: Boolean = false,
     val customerId: String = "",
     val customerName: String = "",
@@ -242,6 +245,7 @@ class LedgerViewModel(
             app.db.orgDao().observeOrg(s.orgId),
             app.workRepository.observeForCustomer(s.orgId, customerId),
             app.directoryRepository.observeMachines(s.orgId),
+            app.directoryRepository.observeFields(s.orgId, customerId),
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val customer = values[0] as CustomerEntity?
@@ -253,6 +257,8 @@ class LedgerViewModel(
             val jobEntities = values[4] as List<JobEntity>
             @Suppress("UNCHECKED_CAST")
             val machines = values[5] as List<MachineEntity>
+            @Suppress("UNCHECKED_CAST")
+            val fields = values[6] as List<FieldEntity>
 
             val rows = buildKhata(entries)
             val stillOwed = outstandingCharges(entries)
@@ -293,6 +299,7 @@ class LedgerViewModel(
                 }
 
             LedgerState(
+                fieldCount = fields.size,
                 loaded = true,
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,

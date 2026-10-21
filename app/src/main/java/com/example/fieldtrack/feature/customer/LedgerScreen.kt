@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
@@ -51,6 +52,7 @@ fun LedgerScreen(
     /** Opens the job behind a charge, to correct it. Null when not permitted. */
     onOpenJob: ((String) -> Unit)?,
     onStatement: () -> Unit,
+    onFields: () -> Unit,
     onNewJob: () -> Unit,
     tab: CustomerTab,
     onTab: (CustomerTab) -> Unit,
@@ -174,6 +176,27 @@ fun LedgerScreen(
             }
 
             item { CustomerStatsFor(tab, state) }
+
+            // The way in to this farmer's plots. On the khata rather than in a
+            // menu, because "which field" is a thing said in the same breath as
+            // "what does he owe" — and the plots belong to him, not to the app.
+            item(key = "fields") {
+                FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
+                    FtListRow(
+                        title = stringResource(R.string.fields_title),
+                        subtitle = if (state.fieldCount > 0) {
+                            pluralStringResource(
+                                R.plurals.fields_count, state.fieldCount, state.fieldCount,
+                            )
+                        } else {
+                            stringResource(R.string.fields_none_yet)
+                        },
+                        leading = { FtIconTile(FieldTrackIcons.Field, size = 38.dp) },
+                        showChevron = true,
+                        onClick = onFields,
+                    )
+                }
+            }
 
             if (tab == CustomerTab.Jobs) {
                 if (state.loaded && state.jobs.isEmpty()) {

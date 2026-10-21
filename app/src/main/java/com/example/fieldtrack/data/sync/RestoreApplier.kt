@@ -23,6 +23,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import com.example.fieldtrack.data.db.entity.TeamEventEntity
 import com.example.fieldtrack.data.db.entity.PayoutEntity
 import com.example.fieldtrack.data.db.entity.JobCostEntity
+import com.example.fieldtrack.data.db.entity.FieldEntity
 
 /**
  * Writes downloaded rows into the local database.
@@ -103,6 +104,8 @@ class RestoreApplier(
                     db.orgDao().upsertPayout(decode<PayoutEntity>(json))
                 SyncQueue.TABLE_JOB_COSTS ->
                     db.orgDao().upsertJobCost(decode<JobCostEntity>(json))
+                SyncQueue.TABLE_FIELDS ->
+                    db.customerDao().upsertField(decode<FieldEntity>(json))
                 SyncQueue.TABLE_TEAM_EVENTS ->
                     db.orgDao().addTeamEvent(decode<TeamEventEntity>(json))
                 SyncQueue.TABLE_SERVICE ->

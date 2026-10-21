@@ -8,6 +8,7 @@ import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.CustomerEntity
+import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.session.Session
 import com.example.fieldtrack.feature.WorkTypeOption
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +54,15 @@ data class StartWorkState(
     val customers: List<CustomerEntity> = emptyList(),
     val machines: List<MachineEntity> = emptyList(),
     val customer: CustomerEntity? = null,
+    /**
+     * This customer's plots, for the "which field?" question.
+     *
+     * Empty for a farmer nobody has written fields down for, and the question
+     * is then not asked at all — a step offering one option and "do not say"
+     * is a step that only ever wastes a tap.
+     */
+    val fields: List<FieldEntity> = emptyList(),
+    val fieldId: String? = null,
     val machineId: String? = null,
     val workType: WorkTypeOption = workTypeOptions.first(),
     val billingMode: BillingMode = BillingMode.PerAcre,
@@ -92,6 +103,14 @@ class StartWorkViewModel(
      * on that customer's page and tapping the plus.
      */
     private val forCustomerId: String? = null,
+    /**
+     * Set when the job was started from a field's own screen.
+     *
+     * Carried through rather than asked again: somebody standing on the
+     * canal-side plot who taps "start work here" has already answered both
+     * who it is for and which field.
+     */
+    private val forFieldId: String? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StartWorkState())
@@ -116,12 +135,31 @@ class StartWorkViewModel(
                     canAddMachines = Capability.EditMachines in s.can,
                 )
             }
-            forCustomerId?.let { id ->
+            // A field names its own customer, so starting from a field
+            // answers step one too.
+            val fromField = forFieldId?.let {
+                app.directoryRepository.observeField(s.orgId, it).first()
+            }
+            val customerId = fromField?.customerId ?: forCustomerId
+            customerId?.let { id ->
                 app.directoryRepository.findCustomer(s.orgId, id)?.let { customer ->
                     selectCustomer(customer)
-                    _state.update { state -> state.copy(step = 1) }
+                    _state.update { state ->
+                        state.copy(step = 1, fieldId = fromField?.id)
+                    }
                 }
             }
+        }
+        viewModelScope.launch {
+            combine(
+                app.sessionStore.session,
+                _state.map { it.customer?.id }.distinctUntilChanged(),
+            ) { s, id -> s to id }
+                .flatMapLatest { (s, id) ->
+                    if (id == null) kotlinx.coroutines.flow.flowOf(emptyList())
+                    else app.directoryRepository.observeFields(s.orgId, id)
+                }
+                .collect { fields -> _state.update { state -> state.copy(fields = fields) } }
         }
         viewModelScope.launch {
             app.sessionStore.session
@@ -141,9 +179,16 @@ class StartWorkViewModel(
     fun setQuery(value: String) = _state.update { it.copy(query = value) }
 
     fun selectCustomer(customer: CustomerEntity) {
-        _state.update { it.copy(customer = customer) }
+        // The field belongs to whoever was chosen before; changing the farmer
+        // has to drop it, or the job is filed against a plot that is not theirs.
+        _state.update {
+            if (it.customer?.id == customer.id) it.copy(customer = customer)
+            else it.copy(customer = customer, fieldId = null)
+        }
         refreshSuggestedRate()
     }
+
+    fun selectField(id: String?) = _state.update { it.copy(fieldId = id) }
 
     fun selectMachine(id: String?) = _state.update { it.copy(machineId = id) }
 
@@ -219,6 +264,9 @@ class StartWorkViewModel(
             rateRupees = current.rateRupees,
             machineId = current.machineId,
             operatorPersonId = s.personId,
+            // The whole reason fields exist. Without this the plot screens
+            // would show nought earned on every field, for ever.
+            fieldId = current.fieldId,
         )
         // Remember what was charged, against this customer, so "what I charged Ramesh
         // last time" is the number offered first next time. Switched off on the rate

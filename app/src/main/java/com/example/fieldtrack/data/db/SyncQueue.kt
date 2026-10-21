@@ -108,6 +108,7 @@ class SyncQueue(
         const val TABLE_JOB_EVENTS = "job_events"
         const val TABLE_LEDGER = "ledger_entries"
         const val TABLE_CUSTOMERS = "customers"
+        const val TABLE_FIELDS = "fields"
         const val TABLE_MACHINES = "machines"
         const val TABLE_FUEL = "fuel_entries"
         const val TABLE_BREAKDOWNS = "breakdowns"

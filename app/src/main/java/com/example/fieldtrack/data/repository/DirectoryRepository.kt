@@ -9,6 +9,9 @@ import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.OutboxJson
 import com.example.fieldtrack.data.db.SyncQueue
+import com.example.fieldtrack.data.db.SyncState
+import com.example.fieldtrack.data.db.dao.FieldWorkTotals
+import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
@@ -323,4 +326,104 @@ class DirectoryRepository(
             )
         }
     }
+    /**
+     * A farmer's plot, under the name the farmer uses for it.
+     *
+     * Gated on [Capability.EditCustomers] rather than a capability of its own.
+     * A field is part of the customer's record — somebody trusted to write down
+     * who the farmer is can write down which plot of his was worked, and a
+     * twelfth switch for it would be a switch nobody could explain.
+     */
+    suspend fun addField(
+        orgId: String,
+        can: Capabilities,
+        customerId: String,
+        name: String,
+        area: Double,
+        unit: MeasureUnit,
+        crop: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ): FieldEntity {
+        can.require(Capability.EditCustomers)
+        require(name.isNotBlank()) { "A field is found by its name, so it has to have one" }
+        require(area > 0) { "A field has a size" }
+        val now = clock.now()
+        val field = FieldEntity(
+            id = ids.newId(),
+            orgId = orgId,
+            customerId = customerId,
+            name = name.trim(),
+            area = area,
+            unit = unit,
+            crop = crop?.trim()?.ifBlank { null },
+            latitude = latitude,
+            longitude = longitude,
+            createdAt = now,
+            updatedAt = now,
+        )
+        saveField(field)
+        return field
+    }
+
+    suspend fun updateField(
+        orgId: String,
+        can: Capabilities,
+        fieldId: String,
+        name: String,
+        area: Double,
+        unit: MeasureUnit,
+        crop: String?,
+        latitude: Double?,
+        longitude: Double?,
+    ): FieldEntity {
+        can.require(Capability.EditCustomers)
+        require(name.isNotBlank()) { "A field is found by its name, so it has to have one" }
+        require(area > 0) { "A field has a size" }
+        val existing = customers.findField(orgId, fieldId)
+            ?: error("No such field in this business")
+        val updated = existing.copy(
+            name = name.trim(),
+            area = area,
+            unit = unit,
+            crop = crop?.trim()?.ifBlank { null },
+            latitude = latitude,
+            longitude = longitude,
+            updatedAt = clock.now(),
+            syncState = SyncState.Pending,
+        )
+        saveField(updated)
+        return updated
+    }
+
+    /**
+     * Takes a field off the list without destroying it.
+     *
+     * Soft, because jobs point at it. A field deleted outright would leave
+     * every job ever done there unable to say where it was, and a contractor
+     * looking back at last season would find the work and not the place.
+     */
+    suspend fun removeField(orgId: String, can: Capabilities, fieldId: String) {
+        can.require(Capability.EditCustomers)
+        val existing = customers.findField(orgId, fieldId) ?: return
+        saveField(existing.copy(deletedAt = clock.now(), syncState = SyncState.Pending))
+    }
+
+    private suspend fun saveField(field: FieldEntity) {
+        db.withTransaction {
+            customers.upsertField(field)
+            syncQueue.enqueueUpsert(
+                field.orgId, SyncQueue.TABLE_FIELDS, field.id, OutboxJson.encodeToString(field)
+            )
+        }
+    }
+
+    fun observeFields(orgId: String, customerId: String): Flow<List<FieldEntity>> =
+        customers.observeFields(orgId, customerId)
+
+    fun observeField(orgId: String, fieldId: String): Flow<FieldEntity?> =
+        customers.observeField(orgId, fieldId)
+
+    fun observeFieldWork(orgId: String, customerId: String): Flow<List<FieldWorkTotals>> =
+        customers.observeFieldWork(orgId, customerId)
 }

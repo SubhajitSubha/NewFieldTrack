@@ -178,6 +178,7 @@ class FirestoreRestore(
             SyncQueue.TABLE_TEAM_EVENTS,
             SyncQueue.TABLE_PAYOUTS,
             SyncQueue.TABLE_JOB_COSTS,
+            SyncQueue.TABLE_FIELDS,
         )
     }
 }

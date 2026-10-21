@@ -378,7 +378,50 @@ interface CustomerDao {
 
     @Query("SELECT * FROM fields WHERE orgId = :orgId AND customerId = :customerId AND deletedAt IS NULL ORDER BY name")
     fun observeFields(orgId: String, customerId: String): Flow<List<FieldEntity>>
+
+    @Query("SELECT * FROM fields WHERE orgId = :orgId AND id = :id")
+    fun observeField(orgId: String, id: String): Flow<FieldEntity?>
+
+    @Query("SELECT * FROM fields WHERE orgId = :orgId AND id = :id")
+    suspend fun findField(orgId: String, id: String): FieldEntity?
+
+    /**
+     * What each of a customer's fields has brought in, and when it was last worked.
+     *
+     * One query rather than one per card, because a customer with nine plots
+     * would otherwise mean nine round trips behind a list that has to scroll.
+     * Completed jobs only: a job still running has not earned anything yet, and
+     * showing its amount would make a field look paid for work in progress.
+     */
+    @Query(
+        """
+        SELECT j.fieldId AS fieldId,
+               COUNT(*) AS jobCount,
+               COALESCE(SUM(
+                   CASE j.billingMode
+                       WHEN 'Fixed' THEN j.rateRupees
+                       WHEN 'PerTrip' THEN j.tripTotalRupees
+                       ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
+                   END
+               ), 0) AS earnedRupees,
+               MAX(j.workedAt) AS lastWorkedAt
+        FROM jobs j
+        WHERE j.orgId = :orgId AND j.customerId = :customerId
+          AND j.fieldId IS NOT NULL AND j.deletedAt IS NULL
+          AND j.status = 'Completed'
+        GROUP BY j.fieldId
+        """
+    )
+    fun observeFieldWork(orgId: String, customerId: String): Flow<List<FieldWorkTotals>>
 }
+
+/** What one field has had done on it, for the list and the detail. */
+data class FieldWorkTotals(
+    val fieldId: String,
+    val jobCount: Int,
+    val earnedRupees: Long,
+    val lastWorkedAt: Long?,
+)
 
 @Dao
 interface MachineDao {

@@ -61,6 +61,7 @@ fun StartWorkScreen(
     onNewMachine: () -> Unit,
     onSelectCustomer: (com.example.fieldtrack.data.db.entity.CustomerEntity) -> Unit,
     onSelectMachine: (String?) -> Unit,
+    onSelectField: (String?) -> Unit,
     onSelectWorkType: (com.example.fieldtrack.feature.WorkTypeOption) -> Unit,
     onBillingMode: (BillingMode) -> Unit,
     onUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
@@ -94,7 +95,9 @@ fun StartWorkScreen(
         Box(Modifier.weight(1f)) {
             when (state.step) {
                 0 -> CustomerStep(state, onQuery, onNewCustomer, onSelectCustomer)
-                1 -> WorkStep(state, onSelectMachine, onSelectWorkType, onNewMachine)
+                1 -> WorkStep(
+                    state, onSelectMachine, onSelectField, onSelectWorkType, onNewMachine,
+                )
                 else -> RateStep(state, onBillingMode, onUnit, onRate)
             }
         }
@@ -209,6 +212,7 @@ private fun CustomerStep(
 private fun WorkStep(
     state: StartWorkState,
     onSelectMachine: (String?) -> Unit,
+    onSelectField: (String?) -> Unit,
     onSelectWorkType: (com.example.fieldtrack.feature.WorkTypeOption) -> Unit,
     onNewMachine: () -> Unit,
 ) {
@@ -240,6 +244,37 @@ private fun WorkStep(
                     )
                 }
             }
+        }
+
+        // Asked only when there is something to ask. A farmer nobody has
+        // written plots down for gets no question and loses no tap.
+        if (state.fields.isNotEmpty()) {
+            FtSectionLabel(stringResource(R.string.field_which))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Chips, like the machines below. Full-width buttons made two
+                // visual languages for the same kind of choice on one screen.
+                state.fields.forEach { field ->
+                    FtChip(
+                        label = field.name,
+                        selected = state.fieldId == field.id,
+                        onClick = { onSelectField(field.id) },
+                    )
+                }
+                FtChip(
+                    label = stringResource(R.string.field_not_said),
+                    selected = state.fieldId == null,
+                    onClick = { onSelectField(null) },
+                )
+            }
+            Text(
+                text = stringResource(R.string.field_not_said_note),
+                style = FieldTrackTheme.type.caption,
+                color = FieldTrackTheme.colors.inkSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
         }
 
         FtSectionLabel(stringResource(R.string.start_machine))
