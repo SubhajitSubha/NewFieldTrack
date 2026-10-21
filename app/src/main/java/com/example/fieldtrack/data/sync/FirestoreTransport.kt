@@ -5,10 +5,9 @@ import com.example.fieldtrack.data.db.SyncQueue
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
-import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.firestore.memoryCacheSettings
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
@@ -20,6 +19,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import com.google.firebase.firestore.SetOptions
+import com.example.fieldtrack.data.db.entity.membershipId
 
 /**
  * Sends the queue to Cloud Firestore.
@@ -40,29 +41,21 @@ import kotlin.coroutines.resumeWithException
  * orgs/{orgId}/breakdowns/{id}
  *
  * inviteCodes/{code}                    read before joining, so outside any org
+ * people/{personId}/orgs/{orgId}        which businesses a person belongs to,
+ *                                       so a new handset can find them
  * ```
  *
- * **Firestore's own offline cache is switched off here, deliberately.** Left on, a
- * commit succeeds the moment it is written to the local cache, whether or not a
- * server ever hears about it — and this app would take that as permission to delete
- * the row from its outbox. The queue would empty itself on a phone with no signal
- * and the work would exist nowhere but a cache that a reinstall clears. With the
- * cache off, a commit succeeding means the server has it. Offline handling is this
+ * Firestore's own offline cache is off — see [Firestore] for why that matters so
+ * much here. A commit succeeding means the server has it. Offline handling is this
  * app's job, and it is already done properly one layer up in [SyncEngine].
  */
 class FirestoreTransport(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val firestore: FirebaseFirestore = Firestore.instance,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val deviceId: String,
 ) : SyncTransport {
 
     override val name = "Firebase"
-
-    init {
-        firestore.firestoreSettings = FirebaseFirestoreSettings.Builder()
-            .setLocalCacheSettings(memoryCacheSettings {})
-            .build()
-    }
 
     override suspend fun send(batch: List<SyncChange>): List<SyncOutcome> {
         if (batch.isEmpty()) return emptyList()
@@ -121,6 +114,15 @@ class FirestoreTransport(
         if (change.table in SyncQueue.ROOT_COLLECTIONS) {
             return firestore.collection(change.table).document(change.entityId)
         }
+        // Filed under the person, so a new handset can find its way in. The id is
+        // `{personId}_{orgId}`, split on the first underscore: a Firebase uid never
+        // contains one and an organisation id is a UUID, so the seam is unambiguous.
+        if (change.table == SyncQueue.TABLE_MEMBER_ORGS) {
+            val personId = change.entityId.substringBefore('_')
+            val orgId = change.entityId.substringAfter('_')
+            return firestore.collection(PEOPLE).document(personId)
+                .collection(ORGS).document(orgId)
+        }
         val org = firestore.collection(ORGS).document(change.orgId)
         // The organisation row is the subtree's own root, not a document inside it.
         return if (change.table == SyncQueue.TABLE_ORGS) org
@@ -141,7 +143,35 @@ class FirestoreTransport(
             put(FIELD_SEQ, seq)
             put(FIELD_DEVICE, deviceId)
             put(FIELD_RECORDED_AT, recordedAt)
+            // Stamped by the server, not by us, and the distinction is the whole
+            // point: this is what a pull pages on. `_recordedAt` is this handset's
+            // clock, and handsets in a village disagree by minutes — one running
+            // fast would write rows that another phone's pull has already scrolled
+            // past, and those rows would never be seen again. Nobody sets the
+            // server's clock.
+            put(FIELD_SERVER_AT, FieldValue.serverTimestamp())
         }
+
+    override suspend fun reportUnsent(orgId: String, personId: String, count: Int, at: Long) {
+        signIn()?.let { return }
+        withTimeout(TIMEOUT_MILLIS) {
+            firestore.collection(ORGS).document(orgId)
+                .collection(SyncQueue.TABLE_MEMBERSHIPS)
+                .document(membershipId(orgId, personId))
+                .set(
+                    mapOf(
+                        "unsentCount" to count,
+                        "unsentAt" to at,
+                        // Without this the document is invisible to the owner's
+                        // delta pull, which pages on the server's own stamp, and
+                        // the beacon would reach the server and stop there.
+                        FIELD_SERVER_AT to FieldValue.serverTimestamp(),
+                    ),
+                    SetOptions.merge(),
+                )
+                .await()
+        }
+    }
 
     /** Signs in anonymously if needed; returns the reason we could not, or null. */
     private suspend fun signIn(): SyncOutcome? {
@@ -185,6 +215,7 @@ class FirestoreTransport(
 
     private companion object {
         const val ORGS = "orgs"
+        const val PEOPLE = "people"
         const val FIELD_SEQ = "_seq"
         const val FIELD_DEVICE = "_device"
         const val FIELD_RECORDED_AT = "_recordedAt"

@@ -313,6 +313,44 @@ class SyncEngineTest {
         assertEquals("nothing left to try", seenBefore, transport.seen.size)
     }
 
+    @Test
+    fun `being removed from one business does not stop another syncing`() = runTest {
+        // A driver who works for two. Changes for both are waiting.
+        queue.enqueueUpsert("org-gone", SyncQueue.TABLE_JOBS, "job-a", """{"id":"job-a"}""")
+        now += 1_000
+        queue.enqueueUpsert("org-still", SyncQueue.TABLE_JOBS, "job-b", """{"id":"job-b"}""")
+        now += 1_000
+
+        // They are taken off the first one. Its queue can never be accepted again.
+        db.outboxDao().setAsideForOrg("org-gone", now)
+
+        val transport = FakeTransport()
+        val status = engine(transport).sync()
+
+        assertEquals(SyncStage.Idle, status.stage)
+        assertEquals(
+            "the business they still drive for must keep working",
+            listOf("job-b"),
+            transport.seen.map { it.entityId },
+        )
+        assertEquals(1, status.setAside)
+    }
+
+    @Test
+    fun `work from a business they left is kept, not thrown away`() = runTest {
+        queue.enqueueUpsert("org-gone", SyncQueue.TABLE_LEDGER, "pay-1", """{"id":"pay-1"}""")
+
+        db.outboxDao().setAsideForOrg("org-gone", now)
+        engine(FakeTransport()).sync()
+
+        assertEquals("it leaves the queue", 0, pending())
+        assertEquals(
+            "money somebody collected is not deleted because they were let go",
+            1,
+            rawOutboxCount(),
+        )
+    }
+
     // ------------------------------------------------------- order, held under fire
 
     @Test

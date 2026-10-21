@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.EntryMethod
+import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobEventType
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.LedgerKind
@@ -16,6 +17,8 @@ import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.data.db.SyncState
 import kotlinx.serialization.Serializable
+import com.example.fieldtrack.data.db.TeamEventKind
+import com.example.fieldtrack.data.db.PayoutCovers
 
 /*
  * The FieldTrack schema.
@@ -107,10 +110,51 @@ data class MembershipEntity(
     val canAddCustomers: Boolean = false,
     /** Whether this person may close a bill and take payment, not just record work. */
     val canCloseBills: Boolean = false,
+    /** May record money going out of the business. */
+    val canPayOut: Boolean = false,
+    /** May invite, remove and re-permission drivers — but never touch an owner. */
+    val canEditTeam: Boolean = false,
+    /** May add machines and keep their hours and service schedule. */
+    val canEditMachines: Boolean = false,
+    /**
+     * May see what each person was paid.
+     *
+     * Kept on the membership rather than worked out on the phone, because the
+     * server has to be able to answer it: anything a rule cannot read, a rule
+     * cannot enforce, and a screen that merely declines to show a figure is not
+     * keeping it from anybody.
+     */
+    val canSeePeopleCost: Boolean = false,
 
     val active: Boolean = true,
     val joinedAt: Long,
     val leftAt: Long? = null,
+    /**
+     * The invite code this person came in on, when they came in on one.
+     *
+     * Carried so a security rule can check it. Without it the server has no way to
+     * tell a driver who was invited from a stranger who learned an organisation's
+     * id, and the only thing standing between a business's books and anybody who
+     * signs in is that id staying secret — which is not a security measure, it is a
+     * hope. Null for an owner, who created the business rather than joined it.
+     */
+    val joinedWithCode: String? = null,
+    /**
+     * How much work this person's phone was still holding, last time it managed
+     * to reach the server.
+     *
+     * A beacon, not a record: it describes a handset's state right now rather
+     * than anything anybody did, and it is written straight to the server
+     * instead of through the outbox. Queueing it would be a loop — the write
+     * itself would be one more unsent change, so the count could never reach
+     * zero and every sync would raise another.
+     *
+     * Lets an owner see, before taking somebody off the team, that their phone
+     * has three jobs on it that have never arrived.
+     */
+    val unsentCount: Int = 0,
+    /** This phone's clock when it counted. Shown as "as of", never as fact. */
+    val unsentAt: Long? = null,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
 )
@@ -220,6 +264,123 @@ data class ServiceRecordEntity(
     val atMachineHours: Double? = null,
     val atMillis: Long,
     val vendor: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/**
+ * Money leaving the business.
+ *
+ * The mirror of the customer ledger, and deliberately not part of it: every row
+ * there belongs to a customer, and what a customer owes is summed from them.
+ * Wages belong to nobody outside the business.
+ *
+ * One shape covers all of it. A permanent driver, a man taken on for two days
+ * and three labourers nobody wrote a name for are the same event — money out,
+ * on a date, to somebody — and the only thing that differs is whether that
+ * somebody has an account here.
+ */
+@Entity(tableName = "payouts", indices = [Index("orgId"), Index("jobId")])
+@Serializable
+data class PayoutEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    /** Always positive. Money out is the whole point of the table. */
+    val amountRupees: Long,
+    val atMillis: Long,
+    /** What this can be laid against, which decides what it can total into. */
+    val covers: PayoutCovers,
+    /** Set when the person paid is on the team; null for labour with no account. */
+    val toPersonId: String? = null,
+    /** Written down either way, so the row still reads after a rename. */
+    val toName: String? = null,
+    /** How many people one payment covered. One for a named person. */
+    val headcount: Int = 1,
+    val jobId: String? = null,
+    /**
+     * The job cost this payment settles, when it settles one.
+     *
+     * The link that stops the same money being counted twice. A job's costs are
+     * totalled from [JobCostEntity] alone; a payment carrying this is the cash
+     * leaving against a cost already counted there, never a second cost. Which
+     * also means a cost can be settled in parts, by more than one payment, and
+     * what is still owed is the difference rather than a flag somebody has to
+     * remember to clear.
+     */
+    val jobCostId: String? = null,
+    val method: PaymentMethod? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    val createdAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    val deviceId: String? = null,
+)
+
+/**
+ * What one job cost beyond the machine: the hands on it, and the money around it.
+ *
+ * Kept apart from [PayoutEntity] because the two answer different questions and
+ * are known by different people at different times. The driver standing in the
+ * field knows four men worked; he has no cash and no business seeing wages. The
+ * owner knows what they are owed, and pays on Saturday. Forcing both facts into
+ * one row would mean either the driver cannot record anything, or a payment row
+ * exists for money that has not moved.
+ *
+ * So this is the job's cost sheet and [PayoutEntity] is the till. This table is
+ * the only place a job-attached cost is totalled from; a payment that settles
+ * one points back here and is never counted as a cost again.
+ */
+@Entity(
+    tableName = "job_costs",
+    indices = [Index("orgId"), Index("jobId")],
+)
+@Serializable
+data class JobCostEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val jobId: String,
+    val kind: JobCostKind,
+    /**
+     * How many people, or null when nobody counted.
+     *
+     * Null is a real answer, not a missing one: a jamadar brings a gang and is
+     * paid by the acre, and nobody counts heads. A guessed number would look
+     * exactly like a counted one afterwards, and would quietly poison the only
+     * figure this count exists to produce — what a pair of hands costs.
+     */
+    val headcount: Int? = null,
+    /** Null until somebody who may pay has put a figure on it. */
+    val amountRupees: Long? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    val atMillis: Long,
+    val createdAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    val deviceId: String? = null,
+)
+
+/**
+ * One change to the team, written down as it happened.
+ *
+ * Append-only, and deliberately holding names rather than only ids. A log is
+ * read long after the fact, and "Harpal let Manjit see the money" has to go on
+ * saying that even if either of them is renamed afterwards. The ids are kept
+ * too, for anything that needs to follow a person rather than a name.
+ */
+@Entity(tableName = "team_events", indices = [Index("orgId")])
+@Serializable
+data class TeamEventEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val atMillis: Long,
+    val kind: TeamEventKind,
+    /** Who did it. Null when nobody did — somebody joining acts on themselves. */
+    val byPersonId: String? = null,
+    val byName: String = "",
+    /** Who it was done to, when that is a different person. */
+    val aboutPersonId: String? = null,
+    val aboutName: String? = null,
+    /** Whatever the sentence needs: a code, the permission that changed. */
+    val detail: String? = null,
     val syncState: SyncState = SyncState.Pending,
 )
 

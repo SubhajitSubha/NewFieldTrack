@@ -44,6 +44,8 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 @Composable
 fun JoinScreen(
     state: JoinState,
+    /** Set when they arrived here because somebody took them off a team. */
+    removedFrom: String?,
     onCode: (String) -> Unit,
     onName: (String) -> Unit,
     onCheck: () -> Unit,
@@ -74,6 +76,25 @@ fun JoinScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            // Said first, and said plainly. Somebody who opens the app to find
+            // themselves being asked for a code again deserves to know why,
+            // rather than being left to assume the app has lost their work.
+            if (removedFrom != null && state.step == JoinStep.Code) {
+                FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+                    Text(
+                        text = stringResource(R.string.join_removed_title, removedFrom),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.dueInk,
+                    )
+                    Text(
+                        text = stringResource(R.string.join_removed_body),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.dueInk,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                }
+            }
+
             when (state.step) {
                 JoinStep.Code -> CodeStep(state, onCode)
                 JoinStep.Preview -> PreviewStep(state, onName)
@@ -272,4 +293,5 @@ private fun JoinProblem.saidPlainly(): String = when (this) {
     JoinProblem.Expired -> stringResource(R.string.join_err_expired)
     JoinProblem.AlreadyUsed -> stringResource(R.string.join_err_used)
     JoinProblem.Unreachable -> stringResource(R.string.join_err_unreachable)
+    JoinProblem.AlreadyInBusiness -> stringResource(R.string.join_err_already_in)
 }

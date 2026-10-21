@@ -24,6 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import com.example.fieldtrack.data.auth.indianMobileDigits
 
 /** A phone provider we script, so no Firebase and no Activity are involved. */
 private class FakePhoneAuth : PhoneAuth {
@@ -319,4 +320,22 @@ class SignInTest {
 
         assertTrue(signedIn.isEmpty())
     }
+
+    @Test
+    fun `a number already carrying its country code is not given a second one`() {
+        // Somebody who joined with an invite has their signed-in identity stored,
+        // which arrives in full international form; somebody typed in by hand is
+        // ten digits. Both land in the same column and both reach the same screen,
+        // and the member screen used to read "+91 +919000000002" for the first.
+        assertEquals("+91 90000 00002", formatIndianPhone("+919000000002"))
+        assertEquals("+91 90000 00002", formatIndianPhone("9000000002"))
+        assertEquals("+91 98765 43210", formatIndianPhone("+91 98765 43210"))
+    }
+
+    @Test
+    fun `what gets stored is the bare ten digits, whichever form came in`() {
+        assertEquals("9000000002", indianMobileDigits("+919000000002"))
+        assertEquals("9000000002", indianMobileDigits("9000000002"))
+    }
+
 }

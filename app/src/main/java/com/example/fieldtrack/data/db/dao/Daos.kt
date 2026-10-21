@@ -21,6 +21,26 @@ import com.example.fieldtrack.data.db.entity.OutboxEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.data.db.entity.ServiceRecordEntity
 import kotlinx.coroutines.flow.Flow
+import com.example.fieldtrack.data.db.entity.TeamEventEntity
+import androidx.room.OnConflictStrategy
+import com.example.fieldtrack.data.db.entity.PayoutEntity
+import com.example.fieldtrack.data.db.entity.JobCostEntity
+import androidx.room.Embedded
+
+/**
+ * A job cost with what has been paid against it.
+ *
+ * The pair travels together because every screen that shows one wants the
+ * other in the same breath — a cost without its settlement reads as paid.
+ */
+data class JobCostWithPaid(
+    @Embedded val cost: JobCostEntity,
+    val paidRupees: Long,
+) {
+    /** Null while nobody has priced it. Clamped, so an overpayment is not a credit. */
+    val owedRupees: Long?
+        get() = cost.amountRupees?.let { (it - paidRupees).coerceAtLeast(0) }
+}
 
 /*
  * Every read is scoped by orgId. That is not politeness — it is the mechanism that
@@ -53,6 +73,177 @@ interface OrgDao {
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND personId = :personId LIMIT 1")
     suspend fun membership(orgId: String, personId: String): MembershipEntity?
 
+    // ------------------------------------------------------- what changed, when
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addTeamEvent(event: TeamEventEntity)
+
+    /** Newest first: the question is nearly always "what just happened". */
+    @Query("SELECT * FROM team_events WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 100")
+    fun observeTeamEvents(orgId: String): Flow<List<TeamEventEntity>>
+
+    // ------------------------------------------------------------- money going out
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPayout(payout: PayoutEntity)
+
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 200")
+    fun observePayouts(orgId: String): Flow<List<PayoutEntity>>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observePaidOutBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
+    /**
+     * What the jobs one machine did cost in people, paid or not.
+     *
+     * Summed from the job's own cost sheet and never from `payouts`, which is
+     * the whole reason the two tables exist apart. Joining payouts to jobs here
+     * as well would count every settled cost twice over.
+     *
+     * Unpaid costs are in. What a job cost does not depend on whether Saturday
+     * has come round, and a machine that looks profitable only because its
+     * crew has not been paid yet is the lie this screen exists to prevent.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        JOIN jobs j ON j.id = c.jobId
+        WHERE c.orgId = :orgId AND j.machineId = :machineId
+        """
+    )
+    fun observeJobCostOnMachine(orgId: String, machineId: String): Flow<Long>
+
+    /** The same, asked once, for a report over a stretch of time. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        JOIN jobs j ON j.id = c.jobId
+        WHERE c.orgId = :orgId AND j.machineId = :machineId
+          AND c.atMillis BETWEEN :from AND :to
+        """
+    )
+    suspend fun jobCostOnMachine(orgId: String, machineId: String, from: Long, to: Long): Long
+
+    /**
+     * Everything no machine can carry.
+     *
+     * Keyed on not settling a job cost, rather than on [PayoutCovers]. A day's
+     * pay belongs to no job either, and counting only the month-long ones
+     * understated what was being left out — which is the one thing this figure
+     * exists to prevent. A row that somehow names a job but settles no cost
+     * lands here too: better over-reported in the line that admits to it than
+     * quietly absent from both.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        WHERE orgId = :orgId AND jobCostId IS NULL
+        """
+    )
+    fun observeUnattributablePayouts(orgId: String): Flow<Long>
+
+    /** What could not be laid against anything, so a total can admit to it. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
+        """
+    )
+    suspend fun paidOutUnattributable(orgId: String, from: Long, to: Long): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertJobCost(cost: JobCostEntity)
+
+    @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND id = :id")
+    suspend fun findJobCost(orgId: String, id: String): JobCostEntity?
+
+    /**
+     * One job's costs, each with what has actually been paid against it.
+     *
+     * The paid figure is summed from the payments pointing here rather than
+     * held as a flag, so a cost settled in two halves reads correctly and
+     * nothing has to remember to flip when the second half goes.
+     */
+    @Query(
+        """
+        SELECT c.*, COALESCE(
+            (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+        ) AS paidRupees
+        FROM job_costs c
+        WHERE c.orgId = :orgId AND c.jobId = :jobId
+        ORDER BY c.atMillis
+        """
+    )
+    fun observeJobCosts(orgId: String, jobId: String): Flow<List<JobCostWithPaid>>
+
+    /** What this job cost in all, paid or not. Null amounts are not yet priced. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM job_costs
+        WHERE orgId = :orgId AND jobId = :jobId
+        """
+    )
+    fun observeJobCostTotal(orgId: String, jobId: String): Flow<Long>
+
+    /**
+     * Money owed on work already done, across the business.
+     *
+     * Clamped at zero per cost. An overpayment on one job is a thing to sort
+     * out on that job, not a silent discount against what is owed on another.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(
+            CASE WHEN c.amountRupees - COALESCE(
+                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            ) > 0
+            THEN c.amountRupees - COALESCE(
+                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            )
+            ELSE 0 END
+        ), 0)
+        FROM job_costs c
+        WHERE c.orgId = :orgId AND c.amountRupees IS NOT NULL
+        """
+    )
+    fun observeOwedOnJobs(orgId: String): Flow<Long>
+
+    /** Of this machine's job costs, what is still owed. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(
+            CASE WHEN c.amountRupees - COALESCE(
+                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            ) > 0
+            THEN c.amountRupees - COALESCE(
+                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            )
+            ELSE 0 END
+        ), 0)
+        FROM job_costs c
+        JOIN jobs j ON j.id = c.jobId
+        WHERE c.orgId = :orgId AND j.machineId = :machineId AND c.amountRupees IS NOT NULL
+        """
+    )
+    fun observeOwedOnMachine(orgId: String, machineId: String): Flow<Long>
+
+    /** Costs somebody recorded but nobody has put a figure on yet. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM job_costs
+        WHERE orgId = :orgId AND amountRupees IS NULL
+        """
+    )
+    fun observeUnpricedJobCostCount(orgId: String): Flow<Int>
+
+    @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND syncState = 'Pending'")
+    suspend fun pendingJobCosts(orgId: String): List<JobCostEntity>
+
     /** The team list: everyone in one business. */
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND active = 1 ORDER BY role, displayName")
     fun observeTeam(orgId: String): Flow<List<MembershipEntity>>
@@ -71,8 +262,24 @@ interface OrgDao {
     @Query("SELECT COUNT(*) FROM memberships WHERE orgId = :orgId AND active = 1 AND role = 'Owner'")
     suspend fun activeOwnerCount(orgId: String): Int
 
+    /** Every business this person has ever belonged to, ended ones included. */
     @Query("SELECT COUNT(*) FROM memberships WHERE personId = :personId")
     suspend fun membershipCountFor(personId: String): Int
+
+    /**
+     * Any business they still work for, for putting a session back together.
+     *
+     * Used when the app knows who somebody is but not which business to show —
+     * after an account is turned back on, for instance, where the alternative is
+     * presenting a person who has three employers with a wizard asking them to
+     * set up their first one.
+     */
+    @Query("SELECT * FROM memberships WHERE personId = :personId AND active = 1 ORDER BY joinedAt ASC LIMIT 1")
+    suspend fun firstActiveMembershipFor(personId: String): MembershipEntity?
+
+    /** Only the ones they work for today — what the profile row counts. */
+    @Query("SELECT COUNT(*) FROM memberships WHERE personId = :personId AND active = 1")
+    suspend fun activeMembershipCountFor(personId: String): Int
 
     // ---------------------------------------------------- adopting an identity
     //
@@ -102,6 +309,34 @@ interface OrgDao {
         """
     )
     fun observeOpenInvite(orgId: String, now: Long): Flow<InviteEntity?>
+
+    /**
+     * Every code not yet used, newest first, whether or not it has run out.
+     *
+     * Deliberately without a time bound. A `now` passed in here is read once,
+     * when the query is built, and a flow then goes on answering against that
+     * instant for as long as anybody watches it — so a code withdrawn a minute
+     * later still looked live until the screen was thrown away and remade. The
+     * caller drops the expired ones against a clock read per emission.
+     */
+    @Query(
+        """
+        SELECT * FROM invites
+        WHERE orgId = :orgId AND redeemedAt IS NULL
+        ORDER BY createdAt DESC
+        """
+    )
+    fun observeUnusedInvites(orgId: String): Flow<List<InviteEntity>>
+
+    /** The last few that were used, so an owner can see who came in on what. */
+    @Query(
+        """
+        SELECT * FROM invites
+        WHERE orgId = :orgId AND redeemedAt IS NOT NULL
+        ORDER BY redeemedAt DESC LIMIT 5
+        """
+    )
+    fun observeRedeemedInvites(orgId: String): Flow<List<InviteEntity>>
 
     @Query("SELECT * FROM invites WHERE id = :id")
     suspend fun inviteById(id: String): InviteEntity?
@@ -186,6 +421,32 @@ interface MachineDao {
     )
     fun observeFuelSpendOnMachine(orgId: String, machineId: String): Flow<Long>
 
+    /** Diesel put in while this job was running, when it was logged against it. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries
+        WHERE orgId = :orgId AND jobId = :jobId
+        """
+    )
+    fun observeFuelSpendOnJob(orgId: String, jobId: String): Flow<Long>
+
+    /** The same in litres, for somebody who may not see what it cost. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(litres), 0.0) FROM fuel_entries
+        WHERE orgId = :orgId AND jobId = :jobId
+        """
+    )
+    fun observeFuelLitresOnJob(orgId: String, jobId: String): Flow<Double>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(costRupees), 0) FROM service_records
+        WHERE orgId = :orgId AND machineId = :machineId
+        """
+    )
+    fun observeServiceSpendOnMachine(orgId: String, machineId: String): Flow<Long>
+
     @Upsert suspend fun upsertService(record: ServiceRecordEntity)
 
     @Query("SELECT * FROM service_records WHERE orgId = :orgId AND machineId = :machineId ORDER BY atMillis DESC")
@@ -209,8 +470,14 @@ interface MachineDao {
     @Query("UPDATE fuel_entries SET byPersonId = :to WHERE byPersonId = :from")
     suspend fun adoptFuel(from: String, to: String)
 
+    @Query("SELECT * FROM fuel_entries WHERE byPersonId = :personId")
+    suspend fun fuelBy(personId: String): List<FuelEntryEntity>
+
     @Query("UPDATE breakdowns SET reportedByPersonId = :to WHERE reportedByPersonId = :from")
     suspend fun adoptBreakdowns(from: String, to: String)
+
+    @Query("SELECT * FROM breakdowns WHERE reportedByPersonId = :personId")
+    suspend fun breakdownsBy(personId: String): List<BreakdownEntity>
 
     /** Whether this machine is still broken, as opposed to merely having been. */
     @Query(
@@ -242,11 +509,27 @@ interface JobDao {
     )
     suspend fun liveJobCountOnMachine(orgId: String, machineId: String): Int
 
+    /** When this person last did anything for this business. */
+    @Query(
+        """
+        SELECT MAX(workedAt) FROM jobs
+        WHERE orgId = :orgId AND operatorPersonId = :personId AND deletedAt IS NULL
+        """
+    )
+    suspend fun lastWorkedAt(orgId: String, personId: String): Long?
+
     @Query("UPDATE jobs SET operatorPersonId = :to WHERE operatorPersonId = :from")
     suspend fun adoptJobs(from: String, to: String)
 
+    /** Read back after a move, so the rows can be sent on in their new shape. */
+    @Query("SELECT * FROM jobs WHERE operatorPersonId = :personId")
+    suspend fun jobsBy(personId: String): List<JobEntity>
+
     @Query("UPDATE job_events SET byPersonId = :to WHERE byPersonId = :from")
     suspend fun adoptJobEvents(from: String, to: String)
+
+    @Query("SELECT * FROM job_events WHERE byPersonId = :personId")
+    suspend fun eventsBy(personId: String): List<JobEventEntity>
 
     /** Which machines are out on a job right now, for screens that say so. */
     @Query(
@@ -333,6 +616,21 @@ interface JobDao {
     )
     fun observeLive(orgId: String): Flow<List<JobEntity>>
 
+    /**
+     * The last handful of jobs, finished or not.
+     *
+     * For laying a payment against work that was just done, which is when
+     * labour is usually paid — in the field, with the job still in mind.
+     */
+    @Query(
+        """
+        SELECT * FROM jobs
+        WHERE orgId = :orgId AND deletedAt IS NULL
+        ORDER BY workedAt DESC LIMIT :limit
+        """
+    )
+    fun observeRecent(orgId: String, limit: Int): Flow<List<JobEntity>>
+
     /** Everything one driver has ever done here, for their own record. */
     @Query(
         """
@@ -357,6 +655,17 @@ interface JobDao {
         """
     )
     fun observeLiveFor(orgId: String, personId: String): Flow<JobEntity?>
+
+    /** The same question asked once, for code that acts rather than watches. */
+    @Query(
+        """
+        SELECT * FROM jobs
+        WHERE orgId = :orgId AND operatorPersonId = :personId
+          AND deletedAt IS NULL AND status IN ('Running', 'Paused')
+        ORDER BY startedAt DESC LIMIT 1
+        """
+    )
+    suspend fun liveJobFor(orgId: String, personId: String): JobEntity?
 
     @Query(
         """
@@ -488,6 +797,9 @@ interface LedgerDao {
     @Query("UPDATE ledger_entries SET byPersonId = :to WHERE byPersonId = :from")
     suspend fun adoptEntries(from: String, to: String)
 
+    @Query("SELECT * FROM ledger_entries WHERE byPersonId = :personId")
+    suspend fun entriesBy(personId: String): List<LedgerEntryEntity>
+
     @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId AND customerId = :customerId ORDER BY atMillis DESC, createdAt DESC")
     fun observeFor(orgId: String, customerId: String): Flow<List<LedgerEntryEntity>>
 
@@ -579,13 +891,60 @@ interface OutboxDao {
     @Query("SELECT COUNT(*) FROM outbox WHERE blockedAt IS NOT NULL")
     suspend fun setAsideCount(): Int
 
+    /**
+     * Whether this exact row is already waiting to be sent.
+     *
+     * Asked before a restore overwrites anything: a row with a change queued on
+     * this phone is newer than whatever the server last heard, and letting the
+     * download win would quietly undo work somebody did while out of signal.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM outbox
+        WHERE tableName = :table AND entityId = :entityId AND blockedAt IS NULL
+        """
+    )
+    suspend fun pendingFor(table: String, entityId: String): Int
+
     /** Lets the queue past one change, without throwing it away. */
     @Query("UPDATE outbox SET blockedAt = :now WHERE seq = :seq")
     suspend fun setAside(seq: Long, now: Long)
 
+    /**
+     * Sets aside everything still queued for one business.
+     *
+     * Used when this person is no longer in it. Those changes can never be
+     * accepted now — the server will refuse every one — and left in the queue the
+     * first of them would block it for good, including work for a second business
+     * the same driver still works for. Kept rather than deleted, because they are
+     * a record of work that was really done and may still be owed for.
+     */
+    @Query("UPDATE outbox SET blockedAt = :now WHERE orgId = :orgId AND blockedAt IS NULL")
+    suspend fun setAsideForOrg(orgId: String, now: Long)
+
+    /**
+     * Sets aside everything, for an account that has been turned off.
+     *
+     * Not the same as being removed from one business: there is no business left
+     * to send to. Kept rather than deleted for the same reason — somebody whose
+     * account is restored, or who is asked later what work was done, still has it.
+     */
+    @Query("UPDATE outbox SET blockedAt = :now WHERE blockedAt IS NULL")
+    suspend fun setAsideEverything(now: Long)
+
     /** The same count, for the sync engine, which reports after a run rather than watching. */
     @Query("SELECT COUNT(*) FROM outbox WHERE blockedAt IS NULL")
     suspend fun pendingCount(): Int
+
+    /**
+     * What is still waiting for ONE business.
+     *
+     * Per business rather than per phone, because the beacon is written onto a
+     * membership: a driver who works for two contractors would otherwise tell
+     * each of them how far behind the other one was.
+     */
+    @Query("SELECT COUNT(*) FROM outbox WHERE orgId = :orgId AND blockedAt IS NULL")
+    suspend fun pendingCountFor(orgId: String): Int
 
     /**
      * What is waiting, by kind.

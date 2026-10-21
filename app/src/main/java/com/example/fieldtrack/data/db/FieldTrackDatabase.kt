@@ -16,6 +16,7 @@ import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.FuelEntryEntity
 import com.example.fieldtrack.data.db.entity.InviteEntity
+import com.example.fieldtrack.data.db.entity.JobCostEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.JobEventEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
@@ -25,6 +26,8 @@ import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.OutboxEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.data.db.entity.ServiceRecordEntity
+import com.example.fieldtrack.data.db.entity.TeamEventEntity
+import com.example.fieldtrack.data.db.entity.PayoutEntity
 
 /**
  * The local database — and the app's source of truth.
@@ -41,6 +44,9 @@ import com.example.fieldtrack.data.db.entity.ServiceRecordEntity
     entities = [
         OrgEntity::class,
         MembershipEntity::class,
+        TeamEventEntity::class,
+        PayoutEntity::class,
+        JobCostEntity::class,
         InviteEntity::class,
         CustomerEntity::class,
         FieldEntity::class,
@@ -54,7 +60,7 @@ import com.example.fieldtrack.data.db.entity.ServiceRecordEntity
         LedgerEntryEntity::class,
         OutboxEntity::class,
     ],
-    version = 6,
+    version = 12,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

@@ -54,6 +54,9 @@ data class MoreState(
     val customerCount: Int = 0,
     val pendingUploads: Int = 0,
     val rateCount: Int = 0,
+    val canSeeMoney: Boolean = true,
+    /** Its own switch: a colleague's wage is not a customer balance. */
+    val canSeePeopleCost: Boolean = false,
     /** Null until a server has actually confirmed holding this phone's work. */
     val lastBackupAt: Long? = null,
     /** False for a driver, who may not rename the business they work for. */
@@ -91,6 +94,8 @@ class MoreViewModel(app: FieldFlowApplication) : ViewModel() {
                 pendingUploads = pending,
                 lastBackupAt = sync.lastSuccessAt,
                 rateCount = rateCount,
+                canSeeMoney = s.canSeeMoney,
+                canSeePeopleCost = Capability.SeePeopleCost in s.can,
                 canEditBusiness = Capability.EditBusiness in s.can,
                 memberCount = team.size,
                 // A one-person outfit has no team to manage; the row appears when
@@ -123,6 +128,7 @@ fun MoreScreen(
     onEditBusiness: (() -> Unit)?,
     onBackup: () -> Unit,
     onRates: () -> Unit,
+    onMoneyOut: () -> Unit,
     onMachines: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -233,6 +239,11 @@ fun MoreScreen(
                         )
                     },
                 )
+                // Hidden outright, not merely unopenable. A rate card is nothing
+                // but the prices this business charges, so showing it to somebody
+                // explicitly denied money would hand over the whole price list
+                // through a door marked "settings".
+                if (state.canSeeMoney) {
                 FtRowDivider()
                 FtListRow(
                     title = stringResource(R.string.more_rates),
@@ -260,6 +271,25 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onRates,
                 )
+                }
+
+                // Behind its own switch, not the money one. Customer balances
+                // and what a colleague earns are not the same kind of secret.
+                if (state.canSeePeopleCost) {
+                FtRowDivider()
+                FtListRow(
+                    title = stringResource(R.string.more_money_out),
+                    subtitle = stringResource(R.string.more_money_out_note),
+                    leading = {
+                        FtIconTile(
+                            icon = FieldTrackIcons.Bill,
+                            size = 40.dp,
+                        )
+                    },
+                    showChevron = true,
+                    onClick = onMoneyOut,
+                )
+                }
             }
 
             FtSectionLabel(stringResource(R.string.more_settings))

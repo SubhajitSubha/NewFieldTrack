@@ -136,15 +136,18 @@ fun UpkeepScreen(
                                     tint = colors.money,
                                 )
                             },
-                            trailing = record.costRupees?.let { cost ->
-                                {
-                                    Text(
-                                        text = rupees(cost),
-                                        style = FieldTrackTheme.type.moneyMedium,
-                                        color = colors.ink,
-                                    )
-                                }
-                            },
+                            // The repair is operational; the bill for it is not.
+                            trailing = record.costRupees
+                                ?.takeIf { state.canSeeMoney }
+                                ?.let { cost ->
+                                    {
+                                        Text(
+                                            text = rupees(cost),
+                                            style = FieldTrackTheme.type.moneyMedium,
+                                            color = colors.ink,
+                                        )
+                                    }
+                                },
                         )
                     }
                 }

@@ -106,6 +106,20 @@ fun LedgerScreen(
             },
         )
 
+        // Belt and braces, as with the rate card: the way in is already gated, but
+        // a screen whose whole content is somebody's balance should refuse on its
+        // own rather than trust that nothing ever reaches it.
+        if (state.loaded && !state.canSeeMoney) {
+            FtCard(modifier = Modifier.padding(dimens.screenPadding)) {
+                Text(
+                    text = stringResource(R.string.customer_not_for_you),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                )
+            }
+            return@Column
+        }
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(

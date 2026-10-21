@@ -75,7 +75,10 @@ class DocumentHtmlTest {
 
         assertTrue(html.contains("Singh Agro Services"))
         assertTrue(html.contains("Village Kheri, Fatehabad"))
-        assertTrue(html.contains("+91 9876543210"))
+        // Grouped the way the number is read aloud, matching every other screen
+        // — and routed through the same formatter, so a number stored with its
+        // country code already attached does not print with two of them.
+        assertTrue(html.contains("+91 98765 43210"))
         assertTrue(html.contains("GSTIN 06ABCDE1234F1Z5"))
         assertTrue(html.contains("2026-27/0241"))
         assertTrue(html.contains("Ramesh Singh"))

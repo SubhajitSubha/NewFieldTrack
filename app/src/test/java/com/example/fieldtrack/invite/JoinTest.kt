@@ -2,6 +2,7 @@ package com.example.fieldtrack.invite
 
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.entity.InviteCodeDoc
+import com.example.fieldtrack.data.repository.TeamError
 import com.example.fieldtrack.data.sync.InviteLookup
 import com.example.fieldtrack.data.sync.InviteLookupResult
 import com.example.fieldtrack.feature.join.JoinProblem
@@ -203,7 +204,31 @@ class JoinTest {
 
         assertFalse(vm.state.value.busy)
         assertTrue("and they can try again", vm.state.value.canJoin)
+        // And they are told, rather than tapping Join and watching nothing happen.
+        assertEquals(JoinProblem.Unreachable, vm.state.value.problem)
     }
+
+    @Test
+    fun `typing a code for a business you are already in is refused and explained`() =
+        runTest(dispatcher) {
+            val vm = JoinViewModel(
+                FakeLookup { InviteLookupResult.Found(VALID) }, "",
+            ) { _, _ -> throw TeamError.AlreadyInBusiness("org-1") }
+            vm.setCode("3D9ADF")
+            vm.check()
+            advanceUntilIdle()
+            vm.setName("Harpal")
+
+            vm.join()
+            advanceUntilIdle()
+
+            // Redeeming writes the membership the code describes over whatever is
+            // there, so an owner trying their own driver code would demote
+            // themselves in their own business — and the server, which refuses
+            // self-promotion, would give them no way back.
+            assertEquals(JoinProblem.AlreadyInBusiness, vm.state.value.problem)
+            assertFalse(vm.state.value.busy)
+        }
 
     @Test
     fun `the name they signed up with is offered first`() = runTest(dispatcher) {

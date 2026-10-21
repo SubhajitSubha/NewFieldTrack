@@ -33,6 +33,7 @@ data class FuelLogState(
     val hoursUsed: Double = 0.0,
     val entries: List<FuelRow> = emptyList(),
     val canRecord: Boolean = true,
+    val canSeeMoney: Boolean = true,
 ) {
     /**
      * Litres per hour, or null when there is not enough to say.
@@ -90,6 +91,7 @@ class FuelLogViewModel(
                     )
                 },
                 canRecord = Capability.RecordWork in s.can,
+                canSeeMoney = s.canSeeMoney,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FuelLogState())

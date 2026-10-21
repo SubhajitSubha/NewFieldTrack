@@ -44,6 +44,9 @@ import com.example.fieldtrack.feature.clockTime
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.data.auth.formatIndianPhone
+import androidx.compose.foundation.layout.Spacer
+import com.example.fieldtrack.designsystem.component.FtRowDivider
 
 /**
  * One job, and how it came to be worth what it is worth.
@@ -61,6 +64,8 @@ fun JobDetailScreen(
     onAmend: (() -> Unit)?,
     onOpenCustomer: () -> Unit,
     onCall: (() -> Unit)?,
+    onAddCost: (() -> Unit)?,
+    onPayCost: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -121,7 +126,7 @@ fun JobDetailScreen(
                             Text(
                                 text = listOfNotNull(
                                     stringResource(R.string.job_detail_drove_it),
-                                    state.operatorPhone?.let { "+91 $it" },
+                                    state.operatorPhone?.let { formatIndianPhone(it) },
                                 ).joinToString(" · "),
                                 style = FieldTrackTheme.type.caption,
                                 color = colors.inkTertiary,
@@ -139,6 +144,10 @@ fun JobDetailScreen(
                         }
                     }
                 }
+            }
+
+            if (state.finished) {
+                CostCard(state = state, onAddCost = onAddCost, onPayCost = onPayCost)
             }
 
             FtSectionLabel(stringResource(R.string.job_detail_what_happened))
@@ -350,10 +359,12 @@ private fun JobEventRow.title(state: JobDetailState): String {
             quantity(numericValue ?: 0.0),
             unitLabel,
         )
-        JobEventType.TripAdded -> stringResource(
-            R.string.event_trip_added,
-            rupees((numericValue ?: 0.0).toLong()),
-        )
+        // The trip happened either way; what it was charged at is the owner's.
+        JobEventType.TripAdded -> if (state.canSeeMoney) {
+            stringResource(R.string.event_trip_added, rupees((numericValue ?: 0.0).toLong()))
+        } else {
+            stringResource(R.string.event_trip_added_plain)
+        }
         JobEventType.TripRemoved -> stringResource(R.string.event_trip_removed)
         JobEventType.FuelAdded -> stringResource(
             R.string.event_fuel,
@@ -370,10 +381,11 @@ private fun JobEventRow.title(state: JobDetailState): String {
             R.string.event_handed_over,
             textValue.orEmpty(),
         )
-        JobEventType.RateChanged -> stringResource(
-            R.string.event_rate_changed,
-            rupees((numericValue ?: 0.0).toLong()),
-        )
+        JobEventType.RateChanged -> if (state.canSeeMoney) {
+            stringResource(R.string.event_rate_changed, rupees((numericValue ?: 0.0).toLong()))
+        } else {
+            stringResource(R.string.event_rate_changed_plain)
+        }
     }
 }
 
@@ -404,3 +416,246 @@ private fun JobDetailState.pillLabel(): Int = when (status) {
     JobStatus.Completed -> R.string.job_detail_billed
     else -> R.string.job_detail_thrown_away
 }
+
+
+/**
+ * What the job cost the business, which is never what the farmer is charged.
+ *
+ * Said out loud on the card, because the two figures sit a thumb apart and
+ * confusing them would be expensive in both directions. Nothing here is
+ * written to a bill, a statement or a receipt.
+ *
+ * A total appears only when every part of it is both visible to this reader
+ * and actually priced. The alternative — a figure quietly missing a wage or an
+ * unpriced line — reads as profit, and somebody acts on it.
+ */
+@Composable
+private fun CostCard(
+    state: JobDetailState,
+    onAddCost: (() -> Unit)?,
+    onPayCost: ((String) -> Unit)?,
+) {
+    val colors = FieldTrackTheme.colors
+
+    FtSectionLabel(
+        stringResource(
+            if (state.canSeeMoney) R.string.cost_section else R.string.cost_section_driver
+        )
+    )
+
+    FtCard {
+        if (state.canSeeMoney) {
+            CostLine(
+                label = stringResource(R.string.cost_earned),
+                amount = rupees(state.amountRupees),
+                strong = true,
+            )
+            Spacer(Modifier.height(11.dp))
+            FtRowDivider()
+            Spacer(Modifier.height(11.dp))
+            CostLine(
+                label = stringResource(R.string.cost_diesel),
+                amount = "−" + rupees(state.fuelRupees),
+                cost = true,
+            )
+        } else {
+            // No rupees at all for this reader, so the diesel is told in the
+            // unit they put in the tank themselves.
+            CostLine(
+                label = stringResource(R.string.cost_diesel),
+                amount = stringResource(
+                    R.string.cost_litres, formatLitres(state.fuelLitres)
+                ),
+            )
+        }
+
+        val heads = state.labourHeads
+        if (heads != null || state.labourUncounted) {
+            Spacer(Modifier.height(9.dp))
+            CostLine(
+                label = stringResource(R.string.cost_labour),
+                detail = heads?.toString() ?: stringResource(R.string.cost_a_gang),
+                // The amount slot holds an amount or nothing. A sentence put
+                // here wrapped across the label beside it and the line became
+                // unreadable; what it means is said in its own card below.
+                amount = when {
+                    !state.seesPeopleCost -> ""
+                    state.labourRupees > 0 -> "−" + rupees(state.labourRupees)
+                    else -> stringResource(R.string.cost_not_priced_yet)
+                },
+                cost = state.seesPeopleCost && state.labourRupees > 0,
+            )
+        }
+
+        if (state.seesPeopleCost && state.otherRupees > 0) {
+            Spacer(Modifier.height(9.dp))
+            CostLine(
+                label = stringResource(R.string.cost_other),
+                amount = "−" + rupees(state.otherRupees),
+                cost = true,
+            )
+        }
+
+        if (state.canTotal) {
+            Spacer(Modifier.height(13.dp))
+            FtRowDivider()
+            Spacer(Modifier.height(13.dp))
+            CostLine(
+                label = stringResource(R.string.cost_left),
+                amount = rupees(state.leftRupees),
+                strong = true,
+                good = state.leftRupees >= 0,
+            )
+            Spacer(Modifier.height(9.dp))
+            Text(
+                text = stringResource(R.string.cost_yours_note, rupees(state.amountRupees)),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+        } else if (state.canSeeMoney) {
+            Spacer(Modifier.height(11.dp))
+            Text(
+                text = stringResource(
+                    if (state.seesPeopleCost) R.string.cost_no_total
+                    else R.string.cost_no_total_hidden
+                ),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.inkSecondary,
+            )
+        }
+    }
+
+    // A cost somebody recorded in the field and nobody has priced. Without a
+    // way in to that row, the only button on this screen adds a second entry
+    // beside it and the same crew is counted twice.
+    val unpriced = state.costs.firstOrNull { it.cost.amountRupees == null }
+    if (state.seesPeopleCost && unpriced != null) {
+        Spacer(Modifier.height(9.dp))
+        FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+            Text(
+                text = stringResource(R.string.cost_unpriced),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.dueInk,
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = stringResource(R.string.cost_unpriced_note),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.dueInk,
+            )
+            if (onPayCost != null) {
+                Spacer(Modifier.height(9.dp))
+                FtButton(
+                    text = stringResource(R.string.cost_put_figure),
+                    onClick = { onPayCost(unpriced.cost.id) },
+                    tone = FtButtonTone.Secondary,
+                    height = 46.dp,
+                )
+            }
+        }
+    }
+
+    if (state.seesPeopleCost && state.owedRupees > 0) {
+        Spacer(Modifier.height(9.dp))
+        FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+            Text(
+                text = stringResource(R.string.cost_owed, rupees(state.owedRupees)),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.dueInk,
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = stringResource(R.string.cost_owed_note),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.dueInk,
+            )
+            val owing = state.costs.firstOrNull { (it.owedRupees ?: 0) > 0 }
+            if (owing != null && onPayCost != null) {
+                Spacer(Modifier.height(9.dp))
+                FtButton(
+                    text = stringResource(R.string.cost_pay_now),
+                    onClick = { onPayCost(owing.cost.id) },
+                    tone = FtButtonTone.Secondary,
+                    height = 46.dp,
+                )
+            }
+        }
+    }
+
+    if (!state.canSeeMoney) {
+        Spacer(Modifier.height(9.dp))
+        FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+            Text(
+                text = stringResource(R.string.cost_hidden_title),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.inkSecondary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.cost_hidden_note),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.inkSecondary,
+            )
+        }
+    }
+
+    if (onAddCost != null) {
+        Spacer(Modifier.height(9.dp))
+        FtButton(
+            text = stringResource(
+                if (state.canPriceCost) R.string.cost_add else R.string.cost_say_who
+            ),
+            onClick = onAddCost,
+            tone = FtButtonTone.Secondary,
+            height = 50.dp,
+        )
+    }
+}
+
+@Composable
+private fun CostLine(
+    label: String,
+    amount: String,
+    detail: String? = null,
+    strong: Boolean = false,
+    cost: Boolean = false,
+    good: Boolean = true,
+) {
+    val colors = FieldTrackTheme.colors
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = label,
+                style = if (strong) FieldTrackTheme.type.sectionTitle else FieldTrackTheme.type.body,
+                color = if (strong) colors.ink else colors.inkSecondary,
+            )
+            if (detail != null) {
+                Text(
+                    text = stringResource(R.string.cost_detail_sep) + detail,
+                    style = FieldTrackTheme.type.body,
+                    color = colors.inkTertiary,
+                )
+            }
+        }
+        if (amount.isNotEmpty()) {
+            Text(
+                text = amount,
+                style = if (strong) FieldTrackTheme.type.moneyMedium else FieldTrackTheme.type.body,
+                color = when {
+                    cost -> colors.due
+                    strong && good -> colors.money
+                    strong -> colors.due
+                    else -> colors.ink
+                },
+            )
+        }
+    }
+}
+
+/** Litres without a trailing ".0" on the whole numbers people actually say. */
+private fun formatLitres(litres: Double): String =
+    if (litres % 1.0 == 0.0) litres.toLong().toString() else "%.1f".format(litres)

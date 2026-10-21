@@ -6,6 +6,7 @@ import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.formatBillNumber
 import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.data.auth.formatIndianPhone
 
 /**
  * Turning rows out of the database into something printable.
@@ -28,7 +29,7 @@ object Documents {
     fun partyOf(customer: CustomerEntity?): Party = Party(
         name = customer?.name.orEmpty(),
         addressLine = customer?.village?.ifBlank { null },
-        phone = customer?.phone?.ifBlank { null }?.let { "+91 $it" },
+        phone = customer?.phone?.ifBlank { null }?.let { formatIndianPhone(it) },
     )
 
     /**

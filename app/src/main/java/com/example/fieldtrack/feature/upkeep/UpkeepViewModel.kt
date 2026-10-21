@@ -67,6 +67,7 @@ data class UpkeepState(
     val done: List<ServiceDone> = emptyList(),
     val machines: List<MachineEntity> = emptyList(),
     val canEdit: Boolean = true,
+    val canSeeMoney: Boolean = true,
 )
 
 /** What is being typed into the "log a service" sheet. */
@@ -149,6 +150,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 },
                 machines = machines,
                 canEdit = Capability.EditBusiness in s.can,
+                canSeeMoney = s.canSeeMoney,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UpkeepState())

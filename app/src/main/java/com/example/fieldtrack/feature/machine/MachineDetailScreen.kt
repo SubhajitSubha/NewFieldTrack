@@ -40,6 +40,7 @@ import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.feature.workLabel
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtIconButton
 import com.example.fieldtrack.designsystem.component.FtIconTile
@@ -74,6 +75,7 @@ fun MachineDetailScreen(
     onFuel: () -> Unit,
     onService: () -> Unit,
     onBreakdown: () -> Unit,
+    onWhatItMade: () -> Unit,
     onSaveBreakdown: (BreakdownCategory, String?) -> Unit,
     onDismissReport: () -> Unit,
     onServiceDescription: (String) -> Unit,
@@ -209,6 +211,27 @@ fun MachineDetailScreen(
                 )
             }
 
+            // Next to the costs, because the costs are what the answer is made
+            // of: an owner asking whether a machine earns its keep is really
+            // asking which of diesel, repairs or people is eating it.
+            if (state.canSeeMoney) {
+                FtCard(padding = 0.dp) {
+                    FtListRow(
+                        title = stringResource(R.string.machine_what_it_made),
+                        leading = {
+                            FtIconTile(
+                                icon = FieldTrackIcons.Bill,
+                                size = 40.dp,
+                                background = colors.moneyWash,
+                                tint = colors.money,
+                            )
+                        },
+                        showChevron = true,
+                        onClick = onWhatItMade,
+                    )
+                }
+            }
+
             FtSectionLabel(stringResource(R.string.machine_recent_jobs))
             if (state.recentJobs.isEmpty()) {
                 if (state.loaded) {
@@ -227,7 +250,7 @@ fun MachineDetailScreen(
                         FtListRow(
                             title = job.customerName,
                             subtitle = listOf(
-                                job.workType,
+                                workLabel(job.workType),
                                 dayMonth(job.workedAtMillis),
                             ).joinToString(" · "),
                             statusStripe = if (job.live) colors.primary else null,

@@ -77,26 +77,39 @@ fun FuelLogScreen(
             // "what is this machine costing me", not "when was it last filled".
             FtCard(background = colors.ink, borderColor = colors.ink) {
                 Row(verticalAlignment = Alignment.Bottom) {
+                    // Litres either way; rupees only for somebody allowed them.
+                    // A driver is told what went in, not what the owner paid.
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.fuel_spent_all).uppercase(),
+                            text = stringResource(
+                                if (state.canSeeMoney) R.string.fuel_spent_all
+                                else R.string.fuel_spent_hidden
+                            ).uppercase(),
                             style = FieldTrackTheme.type.overline,
                             color = colors.onDarkMuted,
                         )
                         Text(
-                            text = rupees(state.totalRupees),
+                            text = if (state.canSeeMoney) {
+                                rupees(state.totalRupees)
+                            } else {
+                                stringResource(
+                                    R.string.fuel_litres_total, quantity(state.totalLitres),
+                                )
+                            },
                             style = FieldTrackTheme.type.moneyLarge,
                             color = colors.onDark,
                             modifier = Modifier.padding(top = 3.dp),
                         )
                     }
-                    Text(
-                        text = stringResource(
-                            R.string.fuel_litres_total, quantity(state.totalLitres),
-                        ),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.onDarkMuted,
-                    )
+                    if (state.canSeeMoney) {
+                        Text(
+                            text = stringResource(
+                                R.string.fuel_litres_total, quantity(state.totalLitres),
+                            ),
+                            style = FieldTrackTheme.type.bodySmall,
+                            color = colors.onDarkMuted,
+                        )
+                    }
                 }
             }
 
@@ -164,13 +177,15 @@ fun FuelLogScreen(
                                     size = 40.dp,
                                 )
                             },
-                            trailing = {
-                                Text(
-                                    text = rupees(entry.costRupees),
-                                    style = FieldTrackTheme.type.moneyMedium,
-                                    color = colors.ink,
-                                )
-                            },
+                            trailing = if (state.canSeeMoney) {
+                                {
+                                    Text(
+                                        text = rupees(entry.costRupees),
+                                        style = FieldTrackTheme.type.moneyMedium,
+                                        color = colors.ink,
+                                    )
+                                }
+                            } else null,
                         )
                     }
                 }

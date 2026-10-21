@@ -4,6 +4,16 @@ import com.example.fieldtrack.data.db.OutboxOp
 import com.example.fieldtrack.data.db.entity.OutboxEntity
 
 /**
+ * When the server wrote a document, stamped by the server on every write.
+ *
+ * Lives here because both halves of the sync have to agree on it to the letter:
+ * the transport writes it, and a pull orders and pages on it. The two reading
+ * different strings would not fail — the pull would simply find nothing, for ever.
+ */
+const val FIELD_SERVER_AT = "_serverAt"
+
+
+/**
  * One local change, on its way out.
  *
  * [seq] is this device's own number for the change and travels all the way to the
@@ -74,6 +84,20 @@ interface SyncTransport {
      * before the events that belong to it do.
      */
     suspend fun send(batch: List<SyncChange>): List<SyncOutcome>
+
+    /**
+     * Says how much this phone is still carrying, on this phone's own membership.
+     *
+     * Not part of [send], and deliberately outside the outbox. A queued beacon
+     * would be one more unsent change, so the count it reports could never fall
+     * to zero and each sync would raise another — a loop that writes for ever
+     * and never tells the truth. Written directly instead, best effort: it is a
+     * description of a handset, not a record of anybody's work, and losing one
+     * costs nothing but a staler number on the owner's screen.
+     *
+     * Default does nothing, for builds with nowhere to send it.
+     */
+    suspend fun reportUnsent(orgId: String, personId: String, count: Int, at: Long) = Unit
 }
 
 /** Reads an outbox row as the change it represents. */

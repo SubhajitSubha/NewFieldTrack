@@ -32,6 +32,7 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.session.Startup
 import com.example.fieldtrack.designsystem.component.FtBottomBar
 import com.example.fieldtrack.document.Document
@@ -68,6 +69,8 @@ import com.example.fieldtrack.feature.fleet.FleetViewModel
 import com.example.fieldtrack.feature.home.HomeViewModel
 import com.example.fieldtrack.feature.jobs.AmendJobScreen
 import com.example.fieldtrack.feature.jobs.AmendJobViewModel
+import com.example.fieldtrack.feature.jobs.JobCostScreen
+import com.example.fieldtrack.feature.jobs.JobCostViewModel
 import com.example.fieldtrack.feature.jobs.JobDetailScreen
 import com.example.fieldtrack.feature.jobs.JobDetailViewModel
 import com.example.fieldtrack.feature.jobs.JobsScreen
@@ -83,6 +86,10 @@ import com.example.fieldtrack.feature.join.JoinStep
 import com.example.fieldtrack.feature.join.JoinViewModel
 import com.example.fieldtrack.feature.invite.InviteScreen
 import com.example.fieldtrack.feature.invite.InviteViewModel
+import com.example.fieldtrack.feature.driver.DriverHomeScreen
+import com.example.fieldtrack.feature.driver.DriverJobsScreen
+import com.example.fieldtrack.feature.driver.DriverJobsViewModel
+import com.example.fieldtrack.feature.driver.DriverHomeViewModel
 import com.example.fieldtrack.feature.machine.FuelLogScreen
 import com.example.fieldtrack.feature.machine.FuelLogViewModel
 import com.example.fieldtrack.feature.machine.MachineDetailScreen
@@ -95,6 +102,8 @@ import com.example.fieldtrack.feature.signin.SignInStep
 import com.example.fieldtrack.feature.signin.SignInViewModel
 import com.example.fieldtrack.feature.rates.RateCardScreen
 import com.example.fieldtrack.feature.rates.RateCardViewModel
+import com.example.fieldtrack.feature.orgs.OrgSwitcherScreen
+import com.example.fieldtrack.feature.orgs.OrgSwitcherViewModel
 import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
@@ -126,6 +135,20 @@ import com.example.fieldtrack.feature.work.PickCustomerSheet
 import com.example.fieldtrack.feature.work.StartWorkScreen
 import com.example.fieldtrack.feature.work.StartWorkViewModel
 import kotlinx.coroutines.launch
+import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.feature.invite.SentCodesScreen
+import com.example.fieldtrack.feature.invite.SentCodesViewModel
+import com.example.fieldtrack.feature.team.HandOverScreen
+import com.example.fieldtrack.feature.team.HandOverViewModel
+import com.example.fieldtrack.feature.team.DuplicatePair
+import com.example.fieldtrack.feature.team.TeamActivityScreen
+import com.example.fieldtrack.feature.team.TeamActivityViewModel
+import com.example.fieldtrack.feature.money.MoneyOutScreen
+import com.example.fieldtrack.feature.money.MoneyOutViewModel
+import com.example.fieldtrack.feature.money.PayOutScreen
+import com.example.fieldtrack.feature.money.PayOutViewModel
+import com.example.fieldtrack.feature.money.MachineProfitScreen
+import com.example.fieldtrack.feature.money.MachineProfitViewModel
 
 private object Routes {
     const val HOME = "home"
@@ -147,25 +170,42 @@ private object Routes {
     const val EDIT_BUSINESS = "more/business"
     const val BACKUP = "more/backup"
     const val RATES = "more/rates"
+    const val ORGS = "more/businesses"
+    const val JOIN_ANOTHER = "more/businesses/join"
     const val UPKEEP = "fleet/upkeep"
     const val INVITE = "more/team/invite"
+    const val SENT_CODES = "more/team/invite/sent"
+    const val HAND_OVER = "more/team/handover"
+    const val TEAM_CHANGES = "more/team/changes"
+    const val MONEY_OUT = "more/money-out"
+    const val PAY_OUT = "more/money-out/pay"
+    const val MACHINE_PROFIT = "machines/{machineId}/made"
     const val MACHINE = "machines/{machineId}"
     const val FUEL = "machines/{machineId}/fuel"
     const val JOBS = "jobs"
     const val JOB = "jobs/{jobId}"
     const val AMEND = "jobs/{jobId}/amend"
+    const val JOB_COST = "jobs/{jobId}/cost?costId={costId}"
     const val FLEET = "fleet"
 
     /**
-     * The tabs the bottom bar switches between, by track.
+     * The tabs the bottom bar switches between.
      *
-     * A solo owner has no drivers to watch and no fleet to speak of, so those two
-     * tabs would be a dashboard of one. A business owner gets them and reaches
-     * individual machines through Fleet instead of a tab of its own.
+     * Three tracks, not two. A solo owner has no drivers to watch and no fleet to
+     * speak of, so those tabs would be a dashboard of one. A business owner gets
+     * them and reaches individual machines through Fleet.
+     *
+     * A driver gets neither, and the reason is worth stating: the business's
+     * customers and its fleet are not theirs. Their tabs are their own work and the
+     * machines they drive. Until this existed the bar branched on business mode — a
+     * preference the *owner* sets about themselves — so a driver signing in was
+     * handed the owner's screens and told to get on with it.
      */
-    fun roots(business: Boolean) =
-        if (business) listOf(HOME, JOBS, CUSTOMERS, FLEET, MORE)
-        else listOf(HOME, CUSTOMERS, MACHINES, MORE)
+    fun roots(business: Boolean, driver: Boolean) = when {
+        driver -> listOf(HOME, JOBS, MACHINES, MORE)
+        business -> listOf(HOME, JOBS, CUSTOMERS, FLEET, MORE)
+        else -> listOf(HOME, CUSTOMERS, MACHINES, MORE)
+    }
     const val LEDGER = "customer/{customerId}"
     const val PAY = "customer/{customerId}/pay"
     const val EDIT_CUSTOMER = "customer/{customerId}/edit"
@@ -173,6 +213,10 @@ private object Routes {
     const val STATEMENT_JOBS = "customer/{customerId}/statement/jobs"
 
     fun live(jobId: String) = "live/$jobId"
+
+    /** The cost sheet for one job, optionally opened on a cost already there. */
+    fun jobCost(jobId: String, costId: String? = null) =
+        "jobs/$jobId/cost?costId=${costId.orEmpty()}"
     fun finish(jobId: String) = "finish/$jobId"
     fun ledger(customerId: String) = "customer/$customerId"
     fun pay(customerId: String) = "customer/$customerId/pay"
@@ -208,6 +252,27 @@ fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
                         auth = FirebasePhoneAuth(activityProvider = { activity }),
                         onSignedIn = { user ->
                             app.sessionStore.recordSignIn(user.uid, user.phone)
+                            // An account turned off must not be signed back into
+                            // simply by proving the number again. Checked here as
+                            // well as on every sync, because sign-in is the one
+                            // moment somebody locked out is certain to try.
+                            val disabled = runCatching {
+                                app.remoteRestore.isAccountDisabled(user.uid)
+                            }.getOrDefault(false)
+                            if (disabled) {
+                                app.sessionStore.lockOutDisabledAccount()
+                                return@SignInViewModel
+                            }
+                            app.sessionStore.clearAccountDisabled()
+                            // Same number, same work. Before offering to set up a
+                            // business, ask the server whether this person already
+                            // has one — a new handset should hand somebody their
+                            // records, not a blank app and a setup wizard.
+                            app.sessionStore.restoreFor(
+                                personId = user.uid,
+                                restore = app.remoteRestore,
+                                applier = app.restoreApplier,
+                            )
                         },
                     )
                 }
@@ -221,6 +286,7 @@ fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
                     onVerify = vm::verify,
                     onResend = vm::resend,
                     onChangeNumber = vm::changeNumber,
+                    accountTurnedOff = app.sessionStore.accountDisabled(),
                     // Nothing behind this: it is the first thing the app shows.
                     onBack = null,
                 )
@@ -255,8 +321,20 @@ fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
                     }
                     val joinState by vm.state.collectAsStateWithLifecycle()
                     BackHandler(enabled = joinState.step == JoinStep.Preview) { vm.back() }
+                    // The name of the business they were taken off, if that is
+                    // why they are here. Looked up locally: the membership row is
+                    // kept, so the name survives the removal.
+                    val removedOrgId = app.sessionStore.removedFrom()
+                    var removedName by remember(removedOrgId) { mutableStateOf<String?>(null) }
+                    val unknownBusiness = stringResource(R.string.join_removed_unknown)
+                    LaunchedEffect(removedOrgId) {
+                        removedName = removedOrgId?.let {
+                            app.db.orgDao().findOrg(it)?.name?.ifBlank { null } ?: unknownBusiness
+                        }
+                    }
                     JoinScreen(
                         state = joinState,
+                        removedFrom = removedName,
                         onCode = vm::setCode,
                         onName = vm::setName,
                         onCheck = vm::check,
@@ -265,7 +343,10 @@ fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
                             if (joinState.step == JoinStep.Preview) vm.back()
                             else askedForCode = true
                         },
-                        onSkip = { askedForCode = true },
+                        onSkip = {
+                            app.sessionStore.clearRemovedNotice()
+                            askedForCode = true
+                        },
                     )
                     return@FieldTrackTheme
                 }
@@ -309,7 +390,9 @@ private fun SplashScreen() {
 private fun MainGraph(navController: NavHostController) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
     val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
-    val roots = Routes.roots(business)
+    val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val driver = (startup as? Startup.Ready)?.session?.role == MemberRole.Operator
+    val roots = Routes.roots(business, driver)
 
     val entry by navController.currentBackStackEntryAsState()
     val tab = roots.indexOf(entry?.destination?.route)
@@ -322,7 +405,7 @@ private fun MainGraph(navController: NavHostController) {
         // written, anything that invites you to wander off is a way to lose work.
         if (tab >= 0) {
             FtBottomBar(
-                destinations = bottomDestinations(business),
+                destinations = bottomDestinations(roots, driver),
                 selectedIndex = tab,
                 onSelect = { index -> navController.switchTab(roots[index]) },
             )
@@ -330,16 +413,38 @@ private fun MainGraph(navController: NavHostController) {
     }
 }
 
+/**
+ * The bar, built from the very list the taps navigate to.
+ *
+ * These used to be two lists kept in step by hand — one deciding what the bar said,
+ * the other deciding where a tap went. They drifted the moment a third track
+ * appeared, and a driver tapping "Customers" would have been taken to Machines
+ * instead: the label and the destination disagreeing is worse than either being
+ * wrong on its own, because the app then lies about where it is sending you.
+ * Deriving one from the other makes that impossible rather than merely fixed.
+ */
 @Composable
-private fun bottomDestinations(business: Boolean) = buildList {
-    add(FtNavDestination(FieldTrackIcons.Home, stringResource(R.string.nav_home)))
-    if (business) add(FtNavDestination(FieldTrackIcons.Play, stringResource(R.string.nav_jobs)))
-    add(FtNavDestination(FieldTrackIcons.Customer, stringResource(R.string.nav_customers)))
-    add(
-        if (business) FtNavDestination(FieldTrackIcons.Tractor, stringResource(R.string.nav_fleet))
-        else FtNavDestination(FieldTrackIcons.Tractor, stringResource(R.string.nav_machines))
-    )
-    add(FtNavDestination(FieldTrackIcons.More, stringResource(R.string.nav_more)))
+private fun bottomDestinations(roots: List<String>, driver: Boolean) = roots.map { route ->
+    when (route) {
+        Routes.HOME -> FtNavDestination(
+            FieldTrackIcons.Home, stringResource(R.string.nav_home),
+        )
+        // A driver's jobs tab is his own work, not the yard's.
+        Routes.JOBS -> FtNavDestination(
+            FieldTrackIcons.Play,
+            stringResource(if (driver) R.string.driver_my_work else R.string.nav_jobs),
+        )
+        Routes.CUSTOMERS -> FtNavDestination(
+            FieldTrackIcons.Customer, stringResource(R.string.nav_customers),
+        )
+        Routes.FLEET -> FtNavDestination(
+            FieldTrackIcons.Tractor, stringResource(R.string.nav_fleet),
+        )
+        Routes.MACHINES -> FtNavDestination(
+            FieldTrackIcons.Tractor, stringResource(R.string.nav_machines),
+        )
+        else -> FtNavDestination(FieldTrackIcons.More, stringResource(R.string.nav_more))
+    }
 }
 
 /**
@@ -368,6 +473,28 @@ private fun MainNavHost(navController: NavHostController) {
     NavHost(navController = navController, startDestination = Routes.HOME) {
 
             composable(Routes.HOME) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val session = (startup as? Startup.Ready)?.session
+
+                // A driver's home is its own screen, not the owner's with the money
+                // stripped out. Different question, different answer.
+                if (session?.role == MemberRole.Operator) {
+                    val driverVm: DriverHomeViewModel =
+                        appViewModel { DriverHomeViewModel(it) }
+                    val driverState by driverVm.state.collectAsStateWithLifecycle()
+                    DriverHomeScreen(
+                        state = driverState,
+                        onStartWork = { navController.navigate(Routes.START) },
+                        onResumeWork = { navController.navigate(Routes.live(it)) },
+                        onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                        onOpenJob = { id -> navController.navigate("jobs/$id") },
+                        onOpenMachine = { id -> navController.navigate("machines/$id") },
+                        onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                    )
+                    return@composable
+                }
+
                 val vm: HomeViewModel = appViewModel { HomeViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 HomeScreen(
@@ -662,6 +789,25 @@ private fun MainNavHost(navController: NavHostController) {
             }
 
             composable(Routes.JOBS) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+
+                // The same tab, a different list. An owner's jobs are the yard's
+                // work; a driver's are their own, and showing them everybody's
+                // would be handing them a list they cannot act on and did not do.
+                if ((startup as? Startup.Ready)?.session?.role == MemberRole.Operator) {
+                    val driverVm: DriverJobsViewModel =
+                        appViewModel { DriverJobsViewModel(it) }
+                    val driverState by driverVm.state.collectAsStateWithLifecycle()
+                    DriverJobsScreen(
+                        state = driverState,
+                        onPeriod = driverVm::setPeriod,
+                        onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                        onOpenJob = { id -> navController.navigate("jobs/$id") },
+                    )
+                    return@composable
+                }
+
                 val vm: JobsViewModel = appViewModel { JobsViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 JobsScreen(
@@ -685,8 +831,11 @@ private fun MainNavHost(navController: NavHostController) {
                     onOpenLive = { navController.navigate(Routes.live(jobId)) },
                     onAmend = { navController.navigate("jobs/$jobId/amend") }
                         .takeIf { state.canAmend && state.finished },
+                    // A khata is the money record. There is no useful version of
+                    // it with the money taken out, so somebody who may not see
+                    // amounts does not open it — rather than opening an empty one.
                     onOpenCustomer = {
-                        if (state.customerId.isNotBlank()) {
+                        if (state.customerId.isNotBlank() && state.canSeeMoney) {
                             navController.navigate("customer/${'$'}{state.customerId}")
                         }
                     },
@@ -699,6 +848,39 @@ private fun MainNavHost(navController: NavHostController) {
                             Unit
                         }
                     },
+                    // Offered to anyone who may record work, because the person
+                    // who knows how many hands were on it is the one who was there.
+                    onAddCost = { navController.navigate(Routes.jobCost(jobId)) }
+                        .takeIf { state.canRecordCost },
+                    onPayCost = { costId: String ->
+                        navController.navigate(Routes.jobCost(jobId, costId))
+                    }.takeIf { state.canPriceCost },
+                )
+            }
+
+            composable(
+                Routes.JOB_COST,
+                arguments = listOf(
+                    navArgument("costId") { defaultValue = ""; nullable = false },
+                ),
+            ) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val costId = entry.arguments?.getString("costId").orEmpty().ifBlank { null }
+                val vm: JobCostViewModel = appViewModel(key = "jobcost-${'$'}jobId-${'$'}costId") {
+                    JobCostViewModel(it, jobId, costId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                JobCostScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onKind = vm::setKind,
+                    onHeadcount = vm::setHeadcount,
+                    onUncounted = vm::setUncounted,
+                    onCounted = vm::setCounted,
+                    onAmount = vm::setAmount,
+                    onNote = vm::setNote,
+                    onPaid = vm::setPaid,
+                    onSave = { vm.save { navController.popBackStack() } },
                 )
             }
 
@@ -792,6 +974,9 @@ private fun MainNavHost(navController: NavHostController) {
                     // them somewhere they never asked to be.
                     onService = vm::logService,
                     onBreakdown = vm::reportBreakdown,
+                    onWhatItMade = {
+                        navController.navigate("machines/$machineId/made")
+                    },
                     onSaveBreakdown = vm::saveBreakdown,
                     onDismissReport = vm::dismissReport,
                     onServiceDescription = vm::setServiceDescription,
@@ -870,6 +1055,7 @@ private fun MainNavHost(navController: NavHostController) {
                     } else null,
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onRates = { navController.navigate(Routes.RATES) },
+                    onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
                     onMachines = { navController.navigate(Routes.MACHINES) },
                 )
             }
@@ -925,6 +1111,18 @@ private fun MainNavHost(navController: NavHostController) {
                     onAddMember = { adding = true }.takeIf { state.canEditTeam },
                     onInvite = { navController.navigate(Routes.INVITE) }
                         .takeIf { state.canEditTeam },
+                    onSentCodes = { navController.navigate(Routes.SENT_CODES) }
+                        .takeIf { state.canEditTeam },
+                    onHandOver = { navController.navigate(Routes.HAND_OVER) }
+                        .takeIf { state.canEditTeam },
+                    onChanges = { navController.navigate(Routes.TEAM_CHANGES) }
+                        .takeIf { state.canEditTeam },
+                    onMergeDuplicate = if (state.canEditTeam) {
+                        { pair: DuplicatePair -> vm.merge(pair) {} }
+                    } else null,
+                    onNotDuplicate = if (state.canEditTeam) {
+                        { pair: DuplicatePair -> vm.notTheSamePerson(pair) }
+                    } else null,
                 )
 
                 if (adding) {
@@ -946,6 +1144,92 @@ private fun MainNavHost(navController: NavHostController) {
                         },
                     )
                 }
+            }
+
+            composable(Routes.MACHINE_PROFIT) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: MachineProfitViewModel =
+                    appViewModel { MachineProfitViewModel(it, machineId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MachineProfitScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onSeeMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
+                )
+            }
+
+            composable(Routes.MONEY_OUT) {
+                val vm: MoneyOutViewModel = appViewModel { MoneyOutViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MoneyOutScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onPay = { navController.navigate(Routes.PAY_OUT) },
+                )
+            }
+
+            composable(Routes.PAY_OUT) {
+                val vm: PayOutViewModel = appViewModel { PayOutViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PayOutScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onPerson = vm::setPerson,
+                    onHeadcount = vm::setHeadcount,
+                    onAmount = vm::setAmount,
+                    onCovers = vm::setCovers,
+                    onJob = vm::setJob,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.TEAM_CHANGES) {
+                val vm: TeamActivityViewModel = appViewModel { TeamActivityViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                TeamActivityScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.HAND_OVER) {
+                val vm: HandOverViewModel = appViewModel { HandOverViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                HandOverScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onChoose = vm::choose,
+                    onStepBack = vm::setStepBack,
+                    onConfirm = { vm.confirm { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.SENT_CODES) {
+                val vm: SentCodesViewModel = appViewModel { SentCodesViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val businessName = state.businessName
+                SentCodesScreen(
+                    state = state,
+                    nowMillis = vm.now(),
+                    onBack = { navController.popBackStack() },
+                    onShare = { code ->
+                        val text = context.getString(
+                            R.string.invite_share_text, businessName, code,
+                        )
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                },
+                                null,
+                            )
+                        )
+                    },
+                    onRevoke = vm::revoke,
+                    onInviteMore = { navController.navigate(Routes.INVITE) },
+                )
             }
 
             composable(Routes.INVITE) {
@@ -1009,9 +1293,14 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onName = vm::setName,
                     onPhone = vm::setPhone,
+                    onPreset = vm::setPreset,
                     onSeeMoney = vm::setSeeMoney,
                     onAddCustomers = vm::setAddCustomers,
                     onCloseBills = vm::setCloseBills,
+                    onEditTeam = vm::setEditTeam,
+                    onEditMachines = vm::setEditMachines,
+                    onPayOut = vm::setPayOut,
+                    onSeePeopleCost = vm::setSeePeopleCost,
                     onSave = { vm.save { navController.popBackStack() } },
                     onSetActive = { active ->
                         vm.setActive(active) { navController.popBackStack() }
@@ -1028,7 +1317,72 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(Routes.JOIN_ANOTHER) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val vm: JoinViewModel = viewModel {
+                    JoinViewModel(
+                        lookup = app.inviteLookup,
+                        suggestedName = app.sessionStore.current()?.displayName.orEmpty(),
+                        onJoin = { invite, name ->
+                            val personId = app.sessionStore.personIdOrNull()
+                                ?: return@JoinViewModel
+                            app.teamRepository.redeemInvite(
+                                invite = invite,
+                                personId = personId,
+                                displayName = name,
+                                phone = app.sessionStore.signedInPhone(),
+                            )
+                            // Joining is also switching: somebody who types a code
+                            // means to start working for those people now.
+                            app.sessionStore.adoptMembership(invite.orgId)
+                        },
+                    )
+                }
+                val joinState by vm.state.collectAsStateWithLifecycle()
+                BackHandler(enabled = joinState.step == JoinStep.Preview) { vm.back() }
+                JoinScreen(
+                    state = joinState,
+                    removedFrom = null,
+                    onCode = vm::setCode,
+                    onName = vm::setName,
+                    onCheck = vm::check,
+                    onJoin = vm::join,
+                    onBack = {
+                        if (joinState.step == JoinStep.Preview) vm.back()
+                        else navController.popBackStack()
+                    },
+                    // Already in a business; there is nothing to skip to.
+                    onSkip = null,
+                )
+            }
+
+            composable(Routes.ORGS) {
+                val vm: OrgSwitcherViewModel = appViewModel { OrgSwitcherViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                OrgSwitcherScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onSwitch = { orgId ->
+                        // Switching changes what the whole app is looking at, so
+                        // it goes home rather than leaving the user on a screen
+                        // about a business they have just stopped looking at.
+                        vm.switchTo(orgId) {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.HOME) { inclusive = true }
+                            }
+                        }
+                    },
+                    onJoinAnother = { navController.navigate(Routes.JOIN_ANOTHER) },
+                    onDismissRefusal = vm::clearRefusal,
+                )
+            }
+
             composable(Routes.PROFILE) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val scope = rememberCoroutineScope()
+                val activity = LocalContext.current as? android.app.Activity
+                var unsent by remember { mutableStateOf(0) }
+                LaunchedEffect(Unit) { unsent = app.sessionStore.unsentCount() }
                 val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 ProfileScreen(
@@ -1037,6 +1391,27 @@ private fun MainNavHost(navController: NavHostController) {
                     onEditName = { navController.navigate(Routes.EDIT_PROFILE) },
                     onEditBusiness = { navController.navigate(Routes.EDIT_BUSINESS) },
                     onBusinessMode = vm::setBusinessMode,
+                    onBusinesses = { navController.navigate(Routes.ORGS) },
+                    onSignOut = {
+                        scope.launch {
+                            app.sessionStore.signOut(
+                                FirebasePhoneAuth(activityProvider = { activity })
+                            )
+                        }
+                    },
+                    // The only owner cannot leave: a business nobody owns can
+                    // never be changed again by anyone.
+                    onLeave = if (state.canLeave) {
+                        {
+                            scope.launch {
+                                runCatching {
+                                    app.teamRepository.leaveOrg(state.orgId, state.personId)
+                                    app.sessionStore.signOut(null)
+                                }
+                            }
+                        }
+                    } else null,
+                    unsentCount = unsent,
                 )
             }
 
@@ -1146,6 +1521,7 @@ private fun MainNavHost(navController: NavHostController) {
                 var makingPdf by remember { mutableStateOf(false) }
                 val chooserTitle = stringResource(R.string.finish_pdf_chooser)
                 val pdfFailed = stringResource(R.string.finish_pdf_failed)
+                val labour by vm.labour.collectAsStateWithLifecycle()
 
                 FinishScreen(
                     step = step,
@@ -1160,6 +1536,11 @@ private fun MainNavHost(navController: NavHostController) {
                     onChooseNothing = vm::chooseNothing,
                     onAmount = vm::setAmount,
                     onMethod = vm::setMethod,
+                    labour = labour,
+                    onAnyLabour = vm::setAnyLabour,
+                    onLabourHeadcount = vm::setLabourHeadcount,
+                    onLabourUncounted = vm::setLabourUncounted,
+                    onLabourCounted = vm::setLabourCounted,
                     onSave = { vm.save {} },
                     makingPdf = makingPdf,
                     onPdf = {
@@ -1256,7 +1637,7 @@ private fun billDocumentFor(
         customer = Party(
             name = state.customerName,
             addressLine = state.customerVillage?.ifBlank { null },
-            phone = state.customerPhone?.ifBlank { null }?.let { "+91 $it" },
+            phone = state.customerPhone?.ifBlank { null }?.let { formatIndianPhone(it) },
         ),
         billNumber = state.billNumber,
         dateLabel = dateLabel,
@@ -1302,7 +1683,7 @@ private fun receiptFor(
         // The letterhead, each line only when the business has filled it in.
         listOfNotNull(
             state.businessAddress?.takeIf { it.isNotBlank() },
-            state.businessPhone?.takeIf { it.isNotBlank() }?.let { "+91 $it" },
+            state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
         ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
         appendLine()
         appendLine("${state.customerName}")

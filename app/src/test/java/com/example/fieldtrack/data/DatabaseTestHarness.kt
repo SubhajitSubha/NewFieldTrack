@@ -11,6 +11,7 @@ import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MembershipEntity
+import com.example.fieldtrack.data.db.entity.membershipId
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.repository.LedgerRepository
 import com.example.fieldtrack.data.repository.WorkRepository
@@ -81,13 +82,13 @@ class TestHarness {
         )
         db.orgDao().upsertMembership(
             MembershipEntity(
-                id = "m-a", orgId = ORG_A, personId = DRIVER, displayName = "Jaswant Kumar",
+                id = membershipId(ORG_A, DRIVER), orgId = ORG_A, personId = DRIVER, displayName = "Jaswant Kumar",
                 role = MemberRole.Operator, joinedAt = nowMillis, updatedAt = nowMillis,
             )
         )
         db.orgDao().upsertMembership(
             MembershipEntity(
-                id = "m-b", orgId = ORG_B, personId = DRIVER, displayName = "Jaswant Kumar",
+                id = membershipId(ORG_B, DRIVER), orgId = ORG_B, personId = DRIVER, displayName = "Jaswant Kumar",
                 role = MemberRole.Operator, joinedAt = nowMillis, updatedAt = nowMillis,
             )
         )

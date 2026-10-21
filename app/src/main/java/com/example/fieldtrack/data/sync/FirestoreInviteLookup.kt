@@ -22,7 +22,7 @@ import kotlin.coroutines.resumeWithException
  * so the code has to be the address.
  */
 class FirestoreInviteLookup(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val firestore: FirebaseFirestore = Firestore.instance,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val clock: Clock = Clock.System,
 ) : InviteLookup {

@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.formatBillNumber
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.data.session.Session
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,6 +61,26 @@ data class FinishState(
     val totalDueRupees: Long get() = jobAmountRupees + previousBalanceRupees
 }
 
+/**
+ * Who else was on the job, asked while everyone is still standing in the field.
+ *
+ * Headcount only, for everybody, owner included. The alternative — asking the
+ * owner for a figure here and the driver only for a number — is two different
+ * finish flows depending on who you are, and the amount belongs where it can
+ * be thought about rather than at the end of a nine-hour day. The job sheet
+ * says out loud that nobody has priced it yet.
+ */
+data class FinishLabour(
+    /** Off to begin with. A pre-ticked box invents labourers nobody hired. */
+    val any: Boolean = false,
+    /** Null once somebody says nobody counted. */
+    val headcount: Int? = DEFAULT_HEADS,
+) {
+    companion object {
+        const val DEFAULT_HEADS = 2
+    }
+}
+
 /** What the user has chosen on the payment step. */
 data class PaymentState(
     val choice: PaymentChoice = PaymentChoice.Nothing,
@@ -78,6 +100,9 @@ class FinishViewModel(
 
     private val _payment = MutableStateFlow(PaymentState())
     val payment: StateFlow<PaymentState> = _payment.asStateFlow()
+
+    private val _labour = MutableStateFlow(FinishLabour())
+    val labour: StateFlow<FinishLabour> = _labour.asStateFlow()
 
     /** Step 0 review, 1 bill, 2 saved. One screen, three stages. */
     private val _step = MutableStateFlow(0)
@@ -211,6 +236,19 @@ class FinishViewModel(
      * two steps here can never leave work billed but unrecorded — the worst they can
      * do is leave a payment unrecorded, which the customer's khata makes obvious.
      */
+    fun setAnyLabour(any: Boolean) = _labour.update { it.copy(any = any) }
+
+    fun setLabourHeadcount(value: Int) = _labour.update {
+        it.copy(headcount = value.coerceIn(1, 200))
+    }
+
+    /** Says nobody counted, rather than leaving a guess that reads as a count. */
+    fun setLabourUncounted() = _labour.update { it.copy(headcount = null) }
+
+    fun setLabourCounted() = _labour.update {
+        it.copy(headcount = FinishLabour.DEFAULT_HEADS)
+    }
+
     fun save(onDone: () -> Unit) = viewModelScope.launch {
         val s = app.sessionStore.load() ?: return@launch
         val current = state.value
@@ -219,6 +257,25 @@ class FinishViewModel(
         _payment.value = pay.copy(saving = true)
 
         app.workRepository.complete(s.orgId, jobId, byPersonId = s.personId)
+
+        // Written with no figure on it whoever is saving, so one flow serves
+        // the driver and the owner alike. A failure here must not cost the
+        // job: the work is already completed above, and a crew nobody logged
+        // is a smaller loss than a day's work rolled back.
+        val crew = _labour.value
+        if (crew.any) {
+            runCatching {
+                app.ledgerRepository.recordJobCost(
+                    orgId = s.orgId,
+                    can = s.can,
+                    jobId = jobId,
+                    kind = JobCostKind.Labour,
+                    headcount = crew.headcount,
+                    byPersonId = s.personId,
+                    atMillis = System.currentTimeMillis(),
+                )
+            }
+        }
 
         val paid = pay.amountRupees.coerceAtMost(current.totalDueRupees)
         val customerId = app.workRepository.observeJob(s.orgId, jobId).first()?.customerId

@@ -7,7 +7,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.fieldtrack.FieldFlowApplication
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.designsystem.format.quantity
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.fleet.weekdayIndex
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.MachineKind
@@ -16,6 +33,7 @@ import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import androidx.compose.ui.graphics.vector.ImageVector
 import java.util.Calendar
 import java.util.Locale
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Minimal ViewModel wiring.
@@ -90,6 +108,88 @@ fun daysAgo(millis: Long, now: Long = System.currentTimeMillis()): String {
     val days = ((now - millis).coerceAtLeast(0L) / 86_400_000L).toInt()
     return if (days == 0) androidx.compose.ui.res.stringResource(R.string.time_today)
     else androidx.compose.ui.res.pluralStringResource(R.plurals.count_days, days, days)
+}
+
+/**
+ * A work type's name, in the reader's language.
+ *
+ * `workType` is stored as a key — "Rotavator", "Hauling" — and screens have been
+ * printing the key. That reads correctly today only because the keys happen to be
+ * English words; the first translated build would show them untranslated beside
+ * everything that is. Falls back to the key for work this build does not know,
+ * which is better than a blank.
+ */
+@Composable
+fun workLabel(workType: String): String =
+    workTypeOptions.firstOrNull { it.key == workType }
+        ?.let { stringResource(it.labelRes) }
+        ?: workType
+
+/** "3.5 acre" — a quantity and its unit, ordered by the language, not by Kotlin. */
+@Composable
+fun measure(amount: Double, unit: MeasureUnit): String =
+    stringResource(R.string.measure_value, quantity(amount), stringResource(unit.labelRes))
+
+/** "10" — the day, for a list read down its dates. */
+@Composable
+fun dayOfMonth(millis: Long): String =
+    java.text.SimpleDateFormat("d", Locale.getDefault()).format(java.util.Date(millis))
+
+/** "Oct" — the month, under the day. */
+@Composable
+fun monthShort(millis: Long): String =
+    java.text.SimpleDateFormat("MMM", Locale.getDefault()).format(java.util.Date(millis))
+
+/**
+ * Seven bars, Monday first, with today picked out.
+ *
+ * Lives here because two screens draw it — the owner's fleet and the driver's own
+ * work — and a chart copied into both is a chart that stops agreeing with itself
+ * the first time one of them is adjusted.
+ */
+@Composable
+fun WeekBars(hours: List<Double>, modifier: Modifier = Modifier) {
+    val colors = FieldTrackTheme.colors
+    val peak = hours.maxOrNull()?.takeIf { it > 0 } ?: 1.0
+    val today = weekdayIndex(System.currentTimeMillis())
+    val labels = listOf(
+        R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
+        R.string.day_fri, R.string.day_sat, R.string.day_sun,
+    )
+
+    Row(
+        modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        hours.forEachIndexed { index, value ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                // A day with no work still shows a sliver, so the week reads as
+                // seven days rather than as a gap in the data.
+                val fraction = (value / peak).coerceIn(0.0, 1.0)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height((12 + fraction * 74).dp)
+                        .clip(FieldTrackTheme.shapes.small)
+                        .background(
+                            when {
+                                index == today -> colors.ink
+                                value > 0 -> colors.primary
+                                else -> colors.line
+                            }
+                        )
+                )
+                Text(
+                    text = stringResource(labels[index]),
+                    style = FieldTrackTheme.type.caption,
+                    color = if (index == today) colors.ink else colors.inkTertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 7.dp),
+                )
+            }
+        }
+    }
 }
 
 /** Two letters for an avatar, from however many words the name has. */
@@ -259,4 +359,23 @@ fun unitsFor(mode: BillingMode): List<MeasureUnit> = when (mode) {
     BillingMode.PerUnit -> listOf(MeasureUnit.Quintal, MeasureUnit.Bag, MeasureUnit.Piece)
     BillingMode.PerKm -> listOf(MeasureUnit.Kilometre)
     BillingMode.Fixed -> listOf(MeasureUnit.Piece)
+}
+
+/**
+ * How long ago, at the resolution that matters.
+ *
+ * Minutes for the last hour, hours for the last day, then the date. "Last backup 3
+ * days ago" is a prompt to find signal; "last backup 4,320 minutes ago" is not.
+ */
+@Composable
+fun timeAgo(millis: Long, now: Long = System.currentTimeMillis()): String {
+    val elapsed = (now - millis).coerceAtLeast(0L)
+    val minutes = (elapsed / 60_000L).toInt()
+    val hours = minutes / 60
+    return when {
+        minutes < 1 -> stringResource(R.string.sync_just_now)
+        hours < 1 -> pluralStringResource(R.plurals.time_minutes_ago, minutes, minutes)
+        hours < 24 -> pluralStringResource(R.plurals.time_hours_ago, hours, hours)
+        else -> dayMonthYear(millis)
+    }
 }

@@ -148,6 +148,10 @@
     <string name="unit_bag">Bag</string>
     <string name="unit_km">km</string>
 
+    <plurals name="money_out_unpriced">
+        <item quantity="one">%d cost nobody has priced</item>
+        <item quantity="other">%d costs nobody has priced</item>
+    </plurals>
     <plurals name="count_jobs">
         <item quantity="one">%d job</item>
         <item quantity="other">%d jobs</item>
@@ -194,6 +198,7 @@
     <string name="sync_title">Saving &amp; backup</string>
     <string name="sync_offline_title">No network right now</string>
     <string name="sync_offline_body">Keep working. Everything is written on this phone and goes up by itself when signal comes back.</string>
+    <string name="sync_automatic">This happens on its own. You do not need to do anything.</string>
     <string name="sync_waiting">Waiting to go up</string>
     <string name="sync_last_backup">Last backup %1$s</string>
     <string name="sync_conflict_title">Two of you changed one job</string>
@@ -210,7 +215,7 @@
     <string name="sync_blocked_body">Your work is safe on this phone and none of it has been lost. The server would not take one change, so the ones after it are waiting behind it.</string>
     <string name="sync_no_backend_title">Backup is not switched on</string>
     <string name="sync_no_backend_body">Everything is saved on this phone and kept, ready to go up as soon as backup is set up.</string>
-    <string name="sync_now">Back up now</string>
+    <string name="sync_now">Send now anyway</string>
     <string name="sync_destination">Backing up to %1$s</string>
     <string name="sync_retry_at">Next try at %1$s</string>
     <string name="sync_whats_waiting">What is waiting</string>
@@ -314,12 +319,12 @@
     <string name="invite_valid_days_text">Works for %1$s</string>
     <string name="invite_expires_today">Works until the end of today</string>
     <string name="invite_none_title">No code right now</string>
-    <string name="invite_none_body">Make one when you are ready to add a driver. It works for seven days, and only one is live at a time.</string>
+    <string name="invite_none_body">Make one when you are ready to add a driver. It works for seven days, and you can have several out at once — one for each person.</string>
     <string name="invite_make">Make a code</string>
     <string name="invite_copy">Copy</string>
     <string name="invite_copied">Code copied</string>
     <string name="invite_new">New code</string>
-    <string name="invite_new_warning">The old code stops working</string>
+    <string name="invite_new_warning">The one above keeps working too</string>
     <string name="invite_revoke">Stop this code</string>
     <string name="invite_share">Send on WhatsApp</string>
     <string name="invite_share_text">Join %1$s on FieldTrack. Your code is %2$s. Get the app, then type this code when it asks.</string>
@@ -339,6 +344,9 @@
     <string name="team_invite">Invite a driver</string>
 
     <!-- ========================= joining a business ========================== -->
+    <string name="join_removed_title">You are no longer with %1$s</string>
+    <string name="join_removed_body">They have taken you off their team. Work you recorded is still with them, and anything that had not gone up yet is kept on this phone.</string>
+    <string name="join_removed_unknown">that business</string>
     <string name="join_title">Have a code?</string>
     <string name="join_body">If someone has invited you to drive for them, type the code they sent.</string>
     <string name="join_label">Invite code</string>
@@ -364,6 +372,45 @@
     <string name="join_can_bills">Close bills and take payment</string>
     <string name="join_cannot_money">You will not see money or dues</string>
     <string name="join_privacy">Your boss sees the work you record here. Your other work, and anything from another business, stays yours.</string>
+
+    <!-- ============================= driver home ============================= -->
+    <string name="driver_today">Today</string>
+    <string name="driver_on_machine">on the machine</string>
+    <string name="driver_jobs_done">Jobs done</string>
+    <string name="driver_area_covered">%1$s covered</string>
+    <string name="driver_nothing_measured">no area measured</string>
+    <string name="driver_your_machine">Your machine today</string>
+    <string name="driver_no_machine">No machine on you today</string>
+    <string name="driver_no_machine_note">Pick one when you start a job.</string>
+    <string name="driver_todays_work">Today\u2019s work</string>
+    <string name="driver_add_earlier">+ Add earlier work</string>
+    <string name="driver_nothing_yet">Nothing recorded today. Start work when you are ready.</string>
+    <string name="driver_waiting_title">Saved on this phone</string>
+    <plurals name="driver_waiting_count">
+        <item quantity="one">%1$d change waiting to go up</item>
+        <item quantity="other">%1$d changes waiting to go up</item>
+    </plurals>
+    <string name="driver_my_work">My work</string>
+    <string name="driver_period_week">This week</string>
+    <string name="driver_period_month">This month</string>
+    <string name="driver_period_season">Season</string>
+    <string name="driver_hours_week">Hours this week</string>
+    <string name="driver_hours_month">Hours this month</string>
+    <string name="driver_hours_season">Hours this season</string>
+    <string name="driver_jobs_and_area">%1$s\n%2$s</string>
+    <string name="measure_value">%1$s %2$s</string>
+    <!-- Money-free wordings, for somebody who may not see amounts. -->
+    <string name="event_trip_added_plain">Trip added</string>
+    <string name="event_rate_changed_plain">Rate changed</string>
+    <string name="fuel_spent_hidden">Diesel put in</string>
+    <string name="driver_every_job">Every job</string>
+    <string name="driver_by_hand">By hand</string>
+    <string name="driver_no_work">No work recorded in this time.</string>
+    <string name="driver_add_earlier_cd">Add work you did earlier</string>
+    <plurals name="driver_job_count">
+        <item quantity="one">%1$d job</item>
+        <item quantity="other">%1$d jobs</item>
+    </plurals>
 
     <!-- =========================== machine detail =========================== -->
     <string name="machine_hours">Hours</string>
@@ -408,6 +455,8 @@
 
     <!-- =============================== rate card ============================= -->
     <string name="rates_title">My rates</string>
+    <string name="rates_not_for_you">Rates are not shown to you. Ask the owner if you need to know what to charge.</string>
+    <string name="customer_not_for_you">Balances and payments are not shown to you. You can still record work for this customer.</string>
     <string name="rates_blurb">These load by themselves when you start a job, so you do not type them every time.</string>
     <string name="rates_add">Add a rate</string>
     <string name="rates_empty_title">No rates saved yet</string>
@@ -729,11 +778,11 @@
     <string name="team_member_name">Name</string>
     <string name="team_allowed_to">Allowed to</string>
     <string name="team_perm_money">See money</string>
-    <string name="team_perm_money_note">Rates, totals and what customers owe</string>
+    <string name="team_perm_money_note">They will see what every customer owes you, and what every job earned — not only the jobs they did.</string>
     <string name="team_perm_customers">Add and correct customers</string>
-    <string name="team_perm_customers_note">New names, villages and phone numbers</string>
+    <string name="team_perm_customers_note">Names they enter out in the field go straight into your customer list.</string>
     <string name="team_perm_bills">Close bills and take payment</string>
-    <string name="team_perm_bills_note">Finish a job, bill it, and take the money. Includes seeing money.</string>
+    <string name="team_perm_bills_note">They can finish a job and take the cash for it. Money they mark as taken is money you will not chase. Includes seeing money.</string>
     <string name="team_stat_jobs">JOBS</string>
     <string name="team_stat_hours">HOURS</string>
     <string name="team_stat_brought_in">BROUGHT IN</string>
@@ -757,6 +806,276 @@
     <string name="profile_business_mode">Business mode</string>
     <string name="profile_business_mode_note">Adds drivers, live jobs and a fleet view</string>
     <string name="profile_not_set">Not set</string>
+    <!-- ===================== leaving, signing out, roles ==================== -->
+    <!-- ========================== who you work for ========================== -->
+    <string name="join_err_already_in">You already work for this business. Typing the code again would change what you are allowed to do here, so nothing has been done.</string>
+    <plurals name="team_unsent_title">
+        <item quantity="one">%1$d change still on their phone</item>
+        <item quantity="other">%1$d changes still on their phone</item>
+    </plurals>
+    <string name="team_unsent_note">Work they recorded that has not reached you yet. Ask them to open the app where there is signal — if you take them off the team before it arrives, it stays on their phone.</string>
+    <string name="team_unsent_as_of">Counted %1$s</string>
+    <plurals name="team_codes_waiting">
+        <item quantity="one">%1$d code waiting to be used</item>
+        <item quantity="other">%1$d codes waiting to be used</item>
+    </plurals>
+    <string name="team_codes_waiting_note">Sent, not joined yet</string>
+    <string name="invites_sent_title">Codes you sent</string>
+    <string name="invites_sent_intro">Every code works for one person. Send a different one to each driver — a new code no longer stops the others working.</string>
+    <string name="invites_none">Nothing waiting. Every code you sent has been used or has run out.</string>
+    <string name="invites_send_again">Send again</string>
+    <string name="invites_cancel">Cancel code</string>
+    <string name="invites_used">ALREADY USED</string>
+    <string name="invites_used_by_unknown">Somebody joined</string>
+    <string name="invites_used_on">%1$s · %2$s</string>
+    <string name="invites_one_more">Invite one more</string>
+    <string name="invites_ends_today">Ends today</string>
+    <plurals name="invites_days_left">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="invites_hours_left">
+        <item quantity="one">%1$d hour left</item>
+        <item quantity="other">%1$d hours left</item>
+    </plurals>
+    <string name="invites_terms_plain">Driver · records their own work only</string>
+    <string name="invites_terms_money">Driver · can see money and dues</string>
+    <string name="invites_terms_payment">Driver · can close bills and take payment</string>
+    <string name="invites_terms_customers">Driver · can add customers</string>
+    <string name="team_remove_title">Take %1$s off the team?</string>
+    <string name="team_remove_running">They are working right now — %1$s on %2$s. Taking them off stops that job where it stands.</string>
+    <string name="team_remove_keeps">Their work stays with you. Every job, hour and rupee they brought in is yours and is not touched.</string>
+    <string name="team_remove_closes">They stop seeing your customers, machines and rates from this moment.</string>
+    <string name="team_remove_unsent">Work on their phone has not reached you yet. Ask them to open the app where there is signal first, or it stays with them.</string>
+    <string name="team_remove_back">You can invite them back later with a new code.</string>
+    <string name="team_remove_yes">Take them off</string>
+    <string name="team_remove_keep">Keep them</string>
+    <string name="team_quiet_title">Their phone has not reached you</string>
+    <string name="team_quiet_note">Last heard from %1$s. Anything they have recorded since is still on their phone and has not come to you.</string>
+    <string name="orgs_title">Who you work for</string>
+    <string name="orgs_refused_title">You no longer work for %1$s</string>
+    <string name="orgs_refused_body">They have taken you off their team. The work you did for them stays on this phone, but you cannot open their customers or jobs any more.</string>
+    <string name="orgs_refused_ok">I understand</string>
+    <string name="orgs_checking">Checking…</string>
+    <string name="account_off_title">This account has been turned off</string>
+    <string name="account_off_body">Nothing has been deleted. The work on this phone is still here, and it will go up again if the account is turned back on. Ask whoever looks after your businesses.</string>
+    <plurals name="orgs_count">
+        <item quantity="one">%1$d business</item>
+        <item quantity="other">%1$d businesses</item>
+    </plurals>
+    <string name="orgs_right_now">Right now</string>
+    <string name="orgs_also">Also work for</string>
+    <string name="orgs_join">Join another business</string>
+    <string name="orgs_join_note">With their invite code</string>
+    <string name="orgs_last_worked">Last worked %1$s</string>
+    <string name="orgs_never_worked">No work recorded yet</string>
+    <string name="orgs_left">You left</string>
+    <string name="orgs_removed">Ended</string>
+    <string name="orgs_running">%1$s running</string>
+    <string name="orgs_apart_title">They are kept apart</string>
+    <string name="orgs_apart_see">You only see the customers and machines of the business you are working for right now.</string>
+    <string name="orgs_apart_hidden">No business can see your work for anyone else, or what you earn there.</string>
+    <string name="orgs_apart_stays">When you stop working for somebody, the records stay with them. You stop seeing them.</string>
+    <string name="orgs_switch_cd">Work for %1$s</string>
+    <string name="account_section">Your account</string>
+    <string name="account_signed_in_as">Signed in as %1$s</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_sign_out_confirm">Sign out of FieldTrack?</string>
+    <string name="account_sign_out_body">Your work stays on this phone. Sign back in with the same number to pick it up again.</string>
+    <plurals name="account_sign_out_unsent">
+        <item quantity="one">%1$d change has not gone up yet. It stays on this phone and goes when you sign back in.</item>
+        <item quantity="other">%1$d changes have not gone up yet. They stay on this phone and go when you sign back in.</item>
+    </plurals>
+    <string name="account_leave">Leave this business</string>
+    <string name="account_leave_confirm">Leave %1$s?</string>
+    <string name="account_leave_body">You will stop seeing their work. What you already recorded stays with the business.</string>
+    <string name="account_leave_yes">Leave</string>
+    <string name="account_last_owner">You are the only owner. Make somebody else an owner first.</string>
+    <string name="team_allowed_baseline">Whatever is switched off here, they can always start and finish their own jobs and log fuel and breakdowns. They never see anybody else\'s work.</string>
+    <string name="payout_title">Money paid out</string>
+    <string name="payout_who">WHO</string>
+    <string name="payout_on_the_team">On the team</string>
+    <string name="payout_labourers">Labourers</string>
+    <string name="payout_labourers_note">Nobody with an account</string>
+    <string name="payout_how_much">HOW MUCH, IN ALL</string>
+    <string name="payout_amount">Amount</string>
+    <string name="payout_split_note">For all %1$d together. If they were paid different amounts, put them in separately.</string>
+    <string name="payout_what_for">WHAT FOR</string>
+    <string name="payout_for_job">One job</string>
+    <string name="payout_for_job_note">Counts against the machine that did it</string>
+    <string name="payout_for_day">The day</string>
+    <string name="payout_for_day_note">Across whatever they did today</string>
+    <string name="payout_for_period">A stretch of time</string>
+    <string name="payout_for_period_note">A month of wages, or a season</string>
+    <string name="payout_which_job">WHICH JOB</string>
+    <string name="payout_period_warning">Paid for a stretch of time, this cannot be put against any one machine or job. It will count in what you paid out overall, and reports that total by machine will say it has been left out.</string>
+    <string name="payout_save">Record it</string>
+    <string name="payout_save_amount">Record %1$s paid</string>
+    <string name="profit_title">What it made</string>
+    <string name="profit_earned">Customers paid</string>
+    <string name="profit_fuel">Diesel</string>
+    <string name="profit_service">Repairs and service</string>
+    <string name="profit_people">People on this machine</string>
+    <string name="profit_left">What is left</string>
+    <string name="profit_no_total">No total here, because you cannot see what people were paid. A figure without that is not profit, and it would read like it.</string>
+    <string name="profit_left_out">%1$s more was paid out without naming a job — for a day, or for a month — so it cannot be put against this machine. It is counted in what you paid out overall.</string>
+    <string name="profit_since_note">Everything since you added this machine.</string>
+    <string name="profit_see_money_out">See everything paid out</string>
+    <string name="machine_what_it_made">What it made</string>
+    <string name="money_out_title">Money out</string>
+    <string name="money_out_none">Nothing paid out yet. Wages and labour you record will show here.</string>
+    <string name="money_out_pay">Pay somebody</string>
+    <string name="money_out_unattributable">%1$s of this was not for one job, so no machine can carry it.</string>
+    <string name="money_out_locked">Only an owner, or somebody they have given it to, can see what each person is paid.</string>
+    <plurals name="money_out_heads">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="money_out_for_job">For one job</string>
+    <string name="money_out_for_day">For the day</string>
+    <string name="money_out_for_period">For a stretch of time</string>
+    <string name="more_money_out">Money out</string>
+    <string name="more_money_out_note">Wages, labour and what is left</string>
+    <string name="changes_title">Team changes</string>
+    <string name="changes_intro">Who was let in, who was let go, and who was given sight of the money. Written down so nobody has to remember it.</string>
+    <string name="changes_none">Nothing yet. Changes to your team will be written down here from now on.</string>
+    <string name="changes_joined">%1$s joined with code %2$s</string>
+    <string name="changes_removed">%1$s took %2$s off the team</string>
+    <string name="changes_taken_back">%1$s put %2$s back on the team</string>
+    <string name="changes_made_owner">%1$s made %2$s an owner</string>
+    <string name="changes_stepped_back_self">%1$s stepped back to driver</string>
+    <string name="changes_stepped_back">%1$s moved %2$s back to driver</string>
+    <string name="changes_saw_money">%1$s let %2$s see money and dues</string>
+    <string name="changes_permissions">%1$s changed what %2$s is allowed to do</string>
+    <string name="changes_code_sent">%1$s sent code %2$s</string>
+    <string name="changes_code_cancelled">%1$s cancelled code %2$s</string>
+    <string name="changes_merged">%1$s was joined up with %2$s as one person</string>
+    <string name="team_changes_row">Team changes</string>
+    <string name="team_changes_row_note">Who was let in, let go, and given sight of the money</string>
+    <string name="dupe_title">Are these the same person?</string>
+    <string name="dupe_note">%1$s joined on +91 %2$s, and you already have %3$s on the team with that same number. If they are one man, his work should sit under one name instead of being split across two.</string>
+    <string name="dupe_yes">Yes, one person</string>
+    <string name="dupe_no">No, two people</string>
+    <string name="handover_title">Make someone an owner</string>
+    <string name="handover_intro">An owner can do everything you can — the team, the money, the business details. Keeping a second one is how a business survives a lost phone.</string>
+    <string name="handover_nobody">Nobody to hand it to yet. Invite a driver first, and you can make them an owner afterwards.</string>
+    <string name="handover_who">WHO</string>
+    <string name="handover_is_driver">A driver here now</string>
+    <string name="handover_already_owner">Already an owner</string>
+    <string name="handover_and_you">AND YOU</string>
+    <string name="handover_stay">Stay an owner too</string>
+    <string name="handover_stay_note">Two of you in charge. Safest.</string>
+    <string name="handover_step_back">Step back to driver</string>
+    <string name="handover_step_back_note">You keep recording work. They decide the rest, and only they can make you an owner again.</string>
+    <string name="handover_warning">An owner can take anyone off the team, you included. Only do this for somebody you would trust with the cash box.</string>
+    <string name="handover_confirm">Make them an owner</string>
+    <string name="handover_confirm_named">Make %1$s an owner</string>
+    <string name="team_one_owner_title">Only you can manage this business</string>
+    <string name="team_one_owner_note">If this phone is lost or broken, nobody can get the business back. Make somebody else an owner too.</string>
+    <string name="team_make_owner">Make someone an owner</string>
+    <string name="team_trusted_with">Trusted with more</string>
+    <string name="team_perm_team">Run the team</string>
+    <string name="team_perm_team_note">Invite drivers, change what they may do, take them off. They can never touch an owner, nor make one, nor hand on this switch.</string>
+    <string name="team_perm_machines">Look after the machines</string>
+    <string name="team_perm_machines_note">Add machines, correct their hours, keep the service schedule.</string>
+    <string name="team_perm_payout">Pay people</string>
+    <string name="team_perm_payout_note">Record wages and labour going out of the business.</string>
+    <string name="team_perm_people_cost">See what people are paid</string>
+    <string name="team_perm_people_cost_note">Every wage, not only their own. In a small crew this is the one thing that cannot be un-seen, so give it only to somebody who needs it.</string>
+    <string name="team_perm_owner_only">Only an owner can give these.</string>
+    <string name="team_role">What they are</string>
+    <string name="team_role_owner">Owner</string>
+    <string name="team_role_owner_note">Everything below, plus the team, the rates and your business details. An owner can take anyone off the team, you included.</string>
+    <string name="team_role_driver">Driver</string>
+    <string name="team_role_driver_note">Records work. You choose what else</string>
+
+    <!-- What a job cost the owner, beyond the machine. Never the farmer's bill. -->
+    <string name="profit_owed">%1$s of these costs is still owed. It is counted above, because the work cost it whether or not the cash has gone.</string>
+    <string name="money_out_owed">%1$s still owed</string>
+    <string name="money_out_owed_note">Work already done that has not been paid for. Deliberately not in the figure above — that figure is what has actually left the till. Open the job to pay it.</string>
+    <string name="money_out_unpriced_note">Somebody recorded who worked, out where the job was, but could not say what it cost. Until you put a figure on it, it is missing from every total.</string>
+    <string name="cost_detail_sep">" · "</string>
+    <string name="cost_section">What it came to</string>
+    <string name="cost_section_driver">What went into it</string>
+    <string name="cost_earned">Earned</string>
+    <string name="cost_diesel">Diesel</string>
+    <string name="cost_labour">Labourers</string>
+    <string name="cost_other">Other spending</string>
+    <string name="cost_left">Left</string>
+    <string name="cost_yours_note">Your costs, not the farmer\'s. Their bill is %1$s and nothing here changes it.</string>
+    <string name="cost_no_total">No total yet, because some of it is not priced. A figure with a cost missing reads as profit.</string>
+    <string name="cost_no_total_hidden">What people were paid is not shown to you, so there is no total here.</string>
+    <string name="cost_owed">%1$s of this is still owed</string>
+    <string name="cost_owed_note">Counted against the job because the work cost it. It reaches money out when the cash actually goes.</string>
+    <string name="cost_unpriced">Nobody has said what this cost</string>
+    <string name="cost_unpriced_note">Somebody recorded who worked, out where the job was. Put a figure on that entry rather than adding a second one, or the same crew is counted twice.</string>
+    <string name="cost_put_figure">Put a figure on it</string>
+    <string name="cost_not_priced_yet">not priced</string>
+    <string name="cost_add">Add what else it cost</string>
+    <string name="cost_say_who">Say who else worked</string>
+    <string name="cost_pay_now">Pay now</string>
+    <string name="cost_time_worked">Time worked</string>
+    <string name="cost_area_done">Area done</string>
+    <string name="cost_litres">%1$s litres</string>
+    <string name="cost_hidden_title">Rupees are not shown to you</string>
+    <string name="cost_hidden_note">What the job earned, and what anyone was paid, is the owner\'s to see. How many worked is not a wage, so it stays here.</string>
+    <string name="cost_a_gang">a gang</string>
+    <string name="cost_heads">%1$d</string>
+
+    <!-- Recording a job cost. -->
+    <string name="jobcost_title">Who else worked</string>
+    <string name="jobcost_kind_labour">Labourers</string>
+    <string name="jobcost_kind_other">Something else</string>
+    <string name="jobcost_kind_other_note">Tea, food, getting them there</string>
+    <string name="jobcost_how_many">How many</string>
+    <string name="jobcost_uncounted">Nobody counted them</string>
+    <string name="jobcost_uncounted_note">For a gang the jamadar brought. Better than a guess — a guessed number looks the same as a counted one later.</string>
+    <string name="jobcost_counted_instead">Count them after all</string>
+    <string name="jobcost_gang">A gang</string>
+    <string name="jobcost_what_cost">What it cost</string>
+    <string name="jobcost_amount">Amount</string>
+    <string name="jobcost_each">%1$s each</string>
+    <string name="jobcost_each_about">about %1$s each</string>
+    <string name="jobcost_split_note">One of them took more? Save this, then add a second line for the difference.</string>
+    <string name="jobcost_what_for">What it was for</string>
+    <string name="jobcost_note_tea">Tea and food</string>
+    <string name="jobcost_note_travel">Getting them there</string>
+    <string name="jobcost_note_hint">In your own words</string>
+    <string name="jobcost_paid">Paid them</string>
+    <string name="jobcost_paid_other">Already paid</string>
+    <string name="jobcost_owed_other">Not paid yet</string>
+    <string name="jobcost_paid_note">The cash has gone. Shows in money out.</string>
+    <string name="jobcost_owed">Owe them</string>
+    <string name="jobcost_owed_note">Counts against this job now, out of the till later.</string>
+    <string name="jobcost_save">Save</string>
+    <string name="jobcost_heads_only_note">You are only saying how many worked. Whoever holds the cash puts the money on it.</string>
+
+    <!-- The question asked while finishing a job, where the facts are still fresh. -->
+    <string name="finish_who_else">Anyone else work on this?</string>
+    <string name="finish_just_me">Just me</string>
+    <string name="finish_labourers_on_it">Labourers were on it</string>
+
+
+    <!-- Roles offered as one tap, instead of asking an owner to reason about seven switches. -->
+    <string name="team_preset_title">What they are</string>
+    <string name="team_preset_senior">Senior driver</string>
+    <string name="team_preset_senior_note">Also deals with the customer: adds them, closes the bill, takes the cash.</string>
+    <string name="team_preset_manager">Manager</string>
+    <string name="team_preset_manager_note">Runs the yard. The team, the machines, and paying people their wages.</string>
+    <string name="team_preset_driver_note">Does the work. Logs fuel, hours and breakdowns. Sees only their own jobs.</string>
+    <string name="team_preset_owner_note">Everything, the same as you. They could take you off the business.</string>
+    <string name="team_preset_by_hand">Set by hand</string>
+    <string name="team_preset_by_hand_note">Not one of the jobs above. The switches say exactly what.</string>
+    <string name="team_preset_means">What that means</string>
+    <string name="team_preset_nothing_more">Nothing beyond their own work. They can still start and finish their own jobs and log fuel and breakdowns.</string>
+    <string name="team_preset_rest_off">Everything else is off.</string>
+    <string name="team_preset_owner_means">Everything you can do, plus the team, the rates and your business details.</string>
+    <string name="team_preset_change">Set each one by hand</string>
+    <string name="team_preset_hide">Done with the switches</string>
+    <string name="team_preset_manager_only_owner">Only an owner can make a manager or another owner.</string>
+    <string name="team_preset_owner_confirm_title">Make %1$s an owner?</string>
+    <string name="team_preset_owner_confirm_body">An owner can do everything you can, your business details and your rates included. They can also take you off this business. You cannot undo this on your own once they have it.</string>
+    <string name="team_preset_owner_confirm_yes">Make them an owner</string>
     <string name="edit_profile_title">Your details</string>
     <string name="edit_business_title">Your business</string>
     <string name="edit_save">Save changes</string>

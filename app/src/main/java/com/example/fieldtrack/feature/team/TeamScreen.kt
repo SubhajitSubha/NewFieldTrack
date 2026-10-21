@@ -32,6 +32,10 @@ import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.initialsOf
+import androidx.compose.ui.res.pluralStringResource
+import com.example.fieldtrack.designsystem.component.FtIconTile
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 
 /**
  * Who works here.
@@ -48,6 +52,11 @@ fun TeamScreen(
     onOpenMember: (String) -> Unit,
     onAddMember: (() -> Unit)?,
     onInvite: (() -> Unit)?,
+    onSentCodes: (() -> Unit)?,
+    onHandOver: (() -> Unit)?,
+    onChanges: (() -> Unit)?,
+    onMergeDuplicate: ((DuplicatePair) -> Unit)?,
+    onNotDuplicate: ((DuplicatePair) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -113,6 +122,96 @@ fun TeamScreen(
                 }
             }
 
+            // Asked at the top, and only once: answered either way it goes away
+            // for good. Two men on one family phone is ordinary, and a question
+            // that cannot be settled is one that gets ignored.
+            state.possibleDuplicate?.let { pair ->
+                if (onMergeDuplicate != null && onNotDuplicate != null) {
+                    item {
+                        FtCard {
+                            Text(
+                                text = stringResource(R.string.dupe_title),
+                                style = FieldTrackTheme.type.sectionTitle,
+                                color = colors.ink,
+                            )
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = stringResource(
+                                    R.string.dupe_note,
+                                    pair.keepName,
+                                    pair.phone,
+                                    pair.absorbName,
+                                ),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.inkSecondary,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                FtButton(
+                                    text = stringResource(R.string.dupe_yes),
+                                    onClick = { onMergeDuplicate(pair) },
+                                    height = 46.dp,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                FtButton(
+                                    text = stringResource(R.string.dupe_no),
+                                    onClick = { onNotDuplicate(pair) },
+                                    tone = FtButtonTone.Secondary,
+                                    height = 46.dp,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // A business with one owner lives on one handset. Said here, at the
+            // top, because the moment to fix it is while everything still works
+            // — afterwards there is no way back in from inside the app at all.
+            if (state.ownerCount == 1 && onHandOver != null) {
+                item {
+                    FtCard(
+                        background = colors.dueWash,
+                        borderColor = colors.dueWash,
+                        onClick = onHandOver,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.team_one_owner_title),
+                            style = FieldTrackTheme.type.sectionTitle,
+                            color = colors.dueInk,
+                        )
+                        Spacer(Modifier.height(5.dp))
+                        Text(
+                            text = stringResource(R.string.team_one_owner_note),
+                            style = FieldTrackTheme.type.bodySmall,
+                            color = colors.dueInk,
+                        )
+                    }
+                }
+            }
+
+            // Codes already out in the world, above the people, because an owner
+            // who sent three and sees one driver needs to know the other two
+            // are still live and can be taken back.
+            if (state.openCodeCount > 0 && onSentCodes != null) {
+                item {
+                    FtCard(padding = 0.dp) {
+                        FtListRow(
+                            title = pluralStringResource(
+                                R.plurals.team_codes_waiting,
+                                state.openCodeCount,
+                                state.openCodeCount,
+                            ),
+                            subtitle = stringResource(R.string.team_codes_waiting_note),
+                            leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
+                            showChevron = true,
+                            onClick = onSentCodes,
+                        )
+                    }
+                }
+            }
+
             if (state.working.isNotEmpty()) {
                 item { FtSectionLabel(stringResource(R.string.team_working_now)) }
                 items(state.working, key = { it.membershipId }) { member ->
@@ -129,6 +228,20 @@ fun TeamScreen(
                 }
                 items(state.idle, key = { it.membershipId }) { member ->
                     MemberCard(member, onOpenMember)
+                }
+            }
+
+            if (onChanges != null) {
+                item {
+                    FtCard(padding = 0.dp) {
+                        FtListRow(
+                            title = stringResource(R.string.team_changes_row),
+                            subtitle = stringResource(R.string.team_changes_row_note),
+                            leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
+                            showChevron = true,
+                            onClick = onChanges,
+                        )
+                    }
                 }
             }
 

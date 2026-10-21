@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.fieldtrack.data.session.Startup
+import com.example.fieldtrack.data.sync.SyncWorker
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.FieldTrackApp
 
@@ -58,5 +59,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Asks for a send every time the app is opened.
+     *
+     * Covers the gap the per-change trigger cannot: work recorded in a field with
+     * no signal, where the phone was then locked and carried home. The request is
+     * held by the system until there is a network, so opening the app in the yard
+     * is enough — nobody has to go looking for a button.
+     */
+    override fun onStart() {
+        super.onStart()
+        // Forced: a person opening the app outranks whatever is queued, including
+        // a backoff left over from a morning with no signal.
+        SyncWorker.runNow(this, force = true)
     }
 }

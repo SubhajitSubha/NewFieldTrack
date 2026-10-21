@@ -71,6 +71,10 @@ class WorkRepository(
 
     fun observeLive(orgId: String): Flow<List<JobEntity>> = jobs.observeLive(orgId)
 
+    /** The last few jobs, for choosing what a payment was for. */
+    fun observeRecent(orgId: String, limit: Int = 6): Flow<List<JobEntity>> =
+        jobs.observeRecent(orgId, limit)
+
     fun observeJob(orgId: String, jobId: String): Flow<JobEntity?> = jobs.observe(orgId, jobId)
 
     fun observeEvents(jobId: String): Flow<List<JobEventEntity>> = jobs.observeEvents(jobId)
@@ -78,6 +82,13 @@ class WorkRepository(
     /** Everything one driver has done for this business, and nothing from another. */
     fun observeForOperator(orgId: String, personId: String): Flow<List<JobEntity>> =
         jobs.observeForOperator(orgId, personId)
+
+    /** A driver's own work in a window, for their day. */
+    fun observeForOperator(orgId: String, personId: String, from: Long, to: Long) =
+        jobs.observeForOperator(orgId, personId, from, to)
+
+    /** The job this driver has open right now, running or paused. */
+    fun observeLiveFor(orgId: String, personId: String) = jobs.observeLiveFor(orgId, personId)
 
     fun observeForCustomer(orgId: String, customerId: String): Flow<List<JobEntity>> =
         jobs.observeForCustomer(orgId, customerId)

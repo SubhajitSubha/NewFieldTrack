@@ -9,6 +9,8 @@ import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.formatBillNumber
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.db.JobCostKind
+import com.example.fieldtrack.data.db.dao.JobCostWithPaid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,9 +55,57 @@ data class JobDetailState(
     val events: List<JobEventRow> = emptyList(),
     val canAmend: Boolean = false,
     val canSeeMoney: Boolean = true,
+    /** What this job took beyond the machine, each with what has been paid. */
+    val costs: List<JobCostWithPaid> = emptyList(),
+    val fuelRupees: Long = 0,
+    val fuelLitres: Double = 0.0,
+    /** False when this person may not see what people are paid. */
+    val seesPeopleCost: Boolean = false,
+    val canRecordCost: Boolean = false,
+    val canPriceCost: Boolean = false,
 ) {
     val live: Boolean get() = status == JobStatus.Running || status == JobStatus.Paused
     val finished: Boolean get() = status == JobStatus.Completed
+
+    /** Hands on this job, counted. Null where nobody counted is folded away. */
+    val labourHeads: Int?
+        get() = costs
+            .filter { it.cost.kind == JobCostKind.Labour }
+            .mapNotNull { it.cost.headcount }
+            .takeIf { it.isNotEmpty() }
+            ?.sum()
+
+    /** True when somebody worked but nobody said how many. */
+    val labourUncounted: Boolean
+        get() = costs.any { it.cost.kind == JobCostKind.Labour && it.cost.headcount == null }
+
+    val labourRupees: Long
+        get() = costs.filter { it.cost.kind == JobCostKind.Labour }
+            .sumOf { it.cost.amountRupees ?: 0 }
+
+    val otherRupees: Long
+        get() = costs.filter { it.cost.kind == JobCostKind.Other }
+            .sumOf { it.cost.amountRupees ?: 0 }
+
+    /** What is still owed on this job. Shown beside the total, never taken off it. */
+    val owedRupees: Long get() = costs.sumOf { it.owedRupees ?: 0 }
+
+    /** Recorded by somebody who could not put a figure on it. */
+    val unpricedCount: Int get() = costs.count { it.cost.amountRupees == null }
+
+    /**
+     * Whether a total can honestly be shown.
+     *
+     * Every component has to be visible to this reader and every cost priced.
+     * A total that silently omits a wage reads as profit, and a total that
+     * omits a cost nobody has priced reads as a finished answer when it is
+     * half a question.
+     */
+    val canTotal: Boolean
+        get() = canSeeMoney && seesPeopleCost && unpricedCount == 0
+
+    val costsRupees: Long get() = fuelRupees + labourRupees + otherRupees
+    val leftRupees: Long get() = amountRupees - costsRupees
 }
 
 /**
@@ -66,6 +116,14 @@ data class JobDetailState(
  * changed to and why. All of it has been recorded since the work loop was built and
  * none of it has ever been shown to anybody.
  */
+/** The four extra flows, bundled so the outer combine stays within its arity. */
+private data class Extras(
+    val machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
+    val costs: List<JobCostWithPaid>,
+    val fuelRupees: Long,
+    val fuelLitres: Double,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class JobDetailViewModel(
     private val app: FieldFlowApplication,
@@ -73,13 +131,22 @@ class JobDetailViewModel(
 ) : ViewModel() {
 
     val state: StateFlow<JobDetailState> = app.sessionStore.session.flatMapLatest { s ->
+        val seesPeople = Capability.SeePeopleCost in s.can
         combine(
             app.workRepository.observeJob(s.orgId, jobId),
             app.workRepository.observeEvents(jobId),
             app.directoryRepository.observeCustomers(s.orgId),
-            app.directoryRepository.observeMachines(s.orgId),
             app.teamRepository.observeEveryone(s.orgId),
-        ) { job, events, customers, machines, team ->
+            combine(
+                app.directoryRepository.observeMachines(s.orgId),
+                app.ledgerRepository.observeJobCosts(s.orgId, jobId),
+                app.db.machineDao().observeFuelSpendOnJob(s.orgId, jobId),
+                app.db.machineDao().observeFuelLitresOnJob(s.orgId, jobId),
+            ) { machines, costs, fuelRupees, fuelLitres ->
+                Extras(machines, costs, fuelRupees, fuelLitres)
+            },
+        ) { job, events, customers, team, extra ->
+            val machines = extra.machines
             if (job == null) return@combine JobDetailState(loaded = true, exists = false)
             val names = team.associate { it.personId to it.displayName }
             val operator = team.firstOrNull { it.personId == job.operatorPersonId }
@@ -110,6 +177,17 @@ class JobDetailViewModel(
                 events = timelineOf(events, names),
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,
+                // The rupees on a cost are stripped out here rather than hidden
+                // in the view, so a figure this reader may not see never
+                // reaches the screen at all.
+                costs = if (seesPeople) extra.costs else extra.costs.map { row ->
+                    row.copy(cost = row.cost.copy(amountRupees = null), paidRupees = 0)
+                },
+                fuelRupees = if (s.canSeeMoney) extra.fuelRupees else 0,
+                fuelLitres = extra.fuelLitres,
+                seesPeopleCost = seesPeople,
+                canRecordCost = Capability.RecordWork in s.can,
+                canPriceCost = Capability.PayOut in s.can,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), JobDetailState())

@@ -90,7 +90,179 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
 }
 
 
+/**
+ * The invite a driver came in on, kept so the server can verify it.
+ *
+ * Nullable with no default: an owner creates their business rather than joining it,
+ * and every membership written before this column existed belongs to somebody who
+ * is already inside.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE memberships ADD COLUMN joinedWithCode TEXT")
+    }
+}
+
+
+/**
+ * What a driver's phone is still carrying.
+ *
+ * Two columns rather than one, because a count on its own invites being read as
+ * current when it may be days old. The owner is shown both.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE memberships ADD COLUMN unsentCount INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE memberships ADD COLUMN unsentAt INTEGER")
+    }
+}
+
+
+/**
+ * Who was let in, who was let go, and who was given sight of the money.
+ *
+ * Starts empty on purpose. Nothing in the app wrote these down before now, so
+ * there is no history to backfill — the log begins the day it ships.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS team_events (
+                id TEXT NOT NULL PRIMARY KEY,
+                orgId TEXT NOT NULL,
+                atMillis INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                byPersonId TEXT,
+                byName TEXT NOT NULL DEFAULT '',
+                aboutPersonId TEXT,
+                aboutName TEXT,
+                detail TEXT,
+                syncState TEXT NOT NULL DEFAULT 'Pending'
+            )
+            """
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_team_events_orgId ON team_events (orgId)")
+    }
+}
+
+
+/**
+ * Money going out, and who is allowed to touch it.
+ *
+ * The two capability columns sit on the membership so the SERVER can read them.
+ * A rule can only enforce what it can see, and what each person is paid is the
+ * one figure in this app that cannot be un-seen once a driver has seen it.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE memberships ADD COLUMN canPayOut INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE memberships ADD COLUMN canSeePeopleCost INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS payouts (
+                id TEXT NOT NULL PRIMARY KEY,
+                orgId TEXT NOT NULL,
+                amountRupees INTEGER NOT NULL,
+                atMillis INTEGER NOT NULL,
+                covers TEXT NOT NULL,
+                toPersonId TEXT,
+                toName TEXT,
+                headcount INTEGER NOT NULL DEFAULT 1,
+                jobId TEXT,
+                method TEXT,
+                note TEXT,
+                byPersonId TEXT,
+                createdAt INTEGER NOT NULL,
+                syncState TEXT NOT NULL DEFAULT 'Pending',
+                deviceId TEXT
+            )
+            """
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_payouts_orgId ON payouts (orgId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_payouts_jobId ON payouts (jobId)")
+    }
+}
+
+
+/**
+ * A rank between owner and driver.
+ *
+ * Not a role: the app has always worked in capabilities, and a role enum would
+ * make every rule a three-way question for no gain. A manager is somebody with
+ * these switched on, and the rules read the switches.
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE memberships ADD COLUMN canEditTeam INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE memberships ADD COLUMN canEditMachines INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+
+/**
+ * The job's own cost sheet, and the link that keeps a rupee counted once.
+ *
+ * Job-attached money used to live only in `payouts`, and a machine's people
+ * cost was summed by joining payouts to jobs. Totalling `job_costs` as well
+ * would count every settled cost twice, so the two have to be tied together in
+ * the same breath they are separated: every existing job-attached payment
+ * becomes a cost here, and points back at it.
+ *
+ * The derived id (`jc_` + the payment's own id) is deliberate. It makes the
+ * copy idempotent and lets the UPDATE below find its partner without a join,
+ * on a statement that has to be right the first time because there is no
+ * second run of a migration.
+ */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `job_costs` (
+                `id` TEXT NOT NULL,
+                `orgId` TEXT NOT NULL,
+                `jobId` TEXT NOT NULL,
+                `kind` TEXT NOT NULL,
+                `headcount` INTEGER,
+                `amountRupees` INTEGER,
+                `note` TEXT,
+                `byPersonId` TEXT,
+                `atMillis` INTEGER NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `syncState` TEXT NOT NULL,
+                `deviceId` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_costs_orgId` ON `job_costs` (`orgId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_job_costs_jobId` ON `job_costs` (`jobId`)")
+
+        db.execSQL("ALTER TABLE payouts ADD COLUMN jobCostId TEXT")
+
+        // Every payment already laid against a job becomes that job's cost.
+        // Labour for all of them: paying people is the only thing the screen
+        // that wrote these could ever have been used for. A name, where there
+        // is one, survives in the note rather than being thrown away.
+        db.execSQL(
+            """
+            INSERT INTO job_costs
+                (id, orgId, jobId, kind, headcount, amountRupees, note,
+                 byPersonId, atMillis, createdAt, syncState, deviceId)
+            SELECT 'jc_' || id, orgId, jobId, 'Labour', headcount, amountRupees,
+                   COALESCE(note, toName), byPersonId, atMillis, createdAt,
+                   'Pending', deviceId
+              FROM payouts
+             WHERE jobId IS NOT NULL
+            """.trimIndent()
+        )
+        db.execSQL("UPDATE payouts SET jobCostId = 'jc_' || id WHERE jobId IS NOT NULL")
+    }
+}
+
+
 /** Every migration, in order. Add to this list and the builder picks it up. */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
-    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
 )

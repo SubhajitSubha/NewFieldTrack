@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.example.fieldtrack.feature.timeAgo
 
 /** One kind of thing waiting to go up. */
 data class WaitingKind(val table: String, val count: Int)
@@ -207,6 +208,16 @@ fun BackupScreen(
                     style = FieldTrackTheme.type.bodySmall,
                     color = colors.inkSecondary,
                 )
+                // The whole point of this screen is that nobody should need it.
+                // Saying so is what stops a contractor treating backup as a chore
+                // he has to remember, which is how work goes missing when he
+                // forgets.
+                Text(
+                    text = stringResource(R.string.sync_automatic),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                    modifier = Modifier.padding(top = 7.dp),
+                )
             }
 
             Box(Modifier.padding(bottom = dimens.space4))
@@ -214,11 +225,14 @@ fun BackupScreen(
 
         if (state.stage != SyncStage.NoBackend) {
             Column(Modifier.padding(dimens.screenPadding)) {
+                // Always secondary. Sending happens by itself; this is here for
+                // somebody who is anxious and wants to watch it go, not because
+                // the app is waiting to be told.
                 FtButton(
                     text = stringResource(R.string.sync_now),
                     onClick = onBackUpNow,
                     enabled = !state.busy && state.stage != SyncStage.Sending,
-                    tone = if (state.pending > 0) FtButtonTone.Primary else FtButtonTone.Secondary,
+                    tone = FtButtonTone.Secondary,
                     height = 54.dp,
                 )
             }
@@ -394,22 +408,3 @@ private fun labelFor(table: String): String = stringResource(
         else -> R.string.sync_item_other
     }
 )
-
-/**
- * How long ago, at the resolution that matters.
- *
- * Minutes for the last hour, hours for the last day, then the date. "Last backup 3
- * days ago" is a prompt to find signal; "last backup 4,320 minutes ago" is not.
- */
-@Composable
-private fun timeAgo(millis: Long, now: Long = System.currentTimeMillis()): String {
-    val elapsed = (now - millis).coerceAtLeast(0L)
-    val minutes = (elapsed / 60_000L).toInt()
-    val hours = minutes / 60
-    return when {
-        minutes < 1 -> stringResource(R.string.sync_just_now)
-        hours < 1 -> pluralStringResource(R.plurals.time_minutes_ago, minutes, minutes)
-        hours < 24 -> pluralStringResource(R.plurals.time_hours_ago, hours, hours)
-        else -> dayMonthYear(millis)
-    }
-}

@@ -24,12 +24,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import androidx.compose.ui.res.pluralStringResource
+import com.example.fieldtrack.designsystem.component.FtButton
+import com.example.fieldtrack.designsystem.component.FtButtonTone
+import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.auth.formatIndianPhone
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtCard
+import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
@@ -53,6 +59,30 @@ data class ProfileState(
     val businessName: String = "",
     val addressLine: String? = null,
     val phone: String? = null,
+    val orgId: String = "",
+    val personId: String = "",
+    /**
+     * False for the only owner of a business.
+     *
+     * Not a permission so much as an arithmetic fact: a business whose last owner
+     * walks out can never have its team, its rates or its details changed again
+     * by anybody.
+     */
+    val canLeave: Boolean = false,
+    /**
+     * The number this person signed in with.
+     *
+     * Not [phone], which is the business's number and shown under Business above.
+     * A contractor's own mobile and the one he puts on his bills are routinely
+     * different, and telling somebody they are "signed in as" a number they have
+     * never signed in with is the kind of small lie that makes people distrust
+     * everything else on the screen.
+     */
+    val signedInPhone: String? = null,
+    /** Businesses they work for today — what the row's subtitle counts. */
+    val orgCount: Int = 1,
+    /** Including ended ones: decides whether the row is worth showing at all. */
+    val everOrgCount: Int = 1,
     val upiId: String? = null,
     val gstin: String? = null,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
@@ -68,7 +98,11 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
         combine(
             app.db.orgDao().observeOrg(s.orgId),
             app.sessionStore.businessMode,
-        ) { org, businessMode ->
+            app.teamRepository.observeTeam(s.orgId),
+        ) { org, businessMode, team ->
+            val otherOwners = team.count {
+                it.role == MemberRole.Owner && it.active && it.personId != s.personId
+            }
             ProfileState(
                 loaded = true,
                 displayName = s.displayName,
@@ -81,6 +115,14 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
                 businessMode = businessMode,
                 canEditBusiness = Capability.EditBusiness in s.can,
+                orgId = s.orgId,
+                personId = s.personId,
+                // A driver may always leave. An owner may only leave if somebody
+                // else can still run the place.
+                canLeave = s.role != MemberRole.Owner || otherOwners > 0,
+                signedInPhone = app.sessionStore.signedInPhone(),
+                orgCount = app.db.orgDao().activeMembershipCountFor(s.personId),
+                everOrgCount = app.db.orgDao().membershipCountFor(s.personId),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileState())
@@ -107,6 +149,11 @@ fun ProfileScreen(
     onEditName: () -> Unit,
     onEditBusiness: () -> Unit,
     onBusinessMode: (Boolean) -> Unit,
+    onSignOut: () -> Unit,
+    onBusinesses: () -> Unit,
+    /** Null for the only owner, who cannot leave their own business. */
+    onLeave: (() -> Unit)?,
+    unsentCount: Int,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -191,7 +238,7 @@ fun ProfileScreen(
                 FtRowDivider()
                 ValueRow(
                     label = stringResource(R.string.edit_business_phone),
-                    value = state.phone?.let { "+91 $it" } ?: notSet,
+                    value = state.phone?.let { formatIndianPhone(it) } ?: notSet,
                     muted = state.phone == null,
                     onClick = open,
                 )
@@ -248,6 +295,68 @@ fun ProfileScreen(
                     )
                 }
             }
+
+            // Shown whenever somebody has more than one, and to drivers always:
+            // a driver with one employer today may be given a second code
+            // tomorrow, and would otherwise have nowhere to type it.
+            if (state.everOrgCount > 1 || state.role != MemberRole.Owner) {
+                FtSectionLabel(stringResource(R.string.orgs_title))
+                FtCard(padding = 0.dp) {
+                    FtListRow(
+                        // The business they are in, not a repeat of the heading
+                        // above it: the row's job is to say where they are now,
+                        // and the count underneath says there is somewhere else.
+                        title = state.businessName,
+                        subtitle = pluralStringResource(
+                            R.plurals.orgs_count, state.orgCount, state.orgCount,
+                        ),
+                        leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onBusinesses,
+                    )
+                }
+            }
+
+            FtSectionLabel(stringResource(R.string.account_section))
+            FtCard {
+                Text(
+                    text = stringResource(
+                        R.string.account_signed_in_as,
+                        state.signedInPhone?.let { formatIndianPhone(it) }
+                            ?: state.displayName,
+                    ),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                )
+                // Said before they decide, not after. Somebody signing out of a
+                // shared phone should know what is still sitting on it.
+                if (unsentCount > 0) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.account_sign_out_unsent, unsentCount, unsentCount,
+                        ),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                        modifier = Modifier.padding(top = 7.dp),
+                    )
+                }
+            }
+
+            onLeave?.let {
+                FtButton(
+                    text = stringResource(R.string.account_leave),
+                    onClick = it,
+                    tone = FtButtonTone.Secondary,
+                    height = 50.dp,
+                )
+            }
+
+            FtButton(
+                text = stringResource(R.string.account_sign_out),
+                onClick = onSignOut,
+                tone = FtButtonTone.Danger,
+                height = 50.dp,
+            )
 
             Box(Modifier.padding(bottom = dimens.space4))
         }

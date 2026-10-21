@@ -31,6 +31,7 @@ import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.WeekBars
 import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.iconFor
 
@@ -150,13 +151,6 @@ private fun StatusTile(count: Int, labelRes: Int, tint: Color, modifier: Modifie
 @Composable
 private fun HoursChart(hours: List<Double>) {
     val colors = FieldTrackTheme.colors
-    val peak = hours.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-    val today = weekdayIndex(System.currentTimeMillis())
-    val labels = listOf(
-        R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
-        R.string.day_fri, R.string.day_sat, R.string.day_sun,
-    )
-
     FtCard(padding = 17.dp) {
         Row(
             Modifier.fillMaxWidth(),
@@ -174,44 +168,8 @@ private fun HoursChart(hours: List<Double>) {
                 color = colors.inkTertiary,
             )
         }
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            hours.forEachIndexed { index, value ->
-                Column(
-                    Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    // A day with no work still shows a sliver, so the week reads as
-                    // seven days rather than as a gap in the data.
-                    val fraction = (value / peak).coerceIn(0.0, 1.0)
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height((12 + fraction * 74).dp)
-                            .clip(FieldTrackTheme.shapes.small)
-                            .background(
-                                when {
-                                    index == today -> colors.ink
-                                    value > 0 -> colors.primary
-                                    else -> colors.line
-                                }
-                            )
-                    )
-                    Text(
-                        text = stringResource(labels[index]),
-                        style = FieldTrackTheme.type.caption,
-                        color = if (index == today) colors.ink else colors.inkTertiary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 7.dp),
-                    )
-                }
-            }
-        }
+        // The bars themselves are shared with the driver's own work screen.
+        WeekBars(hours, Modifier.padding(top = 14.dp))
     }
 }
 

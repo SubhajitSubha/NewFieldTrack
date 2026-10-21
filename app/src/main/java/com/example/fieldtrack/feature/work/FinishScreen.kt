@@ -48,6 +48,9 @@ import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.data.auth.formatIndianPhone
+import androidx.compose.foundation.selection.selectable
+import com.example.fieldtrack.designsystem.component.FtRowDivider
 
 @Composable
 fun FinishScreen(
@@ -63,6 +66,11 @@ fun FinishScreen(
     onChooseNothing: () -> Unit,
     onAmount: (String) -> Unit,
     onMethod: (PaymentMethod) -> Unit,
+    labour: FinishLabour,
+    onAnyLabour: (Boolean) -> Unit,
+    onLabourHeadcount: (Int) -> Unit,
+    onLabourUncounted: () -> Unit,
+    onLabourCounted: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
     onSms: () -> Unit,
@@ -101,7 +109,14 @@ fun FinishScreen(
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
             when (step) {
-                0 -> ReviewStep(state)
+                0 -> ReviewStep(
+                    state = state,
+                    labour = labour,
+                    onAnyLabour = onAnyLabour,
+                    onHeadcount = onLabourHeadcount,
+                    onUncounted = onLabourUncounted,
+                    onCounted = onLabourCounted,
+                )
                 1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod)
                 else -> SavedStep(state, receivedRupees, finalBalanceRupees)
             }
@@ -174,7 +189,14 @@ fun FinishScreen(
 }
 
 @Composable
-private fun ReviewStep(state: FinishState) {
+private fun ReviewStep(
+    state: FinishState,
+    labour: FinishLabour,
+    onAnyLabour: (Boolean) -> Unit,
+    onHeadcount: (Int) -> Unit,
+    onUncounted: () -> Unit,
+    onCounted: () -> Unit,
+) {
     val colors = FieldTrackTheme.colors
     FtCard(background = colors.primaryWash, borderColor = colors.primaryWash) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -232,6 +254,84 @@ private fun ReviewStep(state: FinishState) {
                 ).let { per -> "${rupees(state.rateRupees)} $per" }
             },
         )
+    }
+
+    FtSectionLabel(stringResource(R.string.finish_who_else))
+    FtCard(padding = 0.dp) {
+        CrewRow(
+            title = stringResource(R.string.finish_just_me),
+            selected = !labour.any,
+            onSelect = { onAnyLabour(false) },
+        )
+        FtRowDivider()
+        CrewRow(
+            title = stringResource(R.string.finish_labourers_on_it),
+            selected = labour.any,
+            onSelect = { onAnyLabour(true) },
+        )
+        if (labour.any) {
+            FtRowDivider()
+            Column(Modifier.padding(horizontal = 15.dp, vertical = 12.dp)) {
+                if (labour.headcount == null) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.jobcost_gang),
+                            style = FieldTrackTheme.type.sectionTitle,
+                            color = FieldTrackTheme.colors.ink,
+                        )
+                        FtButton(
+                            text = stringResource(R.string.jobcost_counted_instead),
+                            onClick = onCounted,
+                            tone = FtButtonTone.Secondary,
+                            height = 42.dp,
+                        )
+                    }
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        FtButton(
+                            text = "−",
+                            onClick = { onHeadcount(labour.headcount - 1) },
+                            tone = FtButtonTone.Secondary,
+                            height = 46.dp,
+                            modifier = Modifier.size(46.dp),
+                        )
+                        Text(
+                            text = labour.headcount.toString(),
+                            style = FieldTrackTheme.type.moneyMedium,
+                            color = FieldTrackTheme.colors.ink,
+                        )
+                        FtButton(
+                            text = "+",
+                            onClick = { onHeadcount(labour.headcount + 1) },
+                            tone = FtButtonTone.Secondary,
+                            height = 46.dp,
+                            modifier = Modifier.size(46.dp),
+                        )
+                    }
+                    FtButton(
+                        text = stringResource(R.string.jobcost_uncounted),
+                        onClick = onUncounted,
+                        tone = FtButtonTone.Secondary,
+                        height = 42.dp,
+                    )
+                }
+                Text(
+                    // Said here so nobody expects to type an amount: this is
+                    // the same question whoever is finishing the job.
+                    text = stringResource(R.string.jobcost_heads_only_note),
+                    style = FieldTrackTheme.type.caption,
+                    color = FieldTrackTheme.colors.inkSecondary,
+                )
+            }
+        }
     }
 
     FtEmphasisCard {
@@ -383,7 +483,7 @@ private fun SavedStep(state: FinishState, receivedRupees: Long, finalBalanceRupe
                 )
                 val letterhead = listOfNotNull(
                     state.businessAddress?.takeIf { it.isNotBlank() },
-                    state.businessPhone?.takeIf { it.isNotBlank() }?.let { "+91 $it" },
+                    state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
                 ).joinToString(" · ")
                 if (letterhead.isNotBlank()) {
                     Text(
@@ -511,3 +611,27 @@ private val PaymentMethod.labelRes: Int
         PaymentMethod.Bank -> R.string.method_bank
         PaymentMethod.Cheque -> R.string.method_cheque
     }
+
+
+@Composable
+private fun CrewRow(title: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                role = androidx.compose.ui.semantics.Role.RadioButton,
+                onClick = onSelect,
+            )
+            .padding(horizontal = 15.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+        Text(
+            text = title,
+            style = FieldTrackTheme.type.rowTitle,
+            color = FieldTrackTheme.colors.ink,
+            modifier = Modifier.padding(start = 13.dp),
+        )
+    }
+}

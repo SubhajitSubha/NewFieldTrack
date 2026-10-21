@@ -93,6 +93,8 @@ data class LedgerState(
     val lastPaymentMillis: Long? = null,
     /** Whether this person may correct a job behind one of these lines. */
     val canAmend: Boolean = false,
+    /** False for a driver the owner did not trust with money. */
+    val canSeeMoney: Boolean = true,
 )
 
 /**
@@ -293,6 +295,7 @@ class LedgerViewModel(
             LedgerState(
                 loaded = true,
                 canAmend = Capability.AmendBilledWork in s.can,
+                canSeeMoney = s.canSeeMoney,
                 customerId = customerId,
                 customerName = customer?.name.orEmpty(),
                 customerPhone = customer?.phone,

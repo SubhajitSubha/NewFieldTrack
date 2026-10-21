@@ -38,6 +38,8 @@ data class RateCardState(
     val customerDeals: Int = 0,
     val perCustomer: Boolean = true,
     val canEdit: Boolean = true,
+    /** False for a driver the owner did not trust with money. */
+    val canSeeRates: Boolean = true,
 )
 
 /** What is being typed into the add/edit sheet, if anything. */
@@ -87,6 +89,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 customerDeals = customerRates.mapNotNull { it.customerId }.distinct().size,
                 perCustomer = perCustomer,
                 canEdit = Capability.EditBusiness in s.can,
+                canSeeRates = s.canSeeMoney,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RateCardState())

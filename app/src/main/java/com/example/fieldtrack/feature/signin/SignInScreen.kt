@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +62,8 @@ fun SignInScreen(
     onResend: () -> Unit,
     onChangeNumber: () -> Unit,
     onBack: (() -> Unit)?,
+    /** Set when this phone was signed out because the account was turned off. */
+    accountTurnedOff: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -88,6 +91,26 @@ fun SignInScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
+            // Somebody who was working five minutes ago and is now looking at a
+            // sign-in screen needs a reason. Without this the app simply appears
+            // to have forgotten them, and the obvious conclusion is that it lost
+            // the work with it.
+            if (accountTurnedOff) {
+                FtCard {
+                    Text(
+                        text = stringResource(R.string.account_off_title),
+                        style = FieldTrackTheme.type.sectionTitle,
+                        color = colors.ink,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.account_off_body),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.inkSecondary,
+                    )
+                }
+            }
+
             when (state.step) {
                 SignInStep.Phone -> PhoneStep(state, onDigits)
                 SignInStep.Code -> CodeStep(state, onCode, onResend, onChangeNumber)

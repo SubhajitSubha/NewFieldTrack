@@ -33,6 +33,8 @@ import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.iconFor
+import com.example.fieldtrack.feature.measure
+import com.example.fieldtrack.feature.workLabel
 import com.example.fieldtrack.feature.iconForWork
 import com.example.fieldtrack.feature.labelRes
 
@@ -135,12 +137,12 @@ fun JobsScreen(
 /** "Harvesting · 4 acre · Jaswant driving" — what, how much, and who. */
 @Composable
 private fun JobCard.detail(): String {
-    val measure = if (quantity > 0) "${quantity(quantity)} ${stringResource(unit.labelRes)}"
-    else null
+    val measure = if (quantity > 0) measure(quantity, unit) else null
     val who = operatorName?.let {
         if (live) stringResource(R.string.jobs_driving, it) else stringResource(R.string.jobs_by, it)
     }
-    return listOfNotNull(workType, measure, who).joinToString(" · ")
+    // The work type's own name, not the key it is stored under.
+    return listOfNotNull(workLabel(workType), measure, who).joinToString(" · ")
 }
 
 private fun JobFilter.labelRes() = when (this) {

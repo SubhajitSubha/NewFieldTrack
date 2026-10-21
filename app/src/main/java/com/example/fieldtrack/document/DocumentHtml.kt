@@ -1,6 +1,7 @@
 package com.example.fieldtrack.document
 
 import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.data.auth.formatIndianPhone
 
 /**
  * The printed documents, as HTML.
@@ -224,7 +225,7 @@ object DocumentHtml {
 
     private fun letterhead(l: Letterhead, kind: String, line1: String, line2: String): String {
         val contact = listOfNotNull(
-            l.phone?.let { "+91 $it" },
+            l.phone?.let { formatIndianPhone(it) },
             l.gstin?.let { "GSTIN $it" },
         ).joinToString(" &middot; ") { esc(it) }
         return buildString {

@@ -115,6 +115,20 @@ fun RateCardScreen(
             } else null,
         )
 
+        // Belt and braces. The row into here is hidden already, but a screen that
+        // is only one deep link from showing a business's whole price list should
+        // refuse on its own rather than trust that nothing ever reaches it.
+        if (state.loaded && !state.canSeeRates) {
+            FtCard(modifier = Modifier.padding(dimens.screenPadding)) {
+                Text(
+                    text = stringResource(R.string.rates_not_for_you),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                )
+            }
+            return@Column
+        }
+
         Column(
             Modifier
                 .weight(1f)

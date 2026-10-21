@@ -71,7 +71,11 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 source,
                 app.directoryRepository.observeCustomers(s.orgId),
                 app.directoryRepository.observeMachines(s.orgId),
-                app.db.orgDao().observeTeam(s.orgId),
+                // Everyone who has ever been on the team, not only who is on it
+                // today. This map puts a name against the person who did each
+                // job, and the active-only list silently dropped it: every job a
+                // driver ever did went nameless the moment they were let go.
+                app.teamRepository.observeEveryone(s.orgId),
             ) { jobs, customers, machines, team ->
                 val customerNames = customers.associate { it.id to it.name }
                 val machineKinds = machines.associate { it.id to it.kind }

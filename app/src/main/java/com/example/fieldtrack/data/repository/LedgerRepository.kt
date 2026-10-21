@@ -12,6 +12,14 @@ import com.example.fieldtrack.data.db.dao.CustomerBalance
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
+import com.example.fieldtrack.data.db.PayoutCovers
+import com.example.fieldtrack.data.db.entity.PayoutEntity
+import com.example.fieldtrack.data.db.JobCostKind
+import com.example.fieldtrack.data.db.SyncState
+import com.example.fieldtrack.data.db.dao.JobCostWithPaid
+import com.example.fieldtrack.data.db.entity.JobCostEntity
+import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.session.Capabilities
 
 /**
  * The khata.
@@ -183,4 +191,230 @@ class LedgerRepository(
         }
         return entry.id
     }
+
+    /**
+     * Records money leaving the business.
+     *
+     * [covers] is stored rather than inferred, because it decides what this can
+     * ever be counted into. A month's wages laid against a machine would make
+     * every machine look worse than it is, and spread across all of them would
+     * be an estimate wearing the clothes of a fact.
+     */
+    suspend fun recordPayout(
+        orgId: String,
+        can: Capabilities,
+        amountRupees: Long,
+        covers: PayoutCovers,
+        atMillis: Long,
+        byPersonId: String?,
+        toPersonId: String? = null,
+        toName: String? = null,
+        headcount: Int = 1,
+        jobId: String? = null,
+        jobCostId: String? = null,
+        method: PaymentMethod? = null,
+        note: String? = null,
+    ): PayoutEntity {
+        can.require(Capability.PayOut)
+        require(amountRupees > 0) { "A payment out is money leaving, so it is positive" }
+        require(headcount >= 1) { "A payment covers at least one person" }
+        // The invariant the machine-profit figures rest on. A job's costs are
+        // totalled from job_costs alone, so a payment that names a job without
+        // settling a recorded cost would be money this business spent on that
+        // job and never counted against it.
+        require((jobId == null) == (jobCostId == null)) {
+            "A payment against a job settles a recorded job cost, or names no job"
+        }
+        val now = clock.now()
+        val payout = PayoutEntity(
+            id = ids.newId(),
+            orgId = orgId,
+            amountRupees = amountRupees,
+            atMillis = atMillis,
+            covers = covers,
+            toPersonId = toPersonId,
+            toName = toName,
+            headcount = headcount,
+            jobId = jobId,
+            jobCostId = jobCostId,
+            method = method,
+            note = note,
+            byPersonId = byPersonId,
+            createdAt = now,
+            deviceId = deviceId,
+        )
+        db.withTransaction {
+            db.orgDao().upsertPayout(payout)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_PAYOUTS, payout.id, OutboxJson.encodeToString(payout)
+            )
+        }
+        return payout
+    }
+
+    fun observePayouts(orgId: String): Flow<List<PayoutEntity>> =
+        db.orgDao().observePayouts(orgId)
+
+    fun observeJobCosts(orgId: String, jobId: String): Flow<List<JobCostWithPaid>> =
+        db.orgDao().observeJobCosts(orgId, jobId)
+
+    fun observeOwedOnJobs(orgId: String): Flow<Long> = db.orgDao().observeOwedOnJobs(orgId)
+
+    fun observeUnpricedJobCostCount(orgId: String): Flow<Int> =
+        db.orgDao().observeUnpricedJobCostCount(orgId)
+
+    /**
+     * Records what a job took beyond the machine.
+     *
+     * Only [Capability.RecordWork] to say how many worked, because the person
+     * who knows that is the one standing in the field, and a headcount is not a
+     * wage. Putting a figure on it needs [Capability.PayOut], so a driver can
+     * record four men without ever being shown what four men cost.
+     */
+    suspend fun recordJobCost(
+        orgId: String,
+        can: Capabilities,
+        jobId: String,
+        kind: JobCostKind,
+        headcount: Int? = null,
+        amountRupees: Long? = null,
+        note: String? = null,
+        byPersonId: String?,
+        atMillis: Long,
+    ): JobCostEntity {
+        can.require(Capability.RecordWork)
+        if (amountRupees != null) can.require(Capability.PayOut)
+        require(headcount == null || headcount >= 1) {
+            "A headcount is how many worked, or null when nobody counted"
+        }
+        require(amountRupees == null || amountRupees > 0) {
+            "A cost with a figure on it is money; nothing is null, not zero"
+        }
+        val now = clock.now()
+        val cost = JobCostEntity(
+            id = ids.newId(),
+            orgId = orgId,
+            jobId = jobId,
+            kind = kind,
+            headcount = headcount,
+            amountRupees = amountRupees,
+            note = note,
+            byPersonId = byPersonId,
+            atMillis = atMillis,
+            createdAt = now,
+            deviceId = deviceId,
+        )
+        db.withTransaction {
+            db.orgDao().upsertJobCost(cost)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_JOB_COSTS, cost.id, OutboxJson.encodeToString(cost)
+            )
+        }
+        return cost
+    }
+
+    /** Puts a figure on a cost somebody else recorded, or corrects one. */
+    suspend fun priceJobCost(
+        orgId: String,
+        can: Capabilities,
+        costId: String,
+        amountRupees: Long,
+        note: String? = null,
+    ): JobCostEntity {
+        can.require(Capability.PayOut)
+        require(amountRupees > 0) { "A cost is money; to unprice it, say so explicitly" }
+        val existing = db.orgDao().findJobCost(orgId, costId)
+            ?: error("No such cost in this business")
+        val updated = existing.copy(
+            amountRupees = amountRupees,
+            note = note ?: existing.note,
+            syncState = SyncState.Pending,
+        )
+        db.withTransaction {
+            db.orgDao().upsertJobCost(updated)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_JOB_COSTS, updated.id, OutboxJson.encodeToString(updated)
+            )
+        }
+        return updated
+    }
+
+    /**
+     * Pays a job cost, in whole or in part.
+     *
+     * Writes an ordinary payment carrying [PayoutEntity.jobCostId]. The cost
+     * itself does not change: it was already counted against the job the moment
+     * it was priced, and counting the payment as a second cost is precisely the
+     * double-count the link exists to prevent. What is still owed is the
+     * difference, worked out where it is read.
+     */
+    suspend fun settleJobCost(
+        orgId: String,
+        can: Capabilities,
+        costId: String,
+        amountRupees: Long,
+        atMillis: Long,
+        byPersonId: String?,
+        method: PaymentMethod? = null,
+    ): PayoutEntity {
+        can.require(Capability.PayOut)
+        val cost = db.orgDao().findJobCost(orgId, costId)
+            ?: error("No such cost in this business")
+        return recordPayout(
+            orgId = orgId,
+            can = can,
+            amountRupees = amountRupees,
+            covers = PayoutCovers.Job,
+            atMillis = atMillis,
+            byPersonId = byPersonId,
+            headcount = cost.headcount ?: 1,
+            jobId = cost.jobId,
+            jobCostId = cost.id,
+            method = method,
+            note = cost.note,
+        )
+    }
+
+    /**
+     * Records a job's cost and pays it in one go.
+     *
+     * The ordinary case from the Pay out screen, where the owner is holding the
+     * cash as they type. Both rows are written in one transaction so a job can
+     * never end up with a payment against a cost that was not recorded.
+     */
+    suspend fun payForJob(
+        orgId: String,
+        can: Capabilities,
+        jobId: String,
+        amountRupees: Long,
+        atMillis: Long,
+        byPersonId: String?,
+        kind: JobCostKind = JobCostKind.Labour,
+        headcount: Int? = null,
+        note: String? = null,
+        method: PaymentMethod? = null,
+    ): PayoutEntity {
+        can.require(Capability.PayOut)
+        val cost = recordJobCost(
+            orgId = orgId,
+            can = can,
+            jobId = jobId,
+            kind = kind,
+            headcount = headcount,
+            amountRupees = amountRupees,
+            note = note,
+            byPersonId = byPersonId,
+            atMillis = atMillis,
+        )
+        return settleJobCost(
+            orgId = orgId,
+            can = can,
+            costId = cost.id,
+            amountRupees = amountRupees,
+            atMillis = atMillis,
+            byPersonId = byPersonId,
+            method = method,
+        )
+    }
+
 }

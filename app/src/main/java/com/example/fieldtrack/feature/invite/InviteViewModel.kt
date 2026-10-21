@@ -90,6 +90,7 @@ class InviteViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 canSeeMoney = wanted.canSeeMoney,
                 canAddCustomers = wanted.canAddCustomers,
                 canCloseBills = wanted.canCloseBills,
+                byPersonId = s.personId,
             )
         } finally {
             busy.value = false

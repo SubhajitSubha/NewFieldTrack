@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.join
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.data.db.entity.InviteCodeDoc
+import com.example.fieldtrack.data.repository.TeamError
 import com.example.fieldtrack.data.repository.isWellFormedInviteCode
 import com.example.fieldtrack.data.repository.normaliseInviteCode
 import com.example.fieldtrack.data.sync.InviteLookup
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
 enum class JoinStep { Code, Preview }
 
 /** Why a code did not work, in the terms the screen explains it. */
-enum class JoinProblem { NotFound, Expired, AlreadyUsed, Unreachable }
+enum class JoinProblem { NotFound, Expired, AlreadyUsed, Unreachable, AlreadyInBusiness }
 
 data class JoinState(
     val step: JoinStep = JoinStep.Code,
@@ -91,7 +92,19 @@ class JoinViewModel(
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             runCatching { onJoin(invite, current.name.trim()) }
-                .onFailure { _state.update { s -> s.copy(busy = false) } }
+                .onFailure { failure ->
+                    // Silently dropping this left somebody tapping Join and
+                    // watching nothing happen, with no idea why.
+                    _state.update { s ->
+                        s.copy(
+                            busy = false,
+                            problem = when (failure) {
+                                is TeamError.AlreadyInBusiness -> JoinProblem.AlreadyInBusiness
+                                else -> JoinProblem.Unreachable
+                            },
+                        )
+                    }
+                }
         }
     }
 }

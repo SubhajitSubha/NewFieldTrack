@@ -41,6 +41,19 @@ enum class Capability {
 
     /** Correct a job's own measurements while it is still open. */
     RecordWork,
+
+    /** Record money going out — wages, labour, anything paid for the business. */
+    PayOut,
+
+    /**
+     * See what each person was paid.
+     *
+     * Held apart from [SeeMoney], which is about customers. In a crew of four,
+     * one driver learning what another is paid is not a reporting detail, it is
+     * a quarrel — and it cannot be unlearned. A manager needs it; a driver who
+     * can see the customer book does not get it thrown in.
+     */
+    SeePeopleCost,
 }
 
 /**
@@ -73,6 +86,10 @@ value class Capabilities(private val granted: Set<Capability>) {
                     add(Capability.RecordWork)
                     if (membership.canAddCustomers) add(Capability.EditCustomers)
                     if (membership.canSeeMoney) add(Capability.SeeMoney)
+                    if (membership.canEditTeam) add(Capability.EditTeam)
+                    if (membership.canEditMachines) add(Capability.EditMachines)
+                    if (membership.canPayOut) add(Capability.PayOut)
+                    if (membership.canSeePeopleCost) add(Capability.SeePeopleCost)
                     if (membership.canCloseBills) {
                         add(Capability.TakePayment)
                         add(Capability.AmendBilledWork)
