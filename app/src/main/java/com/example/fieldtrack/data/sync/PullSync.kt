@@ -96,6 +96,7 @@ class PullSync(
             if (wasRefused.any { it !in page.refused }) marks.markUnseeded(orgId)
             marks.rememberRefused(orgId, page.refused)
 
+            Log.d(TAG, "wrote $written rows for $orgId")
             written
         } catch (failure: Exception) {
             Log.d(TAG, "Could not read changes for $orgId", failure)

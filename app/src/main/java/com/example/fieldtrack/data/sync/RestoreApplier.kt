@@ -1,5 +1,6 @@
 package com.example.fieldtrack.data.sync
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.SyncQueue
@@ -58,18 +59,48 @@ class RestoreApplier(
     private val isAdoptedAway: (personId: String) -> Boolean = { false },
 ) {
 
-    /** Returns how many rows were actually written. */
-    suspend fun apply(rows: List<RemoteRow>): Int {
+    /**
+     * Returns how many rows were actually written.
+     *
+     * One transaction for the lot, and if that fails, one transaction per row.
+     *
+     * The batch is the fast path and was the only path, which hid something
+     * costly: a row that cannot be written throws, and a throw inside a
+     * transaction rolls the whole thing back — so the per-row `runCatching`
+     * below was catching the exception while the damage was already done, and
+     * a single duplicate job event silently discarded every other row in the
+     * pass. The handset pulled once, stopped taking anything in, and said
+     * nothing about it.
+     *
+     * The retry is what makes the per-row catch mean what it says. A bad row
+     * is skipped and the rest land, at the cost of a slower second pass that
+     * only happens when something has actually gone wrong.
+     */
+    suspend fun apply(rows: List<RemoteRow>): Int = runCatching {
         var written = 0
         db.withTransaction {
             for (row in rows) {
-                if (db.outboxDao().pendingFor(row.table, row.entityId) > 0) continue
-                if (row.isOwnGhost()) continue
+                if (skip(row)) continue
                 if (write(row)) written++
             }
         }
+        written
+    }.getOrElse { failure ->
+        Log.d(TAG, "Batch apply failed, falling back to one row at a time", failure)
+        var written = 0
+        for (row in rows) {
+            runCatching {
+                db.withTransaction {
+                    if (!skip(row) && write(row)) written++
+                }
+            }.onFailure { Log.d(TAG, "Could not apply ${row.table}/${row.entityId}", it) }
+        }
         return written
     }
+
+    private suspend fun skip(row: RemoteRow): Boolean =
+        db.outboxDao().pendingFor(row.table, row.entityId) > 0 || row.isOwnGhost()
+
 
     /** A membership filed under an identity this install has left behind. */
     private fun RemoteRow.isOwnGhost(): Boolean {
@@ -160,7 +191,14 @@ class RestoreApplier(
                 else -> return false
             }
             true
-        }.getOrDefault(false)
+        }.getOrElse {
+            // A row that cannot be read is skipped so the rest of the restore
+            // carries on, but it is said out loud. Silently dropping it meant
+            // a whole collection could go missing from a handset with no
+            // evidence anywhere of what happened or why.
+            Log.d(TAG, "Could not apply ${row.table}/${row.entityId}", it)
+            false
+        }
     }
 
     private inline fun <reified T> decode(json: JsonObject): T = RestoreJson.decodeFromString(
@@ -172,6 +210,8 @@ class RestoreApplier(
         JsonObject(filterKeys { !it.startsWith("_") })
 
     private companion object {
+        const val TAG = "RestoreApplier"
+
         /**
          * Forgiving on purpose. A row written by a newer build may carry fields
          * this one has never heard of, and refusing the whole record over an

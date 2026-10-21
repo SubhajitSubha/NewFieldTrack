@@ -792,7 +792,19 @@ interface JobDao {
     @Query("SELECT COALESCE(SUM(elapsedSeconds), 0) FROM jobs WHERE orgId = :orgId AND operatorPersonId = :personId AND workedAt BETWEEN :from AND :to AND deletedAt IS NULL")
     fun observeSecondsWorked(orgId: String, personId: String, from: Long, to: Long): Flow<Long>
 
-    @Insert suspend fun insertEvent(event: JobEventEntity)
+    /**
+     * Ignores one that is already here rather than throwing.
+     *
+     * A job event never changes, so the same id arriving twice is the ordinary
+     * course of a pull re-reading a span it has seen. With a plain insert that
+     * second arrival raised a UNIQUE constraint — and because the whole restore
+     * runs in one transaction, the failure took every other row down with it.
+     * The symptom was a handset that pulled once and then silently stopped
+     * taking anything in, with a log line per event and nothing else to show
+     * for it.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertEvent(event: JobEventEntity)
 
     @Query("SELECT * FROM job_events WHERE jobId = :jobId ORDER BY atMillis ASC")
     fun observeEvents(jobId: String): Flow<List<JobEventEntity>>
@@ -864,7 +876,16 @@ interface JobDao {
  */
 @Dao
 interface LedgerDao {
-    @Insert suspend fun insert(entry: LedgerEntryEntity)
+    /**
+     * Ignores one already here, for the same reason job events do.
+     *
+     * The khata is append-only and a pull re-reads spans it has seen, so the
+     * same entry arriving twice is routine. Left as a plain insert it raised a
+     * UNIQUE constraint inside the restore's single transaction and discarded
+     * every other row in the same pass.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entry: LedgerEntryEntity)
 
     @Query("UPDATE ledger_entries SET byPersonId = :to WHERE byPersonId = :from")
     suspend fun adoptEntries(from: String, to: String)
