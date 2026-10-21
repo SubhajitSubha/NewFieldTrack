@@ -1001,6 +1001,26 @@
     <string name="team_role_driver">Driver</string>
     <string name="team_role_driver_note">Records work. You choose what else</string>
 
+    <!-- What a whole season came to. The level where everything lands. -->
+    <string name="season_title">What you made</string>
+    <string name="more_season_note">A whole season, with nothing left out</string>
+    <string name="season_this">This season</string>
+    <string name="season_last">Last season</string>
+    <string name="season_span">%1$s to %2$s</string>
+    <string name="season_span_now">%1$s until today</string>
+    <string name="season_earned">Billed to customers</string>
+    <string name="season_diesel">Diesel</string>
+    <string name="season_service">Repairs and service</string>
+    <string name="season_people">People</string>
+    <string name="season_people_note">Wages and labour, including the ones no single machine could carry.</string>
+    <string name="season_left">What is left</string>
+    <string name="season_nothing">No work and no costs recorded between these dates.</string>
+    <string name="season_no_total">No total yet, because %1$d of the people costs has no figure on it. A season total missing the wages reads as profit.</string>
+    <string name="season_no_total_hidden">What people were paid is not shown to you, so there is no total here.</string>
+    <string name="season_on_paper">This is what the work came to, not what is in your hand. Customers still owe you %1$s across all your business — settled and unsettled seasons together.</string>
+    <string name="season_everything_lands">Every cost of the season is in this figure, a month\'s wages and an advance included. A single machine cannot carry those, which is why its own screen leaves them out.</string>
+
+
     <!-- A customer's plots, under the names the farmer uses for them. -->
     <string name="area_with_unit">%1$s %2$s</string>
     <string name="field_job_line">%1$s · %2$s</string>

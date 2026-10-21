@@ -129,6 +129,7 @@ fun MoreScreen(
     onBackup: () -> Unit,
     onRates: () -> Unit,
     onMoneyOut: () -> Unit,
+    onSeason: () -> Unit,
     onMachines: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -288,6 +289,16 @@ fun MoreScreen(
                     },
                     showChevron = true,
                     onClick = onMoneyOut,
+                )
+                FtRowDivider()
+                // Above money out in importance but below it on the list, because
+                // this one is read once a season and that one is read weekly.
+                FtListRow(
+                    title = stringResource(R.string.season_title),
+                    subtitle = stringResource(R.string.more_season_note),
+                    leading = { FtIconTile(icon = FieldTrackIcons.Report, size = 40.dp) },
+                    showChevron = true,
+                    onClick = onSeason,
                 )
                 }
             }

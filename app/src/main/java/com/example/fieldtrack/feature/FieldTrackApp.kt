@@ -75,6 +75,8 @@ import com.example.fieldtrack.feature.fields.FieldEditScreen
 import com.example.fieldtrack.feature.fields.FieldEditViewModel
 import com.example.fieldtrack.feature.fields.FieldsScreen
 import com.example.fieldtrack.feature.fields.FieldsViewModel
+import com.example.fieldtrack.feature.money.SeasonScreen
+import com.example.fieldtrack.feature.money.SeasonViewModel
 import com.example.fieldtrack.feature.jobs.JobCostScreen
 import com.example.fieldtrack.feature.jobs.JobCostViewModel
 import com.example.fieldtrack.feature.jobs.JobDetailScreen
@@ -164,6 +166,7 @@ private object Routes {
     const val FIELDS = "customer/{customerId}/fields"
     const val FIELD_NEW = "customer/{customerId}/fields/new"
     const val FIELD = "field/{fieldId}"
+    const val SEASON = "season"
     const val FIELD_EDIT = "field/{fieldId}/edit"
     const val PAST_WORK = "start/past"
     const val NEW_CUSTOMER = "customer/new"
@@ -537,6 +540,16 @@ private fun MainNavHost(navController: NavHostController) {
                     navController,
                     forCustomerId = null,
                     forFieldId = entry.arguments?.getString("fieldId"),
+                )
+            }
+
+            composable(Routes.SEASON) {
+                val vm: SeasonViewModel = appViewModel { SeasonViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                SeasonScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onWindow = vm::setWindow,
                 )
             }
 
@@ -1144,6 +1157,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onRates = { navController.navigate(Routes.RATES) },
                     onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
+                    onSeason = { navController.navigate(Routes.SEASON) },
                     onMachines = { navController.navigate(Routes.MACHINES) },
                 )
             }

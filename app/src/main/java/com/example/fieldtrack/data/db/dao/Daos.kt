@@ -270,6 +270,82 @@ interface OrgDao {
     )
     fun observeUnpricedJobCostCount(orgId: String): Flow<Int>
 
+    /**
+     * What the business billed over a stretch of time.
+     *
+     * Completed work only, and the same arithmetic the job itself uses, so a
+     * season total and the jobs behind it cannot disagree.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(
+            CASE billingMode
+                WHEN 'Fixed' THEN rateRupees
+                WHEN 'PerTrip' THEN tripTotalRupees
+                ELSE CAST(ROUND(quantity * rateRupees) AS INTEGER)
+            END
+        ), 0)
+        FROM jobs
+        WHERE orgId = :orgId AND deletedAt IS NULL AND status = 'Completed'
+          AND workedAt BETWEEN :from AND :to
+        """
+    )
+    fun observeEarnedBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries
+        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeFuelSpendBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(costRupees), 0) FROM service_records
+        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeServiceSpendBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
+    /**
+     * What people cost over a stretch of time, laid against jobs.
+     *
+     * Priced work, paid or not. The unpriced are counted separately so the
+     * screen can refuse a total rather than quietly understate one.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM job_costs
+        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeJobCostBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM job_costs
+        WHERE orgId = :orgId AND amountRupees IS NULL
+          AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeUnpricedBetween(orgId: String, from: Long, to: Long): Flow<Int>
+
+    /**
+     * Wages that belong to no job: a month's pay, a day's hire, a season advance.
+     *
+     * No machine could carry these and the machine screen says so out loud.
+     * A season can carry them — it is the stretch of time they were for — which
+     * is the whole reason this screen exists.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeLooseWagesBetween(orgId: String, from: Long, to: Long): Flow<Long>
+
     @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND syncState = 'Pending'")
     suspend fun pendingJobCosts(orgId: String): List<JobCostEntity>
 

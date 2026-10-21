@@ -30,6 +30,20 @@ fun seasonStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
     }
 }
 
+/**
+ * The season before the one running now.
+ *
+ * Found by stepping back a day from this season's first morning and asking
+ * again, rather than by subtracting six months — the two seasons are not the
+ * same length (June to November is five months, November to June is seven)
+ * and arithmetic on months would land in the wrong one twice a year.
+ */
+fun previousSeasonStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
+    val thisOne = seasonStart(now, zone)
+    val dayBefore = thisOne.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+    return seasonStart(dayBefore, zone)
+}
+
 /** The first day of the financial year in progress, which starts in April. */
 fun financialYearStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
     val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
