@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -97,7 +98,7 @@ fun AmendJobScreen(
                     keyboardType = KeyboardType.Decimal,
                     helper = stringResource(
                         R.string.amend_was,
-                        "${quantity(state.originalQuantity)} $unitLabel",
+                        measure(state.originalQuantity, state.unit),
                     ),
                     focused = true,
                 )

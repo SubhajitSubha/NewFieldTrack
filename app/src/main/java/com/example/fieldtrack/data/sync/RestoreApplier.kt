@@ -112,6 +112,7 @@ class RestoreApplier(
     private suspend fun write(row: RemoteRow): Boolean {
         val json = JsonObject(row.fields.mapValues { (_, v) -> v.asJson() })
             .withoutTransportFields()
+            .arrivedFromServer()
         return runCatching {
             when (row.table) {
                 SyncQueue.TABLE_ORGS ->
@@ -204,6 +205,17 @@ class RestoreApplier(
     private inline fun <reified T> decode(json: JsonObject): T = RestoreJson.decodeFromString(
         RestoreJson.encodeToString(JsonObject.serializer(), json)
     )
+
+    /**
+     * Whatever the sending phone thought, a row read from the server is on it.
+     *
+     * The document carries the `syncState` its author's phone had when it queued
+     * it — always Pending, since it had not been sent yet — and writing that down
+     * here would have this phone showing somebody else's finished work as "not
+     * sent". The documents that have no such column ignore the key.
+     */
+    private fun JsonObject.arrivedFromServer() =
+        JsonObject(this + ("syncState" to JsonPrimitive("Synced")))
 
     /** Drops the bookkeeping the transport adds, which no entity has a field for. */
     private fun JsonObject.withoutTransportFields() =

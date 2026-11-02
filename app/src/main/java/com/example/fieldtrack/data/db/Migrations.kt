@@ -260,9 +260,23 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * An index on the outbox's entity id.
+ *
+ * Every queued change now updates its row's sent state, and every accepted one
+ * asks whether anything else is still queued for the same row ([SentState]).
+ * Without this each of those questions reads the whole queue — fine at ten
+ * changes, not at the few thousand a phone out of signal for a week can hold.
+ */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_outbox_entityId` ON `outbox` (`entityId`)")
+    }
+}
 
 /** Every migration, in order. Add to this list and the builder picks it up. */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+    MIGRATION_12_13,
 )

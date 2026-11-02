@@ -63,11 +63,19 @@ fun LiveWorkScreen(
     onHandOver: (String) -> Unit,
     onDiscard: () -> Unit,
     onAmount: (Double) -> Unit,
+    onStopClockAt: (Long) -> Unit,
+    onClockIsRight: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Which extra panel is open. Local to the screen because it is where the driver
     // is looking, not something the job itself knows about.
     var sheet by rememberSaveable { mutableStateOf(WorkSheet.None) }
+    // Swiped away, the question waits until Finish is pressed — the one moment it
+    // cannot be left unanswered, because that is when the hours become a bill.
+    var clockQuestionSetAside by rememberSaveable { mutableStateOf(false) }
+    val finish = {
+        if (state.askAboutClock) clockQuestionSetAside = false else onFinish()
+    }
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
     val unitLabel = stringResource(state.unit.labelRes)
@@ -140,7 +148,14 @@ fun LiveWorkScreen(
                         )
                     }
                     state.startedAt?.let {
-                        FtMetricChip(stringResource(R.string.live_started_at, clockTime(it)))
+                        // With the day once it is not today, so a job carried on
+                        // the next morning does not claim to have begun at 8 today.
+                        FtMetricChip(
+                            stringResource(
+                                R.string.live_started_at,
+                                com.example.fieldtrack.feature.home.sinceMoment(it, System.currentTimeMillis()),
+                            )
+                        )
                     }
                 }
             }
@@ -212,7 +227,7 @@ fun LiveWorkScreen(
                 )
                 FtButton(
                     text = stringResource(R.string.work_finish),
-                    onClick = onFinish,
+                    onClick = finish,
                     modifier = Modifier.weight(1.3f),
                     icon = FieldTrackIcons.Check,
                     height = 60.dp,
@@ -233,6 +248,16 @@ fun LiveWorkScreen(
         onDiscard = onDiscard,
         onAmount = onAmount,
     )
+
+    if (state.askAboutClock && !clockQuestionSetAside && sheet == WorkSheet.None) {
+        ClockCheckSheet(
+            state = state,
+            now = System.currentTimeMillis(),
+            onStopAt = onStopClockAt,
+            onStillWorking = onClockIsRight,
+            onDismiss = { clockQuestionSetAside = true },
+        )
+    }
 }
 
 @Composable

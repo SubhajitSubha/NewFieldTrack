@@ -108,6 +108,31 @@ class WorkRepository(
         return job.elapsedSeconds + ((now - since).coerceAtLeast(0L) / 1000)
     }
 
+    /**
+     * The billable figure as the bill would have it if the job were finished now.
+     *
+     * Hourly work bills from the clock, which is still running until [complete]
+     * writes it down, so its stored quantity is nought until then. Every screen
+     * showing an open job's money asks here — three screens each working it out
+     * for themselves is how one of them came to show ₹0 for a job the clock had
+     * priced at nearly ten thousand.
+     */
+    fun billableQuantity(job: JobEntity, now: Long = clock.now()): Double =
+        if (job.billingMode == BillingMode.PerHour) elapsedSeconds(job, now) / 3600.0
+        else job.quantity
+
+    /**
+     * What the job comes to now. Only hourly work is worked out here; everything
+     * else asks the job itself, because recomputing quantity × rate would undo
+     * per-trip pricing.
+     */
+    fun billableRupees(job: JobEntity, now: Long = clock.now()): Long =
+        if (job.billingMode == BillingMode.PerHour) {
+            Math.round(billableQuantity(job, now) * job.rateRupees)
+        } else {
+            job.amountRupees
+        }
+
     suspend fun startJob(
         orgId: String,
         customerId: String,
@@ -245,6 +270,57 @@ class WorkRepository(
         // Either way it is out in a field again now.
         val machineId = jobs.find(orgId, jobId)?.machineId
         db.withTransaction { refreshMachineStatus(orgId, machineId) }
+    }
+
+    /**
+     * Stop a clock that was left running, at the time the work actually ended.
+     *
+     * The job is left paused rather than finished. Finishing is where the acres
+     * get counted and the bill is seen, and a person putting the clock right at
+     * seven in the morning is often about to carry on the same field — resuming
+     * from here starts a fresh stretch and the night is simply not in it.
+     *
+     * [stoppedAt] is held between the moment the clock last started and now: a
+     * clock cannot stop before it ran, and stopping it in the future is a pause.
+     * Returns the seconds taken off.
+     */
+    suspend fun stopClockAt(
+        orgId: String,
+        jobId: String,
+        stoppedAt: Long,
+        byPersonId: String?,
+    ): Long {
+        var removed = 0L
+        db.withTransaction {
+            val job = jobs.find(orgId, jobId) ?: throw WorkError.NoSuchJob(jobId)
+            val since = job.runningSince
+            if (job.status != JobStatus.Running || since == null) {
+                throw WorkError.NotRunning(jobId)
+            }
+            val now = clock.now()
+            val at = stoppedAt.coerceIn(since, now)
+            removed = (now - at) / 1000
+
+            val stopped = job.copy(
+                status = JobStatus.Paused,
+                elapsedSeconds = job.elapsedSeconds + (at - since) / 1000,
+                runningSince = null,
+                updatedAt = now,
+                revision = job.revision + 1,
+                lastWriterDeviceId = deviceId,
+            )
+            jobs.upsert(stopped)
+            addEvent(
+                job = stopped,
+                type = JobEventType.ClockCorrected,
+                byPersonId = byPersonId,
+                numericValue = removed.toDouble(),
+                textValue = at.toString(),
+                at = now,
+            )
+            enqueue(stopped)
+        }
+        return removed
     }
 
     /** Pass a running job to another person without stopping the clock. */

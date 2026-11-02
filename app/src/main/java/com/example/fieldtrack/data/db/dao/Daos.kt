@@ -346,8 +346,29 @@ interface OrgDao {
     )
     fun observeLooseWagesBetween(orgId: String, from: Long, to: Long): Flow<Long>
 
-    @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND syncState = 'Pending'")
-    suspend fun pendingJobCosts(orgId: String): List<JobCostEntity>
+    /**
+     * Costs the version-12 migration made out of job payments on this phone.
+     *
+     * That migration wrote them and never queued them, so they and the payments
+     * now pointing at them never left the handset. Found by the id the migration
+     * gave them and the device that recorded the original payment, so a copy that
+     * arrived from the server is not sent back up as though it were new.
+     */
+    @Query(
+        """
+        SELECT * FROM job_costs
+        WHERE orgId = :orgId AND id LIKE 'jc!_%' ESCAPE '!' AND deviceId = :deviceId
+        """
+    )
+    suspend fun migratedJobCosts(orgId: String, deviceId: String): List<JobCostEntity>
+
+    @Query(
+        """
+        SELECT * FROM payouts
+        WHERE orgId = :orgId AND jobCostId LIKE 'jc!_%' ESCAPE '!' AND deviceId = :deviceId
+        """
+    )
+    suspend fun payoutsOnMigratedCosts(orgId: String, deviceId: String): List<PayoutEntity>
 
     /** The team list: everyone in one business. */
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND active = 1 ORDER BY role, displayName")
@@ -972,6 +993,25 @@ interface LedgerDao {
     @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId AND customerId = :customerId ORDER BY atMillis DESC, createdAt DESC")
     fun observeFor(orgId: String, customerId: String): Flow<List<LedgerEntryEntity>>
 
+    /** Every line in the book, for working out how old each customer's debt is. */
+    @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId")
+    fun observeAll(orgId: String): Flow<List<LedgerEntryEntity>>
+
+    /**
+     * Cash one person took at the gate in a window — what they are carrying.
+     *
+     * Cash only. UPI and bank transfers land in the owner's account on their own;
+     * only notes in a pocket need handing over.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amountRupees), 0) FROM ledger_entries
+        WHERE orgId = :orgId AND kind = 'Payment' AND method = 'Cash'
+          AND byPersonId = :personId AND atMillis BETWEEN :from AND :to
+        """
+    )
+    fun observeCashTakenBy(orgId: String, personId: String, from: Long, to: Long): Flow<Long>
+
     /** What one customer owes. Positive means they owe the business. */
     @Query(
         """
@@ -1134,6 +1174,15 @@ interface OutboxDao {
     fun observePendingCountFor(table: String): Flow<Int>
 
     @Delete suspend fun remove(item: OutboxEntity)
+
+    /**
+     * Several accepted changes in one transaction.
+     *
+     * One at a time, each removal is its own write and wakes every screen
+     * watching a table the sent-state triggers touch — a phone sending a week's
+     * backlog would redraw its home once per change.
+     */
+    @Delete suspend fun removeAll(items: List<OutboxEntity>)
 
     @Query("UPDATE outbox SET attempts = attempts + 1, lastAttemptAt = :now, lastError = :error WHERE seq = :seq")
     suspend fun recordFailure(seq: Long, now: Long, error: String?)

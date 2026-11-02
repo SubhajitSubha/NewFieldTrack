@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.designsystem.component.FtButton
@@ -238,7 +239,7 @@ private fun ReviewStep(
         if (state.billingMode != BillingMode.PerHour && state.billingMode != BillingMode.Fixed) {
             SummaryRow(
                 stringResource(R.string.finish_amount_done),
-                "${quantity(state.quantity)} ${stringResource(state.unit.labelRes)}",
+                measure(state.quantity, state.unit),
             )
         }
         SummaryRow(
@@ -509,7 +510,7 @@ private fun SavedStep(state: FinishState, receivedRupees: Long, finalBalanceRupe
             color = FieldTrackTheme.colors.ink,
             modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
         )
-        AmountLine("${state.workType} · ${quantity(state.quantity)} ${stringResource(state.unit.labelRes)}", state.jobAmountRupees)
+        AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountRupees)
         if (state.previousBalanceRupees != 0L) {
             AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceRupees)
         }

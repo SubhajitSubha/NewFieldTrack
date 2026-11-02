@@ -77,6 +77,32 @@ fun areaWithUnit(value: Double, unit: MeasureUnit): String = androidx.compose.ui
 fun isToday(millis: Long, now: Long = System.currentTimeMillis()): Boolean =
     millis >= startOfToday(now) && millis < startOfToday(now) + 24L * 60 * 60 * 1000
 
+/**
+ * A length of time said in words: "22 h 3 min", "45 min".
+ *
+ * For sentences. A clock-style "22:03" beside a time of day reads as three
+ * minutes past ten at night, which is exactly the wrong thing to read in a line
+ * about how much was taken off a bill.
+ */
+@Composable
+fun spokenDuration(totalSeconds: Long): String {
+    val minutes = (totalSeconds.coerceAtLeast(0L) / 60).toInt()
+    val hours = minutes / 60
+    return if (hours > 0) stringResource(R.string.duration_hours_minutes, hours, minutes % 60)
+    else stringResource(R.string.duration_minutes, minutes)
+}
+
+/** The same, for text built outside Compose — a notification. */
+fun spokenDuration(context: android.content.Context, totalSeconds: Long): String {
+    val minutes = (totalSeconds.coerceAtLeast(0L) / 60).toInt()
+    val hours = minutes / 60
+    return if (hours > 0) context.getString(R.string.duration_hours_minutes, hours, minutes % 60)
+    else context.getString(R.string.duration_minutes, minutes)
+}
+
+/** Whether two moments fall on the same calendar day here. */
+fun isSameDay(a: Long, b: Long): Boolean = startOfToday(a) == startOfToday(b)
+
 /** Day boundaries, used for "today" on the home screen. */
 fun startOfToday(now: Long): Long = Calendar.getInstance().apply {
     timeInMillis = now
@@ -142,10 +168,17 @@ fun workLabel(workType: String): String =
         ?.let { stringResource(it.labelRes) }
         ?: workType
 
-/** "3.5 acre" — a quantity and its unit, ordered by the language, not by Kotlin. */
+/**
+ * "3.5 acre" — a quantity and its unit, ordered by the language, not by Kotlin.
+ *
+ * Hours are the exception, said as "9 h 46 min". Rounded to one decimal they
+ * become "9.8 hour" beside a bill of ₹9,767 — a line that does not multiply out,
+ * on the one figure a farmer checks with a calculator.
+ */
 @Composable
 fun measure(amount: Double, unit: MeasureUnit): String =
-    stringResource(R.string.measure_value, quantity(amount), stringResource(unit.labelRes))
+    if (unit == MeasureUnit.Hour) spokenDuration(Math.round(amount * 3600))
+    else stringResource(R.string.measure_value, quantity(amount), stringResource(unit.labelRes))
 
 /** "10" — the day, for a list read down its dates. */
 @Composable

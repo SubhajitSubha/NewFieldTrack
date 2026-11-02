@@ -52,6 +52,21 @@ enum class JobEventType {
     Started, Paused, Resumed, QuantitySet, TripAdded, TripRemoved,
     FuelAdded, BreakdownReported, NoteAdded, PhotoAdded, HandedOver, Completed,
     RateChanged,
+
+    /**
+     * A clock left running, stopped afterwards at the time work really ended.
+     *
+     * Written when it was put right, not at the time it names: [JobEventEntity.textValue]
+     * carries the moment the clock was stopped at and [JobEventEntity.numericValue]
+     * the seconds taken off. Both halves stay on the record, because "the bill says
+     * nine hours but the clock said twenty-two" is exactly the argument this
+     * timeline exists to settle.
+     *
+     * Added after release. An older build reading one of these skips that single
+     * event rather than the restore — the applier reads row by row — so the
+     * job itself still arrives with its corrected time.
+     */
+    ClockCorrected,
 }
 
 /**

@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.designsystem.format.quantity
@@ -159,7 +160,7 @@ private fun jobTitle(note: String, jobId: String?, jobs: Map<String, JobEntity>)
     val base = note.ifBlank { stringResource(R.string.finish_this_job) }
     val job = jobId?.let { jobs[it] } ?: return base
     if (job.billingMode == BillingMode.Fixed || job.quantity <= 0.0) return base
-    return "$base · ${quantity(job.quantity)} ${stringResource(job.unit.labelRes)}"
+    return "$base · ${measure(job.quantity, job.unit)}"
 }
 
 /** "₹1,000 per Bigha" — the agreed rate, which is what gets disputed. */

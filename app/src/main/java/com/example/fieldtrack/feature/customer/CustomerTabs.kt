@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -197,7 +198,7 @@ fun CustomerJobCard(row: CustomerJobRow, onClick: (() -> Unit)?) {
 private fun CustomerJobRow.title(): String {
     val base = workType.ifBlank { stringResource(R.string.finish_this_job) }
     if (billingMode == BillingMode.Fixed || quantity <= 0.0) return base
-    return "$base · ${quantity(quantity)} ${stringResource(unit.labelRes)}"
+    return "$base · ${measure(quantity, unit)}"
 }
 
 /** Settled, unpaid, or what is left of it when a payment covered part. */

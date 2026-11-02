@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.JobEventType
 import com.example.fieldtrack.data.db.JobStatus
@@ -42,6 +44,7 @@ import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.clockTime
 import com.example.fieldtrack.feature.dayMonthYear
+import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.data.auth.formatIndianPhone
@@ -227,6 +230,16 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                 style = FieldTrackTheme.type.sectionTitle,
                 color = colors.onDark,
             )
+            if (!state.sent) {
+                // The question behind "did the owner get it?", answered on the
+                // job itself rather than only on the Backup screen.
+                Text(
+                    text = stringResource(R.string.job_not_sent),
+                    style = FieldTrackTheme.type.caption,
+                    color = colors.moneyOnDark,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
             Text(
                 text = listOfNotNull(state.workType, state.fieldLabel).joinToString(" · "),
                 style = FieldTrackTheme.type.caption,
@@ -253,7 +266,8 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                                 stringResource(R.string.billing_fixed)
                             else -> stringResource(
                                 R.string.live_rate_line,
-                                quantity(state.quantity),
+                                if (state.unit == MeasureUnit.Hour) measure(state.quantity, state.unit)
+                                else quantity(state.quantity),
                                 rupees(state.rateRupees),
                             )
                         },
@@ -269,11 +283,7 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                 } else {
                     // A driver who may not see money still needs the measure.
                     Text(
-                        text = stringResource(
-                            R.string.job_detail_measure,
-                            quantity(state.quantity),
-                            unitLabel,
-                        ),
+                        text = measure(state.quantity, state.unit),
                         style = FieldTrackTheme.type.moneyLarge,
                         color = colors.onDark,
                     )
@@ -326,7 +336,7 @@ private fun TimelineRow(event: JobEventRow, state: JobDetailState, last: Boolean
                 color = colors.ink,
             )
             Text(
-                text = event.detail(),
+                text = event.detail(jobDay = state.workedAtMillis),
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
                 modifier = Modifier.padding(top = 2.dp),
@@ -340,7 +350,7 @@ private fun TimelineRow(event: JobEventRow, state: JobDetailState, last: Boolean
 private fun JobEventRow.dotColour(): Color = when (type) {
     JobEventType.Started, JobEventType.Completed, JobEventType.Resumed ->
         FieldTrackTheme.colors.primary
-    JobEventType.Paused -> FieldTrackTheme.colors.money
+    JobEventType.Paused, JobEventType.ClockCorrected -> FieldTrackTheme.colors.money
     JobEventType.BreakdownReported -> FieldTrackTheme.colors.due
     else -> FieldTrackTheme.colors.inkSecondary
 }
@@ -381,6 +391,22 @@ private fun JobEventRow.title(state: JobDetailState): String {
             R.string.event_handed_over,
             textValue.orEmpty(),
         )
+        // Said in full on the timeline, because this is the line somebody reads
+        // when the hours on the bill are questioned: when the clock was stopped,
+        // and how much of what it showed was taken off. When it was put right is
+        // the time beside it.
+        JobEventType.ClockCorrected -> {
+            val stoppedAt = textValue?.toLongOrNull()
+            val stopped = stoppedAt?.let {
+                if (com.example.fieldtrack.feature.isSameDay(it, atMillis)) clockTime(it)
+                else stringResource(R.string.event_clock_day_time, dayMonth(it), clockTime(it))
+            }.orEmpty()
+            stringResource(
+                R.string.event_clock_corrected,
+                stopped,
+                com.example.fieldtrack.feature.spokenDuration((numericValue ?: 0.0).toLong()),
+            )
+        }
         JobEventType.RateChanged -> if (state.canSeeMoney) {
             stringResource(R.string.event_rate_changed, rupees((numericValue ?: 0.0).toLong()))
         } else {
@@ -391,8 +417,11 @@ private fun JobEventRow.title(state: JobDetailState): String {
 
 /** The time it happened, who did it, and how long a pause lasted. */
 @Composable
-private fun JobEventRow.detail(): String = listOfNotNull(
-    clockTime(atMillis),
+private fun JobEventRow.detail(jobDay: Long): String = listOfNotNull(
+    // The date only when it is not the job's own: a job that ran over two days,
+    // or was put right the next morning, otherwise reads as one jumbled day.
+    if (com.example.fieldtrack.feature.isSameDay(atMillis, jobDay)) clockTime(atMillis)
+    else stringResource(R.string.event_clock_day_time, dayMonth(atMillis), clockTime(atMillis)),
     // With seconds, because a short stop formatted as h:mm reads "0:00", which
     // looks like the pause never happened.
     pausedSeconds?.takeIf { it > 0 }?.let {

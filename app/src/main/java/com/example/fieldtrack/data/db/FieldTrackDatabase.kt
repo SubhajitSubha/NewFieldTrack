@@ -60,7 +60,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         LedgerEntryEntity::class,
         OutboxEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -83,6 +83,7 @@ abstract class FieldTrackDatabase : RoomDatabase() {
                 // not an acceptable failure mode, so a missing migration must break
                 // the build in review rather than wipe a contractor's season.
                 .addMigrations(*ALL_MIGRATIONS)
+                .addCallback(SentState.callback)
                 .build()
     }
 }

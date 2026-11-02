@@ -1,5 +1,9 @@
 package com.example.fieldtrack.feature
 
+import kotlinx.coroutines.flow.MutableStateFlow
+
+import kotlinx.coroutines.flow.StateFlow
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.widget.Toast
@@ -32,6 +36,7 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.session.Startup
 import com.example.fieldtrack.designsystem.component.FtBottomBar
@@ -64,6 +69,12 @@ import com.example.fieldtrack.feature.customer.LedgerViewModel
 import com.example.fieldtrack.feature.customer.RecordPaymentScreen
 import com.example.fieldtrack.feature.customer.RecordPaymentViewModel
 import com.example.fieldtrack.feature.home.HomeScreen
+import com.example.fieldtrack.feature.home.AlertActions
+import com.example.fieldtrack.feature.home.HomeKind
+import com.example.fieldtrack.feature.home.YardHomeScreen
+import com.example.fieldtrack.feature.home.YardHomeViewModel
+import com.example.fieldtrack.feature.home.dealsWithCustomers
+import com.example.fieldtrack.feature.home.homeKindFor
 import com.example.fieldtrack.feature.fleet.FleetScreen
 import com.example.fieldtrack.feature.fleet.FleetViewModel
 import com.example.fieldtrack.feature.home.HomeViewModel
@@ -128,6 +139,7 @@ import com.example.fieldtrack.feature.onboarding.OnboardingViewModel
 import com.example.fieldtrack.feature.work.FinishScreen
 import com.example.fieldtrack.feature.work.FinishViewModel
 import com.example.fieldtrack.feature.work.LiveWorkScreen
+import com.example.fieldtrack.feature.work.AskToShowClockOnce
 import com.example.fieldtrack.feature.work.LiveWorkViewModel
 import com.example.fieldtrack.feature.work.NewMachineSheet
 import com.example.fieldtrack.feature.team.AddMemberSheet
@@ -158,7 +170,7 @@ import com.example.fieldtrack.feature.money.PayOutViewModel
 import com.example.fieldtrack.feature.money.MachineProfitScreen
 import com.example.fieldtrack.feature.money.MachineProfitViewModel
 
-private object Routes {
+internal object Routes {
     const val HOME = "home"
     const val START = "start"
     const val START_FOR = "start/{customerId}"
@@ -214,11 +226,22 @@ private object Routes {
      * machines they drive. Until this existed the bar branched on business mode — a
      * preference the *owner* sets about themselves — so a driver signing in was
      * handed the owner's screens and told to get on with it.
+     *
+     * Which track is decided by [homeKindFor], from what a person is trusted
+     * with. A senior driver who takes the money at the gate swaps Machines for
+     * Customers, because the khata is what they reach for; a yard home without
+     * the customer book (someone given the machines but not the money) drops
+     * that tab rather than showing a list of names with nothing behind them.
      */
-    fun roots(business: Boolean, driver: Boolean) = when {
-        driver -> listOf(HOME, JOBS, MACHINES, MORE)
-        business -> listOf(HOME, JOBS, CUSTOMERS, FLEET, MORE)
-        else -> listOf(HOME, CUSTOMERS, MACHINES, MORE)
+    fun roots(kind: HomeKind, can: Capabilities) = when (kind) {
+        HomeKind.Field ->
+            listOf(HOME, JOBS, if (dealsWithCustomers(can)) CUSTOMERS else MACHINES, MORE)
+        HomeKind.Yard -> listOfNotNull(
+            HOME, JOBS,
+            CUSTOMERS.takeIf { Capability.SeeMoney in can || Capability.EditCustomers in can },
+            FLEET, MORE,
+        )
+        HomeKind.Solo -> listOf(HOME, CUSTOMERS, MACHINES, MORE)
     }
     const val LEDGER = "customer/{customerId}"
     const val PAY = "customer/{customerId}/pay"
@@ -250,7 +273,12 @@ private object Routes {
  * exists under ui/navigation and is retired as each of its screens is replaced.
  */
 @Composable
-fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
+fun FieldTrackApp(
+    navController: NavHostController = rememberNavController(),
+    /** A job to go straight to, from the clock notification. */
+    openJobRequests: StateFlow<String?> = MutableStateFlow(null),
+    onOpenJobHandled: () -> Unit = {},
+) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
     val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
 
@@ -391,10 +419,16 @@ fun FieldTrackApp(navController: NavHostController = rememberNavController()) {
                 )
             }
 
-            is Startup.Ready -> MainGraph(navController)
+            is Startup.Ready -> MainGraph(navController, openJobRequests, onOpenJobHandled)
         }
     }
 }
+
+/** Which home, and so which tabs, the signed-in person gets. Field until the session is read. */
+private fun homeKindOf(startup: Startup, business: Boolean): HomeKind =
+    (startup as? Startup.Ready)?.session
+        ?.let { homeKindFor(it.role, it.can, business) }
+        ?: HomeKind.Field
 
 /** Held for the instant it takes to read the session off disk. */
 @Composable
@@ -407,12 +441,30 @@ private fun SplashScreen() {
 }
 
 @Composable
-private fun MainGraph(navController: NavHostController) {
+private fun MainGraph(
+    navController: NavHostController,
+    openJobRequests: StateFlow<String?>,
+    onOpenJobHandled: () -> Unit,
+) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
+
+    val openJob by openJobRequests.collectAsStateWithLifecycle()
+    LaunchedEffect(openJob) {
+        val jobId = openJob ?: return@LaunchedEffect
+        // On top of wherever the person was, so back returns them there — unless
+        // they were already on this job, where a second copy would need two backs.
+        if (navController.currentBackStackEntry?.arguments?.getString("jobId") != jobId ||
+            navController.currentDestination?.route != Routes.LIVE
+        ) {
+            navController.navigate(Routes.live(jobId)) { launchSingleTop = true }
+        }
+        onOpenJobHandled()
+    }
     val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
     val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
-    val driver = (startup as? Startup.Ready)?.session?.role == MemberRole.Operator
-    val roots = Routes.roots(business, driver)
+    val kind = homeKindOf(startup, business)
+    val driver = kind == HomeKind.Field
+    val roots = Routes.roots(kind, (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()))
 
     val entry by navController.currentBackStackEntryAsState()
     val tab = roots.indexOf(entry?.destination?.route)
@@ -497,36 +549,85 @@ private fun MainNavHost(navController: NavHostController) {
                 val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
                 val session = (startup as? Startup.Ready)?.session
 
-                // A driver's home is its own screen, not the owner's with the money
-                // stripped out. Different question, different answer.
-                if (session?.role == MemberRole.Operator) {
-                    val driverVm: DriverHomeViewModel =
-                        appViewModel { DriverHomeViewModel(it) }
-                    val driverState by driverVm.state.collectAsStateWithLifecycle()
-                    DriverHomeScreen(
-                        state = driverState,
-                        onStartWork = { navController.navigate(Routes.START) },
-                        onResumeWork = { navController.navigate(Routes.live(it)) },
-                        onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
-                        onOpenJob = { id -> navController.navigate("jobs/$id") },
-                        onOpenMachine = { id -> navController.navigate("machines/$id") },
-                        onOpenBackup = { navController.navigate(Routes.BACKUP) },
-                    )
-                    return@composable
+                val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                if (session == null) return@composable
+
+                // Every alert leads somewhere already on the map. A tab is switched
+                // to rather than pushed, so back from Customers is not back to Home
+                // twice over.
+                val alertActions = remember(navController) {
+                    object : AlertActions {
+                        override fun liveJob(jobId: String) =
+                            navController.navigate(Routes.live(jobId))
+                        override fun machine(machineId: String) =
+                            navController.navigate("machines/$machineId")
+                        override fun customer(customerId: String) =
+                            navController.navigate("customer/$customerId")
+                        override fun customers() = navController.switchTab(Routes.CUSTOMERS)
+                        override fun moneyOut() = navController.navigate(Routes.MONEY_OUT)
+                        override fun sync() = navController.navigate(Routes.BACKUP)
+                    }
                 }
 
-                val vm: HomeViewModel = appViewModel { HomeViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                HomeScreen(
-                    state = state,
-                    onStartWork = { navController.navigate(Routes.START) },
-                    onResumeWork = { navController.navigate(Routes.live(it)) },
-                    onOpenCustomers = { navController.navigate(Routes.CUSTOMERS) },
-                    onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
-                    // Opens the job's own record. Correcting it is one of the things
-                    // offered there, rather than the only thing a tap can mean.
-                    onOpenJob = { id -> navController.navigate("jobs/$id") },
-                )
+                // Three homes, not one with parts hidden. Someone on a machine, someone
+                // who is the whole business, and someone watching a crew are asking
+                // three different questions when they open the app.
+                when (homeKindFor(session.role, session.can, business)) {
+                    HomeKind.Field -> {
+                        val vm: DriverHomeViewModel = appViewModel { DriverHomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        DriverHomeScreen(
+                            state = state,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenMachine = { id -> navController.navigate("machines/$id") },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                        )
+                    }
+                    HomeKind.Solo -> {
+                        val vm: HomeViewModel = appViewModel { HomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        HomeScreen(
+                            state = state,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onOpenCustomers = { navController.switchTab(Routes.CUSTOMERS) },
+                            onOpenSeason = { navController.navigate(Routes.SEASON) },
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            // Opens the job's own record. Correcting it is one of the things
+                            // offered there, rather than the only thing a tap can mean.
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                        )
+                    }
+                    HomeKind.Yard -> {
+                        val vm: YardHomeViewModel = appViewModel { YardHomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        YardHomeScreen(
+                            state = state,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenJobs = { navController.switchTab(Routes.JOBS) },
+                            onOpenFleet = { navController.switchTab(Routes.FLEET) },
+                            onOpenCustomers = { navController.switchTab(Routes.CUSTOMERS) },
+                            onOpenSeason = { navController.navigate(Routes.SEASON) },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                        )
+                    }
+                }
             }
 
             // Two ways in: the big green button, and the plus on a customer's own
@@ -743,9 +844,7 @@ private fun MainNavHost(navController: NavHostController) {
                             append(job.workType)
                             if (job.billingMode != BillingMode.Fixed && job.quantity > 0) {
                                 append(" ")
-                                append(quantity(job.quantity))
-                                append(" ")
-                                append(stringResource(job.unit.labelRes))
+                                append(measure(job.quantity, job.unit))
                             }
                         })
                     }.toMap(),
@@ -896,7 +995,8 @@ private fun MainNavHost(navController: NavHostController) {
                 // The same tab, a different list. An owner's jobs are the yard's
                 // work; a driver's are their own, and showing them everybody's
                 // would be handing them a list they cannot act on and did not do.
-                if ((startup as? Startup.Ready)?.session?.role == MemberRole.Operator) {
+                val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                if (homeKindOf(startup, business) == HomeKind.Field) {
                     val driverVm: DriverJobsViewModel =
                         appViewModel { DriverJobsViewModel(it) }
                     val driverState by driverVm.state.collectAsStateWithLifecycle()
@@ -1038,6 +1138,11 @@ private fun MainNavHost(navController: NavHostController) {
                 // way back does too.
                 val app = LocalContext.current.applicationContext as FieldFlowApplication
                 val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val kind = homeKindOf(startup, business)
+                val isTab = Routes.MACHINES in Routes.roots(
+                    kind, (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()),
+                )
                 MachinesScreen(
                     state = state,
                     onAdd = { navController.navigate(Routes.NEW_MACHINE) },
@@ -1045,8 +1150,9 @@ private fun MainNavHost(navController: NavHostController) {
                     // what a machine has been doing; only an owner can rename it,
                     // and that now lives behind the pencil on the detail screen.
                     onEdit = { id -> navController.navigate("machines/$id") },
-                    // A tab for a solo owner, a pushed screen for a business one.
-                    onBack = if (business) ({ navController.popBackStack(); Unit }) else null,
+                    // A tab for some, a pushed screen (from Fleet, or a senior
+                    // driver's own machine) for others.
+                    onBack = if (!isTab) ({ navController.popBackStack(); Unit }) else null,
                 )
             }
 
@@ -1574,6 +1680,7 @@ private fun MainNavHost(navController: NavHostController) {
                     LiveWorkViewModel(it, jobId)
                 }
                 val state by vm.state.collectAsStateWithLifecycle()
+                AskToShowClockOnce()
                 LiveWorkScreen(
                     state = state,
                     onIncrease = { vm.increase() },
@@ -1591,6 +1698,8 @@ private fun MainNavHost(navController: NavHostController) {
                     // The job row is gone, so the screen showing it has to go too.
                     onDiscard = { vm.discard { navController.popBackStack() } },
                     onAmount = vm::setQuantity,
+                    onStopClockAt = { vm.stopClockAt(it) },
+                    onClockIsRight = vm::confirmClock,
                 )
             }
 
@@ -1749,7 +1858,7 @@ private fun billDocumentFor(
             WorkLine(
                 title = state.workType,
                 detail = null,
-                measure = "${quantity(state.quantity)} $unit",
+                measure = measure(state.quantity, state.unit),
                 rate = if (state.ratesVaried) {
                     stringResource(R.string.finish_rate_varies)
                 } else {
@@ -1789,7 +1898,7 @@ private fun receiptFor(
         ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
         appendLine()
         appendLine("${state.customerName}")
-        appendLine("${state.workType} ${quantity(state.quantity)} $unit — ${rupees(state.jobAmountRupees)}")
+        appendLine("${state.workType} ${measure(state.quantity, state.unit)} — ${rupees(state.jobAmountRupees)}")
         if (state.previousBalanceRupees != 0L) {
             appendLine("${stringResource(R.string.money_old_balance)} — ${rupees(state.previousBalanceRupees)}")
         }

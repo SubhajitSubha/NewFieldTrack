@@ -22,6 +22,10 @@ import com.example.fieldtrack.data.sync.PrefsSyncJournal
 import com.example.fieldtrack.data.sync.SyncEngine
 import com.example.fieldtrack.data.sync.SyncTransport
 import com.example.fieldtrack.data.sync.SyncWorker
+import com.example.fieldtrack.data.repository.ClockConfirmations
+import com.example.fieldtrack.notify.ClockReminderWorker
+import com.example.fieldtrack.notify.WorkClock
+import com.example.fieldtrack.notify.WorkClockNotifier
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -130,7 +134,33 @@ class FieldFlowApplication : Application() {
         )
     }
 
+    val workClockNotifier: WorkClockNotifier by lazy { WorkClockNotifier(this) }
+
+    /** The open job, mirrored into the notification shade. */
+    val workClock: WorkClock by lazy { WorkClock(this, workClockNotifier) }
+
+    /** For work that has to outlive the screen or receiver that asked for it. */
+    fun runInBackground(block: suspend () -> Unit) {
+        appScope.launch { block() }
+    }
+
+    /** Which overnight clocks this person has already said were real work. */
+    val clockConfirmations: ClockConfirmations by lazy { ClockConfirmations(this) }
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Once per business, by somebody allowed to: the job costs version 12 made
+     * and never queued. Remembered only once it has actually run, so a person
+     * given the right to pay people later still gets it done.
+     */
+    private suspend fun sendWhatTheCostMigrationKept(session: com.example.fieldtrack.data.session.Session) {
+        val key = "migratedCostsQueued_${session.orgId}"
+        if (syncPrefs.getBoolean(key, false)) return
+        if (com.example.fieldtrack.data.session.Capability.PayOut !in session.can) return
+        ledgerRepository.requeueMigratedJobCosts(session.orgId, session.can)
+        syncPrefs.edit().putBoolean(key, true).apply()
+    }
 
     private val syncPrefs by lazy {
         getSharedPreferences("field_flow_sync", MODE_PRIVATE)
@@ -159,6 +189,7 @@ class FieldFlowApplication : Application() {
                 .getOrNull()
                 ?.let { session ->
                     runCatching { workRepository.reconcileMachineStatuses(session.orgId) }
+                    runCatching { sendWhatTheCostMigrationKept(session) }
                 }
 
             // What the owner decided while this phone was shut: a permission
@@ -168,6 +199,13 @@ class FieldFlowApplication : Application() {
 
         // Wakes on a connection and drains whatever the day's work left queued.
         SyncWorker.start(this, hasBackend = true)
+
+        // The running clock in the notification shade, and the evening question
+        // about any clock still going. Channels first: a notification posted to a
+        // channel that does not exist yet is silently dropped.
+        workClockNotifier.createChannels()
+        workClock.watch(appScope)
+        ClockReminderWorker.schedule(this)
     }
 }
 

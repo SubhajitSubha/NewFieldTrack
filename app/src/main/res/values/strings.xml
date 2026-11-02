@@ -542,9 +542,116 @@
     <string name="home_nothing_yet_title">Nothing recorded today</string>
     <string name="home_nothing_yet_body">Tap the green button when you start working.</string>
     <string name="home_from_customers">from %1$s</string>
-    <string name="home_resume_running">Work is running</string>
-    <string name="home_resume_paused">Work is paused</string>
-    <string name="home_resume_action">Go back to it</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="one">%d to send</item>
+        <item quantity="other">%d to send</item>
+    </plurals>
+    <string name="home_sync_done">All sent</string>
+    <string name="home_sync_stuck">Not sending</string>
+    <string name="job_not_sent_short">Not sent yet</string>
+    <string name="job_not_sent">Not sent yet. It is kept safe on this phone until it goes up.</string>
+    <string name="home_clock_left_on">Running since %1$s. Did the work stop earlier?</string>
+    <string name="home_job_running">Running</string>
+    <string name="home_job_paused">Paused</string>
+    <string name="home_job_pause">Pause</string>
+    <string name="home_job_resume">Resume</string>
+    <string name="home_job_open">Open job</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">Ready for work</string>
+    <string name="home_ready_title">Start your day</string>
+    <string name="home_field_first_running">Your first job today is running. It will show here once it is finished.</string>
+    <string name="home_stat_on_machine">On machine</string>
+    <string name="home_stat_jobs_done">Jobs done</string>
+    <string name="home_stat_covered">Covered</string>
+    <string name="home_cash_with_you">Cash with you</string>
+    <string name="home_cash_with_you_note">Taken in cash today. Hand it over before you go home.</string>
+    <string name="home_your_machine">Your machine</string>
+    <string name="home_last_seven">Last 7 days</string>
+    <string name="home_last_seven_hours">Machine hours, last 7 days</string>
+    <string name="home_hours_on_machine">on the machine</string>
+    <string name="home_earned_today">Earned today</string>
+    <string name="home_jobs_today">Jobs today</string>
+    <string name="home_nobody_owes">Nobody owes you</string>
+    <string name="home_this_season">This season</string>
+    <string name="home_season_since">Earned since %1$s</string>
+    <string name="home_your_own_work">Your own work</string>
+    <string name="home_crew_now">Out on jobs</string>
+    <string name="home_crew_since">since %1$s</string>
+    <string name="home_crew_none">Nobody is on a job right now.</string>
+    <string name="home_someone">Someone</string>
+    <string name="home_loading">Loading…</string>
+    <string name="home_done_today">Finished today</string>
+    <string name="home_see_all_jobs">See all</string>
+    <string name="home_right_now">Right now</string>
+    <string name="home_figure_on_job">on a job</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">machines working</string>
+    <string name="home_figure_down">broken down</string>
+    <string name="home_collected_today">%1$s collected</string>
+
+    <!-- The clock outside the app: the notification shade. -->
+    <string name="notify_channel_clock">Work clock</string>
+    <string name="notify_channel_clock_note">The job that is open, with its clock. Silent.</string>
+    <string name="notify_channel_reminder">Clock reminders</string>
+    <string name="notify_channel_reminder_note">An evening question if a clock is still running.</string>
+    <string name="notify_clock_running">%1$s · clock running</string>
+    <string name="notify_clock_paused">%1$s · paused with %2$s on the clock</string>
+    <string name="notify_reminder_title">Still working for %1$s?</string>
+    <string name="notify_reminder_body">The clock has run %1$s. Pause it if the work has stopped, so the bill is right.</string>
+
+    <!-- A clock left running. Asked, never assumed: only the person there knows. -->
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="clock_check_title">Is the clock right?</string>
+    <string name="clock_check_body">The clock has been running since %1$s without a stop. That is %2$s.</string>
+    <string name="clock_check_when">When did the work stop?</string>
+    <string name="clock_check_last_entry">At my last entry, %1$s</string>
+    <string name="clock_check_last_entry_note">The last thing recorded on this job</string>
+    <string name="clock_check_other_time">At another time, %1$s</string>
+    <string name="clock_check_other_time_note">Pick the day and the time</string>
+    <string name="clock_check_pick_time">Time: %1$s</string>
+    <string name="clock_check_would_read">The clock will show %1$s. Time after that is not counted.</string>
+    <string name="clock_check_out_of_range">Pick a time after the clock started (%1$s) and before now.</string>
+    <string name="clock_check_stop">Stop the clock at %1$s</string>
+    <string name="clock_check_still_working">Still working, the clock is right</string>
+    <string name="clock_moment_yesterday">%1$s yesterday</string>
+    <string name="clock_day_today">Today</string>
+    <string name="clock_day_yesterday">Yesterday</string>
+
+    <!-- What needs somebody. Each line is the fact and, by where it leads, what to do. -->
+    <string name="home_attention_title">Needs attention</string>
+    <string name="home_attention_clear">Nothing needs you right now</string>
+    <string name="home_attention_clear_note">Machines, payments and uploads are all in order.</string>
+    <string name="home_attention_less">Show less</string>
+    <plurals name="home_attention_more">
+        <item quantity="one">Show %d more</item>
+        <item quantity="other">Show %d more</item>
+    </plurals>
+    <string name="home_alert_stuck">The server refused a change</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="one">%d change is not going up. Open Backup to decide.</item>
+        <item quantity="other">%d changes are not going up. Open Backup to decide.</item>
+    </plurals>
+    <string name="home_alert_clock">%1$s\u2019s clock is still running</string>
+    <string name="home_alert_clock_note">%1$s, since %2$s</string>
+    <string name="home_alert_down">%1$s is down</string>
+    <string name="home_alert_down_note">Breakdown reported %1$s</string>
+    <string name="home_alert_down_days">Down for %1$s</string>
+    <string name="home_alert_service_over">%1$s is past its service</string>
+    <string name="home_alert_service_over_note">%1$s hr over the mark</string>
+    <string name="home_alert_service_soon">%1$s service coming up</string>
+    <string name="home_alert_owes">%1$s owes %2$s</string>
+    <string name="home_alert_owes_note">Unpaid for %1$s</string>
+    <plurals name="home_alert_late">
+        <item quantity="one">%d customer is late paying</item>
+        <item quantity="other">%d customers are late paying</item>
+    </plurals>
+    <string name="home_alert_late_note">%1$s unpaid for over %2$d days</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="one">%d crew cost has no amount</item>
+        <item quantity="other">%d crew costs have no amount</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">Add what was paid so the profit adds up</string>
 
     <!-- ============================ start a job =============================== -->
     <string name="start_step">Step %1$d of 3</string>
@@ -1219,6 +1326,8 @@
     <string name="job_detail_billed">Billed</string>
     <string name="job_detail_thrown_away">Thrown away</string>
     <string name="event_started">Work started</string>
+    <string name="event_clock_corrected">Clock put right: stopped at %1$s, %2$s taken off</string>
+    <string name="event_clock_day_time">%2$s, %1$s</string>
     <string name="event_paused">Paused</string>
     <string name="event_paused_for">%1$s</string>
     <string name="event_resumed">Carried on</string>

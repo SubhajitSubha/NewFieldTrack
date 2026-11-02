@@ -1,6 +1,8 @@
 package com.example.fieldtrack
 
+import android.content.Intent
 import android.os.Bundle
+import kotlinx.coroutines.flow.MutableStateFlow
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +30,14 @@ private const val MAX_SPLASH_MILLIS = 2_000L
 
 class MainActivity : ComponentActivity() {
 
+    /**
+     * A job somebody asked to be taken to — the clock notification, pressed.
+     *
+     * Held here until the app has a signed-in screen to open it from; a press
+     * that arrives while the session is still being read is not lost, it waits.
+     */
+    private val openJobRequests = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super, as the platform requires: this swaps the launch window's
         // theme for the app's own.
@@ -48,6 +58,10 @@ class MainActivity : ComponentActivity() {
                 SystemClock.uptimeMillis() - splashStartedAt < MAX_SPLASH_MILLIS
         }
 
+        // Only from a fresh launch, not a restore: after the system recreates the
+        // activity the intent is the old one, and the job it named was opened then.
+        if (savedInstanceState == null) takeOpenJob(intent)
+
         enableEdgeToEdge()
         setContent {
             FieldTrackTheme {
@@ -55,7 +69,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars),
                     color = FieldTrackTheme.colors.paper,
                 ) {
-                    FieldTrackApp()
+                    FieldTrackApp(
+                        openJobRequests = openJobRequests,
+                        onOpenJobHandled = { openJobRequests.value = null },
+                    )
                 }
             }
         }
@@ -69,10 +86,24 @@ class MainActivity : ComponentActivity() {
      * held by the system until there is a network, so opening the app in the yard
      * is enough — nobody has to go looking for a button.
      */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        takeOpenJob(intent)
+    }
+
+    private fun takeOpenJob(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_OPEN_JOB)?.let { openJobRequests.value = it }
+    }
+
     override fun onStart() {
         super.onStart()
         // Forced: a person opening the app outranks whatever is queued, including
         // a backoff left over from a morning with no signal.
         SyncWorker.runNow(this, force = true)
+    }
+
+    companion object {
+        /** The job a notification wants opened. */
+        const val EXTRA_OPEN_JOB = "openJobId"
     }
 }

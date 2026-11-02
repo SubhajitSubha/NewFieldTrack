@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.BreakdownCategory
+import com.example.fieldtrack.data.db.JobEventType
 import com.example.fieldtrack.data.db.JobStatus
+import com.example.fieldtrack.data.db.entity.JobEntity
+import com.example.fieldtrack.data.db.entity.JobEventEntity
+import com.example.fieldtrack.data.repository.ClockCheck
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.session.Session
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,6 +45,23 @@ data class LiveWorkState(
     val canSeeMoney: Boolean = true,
     /** Everyone on the team except whoever is driving right now. */
     val teammates: List<Teammate> = emptyList(),
+    /** When the clock last started, while it is running. */
+    val runningSince: Long? = null,
+    /** Time banked before this stretch, so a proposed stop can show the clock it leaves. */
+    val bankedSeconds: Long = 0,
+    /**
+     * The last thing anybody recorded on this stretch — a trip, an acre, fuel.
+     * The best evidence there is of when work actually stopped.
+     */
+    val lastEntryAt: Long? = null,
+    /** The clock has run on past what a working day looks like, and nobody has said why. */
+    val askAboutClock: Boolean = false,
+)
+
+/** Kinds of event that only say the clock is going, which prove no work was done. */
+private val CLOCK_ONLY = setOf(
+    JobEventType.Started, JobEventType.Resumed, JobEventType.Paused,
+    JobEventType.HandedOver, JobEventType.ClockCorrected,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -63,28 +84,33 @@ class LiveWorkViewModel(
         }
     }
 
+    private data class Clocked(
+        val job: JobEntity?,
+        val events: List<JobEventEntity>,
+        val confirmed: Int,
+    )
+
     val state: StateFlow<LiveWorkState> = app.sessionStore.session.flatMapLatest { s ->
-        combine(
+        val clocked = combine(
             app.workRepository.observeJob(s.orgId, jobId),
+            app.workRepository.observeEvents(jobId),
+            app.clockConfirmations.changes,
+        ) { job, events, confirmed -> Clocked(job, events, confirmed) }
+
+        combine(
+            clocked,
             app.directoryRepository.observeCustomers(s.orgId),
             app.directoryRepository.observeMachines(s.orgId),
             app.db.orgDao().observeTeam(s.orgId),
             tick,
-        ) { job, customers, machines, team, now ->
-            if (job == null) return@combine LiveWorkState()
+        ) { c, customers, machines, team, now ->
+            val job = c.job ?: return@combine LiveWorkState()
+            val since = job.runningSince.takeIf { job.status == JobStatus.Running }
             val elapsed = app.workRepository.elapsedSeconds(job, now)
             // Hourly work bills from the clock, so the hero figure and the money
             // shown here must track the timer rather than a stored quantity.
-            val quantity = if (job.billingMode == BillingMode.PerHour) elapsed / 3600.0
-            else job.quantity
-            // Only hourly work is computed here, because its quantity is a clock
-            // that is still running. Everything else asks the job what it is worth —
-            // recomputing quantity x rate would silently undo per-trip pricing.
-            val amount = if (job.billingMode == BillingMode.PerHour) {
-                Math.round(quantity * job.rateRupees)
-            } else {
-                job.amountRupees
-            }
+            val quantity = app.workRepository.billableQuantity(job, now)
+            val amount = app.workRepository.billableRupees(job, now)
 
             LiveWorkState(
                 loaded = true,
@@ -105,6 +131,15 @@ class LiveWorkViewModel(
                 teammates = team
                     .filter { it.personId != job.operatorPersonId }
                     .map { Teammate(it.personId, it.displayName) },
+                runningSince = since,
+                bankedSeconds = job.elapsedSeconds,
+                lastEntryAt = since?.let { from ->
+                    c.events
+                        .filter { it.type !in CLOCK_ONLY && it.atMillis >= from }
+                        .maxOfOrNull { it.atMillis }
+                },
+                askAboutClock = ClockCheck.looksForgotten(since, now) &&
+                    !app.clockConfirmations.isConfirmed(job.id, since),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveWorkState())
@@ -147,6 +182,17 @@ class LiveWorkViewModel(
 
     fun reportBreakdown(category: BreakdownCategory, note: String?) = withSession {
         app.workRepository.reportBreakdown(it.orgId, jobId, category, note, it.personId)
+    }
+
+    /** "Yes, still working": not asked again about this stretch of the clock. */
+    fun confirmClock() {
+        val since = state.value.runningSince ?: return
+        app.clockConfirmations.confirm(jobId, since)
+    }
+
+    /** The clock stops where the work did, and the job waits paused to be finished. */
+    fun stopClockAt(stoppedAt: Long) = withSession {
+        runCatching { app.workRepository.stopClockAt(it.orgId, jobId, stoppedAt, it.personId) }
     }
 
     fun handOver(personId: String) = withSession {

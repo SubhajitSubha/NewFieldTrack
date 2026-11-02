@@ -36,7 +36,9 @@ class TestHarness {
     val db: FieldTrackDatabase = Room.inMemoryDatabaseBuilder(
         ApplicationProvider.getApplicationContext<Context>(),
         FieldTrackDatabase::class.java,
-    ).allowMainThreadQueries().build()
+    ).allowMainThreadQueries()
+        .addCallback(com.example.fieldtrack.data.db.SentState.callback)
+        .build()
 
     val syncQueue = SyncQueue(db.outboxDao(), clock)
 

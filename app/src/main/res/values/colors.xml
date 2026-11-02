@@ -3,4 +3,6 @@
     <!-- Mirrors FtPalette. The launch window is drawn before any Kotlin runs. -->
     <color name="splash_green">#0E6B3D</color>
     <color name="paper">#F5F3EE</color>
+    <!-- The brand green behind a notification's icon and actions. Also FtPalette.Green. -->
+    <color name="notification_accent">#0E6B3D</color>
 </resources>

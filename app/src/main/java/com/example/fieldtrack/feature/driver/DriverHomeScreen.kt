@@ -1,170 +1,196 @@
 package com.example.fieldtrack.feature.driver
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
-import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtCard
+import com.example.fieldtrack.designsystem.component.FtEmphasisCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
+import com.example.fieldtrack.designsystem.format.rupees
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.home.AlertActions
+import com.example.fieldtrack.feature.home.AttentionCard
+import com.example.fieldtrack.feature.home.FigureCard
+import com.example.fieldtrack.feature.home.HeroButton
+import com.example.fieldtrack.feature.home.HomeBlock
+import com.example.fieldtrack.feature.home.HomeFrame
+import com.example.fieldtrack.feature.home.HomeHeader
+import com.example.fieldtrack.feature.home.HomeSection
+import com.example.fieldtrack.feature.home.MachineTile
+import com.example.fieldtrack.feature.home.NotSentMark
+import com.example.fieldtrack.feature.home.NOT_YET
+import com.example.fieldtrack.feature.home.OpenJobCard
+import com.example.fieldtrack.feature.home.Pane
+import com.example.fieldtrack.feature.home.SevenDays
+import com.example.fieldtrack.feature.home.Stat
+import com.example.fieldtrack.feature.home.StatStrip
+import com.example.fieldtrack.feature.home.workAndAmount
 import com.example.fieldtrack.feature.iconForWork
-import com.example.fieldtrack.feature.initialsOf
-import com.example.fieldtrack.feature.measure
-import com.example.fieldtrack.feature.workLabel
 import com.example.fieldtrack.feature.labelRes
 
 /**
- * What a driver sees when they open the app.
+ * What somebody out on a machine sees when they open the app.
  *
- * Deliberately not the owner's home with things removed. It answers a different
- * question — "what have I done today" rather than "what did the business make" —
- * and carries no money at all. A driver's own screen should feel like his record of
- * his day, not a window onto somebody's takings.
+ * Built around the job: the deep card is the clock when one is running and the
+ * way to start one when it is not, so the first thing under a thumb is always
+ * the next thing to do. Below it, their day in three figures, then what they
+ * did. No earnings — this is their record of their day, not the till.
  */
 @Composable
 fun DriverHomeScreen(
     state: DriverHomeState,
     onStartWork: () -> Unit,
-    onResumeWork: (String) -> Unit,
+    onOpenLive: (String) -> Unit,
+    onPause: (String) -> Unit,
+    onResume: (String) -> Unit,
     onAddPastWork: () -> Unit,
     onOpenJob: (String) -> Unit,
     onOpenMachine: (String) -> Unit,
     onOpenBackup: () -> Unit,
+    alertActions: AlertActions,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
-    val dimens = FieldTrackTheme.dimens
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Row(
-            Modifier.padding(dimens.screenPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FtAvatar(
-                initials = initialsOf(state.displayName),
-                size = 46.dp,
-                background = colors.primary,
-                contentColor = colors.onPrimary,
-            )
-            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(
-                    text = state.displayName,
-                    style = FieldTrackTheme.type.sectionTitle,
-                    color = colors.ink,
+    val blocks = buildList {
+        add(HomeBlock(Pane.Main) {
+            val job = state.openJob
+            if (job != null) {
+                OpenJobCard(
+                    job = job,
+                    onOpen = { onOpenLive(job.jobId) },
+                    onPause = { onPause(job.jobId) },
+                    onResume = { onResume(job.jobId) },
+                    dark = true,
                 )
-                Text(
-                    text = state.businessName,
-                    style = FieldTrackTheme.type.caption,
-                    color = colors.inkTertiary,
-                    modifier = Modifier.padding(top = 1.dp),
+            } else {
+                ReadyCard(
+                    machineName = state.machineName,
+                    onStart = onStartWork,
+                    onAddPast = onAddPastWork,
                 )
             }
+        })
+
+        // Only when there is something. A driver opens this screen thirty times a
+        // day; an "all clear" card every time would teach them to skip the spot
+        // where a breakdown will one day appear.
+        if (state.alerts.isNotEmpty()) {
+            add(HomeBlock(Pane.Main) {
+                AttentionCard(state.alerts, state.loaded, alertActions)
+            })
         }
 
-        Column(
-            Modifier.padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
-        ) {
-            // Said up front, because a driver out of signal all day needs to know
-            // his work is kept before he wonders whether to write it down as well.
-            if (state.pendingUploads > 0) {
-                // Amber, not red. "Your work is saved and waiting" is reassurance,
-                // and dressing it as an error tells a driver with no signal that
-                // something has gone wrong when nothing has.
-                FtCard(
-                    background = colors.moneyWash,
-                    borderColor = colors.moneyWash,
-                    modifier = Modifier.clickable(onClick = onOpenBackup),
-                ) {
+        add(HomeBlock(Pane.Main) {
+            StatStrip(
+                listOf(
+                    Stat(
+                        label = stringResource(R.string.home_stat_on_machine),
+                        value = if (state.loaded) duration(state.secondsToday) else NOT_YET,
+                    ),
+                    Stat(
+                        label = stringResource(R.string.home_stat_jobs_done),
+                        value = if (state.loaded) state.jobsToday.toString() else NOT_YET,
+                    ),
+                    Stat(
+                        label = stringResource(R.string.home_stat_covered),
+                        value = if (state.areaToday > 0) quantity(state.areaToday) else NOT_YET,
+                        note = if (state.areaToday > 0) {
+                            stringResource(state.areaUnit.labelRes)
+                        } else {
+                            null
+                        },
+                    ),
+                )
+            )
+        })
+
+        state.cashWithYouRupees?.takeIf { it > 0 }?.let { cash ->
+            add(HomeBlock(Pane.Main) {
+                FigureCard(
+                    label = stringResource(R.string.home_cash_with_you),
+                    value = rupees(cash),
+                    note = stringResource(R.string.home_cash_with_you_note),
+                    onClick = null,
+                )
+            })
+        }
+
+        add(HomeBlock(Pane.Main) {
+            // The ready card already offers earlier work; while a job is running
+            // it does not, so the way in moves here rather than being said twice.
+            HomeSection(
+                title = stringResource(R.string.driver_todays_work),
+                action = if (state.openJob != null) stringResource(R.string.home_add_past) else null,
+                onAction = onAddPastWork,
+            )
+            if (state.today.isEmpty()) {
+                FtCard {
                     Text(
-                        text = stringResource(R.string.driver_waiting_title),
-                        style = FieldTrackTheme.type.rowTitle,
-                        color = colors.moneyInk,
-                    )
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.driver_waiting_count,
-                            state.pendingUploads,
-                            state.pendingUploads,
+                        text = stringResource(
+                            if (state.openJob != null) R.string.home_field_first_running
+                            else R.string.driver_nothing_yet
                         ),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.moneyInk,
-                        modifier = Modifier.padding(top = 2.dp),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.inkTertiary,
                     )
                 }
-            }
-
-            StartWorkCard(
-                live = state.liveJobId != null,
-                paused = state.liveJobPaused,
-                onClick = {
-                    state.liveJobId?.let(onResumeWork) ?: onStartWork()
-                },
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard(
-                    label = stringResource(R.string.driver_today),
-                    value = duration(state.secondsToday),
-                    note = stringResource(R.string.driver_on_machine),
-                    modifier = Modifier.weight(1f),
-                )
-                StatCard(
-                    label = stringResource(R.string.driver_jobs_done),
-                    value = state.jobsToday.toString(),
-                    note = if (state.areaToday > 0) {
-                        stringResource(
-                            R.string.driver_area_covered,
-                            measure(state.areaToday, state.areaUnit),
+            } else {
+                FtCard(padding = 0.dp) {
+                    state.today.forEachIndexed { index, job ->
+                        if (index > 0) FtRowDivider()
+                        FtListRow(
+                            title = job.customerName,
+                            subtitle = workAndAmount(job.workType, job.amountDone, job.unit),
+                            leading = {
+                                FtIconTile(
+                                    icon = iconForWork(job.workType, job.machineKind),
+                                    size = 40.dp,
+                                )
+                            },
+                            trailing = {
+                                // Time, never money. This is their record of their day.
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = duration(job.elapsedSeconds),
+                                        style = FieldTrackTheme.type.numeric,
+                                        color = colors.ink,
+                                    )
+                                    if (!job.sent) NotSentMark()
+                                }
+                            },
+                            onClick = { onOpenJob(job.jobId) },
                         )
-                    } else {
-                        stringResource(R.string.driver_nothing_measured)
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+                    }
+                }
             }
+        })
 
+        add(HomeBlock(Pane.Side) {
+            HomeSection(stringResource(R.string.home_your_machine))
             if (state.machineId != null) {
                 FtCard(padding = 0.dp) {
                     FtListRow(
                         title = state.machineName.orEmpty(),
                         subtitle = stringResource(R.string.driver_your_machine),
-                        leading = {
-                            FtIconTile(
-                                icon = com.example.fieldtrack.feature.iconFor(state.machineKind),
-                                size = 48.dp,
-                                background = colors.primaryWash,
-                                tint = colors.primaryPressed,
-                            )
-                        },
+                        leading = { MachineTile(state.machineKind, size = 44.dp) },
                         showChevron = true,
                         onClick = { onOpenMachine(state.machineId) },
                     )
@@ -184,132 +210,100 @@ fun DriverHomeScreen(
                     )
                 }
             }
+        })
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.driver_todays_work),
-                    style = FieldTrackTheme.type.sectionTitle,
-                    color = colors.ink,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.driver_add_earlier),
-                    style = FieldTrackTheme.type.label,
-                    color = colors.primary,
-                    modifier = Modifier
-                        .clickable(onClick = onAddPastWork)
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                )
-            }
-
-            if (state.today.isEmpty()) {
-                FtCard {
+        add(HomeBlock(Pane.Side) {
+            HomeSection(stringResource(R.string.home_last_seven))
+            FtCard {
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = stringResource(R.string.driver_nothing_yet),
-                        style = FieldTrackTheme.type.bodySmall,
+                        text = duration((state.weekHours.sum() * 3600).toLong()),
+                        style = FieldTrackTheme.type.moneyMedium,
+                        color = colors.ink,
+                    )
+                    Text(
+                        text = stringResource(R.string.home_hours_on_machine),
+                        style = FieldTrackTheme.type.caption,
                         color = colors.inkTertiary,
+                        modifier = Modifier.padding(start = 8.dp, bottom = 3.dp),
                     )
                 }
-            } else {
-                FtCard(padding = 0.dp) {
-                    state.today.forEachIndexed { index, job ->
-                        if (index > 0) FtRowDivider()
-                        FtListRow(
-                            title = job.customerName,
-                            subtitle = job.summary(),
-                            statusStripe = if (job.live) colors.primary else null,
-                            leading = {
-                                FtIconTile(
-                                    icon = iconForWork(job.workType, job.machineKind),
-                                    size = 40.dp,
-                                )
-                            },
-                            trailing = {
-                                // Time, never money. This is his record of his day.
-                                Text(
-                                    text = duration(job.elapsedSeconds),
-                                    style = FieldTrackTheme.type.moneyMedium,
-                                    color = colors.ink,
-                                )
-                            },
-                            onClick = { onOpenJob(job.jobId) },
-                        )
-                    }
-                }
+                SevenDays(
+                    values = state.weekHours,
+                    dark = false,
+                    modifier = Modifier.padding(top = 14.dp),
+                )
             }
-
-            Box(Modifier.height(dimens.space6))
-        }
+        })
     }
-}
 
-/** "Rotavator · 6 acre", or just the work when nothing is counted yet. */
-@Composable
-private fun DriverJobRow.summary(): String {
-    val work = workLabel(workType)
-    if (amountDone <= 0.0) return work
-    return "$work · ${measure(amountDone, unit)}"
-}
-
-@Composable
-private fun StartWorkCard(live: Boolean, paused: Boolean, onClick: () -> Unit) {
-    val colors = FieldTrackTheme.colors
-    FtCard(
-        background = colors.primary,
-        borderColor = colors.primary,
-        modifier = Modifier.clickable(onClick = onClick),
-        padding = 22.dp,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FtIconTile(
-                icon = if (live && !paused) FieldTrackIcons.Pause else FieldTrackIcons.Play,
-                size = 62.dp,
-                background = colors.onPrimary.copy(alpha = 0.18f),
-                tint = colors.onPrimary,
+    HomeFrame(
+        header = {
+            HomeHeader(
+                title = state.displayName,
+                subtitle = state.businessName,
+                pendingUploads = state.pendingUploads,
+                onOpenSync = onOpenBackup,
+                stuck = state.uploadsStuck,
             )
-            Column(Modifier.padding(start = 18.dp)) {
-                Text(
-                    text = stringResource(
-                        if (live) R.string.work_back_to_work else R.string.work_start
-                    ),
-                    style = FieldTrackTheme.type.screenTitle,
-                    color = colors.onPrimary,
-                )
-                Text(
-                    text = stringResource(R.string.work_start_offline_caption),
-                    style = FieldTrackTheme.type.bodySmall,
-                    color = colors.onDarkMuted,
-                    modifier = Modifier.padding(top = 3.dp),
-                )
-            }
-        }
-    }
+        },
+        blocks = blocks,
+        modifier = modifier,
+    )
 }
 
+/**
+ * The deep card when nothing is running: the one button this screen is for.
+ *
+ * Says which machine they were last on, because "start work" on a phone shared
+ * between two tractors raises the question of which one before it is tapped.
+ */
 @Composable
-private fun StatCard(
-    label: String,
-    value: String,
-    note: String,
-    modifier: Modifier = Modifier,
+private fun ReadyCard(
+    machineName: String?,
+    onStart: () -> Unit,
+    onAddPast: () -> Unit,
 ) {
-    FtCard(modifier = modifier, padding = 16.dp) {
+    val colors = FieldTrackTheme.colors
+    FtEmphasisCard {
         Text(
-            text = label.uppercase(),
+            text = stringResource(R.string.home_ready).uppercase(),
             style = FieldTrackTheme.type.overline,
-            color = FieldTrackTheme.colors.inkTertiary,
+            color = colors.onDarkMuted,
         )
         Text(
-            text = value,
-            style = FieldTrackTheme.type.moneyLarge,
-            color = FieldTrackTheme.colors.ink,
-            modifier = Modifier.padding(top = 5.dp),
+            text = machineName ?: stringResource(R.string.home_ready_title),
+            style = FieldTrackTheme.type.screenTitle,
+            color = colors.onDark,
+            modifier = Modifier.padding(top = 6.dp),
         )
         Text(
-            text = note,
-            style = FieldTrackTheme.type.caption,
-            color = FieldTrackTheme.colors.inkTertiary,
+            text = stringResource(R.string.work_start_offline_caption),
+            style = FieldTrackTheme.type.bodySmall,
+            color = colors.onDarkMuted,
             modifier = Modifier.padding(top = 2.dp),
+        )
+        HeroButton(
+            text = stringResource(R.string.work_start),
+            icon = FieldTrackIcons.Play,
+            filled = true,
+            dark = true,
+            onClick = onStart,
+            height = 60.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp),
+        )
+        Text(
+            text = stringResource(R.string.home_add_past),
+            style = FieldTrackTheme.type.label,
+            color = colors.onDark,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .clickable(role = Role.Button, onClick = onAddPast)
+                .padding(vertical = 12.dp),
         )
     }
 }

@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+      The running clock in the notification shade, and the evening "still
+      working?" question. Asked for when the first clock is started, not at
+      launch: at that moment the reason is on screen. Refused, the app works
+      exactly as before; the clock simply stays inside it.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
       Dropping a pin on a field, so a driver who has never been there can find
       it. Coarse is enough and is asked for first: a plot is hundreds of metres
       across, and street-level precision buys nothing while costing the user a
@@ -48,6 +56,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:label="@string/app_name"
             android:theme="@style/Theme.FieldTrack.Starting">
             <intent-filter>
@@ -55,6 +64,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Pause and Resume pressed on the clock notification. Ours alone. -->
+        <receiver
+            android:name=".notify.ClockActionReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

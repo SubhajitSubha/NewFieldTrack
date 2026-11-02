@@ -627,7 +627,7 @@ data class LedgerEntryEntity(
  * there is signal. If the process dies between the two, the transaction rolls back and
  * neither happened — which is the only acceptable outcome when the row is a payment.
  */
-@Entity(tableName = "outbox", indices = [Index("createdAt"), Index("orgId")])
+@Entity(tableName = "outbox", indices = [Index("createdAt"), Index("orgId"), Index("entityId")])
 @Serializable
 data class OutboxEntity(
     @PrimaryKey(autoGenerate = true) val seq: Long = 0,

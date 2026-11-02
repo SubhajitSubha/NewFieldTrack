@@ -111,6 +111,19 @@ class SyncEngine(
     private val running = Mutex()
 
     /**
+     * The change the server last refused, while it is still at the head.
+     *
+     * A refusal is retried on the usual back-off — the owner may yet grant the
+     * permission it lacked — and a run that finds it still waiting out that
+     * back-off used to report Waiting, as though signal were the problem. The
+     * screen then told a driver to wait for coverage that was never going to
+     * help, and the choice to set the change aside, which only Blocked offers,
+     * disappeared until the next attempt. Remembered here so a refused change
+     * stays called what it is between attempts.
+     */
+    private var refusedSeq: Long? = null
+
+    /**
      * Sends everything waiting, stopping at the first change that does not go.
      *
      * @param force ignores the backoff delay on the next change, for when the user
@@ -155,6 +168,15 @@ class SyncEngine(
 
             val head = batch.first()
             val readyAt = readyAt(head)
+            if (!force && readyAt > clock.now() && head.seq == refusedSeq) {
+                return publish(
+                    stage = SyncStage.Blocked,
+                    sent = sent,
+                    error = head.lastError,
+                    retryAt = readyAt,
+                    blockedSeq = head.seq,
+                )
+            }
             if (!force && readyAt > clock.now()) {
                 return publish(
                     stage = SyncStage.Waiting,
@@ -175,7 +197,10 @@ class SyncEngine(
                 return publish(SyncStage.Offline, sent, failure.describe(), readyAt(head, bump = true))
             }
 
-            var accepted = 0
+            // Removed together once the replies are read, and before any early
+            // return below, so a refusal halfway down a batch still lets go of
+            // everything ahead of it that the server took.
+            val taken = mutableListOf<OutboxEntity>()
             for ((index, row) in batch.withIndex()) {
                 when (val outcome = outcomes.getOrNull(index)) {
                     // Short reply. Whatever was not answered for is still queued,
@@ -183,34 +208,39 @@ class SyncEngine(
                     null -> break
 
                     SyncOutcome.Accepted -> {
-                        outbox.remove(row)
-                        accepted++
+                        taken += row
+                        // Taken after all — the permission it lacked was granted.
+                        if (row.seq == refusedSeq) refusedSeq = null
                     }
 
                     is SyncOutcome.Deferred -> {
+                        outbox.removeAll(taken)
                         outbox.recordFailure(row.seq, clock.now(), outcome.reason)
                         return publish(
                             stage = SyncStage.Offline,
-                            sent = sent + accepted,
+                            sent = sent + taken.size,
                             error = outcome.reason,
                             retryAt = readyAt(row, bump = true),
                         )
                     }
 
                     is SyncOutcome.Refused -> {
+                        outbox.removeAll(taken)
                         outbox.recordFailure(row.seq, clock.now(), outcome.reason)
+                        refusedSeq = row.seq
                         return publish(
                             stage = SyncStage.Blocked,
-                            sent = sent + accepted,
+                            sent = sent + taken.size,
                             error = outcome.reason,
                             blockedSeq = row.seq,
                         )
                     }
                 }
             }
-            sent += accepted
+            outbox.removeAll(taken)
+            sent += taken.size
 
-            if (accepted == 0) {
+            if (taken.isEmpty()) {
                 // The transport answered without accepting, deferring or refusing
                 // anything — it is broken. Record it against the head row so the
                 // backoff grows, and stop rather than spin on the same batch.

@@ -61,6 +61,13 @@ class LedgerRepository(
     fun observeCollectedBetween(orgId: String, from: Long, to: Long): Flow<Long> =
         ledger.observeCollectedBetween(orgId, from, to)
 
+    /** The whole book, for working out how old each customer's debt is. */
+    fun observeAllEntries(orgId: String): Flow<List<LedgerEntryEntity>> =
+        ledger.observeAll(orgId)
+
+    fun observeCashTakenBy(orgId: String, personId: String, from: Long, to: Long): Flow<Long> =
+        ledger.observeCashTakenBy(orgId, personId, from, to)
+
     /** Money received. Reduces what the customer owes. */
     suspend fun recordPayment(
         orgId: String,
@@ -308,6 +315,38 @@ class LedgerRepository(
                 ),
             )
         }
+    }
+
+    /**
+     * Sends up what the version-12 migration made and never queued.
+     *
+     * That migration turned every job payment into a job cost and pointed the
+     * payment at it, on this phone only. Another phone of the same business
+     * therefore saw those payments as loose wages and the costs not at all, and
+     * worked its season out from different numbers. Queuing them now is safe to
+     * repeat — the server keeps one document per id — and returns how many
+     * changes went into the queue.
+     *
+     * Refused outright without [Capability.PayOut]. The server would refuse the
+     * payments and the amounts anyway, and a refused change holds the whole queue
+     * up behind it; better that these wait for somebody who may send them.
+     */
+    suspend fun requeueMigratedJobCosts(orgId: String, can: Capabilities): Int {
+        if (Capability.PayOut !in can) return 0
+        var queued = 0
+        db.withTransaction {
+            db.orgDao().migratedJobCosts(orgId, deviceId).forEach { cost ->
+                enqueueJobCost(cost)
+                queued += if (cost.amountRupees != null) 2 else 1
+            }
+            db.orgDao().payoutsOnMigratedCosts(orgId, deviceId).forEach { payout ->
+                syncQueue.enqueueUpsert(
+                    orgId, SyncQueue.TABLE_PAYOUTS, payout.id, OutboxJson.encodeToString(payout)
+                )
+                queued++
+            }
+        }
+        return queued
     }
 
     fun observeJobCosts(orgId: String, jobId: String): Flow<List<JobCostWithPaid>> =

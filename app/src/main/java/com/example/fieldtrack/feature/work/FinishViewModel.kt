@@ -136,13 +136,8 @@ class FinishViewModel(
             if (job == null) return@combine FinishState()
             val customer = customers.firstOrNull { it.id == job.customerId }
             val elapsed = app.workRepository.elapsedSeconds(job)
-            val quantity = if (job.billingMode == BillingMode.PerHour) elapsed / 3600.0
-            else job.quantity
-            val amount = if (job.billingMode == BillingMode.PerHour) {
-                Math.round(quantity * job.rateRupees)
-            } else {
-                job.amountRupees
-            }
+            val quantity = app.workRepository.billableQuantity(job)
+            val amount = app.workRepository.billableRupees(job)
             val varied = job.billingMode == BillingMode.PerTrip &&
                 amount != Math.round(quantity * job.rateRupees)
 
