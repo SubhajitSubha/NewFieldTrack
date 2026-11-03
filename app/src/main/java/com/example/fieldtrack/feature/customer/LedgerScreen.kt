@@ -21,6 +21,11 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.example.fieldtrack.designsystem.layout.WidthClass
+import com.example.fieldtrack.designsystem.layout.LocalWidthClass
+import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.designsystem.component.FtButton
@@ -64,11 +69,7 @@ fun LedgerScreen(
     val dimens = FieldTrackTheme.dimens
     val owes = state.balanceRupees > 0
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
-    ) {
+    AdaptiveScreen(modifier) {
         FtTopBar(
             title = state.customerName,
             subtitle = state.village,
@@ -119,24 +120,19 @@ fun LedgerScreen(
                     color = colors.inkSecondary,
                 )
             }
-            return@Column
+            return@AdaptiveScreen
         }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(
-                start = dimens.screenPadding,
-                end = dimens.screenPadding,
-                bottom = dimens.space6,
-            ),
-            verticalArrangement = Arrangement.spacedBy(11.dp),
-        ) {
-            item {
+        // The balance and the plots are this farmer at a glance; the khata is the
+        // record. On a tablet they sit beside it rather than above it, so the
+        // record does not start half way down the screen.
+        val twoPane = LocalWidthClass.current == WidthClass.Expanded
+        val balanceCard: @Composable () -> Unit = {
                 // Red when money is out, green when the khata is clear. The colour is
                 // the whole message for someone who reads slowly.
                 FtCard(
-                    background = if (owes) colors.due else colors.primaryWash,
-                    borderColor = if (owes) colors.due else colors.primaryWash,
+                    background = if (owes) colors.dueDeep else colors.primaryWash,
+                    borderColor = if (owes) colors.dueDeep else colors.primaryWash,
                     padding = 18.dp,
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
@@ -165,22 +161,8 @@ fun LedgerScreen(
                         }
                     }
                 }
-            }
-
-            item {
-                CustomerTabStrip(
-                    selected = tab,
-                    onSelect = onTab,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-
-            item { CustomerStatsFor(tab, state) }
-
-            // The way in to this farmer's plots. On the khata rather than in a
-            // menu, because "which field" is a thing said in the same breath as
-            // "what does he owe" — and the plots belong to him, not to the app.
-            item(key = "fields") {
+        }
+        val fieldsRow: @Composable () -> Unit = {
                 FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
                     FtListRow(
                         title = stringResource(R.string.fields_title),
@@ -196,7 +178,30 @@ fun LedgerScreen(
                         onClick = onFields,
                     )
                 }
+        }
+        val list: @Composable (Modifier) -> Unit = { listModifier ->
+        LazyColumn(
+            modifier = listModifier,
+            contentPadding = PaddingValues(
+                start = dimens.screenPadding,
+                end = dimens.screenPadding,
+                bottom = dimens.space6,
+            ),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
+        ) {
+            if (!twoPane) item { balanceCard() }
+
+            item {
+                CustomerTabStrip(
+                    selected = tab,
+                    onSelect = onTab,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
+
+            item { CustomerStatsFor(tab, state) }
+
+            if (!twoPane) item(key = "fields") { fieldsRow() }
 
             if (tab == CustomerTab.Jobs) {
                 if (state.loaded && state.jobs.isEmpty()) {
@@ -284,6 +289,24 @@ fun LedgerScreen(
             }
 
             item { Box(Modifier.height(dimens.space4)) }
+        }
+        }
+        if (twoPane) {
+            Row(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = dimens.screenPadding, end = 8.dp, bottom = dimens.space6),
+                    verticalArrangement = Arrangement.spacedBy(11.dp),
+                ) {
+                    balanceCard()
+                    fieldsRow()
+                }
+                list(Modifier.weight(1.3f))
+            }
+        } else {
+            list(Modifier.weight(1f))
         }
 
         // Pinned rather than scrolled past: these are what the screen is for, and on

@@ -1,6 +1,12 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.designsystem.layout.ReadableWidth
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,11 +86,7 @@ fun LiveWorkScreen(
     val dimens = FieldTrackTheme.dimens
     val unitLabel = stringResource(state.unit.labelRes)
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.primaryPressed)
-    ) {
+    val header: @Composable () -> Unit = {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -113,10 +115,10 @@ fun LiveWorkScreen(
                 onDark = true,
             )
         }
-
+    }
+    val hero: @Composable (Modifier) -> Unit = { heroModifier ->
         Column(
-            Modifier
-                .weight(1f)
+            heroModifier
                 .fillMaxWidth()
                 // Without fillMaxWidth this column shrinks to its widest child and
                 // the root column parks it on the left, so everything "centred"
@@ -160,9 +162,10 @@ fun LiveWorkScreen(
                 }
             }
         }
-
+    }
+    val controls: @Composable (Modifier) -> Unit = { controlsModifier ->
         Column(
-            Modifier
+            controlsModifier
                 .clip(FieldTrackTheme.shapes.sheet)
                 .background(colors.paper)
                 .padding(20.dp),
@@ -232,6 +235,49 @@ fun LiveWorkScreen(
                     icon = FieldTrackIcons.Check,
                     height = 60.dp,
                 )
+            }
+        }
+    }
+
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .background(colors.deepGreen)
+    ) {
+        // On its side — a phone in a cab mount — the clock and the controls sit
+        // side by side. Stacked, the controls took half of a 400dp-tall screen and
+        // cut the clock's own caption off.
+        if (maxWidth > maxHeight && maxWidth >= 600.dp) {
+            Row(Modifier.fillMaxSize()) {
+                Column(
+                    Modifier
+                        .weight(1.15f)
+                        .fillMaxHeight()
+                ) {
+                    header()
+                    hero(Modifier.weight(1f))
+                }
+                // Anchored at the bottom, where the hand rests on a mounted phone,
+                // with the green ground above it — the same sheet-on-green as the
+                // phone held upright, only beside the clock instead of under it.
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    controls(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()))
+                }
+            }
+        } else {
+            Column(Modifier.fillMaxSize()) {
+                header()
+                hero(Modifier.weight(1f))
+                // A tall tablet keeps the stacked layout, with the controls at a
+                // width a hand can span rather than the full width of the glass.
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                    controls(Modifier.widthIn(max = ReadableWidth).fillMaxWidth())
+                }
             }
         }
     }

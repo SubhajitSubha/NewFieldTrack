@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.layout.AdaptiveBody
+import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.feature.measure
 import com.example.fieldtrack.data.db.BillingMode
@@ -74,11 +76,7 @@ fun JobDetailScreen(
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
-    ) {
+    AdaptiveScreen(modifier) {
         FtTopBar(
             title = state.billNumber?.let { stringResource(R.string.finish_bill_no, it) }
                 ?: stringResource(R.string.job_detail_title),
@@ -95,16 +93,12 @@ fun JobDetailScreen(
                     color = colors.inkTertiary,
                 )
             }
-            return@Column
+            return@AdaptiveScreen
         }
 
-        Column(
-            Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
-        ) {
+        // The figure and who earned it on one side; what it cost and what
+        // happened on the other — on a tablet both read at once.
+        AdaptiveBody(primary = {
             SummaryCard(state, onOpenCustomer)
 
             if (state.operatorName != null) {
@@ -149,6 +143,7 @@ fun JobDetailScreen(
                 }
             }
 
+        }, secondary = {
             if (state.finished) {
                 CostCard(state = state, onAddCost = onAddCost, onPayCost = onPayCost)
             }
@@ -170,9 +165,7 @@ fun JobDetailScreen(
                     )
                 }
             }
-
-            Box(Modifier.padding(bottom = dimens.space4))
-        }
+        })
 
         if (state.live || (state.finished && onAmend != null)) {
             Row(
@@ -205,8 +198,8 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
     val unitLabel = stringResource(state.unit.labelRes)
 
     FtCard(
-        background = colors.primaryPressed,
-        borderColor = colors.primaryPressed,
+        background = colors.deepGreen,
+        borderColor = colors.deepGreen,
         padding = 18.dp,
         onClick = onOpenCustomer,
     ) {

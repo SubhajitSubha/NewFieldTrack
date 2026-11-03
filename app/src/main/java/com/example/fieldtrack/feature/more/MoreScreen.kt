@@ -127,6 +127,7 @@ fun MoreScreen(
     /** Null for a driver: the business is not theirs to rename. */
     onEditBusiness: (() -> Unit)?,
     onBackup: () -> Unit,
+    onDisplay: () -> Unit,
     onRates: () -> Unit,
     onMoneyOut: () -> Unit,
     onSeason: () -> Unit,
@@ -318,6 +319,14 @@ fun MoreScreen(
                             color = colors.ink,
                         )
                     },
+                )
+                FtRowDivider()
+                FtListRow(
+                    title = stringResource(R.string.display_title),
+                    subtitle = stringResource(R.string.display_row_note),
+                    leading = { FtIconTile(FieldTrackIcons.Edit, size = 40.dp) },
+                    showChevron = true,
+                    onClick = onDisplay,
                 )
                 FtRowDivider()
                 FtListRow(

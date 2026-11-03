@@ -1,6 +1,9 @@
 package com.example.fieldtrack.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +12,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -170,5 +175,100 @@ fun FtBottomBar(
                 }
             }
         }
+    }
+}
+
+/**
+ * The same destinations as [FtBottomBar], down the side.
+ *
+ * For a window on its side or a tablet, where a bar along the bottom spends height
+ * the screen is short of and leaves the tabs a long thumb-stretch from where the
+ * hand rests. Same order, same icons, same labels — moving a tab's place is fine,
+ * changing what it is called is not.
+ */
+@Composable
+fun FtNavRail(
+    destinations: List<FtNavDestination>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = FieldTrackTheme.colors
+    Row(modifier.fillMaxHeight()) {
+        // A phone on its side has about 350dp between the status bar and the
+        // gesture bar — five full-height tabs did not fit, and the last one (More)
+        // fell off the bottom. Tighter there, and scrollable as a last resort, so
+        // no tab can ever be out of reach.
+        val short = LocalConfiguration.current.screenHeightDp < SHORT_WINDOW_DP
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(92.dp)
+                .background(colors.surface)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = if (short) 4.dp else 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(if (short) 0.dp else 6.dp, Alignment.CenterVertically),
+        ) {
+            destinations.forEachIndexed { index, destination ->
+                val selected = index == selectedIndex
+                val tint = if (selected) colors.primary else colors.inkTertiary
+                val interaction = remember { MutableInteractionSource() }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = null,
+                            role = Role.Tab,
+                            onClick = { onSelect(index) },
+                        )
+                        .padding(vertical = if (short) 4.dp else 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(if (short) 2.dp else 5.dp),
+                ) {
+                    // A pill behind the selected icon: down the side there is no
+                    // underline position to mark it by, and colour alone is not enough.
+                    Box(
+                        Modifier
+                            .clip(CircleShape)
+                            .background(if (selected) colors.primaryWash else androidx.compose.ui.graphics.Color.Transparent)
+                            .padding(horizontal = 18.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null, // the label below names it
+                            tint = tint,
+                            modifier = Modifier.size(25.dp),
+                        )
+                        if (destination.badge) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.due)
+                            )
+                        }
+                    }
+                    Text(
+                        text = destination.label,
+                        style = FieldTrackTheme.type.caption.copy(
+                            fontSize = 12.sp,
+                            fontWeight = if (selected) FontWeight.W700 else FontWeight.W600,
+                        ),
+                        color = tint,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(FieldTrackTheme.dimens.hairline)
+                .background(colors.line)
+        )
     }
 }

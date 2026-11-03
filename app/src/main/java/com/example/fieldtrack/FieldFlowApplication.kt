@@ -144,6 +144,11 @@ class FieldFlowApplication : Application() {
         appScope.launch { block() }
     }
 
+    /** Light or dark, and bigger text — how this phone shows the app. */
+    val displaySettings: com.example.fieldtrack.data.settings.DisplaySettings by lazy {
+        com.example.fieldtrack.data.settings.DisplaySettings(this)
+    }
+
     /** Which overnight clocks this person has already said were real work. */
     val clockConfirmations: ClockConfirmations by lazy { ClockConfirmations(this) }
 

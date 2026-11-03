@@ -216,7 +216,7 @@ fun InviteScreen(
 private fun CodeCard(code: String, daysLeft: Int) {
     val colors = FieldTrackTheme.colors
 
-    FtCard(background = colors.primaryPressed, borderColor = colors.primaryPressed) {
+    FtCard(background = colors.deepGreen, borderColor = colors.deepGreen) {
         Column(
             Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,

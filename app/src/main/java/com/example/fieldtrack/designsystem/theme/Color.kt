@@ -21,10 +21,12 @@ object FtPalette {
     val Line = Color(0xFFE2E0D8)
     val LineStrong = Color(0xFFD8D5CC)
 
-    // Ink. Secondary is 7.3:1 on Surface, tertiary 4.9:1 — both safe for body text.
+    // Ink. Secondary is 7.3:1 on Surface. Tertiary is 5.3:1 on Surface and 4.8:1 on
+    // Paper — it was 6B7B72, which measured 4.0:1 on Paper rather than the 4.9 this
+    // line used to claim; ThemeTest now holds every pair to its number.
     val Ink = Color(0xFF16231C)
     val InkSecondary = Color(0xFF4A5A51)
-    val InkTertiary = Color(0xFF6B7B72)
+    val InkTertiary = Color(0xFF5F6F66)
 
     // Primary — field green. 6.4:1 on Surface; white on it clears AA at any size.
     val Green = Color(0xFF0E6B3D)
@@ -104,6 +106,25 @@ data class FtColors(
     val moneyOnDark: Color,
     val liveDot: Color,
 
+    /**
+     * The one deep card a screen gets — today's money, the job in hand. Dark in
+     * both themes, with [onDark] text on it, which is why it is its own token:
+     * [ink] is a text colour, and in the dark theme text goes light.
+     */
+    val deep: Color,
+
+    /** The working ground: the live job, the summary of a bill. Green, and dark in both themes. */
+    val deepGreen: Color,
+
+    /**
+     * Red as a ground under white text — "they owe". Not [due], which in the dark
+     * theme is a light coral so it can be read as text, and white on it fails.
+     */
+    val dueDeep: Color,
+
+    /** Red as text on the deep card — "1 broken down". Light enough to read on it in both themes. */
+    val dueOnDark: Color,
+
     val chart: List<Color>,
 )
 
@@ -142,11 +163,80 @@ internal val FtLightColors = FtColors(
     moneyOnDark = FtPalette.Gold,
     liveDot = FtPalette.LiveDot,
 
+    deep = FtPalette.Ink,
+    deepGreen = FtPalette.GreenDark,
+    dueDeep = FtPalette.Red,
+    dueOnDark = FtPalette.RedWash,
+
     chart = listOf(
         FtPalette.Chart1,
         FtPalette.Chart2,
         FtPalette.Chart3,
         FtPalette.Chart4,
         FtPalette.Chart5,
+    ),
+)
+
+/**
+ * The dark theme.
+ *
+ * Not the light one inverted. The ground is a green-black rather than grey so the
+ * app still reads as itself; greens, ambers and reds are lifted until they clear
+ * 4.5:1 on the surfaces they sit on; and the washes behind status colours are
+ * deep tints rather than pastels, which glow on a dark screen. Buttons keep the
+ * same meaning — solid green is still the way forward — with dark text on the
+ * brighter green, because white on a light green fails contrast.
+ *
+ * The deep cards keep their dark grounds. In this theme they are lifted above the
+ * page rather than darker than it, so the one card per screen still stands out.
+ */
+internal val FtDarkColors = FtColors(
+    paper = Color(0xFF0D1310),
+    surface = Color(0xFF161E19),
+    surfaceMuted = Color(0xFF1D2621),
+    line = Color(0xFF29342D),
+    lineStrong = Color(0xFF36433B),
+
+    // 15:1, 9.6:1 and 6.0:1 on surface.
+    ink = Color(0xFFE9EFEB),
+    inkSecondary = Color(0xFFB6C3BB),
+    inkTertiary = Color(0xFF8E9E95),
+
+    primary = Color(0xFF52C283),
+    primaryPressed = Color(0xFF9EDDB9),
+    primaryWash = Color(0xFF16301F),
+    onPrimary = Color(0xFF052011),
+    send = Color(0xFF3FDA75),
+
+    money = Color(0xFFE6A253),
+    moneyWash = Color(0xFF33260F),
+    moneyInk = Color(0xFFF5C98B),
+
+    due = Color(0xFFEE6E61),
+    dueWash = Color(0xFF3A1A16),
+    dueInk = Color(0xFFF6AAA0),
+
+    info = Color(0xFF7FA6F3),
+    infoWash = Color(0xFF172544),
+    infoInk = Color(0xFFB6CBF8),
+
+    onDark = FtPalette.OnDark,
+    onDarkMuted = FtPalette.OnDarkMuted,
+    onDarkFaint = FtPalette.OnDarkFaint,
+    moneyOnDark = FtPalette.Gold,
+    liveDot = FtPalette.LiveDot,
+
+    deep = Color(0xFF1C3427),
+    deepGreen = Color(0xFF0E4529),
+    dueDeep = Color(0xFF8C2A20),
+    dueOnDark = Color(0xFFF6AAA0),
+
+    // Brightest first on a dark ground, so rank one is still the one that stands out.
+    chart = listOf(
+        Color(0xFF6FD39A),
+        Color(0xFF4FB57D),
+        Color(0xFF3C9163),
+        Color(0xFF2D6E4B),
+        Color(0xFF225238),
     ),
 )

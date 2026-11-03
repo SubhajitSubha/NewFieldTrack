@@ -68,7 +68,7 @@ fun FtCard(
 @Composable
 fun FtEmphasisCard(
     modifier: Modifier = Modifier,
-    background: Color = FieldTrackTheme.colors.ink,
+    background: Color = FieldTrackTheme.colors.deep,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) = FtCard(

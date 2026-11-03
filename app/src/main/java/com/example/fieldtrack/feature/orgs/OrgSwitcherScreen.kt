@@ -82,12 +82,12 @@ fun OrgSwitcherScreen(
         ) {
             state.current?.let { current ->
                 FtSectionLabel(stringResource(R.string.orgs_right_now))
-                FtCard(background = colors.primaryPressed, borderColor = colors.primaryPressed) {
+                FtCard(background = colors.deepGreen, borderColor = colors.deepGreen) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         FtAvatar(
                             initials = initialsOf(current.name),
                             size = 52.dp,
-                            background = colors.onPrimary.copy(alpha = 0.18f),
+                            background = colors.onDark.copy(alpha = 0.18f),
                             contentColor = colors.onDark,
                         )
                         Column(Modifier.weight(1f).padding(start = 14.dp)) {

@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.team
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.imePadding
@@ -47,6 +49,9 @@ fun AddMemberSheet(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
             Modifier
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 10.dp)
+                // A phone on its side gives a sheet barely 400dp; what does not
+                // fit has to scroll rather than be cut off below the buttons.
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(14.dp),

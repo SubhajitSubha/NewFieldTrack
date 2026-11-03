@@ -1,5 +1,7 @@
 package com.example.fieldtrack.designsystem.theme
 
+import androidx.compose.ui.unit.isUnspecified
+
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -176,3 +178,32 @@ internal val FtDefaultTypography = FtTypography(
         textAlign = TextAlign.Center,
     ),
 )
+
+/**
+ * Every style grown by [factor], line heights with it so lines do not collide.
+ * One knob over the whole scale, so "bigger text" keeps the hierarchy intact.
+ */
+internal fun FtTypography.scaled(factor: Float): FtTypography {
+    if (factor == 1f) return this
+    fun TextStyle.grow() = copy(
+        fontSize = fontSize * factor,
+        lineHeight = if (lineHeight.isUnspecified) lineHeight else lineHeight * factor,
+    )
+    return FtTypography(
+        moneyHero = moneyHero.grow(),
+        moneyLarge = moneyLarge.grow(),
+        moneyMedium = moneyMedium.grow(),
+        numeric = numeric.grow(),
+        screenTitle = screenTitle.grow(),
+        screenTitleCompact = screenTitleCompact.grow(),
+        sectionTitle = sectionTitle.grow(),
+        rowTitle = rowTitle.grow(),
+        body = body.grow(),
+        bodySmall = bodySmall.grow(),
+        label = label.grow(),
+        caption = caption.grow(),
+        overline = overline.grow(),
+        buttonLarge = buttonLarge.grow(),
+        button = button.grow(),
+    )
+}

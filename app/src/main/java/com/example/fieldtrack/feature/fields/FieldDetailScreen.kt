@@ -91,17 +91,17 @@ fun FieldDetailScreen(
             }
 
             if (state.canSeeMoney) {
-                FtCard(background = colors.ink, borderColor = colors.ink) {
+                FtCard(background = colors.deep, borderColor = colors.deep) {
                     Text(
                         text = stringResource(R.string.field_earned).uppercase(),
                         style = FieldTrackTheme.type.caption,
-                        color = colors.paper,
+                        color = colors.onDarkMuted,
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
                         text = rupees(state.earnedRupees),
                         style = FieldTrackTheme.type.moneyHero,
-                        color = colors.paper,
+                        color = colors.onDark,
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
@@ -109,7 +109,7 @@ fun FieldDetailScreen(
                             R.plurals.field_earned_jobs, state.jobs.size, state.jobs.size,
                         ),
                         style = FieldTrackTheme.type.caption,
-                        color = colors.paper,
+                        color = colors.onDarkMuted,
                     )
                 }
             }

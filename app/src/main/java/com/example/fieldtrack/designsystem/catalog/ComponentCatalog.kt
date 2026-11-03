@@ -184,7 +184,7 @@ private fun RunningWorkPreview() {
         Column(
             Modifier
                 .fillMaxSize()
-                .background(FieldTrackTheme.colors.primaryPressed)
+                .background(FieldTrackTheme.colors.deepGreen)
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {

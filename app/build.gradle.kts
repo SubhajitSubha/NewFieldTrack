@@ -68,6 +68,9 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Lets Compose capture a rendered screen to an image under Robolectric,
+            // for the every-screen, every-configuration checks in `screens/`.
+            all { it.systemProperty("robolectric.pixelCopyRenderMode", "hardware") }
         }
     }
 
@@ -202,6 +205,11 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    // Renders the real app headlessly so every screen can be checked in every size,
+    // orientation and theme on each build — fifty screens by four configurations is
+    // not something to verify by hand on an emulator. First-party androidx only.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtFitText
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtIconButton
@@ -103,7 +104,7 @@ fun DriverJobsScreen(
                 .padding(top = 13.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
-            FtCard(background = colors.ink, borderColor = colors.ink) {
+            FtCard(background = colors.deep, borderColor = colors.deep) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -230,7 +231,7 @@ private fun WorkRow(job: DriverWorkRow, onClick: () -> Unit) {
             )
         }
 
-        Text(
+        FtFitText(
             text = duration(job.elapsedSeconds),
             style = FieldTrackTheme.type.moneyMedium,
             color = if (job.live) colors.primary else colors.ink,

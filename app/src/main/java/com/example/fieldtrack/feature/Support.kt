@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -217,16 +218,20 @@ fun WeekBars(hours: List<Double>, modifier: Modifier = Modifier) {
                 // A day with no work still shows a sliver, so the week reads as
                 // seven days rather than as a gap in the data.
                 val fraction = (value / peak).coerceIn(0.0, 1.0)
+                // Green for every day worked, solid for today and lighter for the
+                // rest — readable in both themes. Today used to be drawn in the text
+                // colour, which in the dark theme is a white block.
                 Box(
                     Modifier
                         .fillMaxWidth()
+                        .widthIn(max = 40.dp)
                         .height((12 + fraction * 74).dp)
                         .clip(FieldTrackTheme.shapes.small)
                         .background(
                             when {
-                                index == today -> colors.ink
-                                value > 0 -> colors.primary
-                                else -> colors.line
+                                value <= 0 -> colors.line
+                                index == today -> colors.primary
+                                else -> colors.primary.copy(alpha = 0.45f)
                             }
                         )
                 )

@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,6 +29,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+
+/** Below this many dp of height a window counts as short — a phone on its side. */
+const val SHORT_WINDOW_DP = 480
 
 /** How loud a button is, and what it means. */
 enum class FtButtonTone {
@@ -63,6 +67,11 @@ fun FtButton(
 ) {
     val colors = FieldTrackTheme.colors
     val shapes = FieldTrackTheme.shapes
+    // A phone on its side is about 400dp tall, and the pinned buttons at the foot
+    // of a screen were taking nearly half of it. Compact there, everywhere at once,
+    // still well over the 48dp a thumb needs.
+    val shortWindow = LocalConfiguration.current.screenHeightDp < SHORT_WINDOW_DP
+    val height = if (shortWindow) minOf(height, FieldTrackTheme.dimens.buttonHeightCompact - 4.dp) else height
 
     val container: Color
     val content: Color
@@ -172,7 +181,10 @@ fun FtStepperButton(
         else -> Color.Transparent
     }
     val content = when {
-        filled && onDark -> colors.primaryPressed
+        // The ground under it is the working green in both themes, so the mark on
+        // the white button is that green too — not primaryPressed, which in the
+        // dark theme is a light green that would vanish on white.
+        filled && onDark -> colors.deepGreen
         filled -> colors.onPrimary
         onDark -> colors.onDark
         else -> colors.ink

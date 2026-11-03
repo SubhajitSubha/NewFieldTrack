@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtFitText
 import com.example.fieldtrack.data.repository.ClockCheck
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
@@ -189,7 +190,9 @@ fun HomeHeader(
                 text = title,
                 style = FieldTrackTheme.type.screenTitle,
                 color = colors.ink,
-                maxLines = 1,
+                // Two lines, so a long business name at bigger text wraps rather
+                // than losing its last word to an ellipsis.
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .padding(top = 4.dp)
@@ -556,13 +559,15 @@ fun HeroButton(
     height: Dp = 52.dp,
 ) {
     val colors = FieldTrackTheme.colors
+    // White with the deep card's own colour on it, in both themes: surface and
+    // ink would turn the button dark-on-dark in the dark theme.
     val background = when {
-        filled && dark -> colors.surface
+        filled && dark -> colors.onDark
         filled -> colors.primary
         else -> Color.Transparent
     }
     val content = when {
-        filled && dark -> colors.ink
+        filled && dark -> colors.deep
         filled -> colors.onPrimary
         dark -> colors.onDark
         else -> colors.ink
@@ -627,11 +632,10 @@ fun StatStrip(stats: List<Stat>, modifier: Modifier = Modifier) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
+                    FtFitText(
                         text = stat.value,
                         style = FieldTrackTheme.type.moneyMedium,
                         color = colors.ink,
-                        maxLines = 1,
                         modifier = Modifier.padding(top = 6.dp),
                     )
                     stat.note?.let {
@@ -680,6 +684,7 @@ fun SevenDays(
                 Box(
                     Modifier
                         .fillMaxWidth()
+                        .widthIn(max = 40.dp)
                         .height(4.dp + barHeight * fraction)
                         .clip(RoundedCornerShape(4.dp))
                         .background(
@@ -689,8 +694,8 @@ fun SevenDays(
                                 value <= 0 -> if (dark) colors.onDarkFaint else colors.line
                                 dark && today -> colors.liveDot
                                 dark -> colors.liveDot.copy(alpha = 0.45f)
-                                today -> colors.ink
-                                else -> colors.primary
+                                today -> colors.primary
+                                else -> colors.primary.copy(alpha = 0.45f)
                             }
                         )
                 )
@@ -972,11 +977,10 @@ fun FigureCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
+        FtFitText(
             text = value,
             style = FieldTrackTheme.type.moneyMedium,
             color = valueColor,
-            maxLines = 1,
             modifier = Modifier.padding(top = 6.dp),
         )
         if (note != null) {

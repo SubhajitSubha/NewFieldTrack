@@ -22,6 +22,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtFitText
+import com.example.fieldtrack.designsystem.layout.AdaptiveBody
+import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.imePadding
@@ -89,11 +92,7 @@ fun MachineDetailScreen(
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
-    ) {
+    AdaptiveScreen(modifier) {
         FtTopBar(
             title = state.name,
             onBack = onBack,
@@ -117,16 +116,11 @@ fun MachineDetailScreen(
                     color = colors.inkSecondary,
                 )
             }
-            return@Column
+            return@AdaptiveScreen
         }
 
-        Column(
-            Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
-        ) {
+        // The machine as it stands on one side, the work it has done on the other.
+        AdaptiveBody(primary = {
             FtCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FtIconTile(
@@ -232,6 +226,7 @@ fun MachineDetailScreen(
                 }
             }
 
+        }, secondary = {
             FtSectionLabel(stringResource(R.string.machine_recent_jobs))
             if (state.recentJobs.isEmpty()) {
                 if (state.loaded) {
@@ -268,9 +263,7 @@ fun MachineDetailScreen(
                     }
                 }
             }
-
-            Box(Modifier.height(dimens.space4))
-        }
+        })
     }
 
     if (reporting) {
@@ -316,6 +309,9 @@ private fun ServiceSheet(
             Modifier
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 10.dp)
+                // A phone on its side gives a sheet barely 400dp; what does not
+                // fit has to scroll rather than be cut off below the buttons.
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(11.dp),
@@ -383,6 +379,9 @@ private fun ReportBreakdownSheet(
             Modifier
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 10.dp)
+                // A phone on its side gives a sheet barely 400dp; what does not
+                // fit has to scroll rather than be cut off below the buttons.
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(11.dp),
@@ -500,7 +499,7 @@ private fun StatTile(
             style = FieldTrackTheme.type.overline,
             color = FieldTrackTheme.colors.inkTertiary,
         )
-        Text(
+        FtFitText(
             text = value,
             style = FieldTrackTheme.type.moneyMedium,
             color = valueColor,

@@ -202,7 +202,7 @@ private fun PreviewStep(state: JoinState, onName: (String) -> Unit) {
         )
 
         // The business name, as large as the app can make it. This is the check.
-        FtCard(background = colors.primaryPressed, borderColor = colors.primaryPressed) {
+        FtCard(background = colors.deepGreen, borderColor = colors.deepGreen) {
             Column(
                 Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,

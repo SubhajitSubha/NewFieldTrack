@@ -1,5 +1,19 @@
 package com.example.fieldtrack.feature
 
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.movableContentOf
+import com.example.fieldtrack.designsystem.component.FtNavRail
+import com.example.fieldtrack.designsystem.layout.LocalWidthClass
+import com.example.fieldtrack.designsystem.layout.ReadableWidth
+import com.example.fieldtrack.designsystem.layout.WidthClass
+
 import kotlinx.coroutines.flow.MutableStateFlow
 
 import kotlinx.coroutines.flow.StateFlow
@@ -140,6 +154,7 @@ import com.example.fieldtrack.feature.work.FinishScreen
 import com.example.fieldtrack.feature.work.FinishViewModel
 import com.example.fieldtrack.feature.work.LiveWorkScreen
 import com.example.fieldtrack.feature.work.AskToShowClockOnce
+import com.example.fieldtrack.feature.more.DisplayScreen
 import com.example.fieldtrack.feature.work.LiveWorkViewModel
 import com.example.fieldtrack.feature.work.NewMachineSheet
 import com.example.fieldtrack.feature.team.AddMemberSheet
@@ -195,6 +210,7 @@ internal object Routes {
     const val EDIT_PROFILE = "more/profile/name"
     const val EDIT_BUSINESS = "more/business"
     const val BACKUP = "more/backup"
+    const val DISPLAY = "more/display"
     const val RATES = "more/rates"
     const val ORGS = "more/businesses"
     const val JOIN_ANOTHER = "more/businesses/join"
@@ -284,7 +300,23 @@ fun FieldTrackApp(
 
     LaunchedEffect(Unit) { app.sessionStore.load() }
 
-    FieldTrackTheme {
+    AppTheme {
+      // Signing in and setting up are single columns too, and get the same
+      // readable width on a wide window; the signed-in shell sets its own.
+      Box(
+          Modifier
+              .fillMaxSize()
+              .background(FieldTrackTheme.colors.paper),
+          contentAlignment = Alignment.TopCenter,
+      ) {
+      Box(
+          Modifier
+              .fillMaxHeight()
+              .then(
+                  if (startup is Startup.Ready) Modifier.fillMaxWidth()
+                  else Modifier.widthIn(max = ReadableWidth).fillMaxWidth()
+              )
+      ) {
         when (startup) {
             // Resolving the session is a local database read, so this is a flicker
             // rather than a wait — but something has to be on screen during it.
@@ -396,7 +428,7 @@ fun FieldTrackApp(
                             askedForCode = true
                         },
                     )
-                    return@FieldTrackTheme
+                    return@AppTheme
                 }
 
                 val vm: OnboardingViewModel = appViewModel { OnboardingViewModel(it) }
@@ -421,6 +453,8 @@ fun FieldTrackApp(
 
             is Startup.Ready -> MainGraph(navController, openJobRequests, onOpenJobHandled)
         }
+      }
+      }
     }
 }
 
@@ -469,21 +503,71 @@ private fun MainGraph(
     val entry by navController.currentBackStackEntryAsState()
     val tab = roots.indexOf(entry?.destination?.route)
 
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) {
-            MainNavHost(navController)
-        }
-        // The bar belongs to the tabs only. On a job in progress or a bill being
-        // written, anything that invites you to wander off is a way to lose work.
-        if (tab >= 0) {
-            FtBottomBar(
-                destinations = bottomDestinations(roots, driver),
-                selectedIndex = tab,
-                onSelect = { index -> navController.switchTab(roots[index]) },
-            )
+    // One host, moved rather than rebuilt when the layout around it changes — a
+    // foldable opened mid-job must not lose the screen it was on.
+    val host = remember(navController) { movableContentOf { MainNavHost(navController) } }
+    val route = entry?.destination?.route
+
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(FieldTrackTheme.colors.paper)
+    ) {
+        val width = WidthClass.of(maxWidth)
+        CompositionLocalProvider(LocalWidthClass provides width) {
+            val content: @Composable () -> Unit = {
+                // Every single-column screen kept to a readable width on a wide
+                // window, here once rather than in forty screens. The screens that
+                // lay themselves out in columns get the whole width to do it in.
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .then(
+                                if (route in FULL_WIDTH_ROUTES) Modifier.fillMaxWidth()
+                                else Modifier.widthIn(max = ReadableWidth).fillMaxWidth()
+                            )
+                    ) { host() }
+                }
+            }
+            // The bar belongs to the tabs only. On a job in progress or a bill being
+            // written, anything that invites you to wander off is a way to lose work.
+            if (!width.wide) {
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) { content() }
+                    if (tab >= 0) {
+                        FtBottomBar(
+                            destinations = bottomDestinations(roots, driver),
+                            selectedIndex = tab,
+                            onSelect = { index -> navController.switchTab(roots[index]) },
+                        )
+                    }
+                }
+            } else {
+                // On its side or on a tablet the tabs go down the edge: a bar along
+                // the bottom spends height a landscape screen does not have.
+                Row(Modifier.fillMaxSize()) {
+                    if (tab >= 0) {
+                        FtNavRail(
+                            destinations = bottomDestinations(roots, driver),
+                            selectedIndex = tab,
+                            onSelect = { index -> navController.switchTab(roots[index]) },
+                        )
+                    }
+                    Box(Modifier.weight(1f)) { content() }
+                }
+            }
         }
     }
 }
+
+/**
+ * Screens that arrange themselves across a wide window — two columns, or a
+ * full-bleed ground — and so are not held to [ReadableWidth] by the shell.
+ */
+private val FULL_WIDTH_ROUTES = setOf(
+    Routes.HOME, Routes.LIVE, Routes.JOB, Routes.LEDGER, Routes.MACHINE, Routes.FLEET,
+)
 
 /**
  * The bar, built from the very list the taps navigate to.
@@ -641,6 +725,19 @@ private fun MainNavHost(navController: NavHostController) {
                     navController,
                     forCustomerId = null,
                     forFieldId = entry.arguments?.getString("fieldId"),
+                )
+            }
+
+            composable(Routes.DISPLAY) {
+                val settings = app.displaySettings
+                val theme by settings.theme.collectAsStateWithLifecycle()
+                val bigger by settings.biggerText.collectAsStateWithLifecycle()
+                DisplayScreen(
+                    theme = theme,
+                    biggerText = bigger,
+                    onTheme = settings::setTheme,
+                    onBiggerText = settings::setBiggerText,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -1261,6 +1358,7 @@ private fun MainNavHost(navController: NavHostController) {
                         { navController.navigate(Routes.EDIT_BUSINESS) }
                     } else null,
                     onBackup = { navController.navigate(Routes.BACKUP) },
+                    onDisplay = { navController.navigate(Routes.DISPLAY) },
                     onRates = { navController.navigate(Routes.RATES) },
                     onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
                     onSeason = { navController.navigate(Routes.SEASON) },

@@ -599,6 +599,22 @@
     <string name="notify_reminder_title">Still working for %1$s?</string>
     <string name="notify_reminder_body">The clock has run %1$s. Pause it if the work has stopped, so the bill is right.</string>
 
+    <!-- How this phone shows the app. -->
+    <string name="display_title">Display</string>
+    <string name="display_row_note">Light or dark, and bigger text</string>
+    <string name="display_theme">Colours</string>
+    <string name="display_theme_system">Same as the phone</string>
+    <string name="display_theme_system_note">Light or dark, as the phone itself is set</string>
+    <string name="display_theme_light">Light</string>
+    <string name="display_theme_light_note">Easiest to read outdoors in the sun</string>
+    <string name="display_theme_dark">Dark</string>
+    <string name="display_theme_dark_note">Easier on the eyes in the cab at night</string>
+    <string name="display_text">Text</string>
+    <string name="display_bigger_text">Bigger text</string>
+    <string name="display_bigger_text_note">Makes every word in the app a size larger</string>
+    <string name="display_sample">How it looks</string>
+    <string name="display_sample_line">3 jobs · 12 bigha</string>
+
     <!-- A clock left running. Asked, never assumed: only the person there knows. -->
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="duration_minutes">%1$d min</string>

@@ -16,6 +16,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.fieldtrack.data.session.Startup
 import com.example.fieldtrack.data.sync.SyncWorker
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.AppTheme
 import com.example.fieldtrack.feature.FieldTrackApp
 
 /**
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            FieldTrackTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars),
                     color = FieldTrackTheme.colors.paper,

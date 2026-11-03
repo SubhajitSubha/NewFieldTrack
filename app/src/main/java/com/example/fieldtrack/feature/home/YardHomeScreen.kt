@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtFitText
 import com.example.fieldtrack.data.repository.ClockCheck
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -171,7 +172,7 @@ private fun YardHero(state: YardHomeState, onOpenFleet: () -> Unit) {
             DarkFigure(
                 value = if (state.loaded) state.machinesDown.toString() else NOT_YET,
                 label = stringResource(R.string.home_figure_down),
-                accent = if (state.machinesDown > 0) colors.dueWash else null,
+                accent = if (state.machinesDown > 0) colors.dueOnDark else null,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -259,11 +260,10 @@ private fun DarkFigure(
 ) {
     val colors = FieldTrackTheme.colors
     Column(modifier) {
-        Text(
+        FtFitText(
             text = value,
             style = FieldTrackTheme.type.moneyLarge,
             color = accent ?: colors.onDark,
-            maxLines = 1,
         )
         Text(
             text = label,

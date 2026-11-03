@@ -75,7 +75,7 @@ fun FuelLogScreen(
         ) {
             // The total first, because the question behind opening this screen is
             // "what is this machine costing me", not "when was it last filled".
-            FtCard(background = colors.ink, borderColor = colors.ink) {
+            FtCard(background = colors.deep, borderColor = colors.deep) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     // Litres either way; rupees only for somebody allowed them.
                     // A driver is told what went in, not what the owner paid.
@@ -232,6 +232,9 @@ private fun FuelSheet(
             Modifier
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 10.dp)
+                // A phone on its side gives a sheet barely 400dp; what does not
+                // fit has to scroll rather than be cut off below the buttons.
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(11.dp),

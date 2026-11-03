@@ -74,17 +74,17 @@ fun MoneyOutScreen(
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             item {
-                FtCard(background = colors.ink, borderColor = colors.ink) {
+                FtCard(background = colors.deep, borderColor = colors.deep) {
                     Text(
                         text = stringResource(R.string.money_out_title).uppercase(),
                         style = FieldTrackTheme.type.caption,
-                        color = colors.paper,
+                        color = colors.onDarkMuted,
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
                         text = rupees(state.totalRupees),
                         style = FieldTrackTheme.type.moneyHero,
-                        color = colors.paper,
+                        color = colors.onDark,
                     )
                     if (state.unattributableRupees > 0) {
                         Spacer(Modifier.height(7.dp))
@@ -94,7 +94,7 @@ fun MoneyOutScreen(
                                 rupees(state.unattributableRupees),
                             ),
                             style = FieldTrackTheme.type.caption,
-                            color = colors.paper,
+                            color = colors.onDarkMuted,
                         )
                     }
                 }

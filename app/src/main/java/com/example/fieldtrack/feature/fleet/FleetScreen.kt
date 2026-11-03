@@ -21,6 +21,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtFitText
+import com.example.fieldtrack.designsystem.layout.AdaptiveBody
+import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -45,78 +48,70 @@ fun FleetScreen(
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
-    ) {
+    AdaptiveScreen(modifier) {
         FtTopBar(title = stringResource(R.string.fleet_title))
 
-        Column(
-            Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
-        ) {
-            if (state.loaded && !state.hasMachines) {
+        if (state.loaded && !state.hasMachines) {
+            FtCard(Modifier.padding(horizontal = dimens.screenPadding)) {
+                Text(
+                    text = stringResource(R.string.fleet_empty_title),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = colors.ink,
+                )
+                Text(
+                    text = stringResource(R.string.fleet_empty_body),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkTertiary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            return@AdaptiveScreen
+        }
+
+        // How the machines stand and how hard they worked on one side; what needs
+        // doing about them on the other.
+        AdaptiveBody(primary = {
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                StatusTile(state.working, R.string.fleet_working, colors.primary, Modifier.weight(1f))
+                StatusTile(state.idle, R.string.fleet_idle, colors.inkSecondary, Modifier.weight(1f))
+                StatusTile(state.down, R.string.fleet_down, colors.due, Modifier.weight(1f))
+            }
+
+            HoursChart(state.weekHours)
+        }, secondary = {
+            FtSectionLabel(stringResource(R.string.fleet_attention))
+            if (state.attention.isEmpty()) {
                 FtCard {
                     Text(
-                        text = stringResource(R.string.fleet_empty_title),
-                        style = FieldTrackTheme.type.rowTitle,
-                        color = colors.ink,
-                    )
-                    Text(
-                        text = stringResource(R.string.fleet_empty_body),
+                        text = stringResource(R.string.fleet_all_well),
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.inkTertiary,
-                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    StatusTile(state.working, R.string.fleet_working, colors.primary, Modifier.weight(1f))
-                    StatusTile(state.idle, R.string.fleet_idle, colors.inkSecondary, Modifier.weight(1f))
-                    StatusTile(state.down, R.string.fleet_down, colors.due, Modifier.weight(1f))
+                state.attention.forEach { item ->
+                    // Tappable now. These rows named the broken machine and then
+                    // offered nothing to do about it, which is where the dead end
+                    // was most visible.
+                    AttentionCard(item, onClick = onUpkeep)
                 }
-
-                HoursChart(state.weekHours)
-
-                FtSectionLabel(stringResource(R.string.fleet_attention))
-                if (state.attention.isEmpty()) {
-                    FtCard {
-                        Text(
-                            text = stringResource(R.string.fleet_all_well),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkTertiary,
-                        )
-                    }
-                } else {
-                    state.attention.forEach { item ->
-                        // Tappable now. These rows named the broken machine and then
-                        // offered nothing to do about it, which is where the dead end
-                        // was most visible.
-                        AttentionCard(item, onClick = onUpkeep)
-                    }
-                }
-
-                FtButton(
-                    text = stringResource(R.string.fleet_upkeep),
-                    onClick = onUpkeep,
-                    icon = FieldTrackIcons.Service,
-                    tone = FtButtonTone.Secondary,
-                    height = 54.dp,
-                )
-
-                FtButton(
-                    text = stringResource(R.string.fleet_see_all),
-                    onClick = onSeeAllMachines,
-                    tone = FtButtonTone.Secondary,
-                    height = 54.dp,
-                )
             }
-            Box(Modifier.height(dimens.space4))
-        }
+
+            FtButton(
+                text = stringResource(R.string.fleet_upkeep),
+                onClick = onUpkeep,
+                icon = FieldTrackIcons.Service,
+                tone = FtButtonTone.Secondary,
+                height = 54.dp,
+            )
+
+            FtButton(
+                text = stringResource(R.string.fleet_see_all),
+                onClick = onSeeAllMachines,
+                tone = FtButtonTone.Secondary,
+                height = 54.dp,
+            )
+        })
     }
 }
 
@@ -127,7 +122,7 @@ private fun StatusTile(count: Int, labelRes: Int, tint: Color, modifier: Modifie
             Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
+            FtFitText(
                 text = count.toString(),
                 style = FieldTrackTheme.type.moneyMedium,
                 color = tint,

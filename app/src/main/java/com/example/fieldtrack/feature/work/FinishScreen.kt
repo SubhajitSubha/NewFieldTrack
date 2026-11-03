@@ -47,6 +47,7 @@ import com.example.fieldtrack.designsystem.format.quantity
 import com.example.fieldtrack.designsystem.format.rupees
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.designsystem.theme.OnPaper
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.data.auth.formatIndianPhone
@@ -465,103 +466,105 @@ private fun SavedStep(state: FinishState, receivedRupees: Long, finalBalanceRupe
     }
 
     FtSectionLabel(stringResource(R.string.finish_receipt_preview))
-    FtCard {
-        // The letterhead, as the customer will see it. Each line only when it is
-        // set: a farmer with no GST number should not be handed a bill with a gap
-        // where one would go.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FtIconTile(
-                icon = FieldTrackIcons.Tractor,
-                size = 38.dp,
-                background = FieldTrackTheme.colors.primary,
-                tint = FieldTrackTheme.colors.onPrimary,
-            )
-            Column(Modifier.padding(start = 11.dp)) {
-                Text(
-                    text = state.businessName.ifBlank { stringResource(R.string.app_name) },
-                    style = FieldTrackTheme.type.rowTitle,
-                    color = FieldTrackTheme.colors.ink,
+    OnPaper {
+        FtCard {
+            // The letterhead, as the customer will see it. Each line only when it is
+            // set: a farmer with no GST number should not be handed a bill with a gap
+            // where one would go.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FtIconTile(
+                    icon = FieldTrackIcons.Tractor,
+                    size = 38.dp,
+                    background = FieldTrackTheme.colors.primary,
+                    tint = FieldTrackTheme.colors.onPrimary,
                 )
-                val letterhead = listOfNotNull(
-                    state.businessAddress?.takeIf { it.isNotBlank() },
-                    state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
-                ).joinToString(" · ")
-                if (letterhead.isNotBlank()) {
+                Column(Modifier.padding(start = 11.dp)) {
                     Text(
-                        text = letterhead,
-                        style = FieldTrackTheme.type.caption,
-                        color = FieldTrackTheme.colors.inkTertiary,
-                        modifier = Modifier.padding(top = 1.dp),
+                        text = state.businessName.ifBlank { stringResource(R.string.app_name) },
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = FieldTrackTheme.colors.ink,
                     )
+                    val letterhead = listOfNotNull(
+                        state.businessAddress?.takeIf { it.isNotBlank() },
+                        state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
+                    ).joinToString(" · ")
+                    if (letterhead.isNotBlank()) {
+                        Text(
+                            text = letterhead,
+                            style = FieldTrackTheme.type.caption,
+                            color = FieldTrackTheme.colors.inkTertiary,
+                            modifier = Modifier.padding(top = 1.dp),
+                        )
+                    }
                 }
             }
-        }
-        Box(
-            Modifier
-                .padding(vertical = 12.dp)
-                .fillMaxWidth()
-                .height(FieldTrackTheme.dimens.hairline)
-                .background(FieldTrackTheme.colors.line)
-        )
-        FtSectionLabel(stringResource(R.string.finish_bill_for))
-        Text(
-            text = state.customerName,
-            style = FieldTrackTheme.type.rowTitle,
-            color = FieldTrackTheme.colors.ink,
-            modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
-        )
-        AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountRupees)
-        if (state.previousBalanceRupees != 0L) {
-            AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceRupees)
-        }
-        if (receivedRupees > 0) {
-            AmountLine(stringResource(R.string.money_paid_today), -receivedRupees, tone = FtMoneyTone.Received)
-        }
-        Box(
-            Modifier
-                .padding(vertical = 10.dp)
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(FieldTrackTheme.colors.ink)
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .padding(vertical = 12.dp)
+                    .fillMaxWidth()
+                    .height(FieldTrackTheme.dimens.hairline)
+                    .background(FieldTrackTheme.colors.line)
+            )
+            FtSectionLabel(stringResource(R.string.finish_bill_for))
             Text(
-                text = stringResource(R.string.money_balance),
-                style = FieldTrackTheme.type.sectionTitle,
+                text = state.customerName,
+                style = FieldTrackTheme.type.rowTitle,
                 color = FieldTrackTheme.colors.ink,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )
-            // A settled bill is not a debt, so it should not be shouting in red.
-            FtMoney(
-                amount = remaining,
-                size = FtMoneySize.Medium,
-                tone = if (remaining > 0) FtMoneyTone.Due else FtMoneyTone.Received,
+            AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountRupees)
+            if (state.previousBalanceRupees != 0L) {
+                AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceRupees)
+            }
+            if (receivedRupees > 0) {
+                AmountLine(stringResource(R.string.money_paid_today), -receivedRupees, tone = FtMoneyTone.Received)
+            }
+            Box(
+                Modifier
+                    .padding(vertical = 10.dp)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(FieldTrackTheme.colors.ink)
             )
-        }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.money_balance),
+                    style = FieldTrackTheme.type.sectionTitle,
+                    color = FieldTrackTheme.colors.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                // A settled bill is not a debt, so it should not be shouting in red.
+                FtMoney(
+                    amount = remaining,
+                    size = FtMoneySize.Medium,
+                    tone = if (remaining > 0) FtMoneyTone.Due else FtMoneyTone.Received,
+                )
+            }
 
-        state.businessUpiId?.takeIf { it.isNotBlank() }?.let { upi ->
+            state.businessUpiId?.takeIf { it.isNotBlank() }?.let { upi ->
+                Text(
+                    text = stringResource(R.string.finish_pay_upi, upi),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = FieldTrackTheme.colors.primaryPressed,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+
+            // The line that makes the slip a document: when, which bill, and who made it.
             Text(
-                text = stringResource(R.string.finish_pay_upi, upi),
-                style = FieldTrackTheme.type.bodySmall,
-                color = FieldTrackTheme.colors.primaryPressed,
-                modifier = Modifier.padding(top = 10.dp),
+                text = listOfNotNull(
+                    state.billedAtMillis?.let { dayMonthYear(it) },
+                    state.billNumber?.let { stringResource(R.string.finish_bill_no, it) },
+                    stringResource(R.string.finish_made_with),
+                ).joinToString(" · "),
+                style = FieldTrackTheme.type.caption,
+                color = FieldTrackTheme.colors.inkTertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .fillMaxWidth(),
             )
         }
-
-        // The line that makes the slip a document: when, which bill, and who made it.
-        Text(
-            text = listOfNotNull(
-                state.billedAtMillis?.let { dayMonthYear(it) },
-                state.billNumber?.let { stringResource(R.string.finish_bill_no, it) },
-                stringResource(R.string.finish_made_with),
-            ).joinToString(" · "),
-            style = FieldTrackTheme.type.caption,
-            color = FieldTrackTheme.colors.inkTertiary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .fillMaxWidth(),
-        )
     }
 }
 
