@@ -58,6 +58,14 @@ class TestHarness {
         deviceId = DEVICE,
     )
 
+    val directory = com.example.fieldtrack.data.repository.DirectoryRepository(
+        db = db,
+        syncQueue = syncQueue,
+        ledger = ledger,
+        clock = clock,
+        ids = ids,
+    )
+
     fun advanceMinutes(minutes: Long) {
         nowMillis += minutes * 60_000
     }

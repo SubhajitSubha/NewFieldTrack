@@ -547,6 +547,50 @@ private fun CostCard(
         }
     }
 
+    // Said in words as well as in red: a negative figure is easy to read past, and
+    // a job that cost more than it brought in is the thing this card exists to show.
+    state.lostRupees?.let { lost ->
+        Spacer(Modifier.height(9.dp))
+        FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+            Text(
+                text = stringResource(R.string.cost_lost, rupees(lost)),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.dueInk,
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = stringResource(R.string.cost_lost_note),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.dueInk,
+            )
+        }
+    }
+
+    // The machine's own wear and loan, for the hours this job ran. An estimate, so
+    // it sits apart and says so; the figures above it are not changed by it.
+    val share = state.machineShareRupees
+    val afterMachine = state.leftAfterMachineRupees
+    if (state.canTotal && share != null && afterMachine != null) {
+        Spacer(Modifier.height(9.dp))
+        FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+            Text(
+                text = stringResource(
+                    if (afterMachine >= 0) R.string.cost_share_keeps else R.string.cost_share_loses,
+                    rupees(share),
+                    rupees(kotlin.math.abs(afterMachine)),
+                ),
+                style = FieldTrackTheme.type.bodySmall,
+                color = if (afterMachine >= 0) colors.inkSecondary else colors.dueInk,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.cost_share_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+        }
+    }
+
     // A cost somebody recorded in the field and nobody has priced. Without a
     // way in to that row, the only button on this screen adds a second entry
     // beside it and the same crew is counted twice.

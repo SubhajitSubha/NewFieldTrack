@@ -8,6 +8,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
@@ -73,6 +77,55 @@ abstract class ScreenMatrix(
         routes(ids).forEach { (name, route) -> shoot("owner", name, route) }
     }
 
+    /** Setting up a job on a machine that has history: the cost hint under the rate. */
+    @Test fun startHint() {
+        runBlocking { seedBusiness(business = true) }
+        start()
+        compose.runOnUiThread { nav.navigate(Routes.START) }
+        settle()
+        // Scrolled to before each tap: on a phone on its side the row is below the
+        // fold, and a node that is not on screen cannot be clicked.
+        fun tap(text: String, substring: Boolean = false) {
+            runCatching { compose.onNode(hasText(text, substring = substring)).performScrollTo() }
+            runCatching { compose.onNode(hasText(text, substring = substring)).performClick() }
+            settle()
+        }
+        // Searched for rather than scrolled to: on a phone on its side the farmer is
+        // below a list that has no room for him.
+        runCatching { compose.onNode(hasSetTextAction()).performTextInput("Ramesh") }
+        settle()
+        tap("Ramesh Singh")
+        tap("Swaraj 855", substring = true)
+        tap("Next")
+        tap("Next")
+        capture("sheets", "start-hint-no-rate")
+        // The rate arrives filled in from the last time (₹1,000); typing replaces it.
+        runCatching { compose.onNode(hasSetTextAction()).performTextReplacement("1500") }
+        settle()
+        capture("sheets", "start-hint-profit")
+        runCatching { compose.onNode(hasSetTextAction()).performTextReplacement("200") }
+        settle()
+        capture("sheets", "start-hint-loss")
+    }
+
+    /** The Jobs list on "Done today", where the amounts and the loss mark are. */
+    @Test fun jobsDone() {
+        runBlocking { seedBusiness(business = true) }
+        start()
+        jobsDone("owner")
+    }
+
+    private fun jobsDone(pass: String) {
+        compose.runOnUiThread { nav.navigate(Routes.JOBS) { launchSingleTop = true } }
+        settle()
+        runCatching { compose.onNode(hasText("Done today")).performClick() }
+        settle()
+        capture(pass, "jobs-done-today")
+        runCatching { compose.onNode(hasText("This week")).performClick() }
+        settle()
+        capture(pass, "jobs-this-week")
+    }
+
     /** What only opens on a tap: the job's action menu, and the overnight-clock question. */
     @Test fun sheets() {
         val ids = runBlocking {
@@ -131,6 +184,29 @@ abstract class ScreenMatrix(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
             "more" to Routes.MORE, "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
         ).forEach { (name, route) -> shoot("driver", name, route) }
+    }
+
+    /** Given the machines but not the money: no rupees anywhere, and no cost screens. */
+    @Test fun machinesOnlyManager() {
+        val ids = runBlocking {
+            val ids = seedBusiness(business = true)
+            val now = System.currentTimeMillis()
+            app.db.orgDao().upsertMembership(
+                MembershipEntity(
+                    id = membershipId(ORG, "manager-bittu"), orgId = ORG, personId = "manager-bittu",
+                    displayName = "Bittu", role = MemberRole.Operator, canEditMachines = true,
+                    joinedAt = now, updatedAt = now,
+                )
+            )
+            seedSession(ORG, "manager-bittu", MemberRole.Operator, business = true)
+            ids
+        }
+        start()
+        listOf(
+            "home" to Routes.HOME, "jobs" to Routes.JOBS, "fleet" to Routes.FLEET,
+            "machine" to "machines/${ids.machineId}", "machine-edit" to "machines/${ids.machineId}/edit",
+        ).forEach { (name, route) -> shoot("manager-machines", name, route) }
+        jobsDone("manager-machines")
     }
 
     /** Before anybody is signed in, and before they belong to a business. */
@@ -256,6 +332,7 @@ abstract class ScreenMatrix(
         val machineId: String,
         val doneJobId: String,
         val costId: String,
+        val lossJobId: String,
         val crewJobId: String,
         val ownJobId: String,
         val driverMembershipId: String,
@@ -341,6 +418,32 @@ abstract class ScreenMatrix(
         val own = work.startJob(ORG, ramesh, "Rotavator", BillingMode.PerHour, MeasureUnit.Hour, 900, swaraj, null, OWNER)
         work.pause(ORG, own)
 
+        // What a machine costs: a loan on the Swaraj, and enough finished hours on
+        // it that an hour's cost is worth saying. Elapsed time is set directly —
+        // a test that really waited out twenty-five hours would not finish.
+        dir.setMachineFinance(ORG, owner, swaraj, 12_000, 700)
+        db.execSQL("UPDATE jobs SET elapsedSeconds = ${9 * 3600} WHERE id = '$done'")
+        finishedJob(ramesh, swaraj, "Rotavator", BillingMode.PerAcre, MeasureUnit.Bigha, 1_000, 10.0, 8, daysAgo = 9)
+        finishedJob(ramesh, swaraj, "Rotavator", BillingMode.PerAcre, MeasureUnit.Bigha, 1_000, 12.0, 9, daysAgo = 12)
+        work.addFuelForMachine(ORG, swaraj, 200.0, 18_000, OWNER)
+        work.recordService(ORG, swaraj, "Oil and filters", 6_000, "Singh Motors", partsNote = "Engine oil, oil filter, fuel filter")
+
+        // A job that cost more than it brought in, today: ₹1,200 billed, ₹1,500 of
+        // diesel on it. It shows on the home, the jobs list, its own page and the season.
+        val loss = finishedJob(harjit, swaraj, "Ploughing", BillingMode.PerHour, MeasureUnit.Hour, 400, 3.0, 3, daysAgo = 0)
+        work.addFuel(ORG, loss, 20.0, 1_500, OWNER)
+
+        // The John Deere drinking a third more than it did: 4 L an hour over the last
+        // week against 3 before, with enough jobs and hours behind both.
+        listOf(1, 2).forEach { d ->
+            val j = finishedJob(harjit, deere, "Ploughing", BillingMode.PerAcre, MeasureUnit.Acre, 1_400, 3.0, 3, daysAgo = d)
+            work.addFuel(ORG, j, 12.0, 1_100, driverPerson)
+        }
+        listOf(10, 15, 20).forEach { d ->
+            val j = finishedJob(harjit, deere, "Ploughing", BillingMode.PerAcre, MeasureUnit.Acre, 1_400, 4.0, 4, daysAgo = d)
+            work.addFuel(ORG, j, 12.0, 1_100, driverPerson)
+        }
+
         work.reportBreakdownForMachine(ORG, kartar, BreakdownCategory.Hydraulics, "Leaking pipe", OWNER)
         work.addFuelForMachine(ORG, swaraj, 40.0, 3_800, OWNER)
         work.recordService(ORG, deere, "Oil and filters", 2_400, "Singh Motors")
@@ -348,9 +451,28 @@ abstract class ScreenMatrix(
 
         return Ids(
             customerId = ramesh, fieldId = field.id, machineId = swaraj, doneJobId = done,
-            costId = cost.id, crewJobId = crew, ownJobId = own,
+            costId = cost.id, lossJobId = loss, crewJobId = crew, ownJobId = own,
             driverMembershipId = membershipId(ORG, driverPerson), driverPersonId = driverPerson,
         )
+    }
+
+    private val db get() = app.db.openHelper.writableDatabase
+
+    /** A finished job of a known length, some days back. */
+    private suspend fun finishedJob(
+        customerId: String, machineId: String, type: String, mode: BillingMode,
+        unit: MeasureUnit, rate: Long, quantity: Double, hours: Int, daysAgo: Int,
+    ): String {
+        val id = app.workRepository.startJob(ORG, customerId, type, mode, unit, rate, machineId, null, OWNER)
+        if (mode != BillingMode.PerHour) app.workRepository.setQuantity(ORG, id, quantity)
+        app.workRepository.complete(ORG, id, OWNER)
+        val at = System.currentTimeMillis() - daysAgo * 86_400_000L
+        db.execSQL(
+            "UPDATE jobs SET elapsedSeconds = ${hours * 3600L}, workedAt = $at, startedAt = $at, completedAt = $at " +
+                (if (mode == BillingMode.PerHour) ", quantity = $hours " else "") +
+                "WHERE id = '$id'"
+        )
+        return id
     }
 
     private fun routes(ids: Ids) = listOf(
@@ -384,6 +506,7 @@ abstract class ScreenMatrix(
         "edit-machine" to "machines/${ids.machineId}/edit",
         "fuel" to "machines/${ids.machineId}/fuel",
         "machine-profit" to "machines/${ids.machineId}/made",
+        "loss-job" to "jobs/${ids.lossJobId}",
         "upkeep" to Routes.UPKEEP,
         "money-out" to Routes.MONEY_OUT,
         "pay-out" to Routes.PAY_OUT,

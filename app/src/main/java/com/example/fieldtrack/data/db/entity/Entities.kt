@@ -229,7 +229,23 @@ data class MachineEntity(
     val plate: String? = null,
     val photoPath: String? = null,
     val status: MachineStatus = MachineStatus.Idle,
+    /**
+     * The hour meter as somebody last said it was — NOT the machine's hours today.
+     *
+     * Hours worked since [hoursAsOf] are added on top, read off the jobs that were
+     * finished on this machine (see `MachineWithWork`). Nothing used to add them:
+     * the figure only ever changed when somebody typed a new one, so "service due
+     * in 250 hr" counted down from a number that never moved. Storing the reading
+     * and deriving the rest — rather than bumping this on every finished job —
+     * keeps two phones that both finish work offline from overwriting each
+     * other's hours when they sync.
+     */
     val hoursUsed: Double = 0.0,
+    /**
+     * When [hoursUsed] was true. Work finished after this is added to it. Null on
+     * a machine written before this existed, which is read as [createdAt].
+     */
+    val hoursAsOf: Long? = null,
     /** Service every N hours. Null means this machine is not on a schedule. */
     val serviceIntervalHours: Double? = null,
     val lastServiceAtHours: Double? = null,
@@ -264,6 +280,38 @@ data class ServiceRecordEntity(
     val atMachineHours: Double? = null,
     val atMillis: Long,
     val vendor: String? = null,
+    /** What was changed — "fuel filter, hydraulic oil". Free words, optional. */
+    val partsNote: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/**
+ * What a machine costs to own, kept apart from the machine.
+ *
+ * A machine document is readable by every member, a driver included. A loan
+ * instalment is the owner's business and nobody else's, and a document cannot
+ * hide one of its own fields — so it lives in a record of its own, with rules that
+ * let only an owner or a manager read it. The same split as a crew's wages
+ * ([JobCostAmountDoc]), and for the same reason.
+ *
+ * The id is the machine's id: one record per machine, written over by whoever
+ * last edited it.
+ */
+@Entity(tableName = "machine_finance", indices = [Index("orgId")])
+@Serializable
+data class MachineFinanceEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    /** Loan instalment, insurance and the like, per month. Null when none was entered. */
+    val monthlyRupees: Long? = null,
+    /**
+     * How many hours a year this machine works, when the owner knows.
+     *
+     * The loan is spread over these. Left blank, the last twelve months of recorded
+     * work stand in — once there are enough of them to mean anything.
+     */
+    val hoursPerYear: Int? = null,
+    val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
 )
 

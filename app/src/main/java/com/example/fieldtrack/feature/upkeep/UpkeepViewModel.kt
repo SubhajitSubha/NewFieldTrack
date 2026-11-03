@@ -58,6 +58,7 @@ data class ServiceDone(
     val vendor: String?,
     val costRupees: Long?,
     val atMillis: Long,
+    val partsNote: String? = null,
 )
 
 data class UpkeepState(
@@ -76,6 +77,8 @@ data class ServiceDraft(
     val description: String = "",
     val costText: String = "",
     val vendor: String = "",
+    /** What was changed — filters, oil, a belt. Optional. */
+    val parts: String = "",
     /** Set when this repair closes a specific breakdown. */
     val closesBreakdownId: String? = null,
 ) {
@@ -146,6 +149,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         vendor = record.vendor,
                         costRupees = record.costRupees,
                         atMillis = record.atMillis,
+                        partsNote = record.partsNote,
                     )
                 },
                 machines = machines,
@@ -184,6 +188,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
         it?.copy(costText = value.filter { c -> c.isDigit() })
     }
     fun setDraftVendor(value: String) = _draft.update { it?.copy(vendor = value) }
+    fun setDraftParts(value: String) = _draft.update { it?.copy(parts = value) }
     fun dismissDraft() { _draft.value = null }
 
     fun saveDraft() = viewModelScope.launch {
@@ -197,6 +202,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
             costRupees = draft.costRupees,
             vendor = draft.vendor,
             closesBreakdownId = draft.closesBreakdownId,
+            partsNote = draft.parts,
         )
         _draft.value = null
     }

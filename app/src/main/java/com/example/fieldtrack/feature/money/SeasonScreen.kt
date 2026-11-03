@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
@@ -145,6 +146,20 @@ fun SeasonScreen(
                         color = colors.inkTertiary,
                         modifier = Modifier.padding(top = 3.dp),
                     )
+                    if (state.loanRupees > 0) {
+                        Spacer(Modifier.height(9.dp))
+                        SeasonLine(
+                            label = stringResource(R.string.season_loan),
+                            amount = "−" + rupees(state.loanRupees),
+                            cost = true,
+                        )
+                        Text(
+                            text = stringResource(R.string.season_loan_note),
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.inkTertiary,
+                            modifier = Modifier.padding(top = 3.dp),
+                        )
+                    }
                 }
 
                 if (state.canTotal) {
@@ -167,6 +182,27 @@ fun SeasonScreen(
                         },
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.inkSecondary,
+                    )
+                }
+            }
+
+            // Said as a count, because it is the thing an owner would otherwise have
+            // to find by opening every job. Only where every cost is priced, the same
+            // rule the job's own page keeps.
+            if (state.seesPeopleCost && state.lostJobs > 0) {
+                FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.season_lost, state.lostJobs, state.lostJobs, rupees(state.lostRupees),
+                        ),
+                        style = FieldTrackTheme.type.sectionTitle,
+                        color = colors.dueInk,
+                    )
+                    Text(
+                        text = stringResource(R.string.season_lost_note),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.dueInk,
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }

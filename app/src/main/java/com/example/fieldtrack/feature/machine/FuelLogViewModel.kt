@@ -30,7 +30,17 @@ data class FuelLogState(
     val machineName: String = "",
     val totalRupees: Long = 0,
     val totalLitres: Double = 0.0,
-    val hoursUsed: Double = 0.0,
+    /**
+     * Litres logged against jobs, and the time those same jobs took.
+     *
+     * Not the machine's whole meter reading. That counts every hour since the
+     * tractor was bought, long before anybody recorded a litre, so dividing the
+     * app's diesel by it gave a machine with 3,000 hours and 40 litres on record
+     * a consumption of 0.01 L an hour. And only diesel logged on jobs: a fill in
+     * the yard belongs to no stretch of work.
+     */
+    val jobLitres: Double = 0.0,
+    val jobHours: Double = 0.0,
     val entries: List<FuelRow> = emptyList(),
     val canRecord: Boolean = true,
     val canSeeMoney: Boolean = true,
@@ -44,7 +54,7 @@ data class FuelLogState(
      * believed and then worried about.
      */
     val litresPerHour: Double?
-        get() = if (hoursUsed >= MIN_HOURS && totalLitres > 0) totalLitres / hoursUsed else null
+        get() = if (jobHours >= MIN_HOURS && jobLitres > 0) jobLitres / jobHours else null
 
     private companion object {
         const val MIN_HOURS = 10.0
@@ -72,14 +82,17 @@ class FuelLogViewModel(
             app.directoryRepository.observeMachine(s.orgId, machineId),
             app.workRepository.observeFuel(s.orgId, machineId),
             app.teamRepository.observeEveryone(s.orgId),
-        ) { machine, entries, team ->
+            app.db.machineDao().observeFuelOnJobs(s.orgId, 0, Long.MAX_VALUE),
+        ) { machine, entries, team, onJobs ->
+            val burnt = onJobs.firstOrNull { it.machineId == machineId }
             val names = team.associate { it.personId to it.displayName }
             FuelLogState(
                 loaded = true,
                 machineName = machine?.name.orEmpty(),
                 totalRupees = entries.sumOf { it.costRupees },
                 totalLitres = entries.sumOf { it.litres },
-                hoursUsed = machine?.hoursUsed ?: 0.0,
+                jobLitres = burnt?.litres ?: 0.0,
+                jobHours = (burnt?.seconds ?: 0L) / 3600.0,
                 entries = entries.map { entry ->
                     FuelRow(
                         id = entry.id,

@@ -297,6 +297,7 @@ internal fun TodayList(
                                     style = FieldTrackTheme.type.numeric,
                                     color = colors.ink,
                                 )
+                                row.lostRupees?.let { LostMark(it) }
                             }
                             if (!row.sent) NotSentMark()
                         }

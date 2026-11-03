@@ -8,12 +8,14 @@ import com.example.fieldtrack.data.db.SyncState
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.dao.CustomerBalance
+import com.example.fieldtrack.data.db.dao.JobMargin
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.session.Session
 import com.example.fieldtrack.feature.customer.seasonStart
 import com.example.fieldtrack.feature.startOfToday
@@ -44,6 +46,8 @@ data class TodayRow(
     val byName: String? = null,
     /** Reached the server. Shown only when it has not. */
     val sent: Boolean = true,
+    /** How much this job lost, when it did and every cost is priced. */
+    val lostRupees: Long? = null,
 )
 
 data class HomeState(
@@ -83,7 +87,13 @@ internal data class Books(
     val balances: List<CustomerBalance>,
     val entries: List<LedgerEntryEntity>,
     val seasonEarned: Long,
-)
+    /** The week's finished jobs and what is known to have gone into each. */
+    val margins: List<JobMargin> = emptyList(),
+) {
+    /** The jobs that lost money, and by how much — only where every cost is priced. */
+    val lostByJob: Map<String, Long>
+        get() = margins.mapNotNull { m -> m.lostRupees?.let { m.jobId to it } }.toMap()
+}
 
 internal data class Yard(
     val machines: List<MachineEntity>,
@@ -92,6 +102,8 @@ internal data class Yard(
     val pending: Int,
     /** The server refused a change and the queue is held up behind it. */
     val stuck: Boolean,
+    /** Machines drinking clearly more diesel an hour than they were. */
+    val fuelRises: List<HomeAlert.FuelHigh> = emptyList(),
 )
 
 /** Shared by the solo and yard homes: the money side of the business. */
@@ -106,7 +118,17 @@ internal fun FieldFlowApplication.observeBooks(s: Session, seasonFrom: Long): Fl
             ledgerRepository.observeBalances(s.orgId),
             ledgerRepository.observeAllEntries(s.orgId),
             db.orgDao().observeEarnedBetween(s.orgId, seasonFrom, Long.MAX_VALUE),
-        ) { customers, balances, entries, season -> Books(customers, balances, entries, season) }
+            // Losses are said only to somebody who sees what the business pays: a
+            // loss means counting the crew, and a loss worked out without them
+            // would be a different number from the one on the job's own page.
+            if (Capability.SeePeopleCost in s.can) {
+                db.orgDao().observeJobMargins(s.orgId, sevenDaysFrom(System.currentTimeMillis()), Long.MAX_VALUE)
+            } else {
+                flowOf(emptyList())
+            },
+        ) { customers, balances, entries, season, margins ->
+            Books(customers, balances, entries, season, margins)
+        }
     }
 
 /** Shared by the solo and yard homes: machines and the loose ends. */
@@ -120,14 +142,45 @@ internal fun FieldFlowApplication.observeYard(s: Session): Flow<Yard> = combine(
     else flowOf(0),
     db.outboxDao().observePendingCount(),
     syncEngine.status,
-) { (machines, breakdowns), unpriced, pending, status ->
-    Yard(machines, breakdowns, unpriced, pending, stuck = status.stage == SyncStage.Blocked)
+    // This week's diesel per hour against the four weeks before it, for each
+    // machine. The edge between the two is a whole day, so a job is in exactly one.
+    run {
+        val now = System.currentTimeMillis()
+        val week = 7L * 24 * 60 * 60 * 1000
+        combine(
+            db.machineDao().observeFuelOnJobs(s.orgId, now - week, Long.MAX_VALUE),
+            db.machineDao().observeFuelOnJobs(s.orgId, now - 5 * week, now - week),
+            ::Pair,
+        )
+    },
+) { (machines, breakdowns), unpriced, pending, status, (recent, before) ->
+    val recentBy = recent.associateBy { it.machineId }
+    val beforeBy = before.associateBy { it.machineId }
+    Yard(
+        machines, breakdowns, unpriced, pending,
+        stuck = status.stage == SyncStage.Blocked,
+        fuelRises = machines.mapNotNull { machine ->
+            Costing.fuelRise(recentBy[machine.id], beforeBy[machine.id])?.let { rise ->
+                HomeAlert.FuelHigh(
+                    machineId = machine.id,
+                    machineName = machine.name,
+                    recentLitresPerHour = rise.recentLitresPerHour,
+                    beforeLitresPerHour = rise.beforeLitresPerHour,
+                    percent = rise.percent,
+                )
+            }
+        },
+    )
 }
 
 /** Every alert an owner's home raises, from what the two flows above carry. */
 internal fun ownerAlerts(books: Books, yard: Yard, canSeeMoney: Boolean, now: Long): List<HomeAlert> =
     buildList {
         addAll(machineAlerts(yard.machines, yard.breakdowns))
+        // A machine already broken down has its own, louder row; two for one
+        // machine would be the same problem twice.
+        val brokenDown = yard.breakdowns.map { it.machineId }.toSet()
+        addAll(yard.fuelRises.filter { it.machineId !in brokenDown })
         if (canSeeMoney) {
             overdueAlert(
                 debtsByAge(books.entries),
@@ -217,6 +270,7 @@ class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         amountRupees = job.amountRupees,
                         machineKind = job.machineId?.let { kindById[it] } ?: MachineKind.Other,
                         sent = job.syncState == SyncState.Synced,
+                        lostRupees = books.lostByJob[job.id],
                     )
                 },
                 openJob = live?.toOpenJob(

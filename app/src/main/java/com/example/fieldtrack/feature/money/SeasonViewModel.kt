@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.money
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.feature.customer.previousSeasonStart
 import com.example.fieldtrack.feature.customer.seasonStart
@@ -37,10 +38,23 @@ data class SeasonState(
     val owedByCustomersRupees: Long = 0,
     val canSeeMoney: Boolean = false,
     val seesPeopleCost: Boolean = false,
+    /**
+     * Loan instalments that fell in these months, about — what the owner said
+     * each machine costs a month, over the months in the season.
+     *
+     * Counted in the total because it is a cost: a season "left" figure that
+     * ignores a tractor's instalments overstates the year for exactly the owners
+     * who have one. Said to be approximate because it is a monthly sum spread
+     * over a stretch of days, not a record of payments made.
+     */
+    val loanRupees: Long = 0,
+    /** Jobs that cost more than they were billed for, and how much between them. */
+    val lostJobs: Int = 0,
+    val lostRupees: Long = 0,
 ) {
     val peopleRupees: Long get() = jobPeopleRupees + loosePeopleRupees
 
-    val costsRupees: Long get() = fuelRupees + serviceRupees + peopleRupees
+    val costsRupees: Long get() = fuelRupees + serviceRupees + peopleRupees + loanRupees
 
     val leftRupees: Long get() = earnedRupees - costsRupees
 
@@ -96,7 +110,26 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val seesPeople = Capability.SeePeopleCost in s.can
             val dao = app.db.orgDao()
 
+            // The estimate and the losses, for somebody who sees what the business
+            // pays. Kept in their own pair so the main combine stays within its arity.
+            val extras = if (seesPeople) {
+                combine(
+                    app.db.machineDao().observeMonthlyLoans(s.orgId),
+                    dao.observeJobMargins(s.orgId, from, to),
+                ) { monthly, margins ->
+                    val lost = margins.mapNotNull { it.lostRupees }
+                    Triple(
+                        Costing.instalmentsBetween(monthly, from, to),
+                        lost.size,
+                        lost.sum(),
+                    )
+                }
+            } else {
+                kotlinx.coroutines.flow.flowOf(Triple(0L, 0, 0L))
+            }
+
             combine(
+                combine(
                 dao.observeEarnedBetween(s.orgId, from, to),
                 dao.observeFuelSpendBetween(s.orgId, from, to),
                 dao.observeServiceSpendBetween(s.orgId, from, to),
@@ -126,6 +159,8 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     canSeeMoney = s.canSeeMoney,
                     seesPeopleCost = seesPeople,
                 )
+            }, extras) { base, (loan, lostJobs, lostRupees) ->
+                base.copy(loanRupees = loan, lostJobs = lostJobs, lostRupees = lostRupees)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeasonState())

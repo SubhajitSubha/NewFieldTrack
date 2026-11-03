@@ -481,6 +481,25 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // What a machine costs to own: the loan instalment and the hours it works
+      // in a year.
+      //
+      // Filed apart from the machine for the same reason a crew's wages are filed
+      // apart from the job. A machine document is readable by every member, and a
+      // document cannot hide one of its own fields — so a loan written onto it
+      // would be in the pocket of every driver who opens the app. Here only an
+      // owner, or a manager who sees what the business pays, can read it; and
+      // writing it takes the right to edit machines as well, so nobody can
+      // overwrite figures they are not allowed to look at.
+      //
+      // The id is the machine's id: one record per machine.
+      match /machine_finance/{machineId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost');
+        allow create, update: if isOwner(orgId)
+                              || (may(orgId, 'canEditMachines') && may(orgId, 'canSeePeopleCost'));
+        allow delete: if false;
+      }
+
       // Everything else a business owns: customers, machines, jobs, the money.
       //
       // The exclusions are load-bearing. A single-segment wildcard
@@ -494,7 +513,8 @@ service cloud.firestore {
                            && collection != 'memberships'
                            && collection != 'payouts'
                            && collection != 'job_costs'
-                           && collection != 'job_cost_amounts';
+                           && collection != 'job_cost_amounts'
+                           && collection != 'machine_finance';
       }
     }
 

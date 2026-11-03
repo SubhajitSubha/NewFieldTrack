@@ -403,6 +403,8 @@ private fun RateStep(
             }
         }
 
+        CostHintCard(state)
+
         val units = unitsFor(state.billingMode)
         if (units.size > 1) {
             FtSectionLabel(stringResource(R.string.start_counted_in))
@@ -420,5 +422,68 @@ private fun RateStep(
             }
         }
         Box(Modifier.height(dimens.space4))
+    }
+}
+
+/**
+ * "On this machine a bigha costs you about ₹640 — at ₹1,000 you keep about ₹360."
+ *
+ * Shown under the rate while it is being typed, because that is the one moment a
+ * contractor can still change it. Says "before workers' pay" every time: the
+ * figure is the machine's diesel, repairs and loan, and a farmer's rate has to
+ * cover the crew as well.
+ *
+ * Absent rather than approximate when there is not enough behind it. It does not
+ * tell anybody what to charge — only what it costs them, which they did not have.
+ */
+@Composable
+private fun CostHintCard(state: StartWorkState) {
+    val hint = state.costHint ?: return
+    val colors = FieldTrackTheme.colors
+    val machine = state.machines.firstOrNull { it.id == state.machineId }?.name.orEmpty()
+    val unit = stringResource(R.string.start_rate_per, unitInPhrase(state.unit))
+
+    FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+        when (hint) {
+            is CostHint.OnlyHourly -> {
+                Text(
+                    text = stringResource(R.string.start_cost_hour, machine, rupees(hint.perHourRupees)),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = colors.ink,
+                )
+                Text(
+                    text = stringResource(R.string.start_cost_hour_note),
+                    style = FieldTrackTheme.type.caption,
+                    color = colors.inkTertiary,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+            is CostHint.PerUnit -> {
+                Text(
+                    text = stringResource(R.string.start_cost_unit, machine, rupees(hint.costRupees), unit),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = colors.ink,
+                )
+                if (state.rateRupees > 0) {
+                    val left = state.rateRupees - hint.costRupees
+                    Text(
+                        text = if (left >= 0) {
+                            stringResource(R.string.start_cost_keep, rupees(state.rateRupees), rupees(left), unit)
+                        } else {
+                            stringResource(R.string.start_cost_lose, rupees(state.rateRupees), rupees(-left), unit)
+                        },
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = if (left >= 0) colors.primaryPressed else colors.dueInk,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.start_cost_note),
+                    style = FieldTrackTheme.type.caption,
+                    color = colors.inkTertiary,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
+        }
     }
 }

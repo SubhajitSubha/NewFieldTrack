@@ -31,15 +31,16 @@ object SentState {
 
     /** Every table with a `syncState` column, which is every table the outbox feeds. */
     val TABLES = listOf(
-        "organisations", "memberships", "invites", "customers", "fields", "machines",
+        "organisations", "memberships", "invites", "customers", "fields", "machines", "machine_finance",
         "fuel_entries", "service_records", "payouts", "job_costs", "team_events",
         "breakdowns", "rates", "jobs", "job_events", "ledger_entries",
     )
 
     /**
-     * Installed on every open rather than in a migration: `IF NOT EXISTS` makes it
-     * free when already there, and it reaches a fresh install, an upgraded one and
-     * an in-memory test database by the same path.
+     * Installed on every open rather than in a migration, so it reaches a fresh
+     * install, an upgraded one and an in-memory test database by the same path —
+     * and so a table added later is covered without anybody remembering to write
+     * a migration for a trigger.
      */
     val callback = object : RoomDatabase.Callback() {
         override fun onOpen(db: SupportSQLiteDatabase) {
@@ -49,9 +50,17 @@ object SentState {
     }
 
     fun install(db: SupportSQLiteDatabase) {
+        // Dropped first, every time. A trigger names its tables when it is made, so
+        // "create if not exists" left a phone that already had the triggers with a
+        // list that stopped at whatever tables existed then — the next table added
+        // (machine_finance was the first) would have stayed "not sent" for ever,
+        // on exactly the installs with the most history. Two small triggers,
+        // rebuilt once per open.
+        db.execSQL("DROP TRIGGER IF EXISTS sent_state_on_queue")
+        db.execSQL("DROP TRIGGER IF EXISTS sent_state_on_accept")
         db.execSQL(
             """
-            CREATE TRIGGER IF NOT EXISTS sent_state_on_queue AFTER INSERT ON outbox
+            CREATE TRIGGER sent_state_on_queue AFTER INSERT ON outbox
             BEGIN
             ${TABLES.joinToString("\n") { "UPDATE `$it` SET syncState = 'Pending' WHERE id = NEW.entityId;" }}
             END
@@ -59,7 +68,7 @@ object SentState {
         )
         db.execSQL(
             """
-            CREATE TRIGGER IF NOT EXISTS sent_state_on_accept AFTER DELETE ON outbox
+            CREATE TRIGGER sent_state_on_accept AFTER DELETE ON outbox
             WHEN NOT EXISTS (SELECT 1 FROM outbox WHERE entityId = OLD.entityId)
             BEGIN
             ${TABLES.joinToString("\n") { "UPDATE `$it` SET syncState = 'Synced' WHERE id = OLD.entityId;" }}

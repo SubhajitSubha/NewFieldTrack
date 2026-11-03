@@ -64,6 +64,7 @@ fun UpkeepScreen(
     onDraftDescription: (String) -> Unit,
     onDraftCost: (String) -> Unit,
     onDraftVendor: (String) -> Unit,
+    onDraftParts: (String) -> Unit,
     onDraftSave: () -> Unit,
     onDraftDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -127,6 +128,7 @@ fun UpkeepScreen(
                                 record.machineName.takeIf { it.isNotBlank() },
                                 dayMonth(record.atMillis),
                                 record.vendor,
+                                record.partsNote?.let { stringResource(R.string.upkeep_parts_changed, it) },
                             ).joinToString(" · "),
                             leading = {
                                 FtIconTile(
@@ -177,6 +179,7 @@ fun UpkeepScreen(
             onDescription = onDraftDescription,
             onCost = onDraftCost,
             onVendor = onDraftVendor,
+            onParts = onDraftParts,
             onSave = onDraftSave,
             onDismiss = onDraftDismiss,
         )
@@ -354,6 +357,7 @@ private fun ServiceSheet(
     onDescription: (String) -> Unit,
     onCost: (String) -> Unit,
     onVendor: (String) -> Unit,
+    onParts: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -419,6 +423,13 @@ private fun ServiceSheet(
                 label = stringResource(R.string.upkeep_cost),
                 prefix = "₹",
                 keyboardType = KeyboardType.Number,
+            )
+
+            FtTextField(
+                value = draft.parts,
+                onValueChange = onParts,
+                label = stringResource(R.string.upkeep_parts),
+                helper = stringResource(R.string.upkeep_parts_hint),
             )
 
             FtTextField(

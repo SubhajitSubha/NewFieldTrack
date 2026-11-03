@@ -16,6 +16,8 @@ import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.JobEventEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
+import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.OutboxEntity
@@ -347,6 +349,33 @@ interface OrgDao {
     fun observeLooseWagesBetween(orgId: String, from: Long, to: Long): Flow<Long>
 
     /**
+     * What each finished job brought in and what is known to have gone into it.
+     *
+     * Diesel logged against the job and the priced costs on its sheet — the same
+     * two things the job's own page adds up, so a loss flagged on a list is a loss
+     * the job's page will show when it is opened. Diesel put in at the yard and a
+     * machine's wear are in neither, which makes this the least a job cost, never
+     * the most.
+     */
+    @Query(
+        """
+        SELECT j.id AS jobId,
+            CASE j.billingMode
+                WHEN 'Fixed' THEN j.rateRupees
+                WHEN 'PerTrip' THEN j.tripTotalRupees
+                ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
+            END AS earnedRupees,
+            COALESCE((SELECT SUM(f.costRupees) FROM fuel_entries f WHERE f.jobId = j.id), 0) AS fuelRupees,
+            COALESCE((SELECT SUM(c.amountRupees) FROM job_costs c WHERE c.jobId = j.id), 0) AS peopleRupees,
+            (SELECT COUNT(*) FROM job_costs c WHERE c.jobId = j.id AND c.amountRupees IS NULL) AS unpriced
+        FROM jobs j
+        WHERE j.orgId = :orgId AND j.deletedAt IS NULL AND j.status = 'Completed'
+          AND j.workedAt BETWEEN :from AND :to
+        """
+    )
+    fun observeJobMargins(orgId: String, from: Long, to: Long): Flow<List<JobMargin>>
+
+    /**
      * Costs the version-12 migration made out of job payments on this phone.
      *
      * That migration wrote them and never queued them, so they and the payments
@@ -556,23 +585,145 @@ interface MachineDao {
     @Query("SELECT * FROM machines WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY name")
     fun observeAll(orgId: String): Flow<List<MachineEntity>>
 
+    /** Every machine with the hours worked since its meter was set — see [MachineWithWork]. */
+    @Query(
+        """
+        SELECT m.*, COALESCE((
+            SELECT SUM(j.elapsedSeconds) FROM jobs j
+            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+              AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
+        ), 0) AS workedSeconds
+        FROM machines m
+        WHERE m.orgId = :orgId AND m.deletedAt IS NULL
+        ORDER BY m.name
+        """
+    )
+    fun observeAllWithWork(orgId: String): Flow<List<MachineWithWork>>
+
+    @Query(
+        """
+        SELECT m.*, COALESCE((
+            SELECT SUM(j.elapsedSeconds) FROM jobs j
+            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+              AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
+        ), 0) AS workedSeconds
+        FROM machines m
+        WHERE m.orgId = :orgId AND m.id = :id
+        """
+    )
+    fun observeWithWork(orgId: String, id: String): Flow<MachineWithWork?>
+
+    @Query(
+        """
+        SELECT m.*, COALESCE((
+            SELECT SUM(j.elapsedSeconds) FROM jobs j
+            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+              AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
+        ), 0) AS workedSeconds
+        FROM machines m
+        WHERE m.orgId = :orgId AND m.id = :id
+        """
+    )
+    suspend fun findWithWork(orgId: String, id: String): MachineWithWork?
+
+    @Upsert suspend fun upsertFinance(finance: MachineFinanceEntity)
+
+    @Query("SELECT * FROM machine_finance WHERE orgId = :orgId")
+    fun observeFinance(orgId: String): Flow<List<MachineFinanceEntity>>
+
+    @Query("SELECT * FROM machine_finance WHERE orgId = :orgId AND id = :machineId")
+    suspend fun findFinance(orgId: String, machineId: String): MachineFinanceEntity?
+
+    /** Loan instalments a month, across the machines still in the yard. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(f.monthlyRupees), 0) FROM machine_finance f
+        JOIN machines m ON m.id = f.id AND m.orgId = f.orgId
+        WHERE f.orgId = :orgId AND m.deletedAt IS NULL
+        """
+    )
+    fun observeMonthlyLoans(orgId: String): Flow<Long>
+
+    /**
+     * What it took to run each machine, in one pass.
+     *
+     * Hours come from finished jobs only — work still running has not been
+     * written down yet — and diesel and repairs are what was actually spent, so a
+     * cost per hour built from this can be traced to receipts.
+     */
+    @Query(
+        """
+        SELECT m.id AS machineId,
+            COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
+                WHERE j.machineId = m.id AND j.orgId = m.orgId
+                  AND j.status = 'Completed' AND j.deletedAt IS NULL), 0) AS seconds,
+            COALESCE((SELECT SUM(f.costRupees) FROM fuel_entries f
+                WHERE f.machineId = m.id AND f.orgId = m.orgId), 0) AS fuelRupees,
+            COALESCE((SELECT SUM(s.costRupees) FROM service_records s
+                WHERE s.machineId = m.id AND s.orgId = m.orgId), 0) AS serviceRupees,
+            COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
+                WHERE j.machineId = m.id AND j.orgId = m.orgId
+                  AND j.status = 'Completed' AND j.deletedAt IS NULL
+                  AND j.completedAt >= :yearAgo), 0) AS yearSeconds
+        FROM machines m
+        WHERE m.orgId = :orgId AND m.deletedAt IS NULL
+        """
+    )
+    fun observeRunningFacts(orgId: String, yearAgo: Long): Flow<List<RunningFacts>>
+
+    /** The same machine's finished work, grouped by what was done and how it was measured. */
+    @Query(
+        """
+        SELECT j.workType AS workType, j.unit AS unit,
+            COALESCE(SUM(j.quantity), 0.0) AS quantity,
+            COALESCE(SUM(j.elapsedSeconds), 0) AS seconds,
+            COALESCE(SUM(CASE j.billingMode
+                WHEN 'Fixed' THEN j.rateRupees
+                WHEN 'PerTrip' THEN j.tripTotalRupees
+                ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
+            END), 0) AS earnedRupees,
+            COUNT(*) AS jobs
+        FROM jobs j
+        WHERE j.orgId = :orgId AND j.machineId = :machineId AND j.deletedAt IS NULL
+          AND j.status = 'Completed' AND j.billingMode != 'Fixed'
+        GROUP BY j.workType, j.unit
+        """
+    )
+    fun observeWorkKinds(orgId: String, machineId: String): Flow<List<WorkKindFacts>>
+
+    /**
+     * Litres burnt on jobs, and the time those same jobs took, per machine in a window.
+     *
+     * Only fuel logged against a job, over only those jobs' time. Diesel put in at
+     * the yard belongs to no stretch of work, and dividing it by hours it did not
+     * cover is how a tractor topped up twice in one day comes to look like it
+     * drinks a hundred litres an hour.
+     */
+    @Query(
+        """
+        SELECT j.machineId AS machineId,
+            COALESCE(SUM(f.litres), 0.0) AS litres,
+            COALESCE(SUM(j.elapsedSeconds), 0) AS seconds,
+            COUNT(DISTINCT j.id) AS jobs
+        FROM jobs j
+        JOIN (SELECT jobId, SUM(litres) AS litres FROM fuel_entries
+              WHERE jobId IS NOT NULL GROUP BY jobId) f ON f.jobId = j.id
+        WHERE j.orgId = :orgId AND j.machineId IS NOT NULL AND j.deletedAt IS NULL
+          AND j.status = 'Completed' AND j.workedAt >= :from AND j.workedAt < :to
+        GROUP BY j.machineId
+        """
+    )
+    fun observeFuelOnJobs(orgId: String, from: Long, to: Long): Flow<List<FuelOnJobs>>
+
     @Query("SELECT * FROM machines WHERE id = :id AND orgId = :orgId")
     fun observe(orgId: String, id: String): Flow<MachineEntity?>
 
     @Query("SELECT * FROM machines WHERE id = :id AND orgId = :orgId")
     suspend fun find(orgId: String, id: String): MachineEntity?
 
-    /** Machines whose next service is within [withinHours] of use, soonest first. */
-    @Query(
-        """
-        SELECT * FROM machines
-        WHERE orgId = :orgId AND deletedAt IS NULL
-          AND serviceIntervalHours IS NOT NULL
-          AND (COALESCE(lastServiceAtHours, 0) + serviceIntervalHours) - hoursUsed <= :withinHours
-        ORDER BY (COALESCE(lastServiceAtHours, 0) + serviceIntervalHours) - hoursUsed ASC
-        """
-    )
-    fun observeServiceDue(orgId: String, withinHours: Double): Flow<List<MachineEntity>>
+    // There used to be a service-due query here, reading the stored meter reading in
+    // SQL. That reading is not the machine's hours (see MachineWithWork), so the
+    // question is answered in WorkRepository.observeServiceDue from hours as they stand.
 
     @Upsert suspend fun upsertFuel(entry: FuelEntryEntity)
 
@@ -1069,6 +1220,85 @@ interface LedgerDao {
     )
     fun observeCollectedBetween(orgId: String, from: Long, to: Long): Flow<Long>
 }
+
+/**
+ * A machine and the hours it has worked since its meter was last set.
+ *
+ * Embedded so the row comes back whole with one extra column, the way a job cost
+ * comes back with what has been paid on it. [workedSeconds] is the time on every
+ * job finished on it after [MachineEntity.hoursAsOf] — see [effective].
+ */
+data class MachineWithWork(
+    @Embedded val machine: MachineEntity,
+    val workedSeconds: Long,
+) {
+    /**
+     * The machine with its hours as they stand today: the reading plus the work since.
+     *
+     * With no service on record the count runs from the reading somebody gave when
+     * the machine was added, not from hour zero. Counting from zero made a tractor
+     * whose meter said 1,200 "950 hours overdue for service" on the first morning,
+     * before anybody had done anything wrong — and an alarm that is wrong on day
+     * one is an alarm people stop believing. The honest statement is the narrower
+     * one: due after this many hours of work from when the app was told its hours.
+     * Logging a service replaces the assumption with the fact.
+     */
+    fun effective(): MachineEntity = machine.copy(
+        hoursUsed = machine.hoursUsed + workedSeconds / 3600.0,
+        lastServiceAtHours = machine.lastServiceAtHours ?: machine.hoursUsed,
+    )
+}
+
+/** What went into running one machine, all told. */
+data class RunningFacts(
+    val machineId: String,
+    /** Time on every finished job on this machine, since the app first heard of it. */
+    val seconds: Long,
+    val fuelRupees: Long,
+    val serviceRupees: Long,
+    /** The last year's share of [seconds], for spreading a loan over a year. */
+    val yearSeconds: Long,
+)
+
+/** One kind of work on one machine: how much was done, in how long, and what it brought in. */
+data class WorkKindFacts(
+    val workType: String,
+    val unit: MeasureUnit,
+    val quantity: Double,
+    val seconds: Long,
+    val earnedRupees: Long,
+    val jobs: Int,
+)
+
+/** A finished job's money, as far as it is known. */
+data class JobMargin(
+    val jobId: String,
+    val earnedRupees: Long,
+    val fuelRupees: Long,
+    val peopleRupees: Long,
+    /** Costs somebody recorded and nobody has put a figure on. */
+    val unpriced: Int,
+) {
+    /**
+     * How much this job lost, or null when it did not — or when nobody can say.
+     *
+     * Only when every cost has a figure. A job with a crew nobody has priced has
+     * not made money or lost it yet; calling it a loss would be as wrong as
+     * calling it a profit.
+     */
+    val lostRupees: Long?
+        get() = if (unpriced == 0 && earnedRupees < fuelRupees + peopleRupees) {
+            fuelRupees + peopleRupees - earnedRupees
+        } else null
+}
+
+/** Fuel burnt on jobs, and the time those jobs took — for litres per hour. */
+data class FuelOnJobs(
+    val machineId: String,
+    val litres: Double,
+    val seconds: Long,
+    val jobs: Int,
+)
 
 data class CustomerBalance(
     val customerId: String,

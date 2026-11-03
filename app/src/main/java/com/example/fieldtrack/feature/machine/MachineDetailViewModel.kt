@@ -24,6 +24,7 @@ data class MachineServiceDraft(
     val description: String = "",
     val costText: String = "",
     val vendor: String = "",
+    val parts: String = "",
 ) {
     val costRupees: Long? get() = costText.filter { it.isDigit() }.toLongOrNull()
     val canSave: Boolean get() = description.isNotBlank()
@@ -139,6 +140,7 @@ class MachineDetailViewModel(
         it?.copy(costText = v.filter { c -> c.isDigit() })
     }
     fun setServiceVendor(v: String) = _service.update { it?.copy(vendor = v) }
+    fun setServiceParts(v: String) = _service.update { it?.copy(parts = v) }
 
     /**
      * Logs work done on this machine, without asking which machine.
@@ -158,6 +160,7 @@ class MachineDetailViewModel(
             description = draft.description,
             costRupees = draft.costRupees,
             vendor = draft.vendor,
+            partsNote = draft.parts,
         )
         _service.value = null
     }

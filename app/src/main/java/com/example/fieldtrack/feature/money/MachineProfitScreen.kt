@@ -36,6 +36,7 @@ fun MachineProfitScreen(
     state: MachineProfitState,
     onBack: () -> Unit,
     onSeeMoneyOut: () -> Unit,
+    onEditMachine: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -142,6 +143,14 @@ fun MachineProfitScreen(
                 color = colors.inkSecondary,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
+
+            // An estimate, kept below the money that was really spent and never
+            // folded into it. Only for somebody who sees what the business pays:
+            // the loan is part of it.
+            state.running?.let { running ->
+                RunningCostCard(running, state.canEditMachine, onEditMachine)
+                UnitCostCard(state.kinds)
+            }
 
             Spacer(Modifier.height(4.dp))
         }

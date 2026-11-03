@@ -274,9 +274,43 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+/**
+ * What a machine really costs: derived hours, a private ownership record, and the
+ * parts changed at a service.
+ *
+ * `hoursAsOf` is set to the machine's creation time for machines that exist now.
+ * Whoever entered a reading did so at some point after that, so every job finished
+ * since the machine was added is counted on top of it — which may count a few
+ * hours twice for somebody who corrected the meter along the way, and counts none
+ * of them for everybody else, as it did before this. Over-reading a service
+ * reminder by a few hours is the safer way to be wrong than the old silence.
+ */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE machines ADD COLUMN hoursAsOf INTEGER")
+        db.execSQL("UPDATE machines SET hoursAsOf = createdAt")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS machine_finance (
+                id TEXT NOT NULL PRIMARY KEY,
+                orgId TEXT NOT NULL,
+                monthlyRupees INTEGER,
+                hoursPerYear INTEGER,
+                updatedAt INTEGER NOT NULL,
+                syncState TEXT NOT NULL DEFAULT 'Pending'
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_machine_finance_orgId` ON `machine_finance` (`orgId`)")
+
+        db.execSQL("ALTER TABLE service_records ADD COLUMN partsNote TEXT")
+    }
+}
+
 /** Every migration, in order. Add to this list and the builder picks it up. */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13,
+    MIGRATION_12_13, MIGRATION_13_14,
 )

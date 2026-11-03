@@ -9,6 +9,7 @@ import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.formatBillNumber
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.dao.JobCostWithPaid
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,6 +66,12 @@ data class JobDetailState(
     val seesPeopleCost: Boolean = false,
     val canRecordCost: Boolean = false,
     val canPriceCost: Boolean = false,
+    /**
+     * This job's share of the machine's own repairs and loan, for the hours it ran.
+     * Null where there is nothing honest to share yet, or this reader may not see
+     * what the business pays. An estimate, kept apart from the figures above it.
+     */
+    val machineShareRupees: Long? = null,
 ) {
     val live: Boolean get() = status == JobStatus.Running || status == JobStatus.Paused
     val finished: Boolean get() = status == JobStatus.Completed
@@ -108,6 +115,12 @@ data class JobDetailState(
 
     val costsRupees: Long get() = fuelRupees + labourRupees + otherRupees
     val leftRupees: Long get() = amountRupees - costsRupees
+
+    /** What was left once the machine's share is counted too. */
+    val leftAfterMachineRupees: Long? get() = machineShareRupees?.let { leftRupees - it }
+
+    /** How much this job lost, when it did and every cost is priced. */
+    val lostRupees: Long? get() = if (canTotal && leftRupees < 0) -leftRupees else null
 }
 
 /**
@@ -124,6 +137,7 @@ private data class Extras(
     val costs: List<JobCostWithPaid>,
     val fuelRupees: Long,
     val fuelLitres: Double,
+    val running: Map<String, com.example.fieldtrack.data.costing.Costing.RunningCost>,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -144,8 +158,9 @@ class JobDetailViewModel(
                 app.ledgerRepository.observeJobCosts(s.orgId, jobId),
                 app.db.machineDao().observeFuelSpendOnJob(s.orgId, jobId),
                 app.db.machineDao().observeFuelLitresOnJob(s.orgId, jobId),
-            ) { machines, costs, fuelRupees, fuelLitres ->
-                Extras(machines, costs, fuelRupees, fuelLitres)
+                app.directoryRepository.observeRunningCosts(s.orgId),
+            ) { machines, costs, fuelRupees, fuelLitres, running ->
+                Extras(machines, costs, fuelRupees, fuelLitres, running)
             },
         ) { job, events, customers, team, extra ->
             val machines = extra.machines
@@ -186,6 +201,11 @@ class JobDetailViewModel(
                 costs = if (seesPeople) extra.costs else extra.costs.map { row ->
                     row.copy(cost = row.cost.copy(amountRupees = null), paidRupees = 0)
                 },
+                machineShareRupees = if (seesPeople && s.canSeeMoney && job.status == JobStatus.Completed) {
+                    job.machineId?.let { id ->
+                        extra.running[id]?.let { Costing.machineShare(it, job.elapsedSeconds) }
+                    }
+                } else null,
                 fuelRupees = if (s.canSeeMoney) extra.fuelRupees else 0,
                 fuelLitres = extra.fuelLitres,
                 seesPeopleCost = seesPeople,

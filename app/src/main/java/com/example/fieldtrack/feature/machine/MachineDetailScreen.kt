@@ -84,6 +84,7 @@ fun MachineDetailScreen(
     onServiceDescription: (String) -> Unit,
     onServiceCost: (String) -> Unit,
     onServiceVendor: (String) -> Unit,
+    onServiceParts: (String) -> Unit,
     onSaveService: () -> Unit,
     onDismissService: () -> Unit,
     onOpenJob: (String) -> Unit,
@@ -280,6 +281,7 @@ fun MachineDetailScreen(
             onDescription = onServiceDescription,
             onCost = onServiceCost,
             onVendor = onServiceVendor,
+            onParts = onServiceParts,
             onSave = onSaveService,
             onDismiss = onDismissService,
         )
@@ -294,6 +296,7 @@ private fun ServiceSheet(
     onDescription: (String) -> Unit,
     onCost: (String) -> Unit,
     onVendor: (String) -> Unit,
+    onParts: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -334,6 +337,12 @@ private fun ServiceSheet(
                 label = stringResource(R.string.upkeep_cost),
                 prefix = "₹",
                 keyboardType = KeyboardType.Number,
+            )
+            FtTextField(
+                value = draft.parts,
+                onValueChange = onParts,
+                label = stringResource(R.string.upkeep_parts),
+                helper = stringResource(R.string.upkeep_parts_hint),
             )
             FtTextField(
                 value = draft.vendor,

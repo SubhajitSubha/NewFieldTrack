@@ -742,6 +742,8 @@ interface AlertActions {
     /** Straight into the running job, where its clock can be put right. */
     fun liveJob(jobId: String)
     fun machine(machineId: String)
+    /** The machine's diesel log, for a machine drinking more than it did. */
+    fun fuel(machineId: String)
     fun customer(customerId: String)
     fun customers()
     fun moneyOut()
@@ -871,6 +873,18 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
             title = stringResource(R.string.home_alert_service_over, alert.machineName)
             note = stringResource(R.string.home_alert_service_over_note, quantity(alert.hoursOver))
             onClick = { actions.machine(alert.machineId) }
+        }
+        is HomeAlert.FuelHigh -> {
+            tone = Tone.Wait
+            icon = FieldTrackIcons.Fuel
+            title = stringResource(R.string.home_alert_fuel, alert.machineName)
+            note = stringResource(
+                R.string.home_alert_fuel_note,
+                quantity(alert.recentLitresPerHour),
+                quantity(alert.beforeLitresPerHour),
+                alert.percent,
+            )
+            onClick = { actions.fuel(alert.machineId) }
         }
         is HomeAlert.Overdue -> {
             tone = Tone.Wait
@@ -1018,6 +1032,23 @@ fun NotSentMark() {
         text = stringResource(R.string.job_not_sent_short),
         style = FieldTrackTheme.type.caption,
         color = FieldTrackTheme.colors.moneyInk,
+        maxLines = 1,
+        modifier = Modifier.padding(top = 2.dp),
+    )
+}
+
+/**
+ * "Lost ₹320", small and red, under a finished job's amount.
+ *
+ * Only on the jobs that did, so a list of ordinary work reads clean and the one
+ * that cost more than it brought in is the one that stands out.
+ */
+@Composable
+fun LostMark(rupees: Long) {
+    Text(
+        text = stringResource(R.string.job_lost_short, com.example.fieldtrack.designsystem.format.rupees(rupees)),
+        style = FieldTrackTheme.type.caption,
+        color = FieldTrackTheme.colors.dueInk,
         maxLines = 1,
         modifier = Modifier.padding(top = 2.dp),
     )

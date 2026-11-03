@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.home.LostMark
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtIconTile
@@ -115,11 +116,17 @@ fun JobsScreen(
                                         label = stringResource(job.status.labelRes()),
                                     )
                                 } else {
-                                    FtMoney(job.amountRupees, size = FtMoneySize.Row)
+                                    // The amount only for somebody who may see money; the
+                                    // time worked is theirs to see either way.
+                                    if (state.canSeeMoney) {
+                                        FtMoney(job.amountRupees, size = FtMoneySize.Row)
+                                        job.lostRupees?.let { LostMark(it) }
+                                    }
                                     Text(
                                         text = duration(job.elapsedSeconds),
-                                        style = FieldTrackTheme.type.caption,
-                                        color = colors.inkTertiary,
+                                        style = if (state.canSeeMoney) FieldTrackTheme.type.caption
+                                        else FieldTrackTheme.type.numeric,
+                                        color = if (state.canSeeMoney) colors.inkTertiary else colors.ink,
                                     )
                                 }
                             }

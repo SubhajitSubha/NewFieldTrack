@@ -14,6 +14,10 @@ import com.example.fieldtrack.data.db.dao.FieldWorkTotals
 import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
+import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.costing.Costing
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
@@ -115,10 +119,22 @@ class DirectoryRepository(
 
     // ----------------------------------------------------------------- machines
 
-    fun observeMachines(orgId: String): Flow<List<MachineEntity>> = machines.observeAll(orgId)
+    /**
+     * The machines, with their hours as they stand today.
+     *
+     * [MachineEntity.hoursUsed] on a row is the meter reading somebody last gave;
+     * what the screens mean by "hours" is that plus the work finished since, and
+     * this is the one place that adds them. Everything that reads hours — service
+     * reminders, the fleet, the fuel log — reads it from here, so none of them can
+     * disagree. Never write one of these back: the copy carries hours that include
+     * work already counted, and saving it would count that work twice.
+     */
+    fun observeMachines(orgId: String): Flow<List<MachineEntity>> =
+        machines.observeAllWithWork(orgId).map { rows -> rows.map { it.effective() } }
 
-    /** One machine, watched. */
-    fun observeMachine(orgId: String, machineId: String) = machines.observe(orgId, machineId)
+    /** One machine, watched, with today's hours. Read-only, for the reason above. */
+    fun observeMachine(orgId: String, machineId: String): Flow<MachineEntity?> =
+        machines.observeWithWork(orgId, machineId).map { it?.effective() }
 
     suspend fun addMachine(
         orgId: String,
@@ -126,6 +142,11 @@ class DirectoryRepository(
         kind: MachineKind,
         plate: String? = null,
         serviceIntervalHours: Double? = 250.0,
+        /**
+         * What the meter reads now. The form always had a box for it and the add
+         * flow never passed it on, so a reading typed here was thrown away.
+         */
+        hoursUsed: Double? = null,
     ): String {
         val now = clock.now()
         val machine = MachineEntity(
@@ -134,6 +155,8 @@ class DirectoryRepository(
             name = name.trim(),
             kind = kind,
             plate = plate?.trim()?.ifBlank { null },
+            hoursUsed = hoursUsed?.coerceAtLeast(0.0) ?: 0.0,
+            hoursAsOf = now,
             serviceIntervalHours = serviceIntervalHours,
             createdAt = now,
             updatedAt = now,
@@ -161,19 +184,29 @@ class DirectoryRepository(
         name: String,
         kind: MachineKind,
         plate: String?,
+        /**
+         * A new meter reading, or null to leave the hours alone.
+         *
+         * Null matters: the form shows today's hours, and saving a corrected
+         * plate must not turn them into the new reading — that would round away
+         * the minutes worked since the last one, every time anybody fixed a name.
+         * A reading is true as of now, so work finished from here is added on top.
+         */
         hoursUsed: Double?,
         serviceIntervalHours: Double?,
     ) {
         can.require(Capability.EditMachines)
         db.withTransaction {
             val existing = machines.find(orgId, machineId) ?: return@withTransaction
+            val now = clock.now()
             val updated = existing.copy(
                 name = name.trim(),
                 kind = kind,
                 plate = plate?.trim()?.ifBlank { null },
-                hoursUsed = hoursUsed ?: existing.hoursUsed,
+                hoursUsed = hoursUsed?.coerceAtLeast(0.0) ?: existing.hoursUsed,
+                hoursAsOf = if (hoursUsed != null) now else existing.hoursAsOf,
                 serviceIntervalHours = serviceIntervalHours,
-                updatedAt = clock.now(),
+                updatedAt = now,
             )
             machines.upsert(updated)
             syncQueue.enqueueUpsert(
@@ -182,7 +215,83 @@ class DirectoryRepository(
         }
     }
 
-    suspend fun findMachine(orgId: String, machineId: String) = machines.find(orgId, machineId)
+    /** One machine with today's hours. Read-only — see [observeMachines]. */
+    suspend fun findMachine(orgId: String, machineId: String): MachineEntity? =
+        machines.findWithWork(orgId, machineId)?.effective()
+
+    // ------------------------------------------------------- what a machine costs
+
+    /** The owner's own figures for one machine, or null where there are none. */
+    suspend fun findMachineFinance(orgId: String, machineId: String): MachineFinanceEntity? =
+        machines.findFinance(orgId, machineId)
+
+    fun observeMachineFinance(orgId: String): Flow<List<MachineFinanceEntity>> =
+        machines.observeFinance(orgId)
+
+    /**
+     * Set what a machine costs to own.
+     *
+     * Held to the same bar as reading it back: an owner or a manager who sees
+     * what the business pays. A driver cannot read this record, so being able to
+     * write it would be a way to overwrite figures he is not allowed to look at.
+     *
+     * Blank or zero means "none" and is stored as null, so a loan that has been
+     * paid off stops counting rather than counting as ₹0 for ever.
+     */
+    suspend fun setMachineFinance(
+        orgId: String,
+        can: Capabilities,
+        machineId: String,
+        monthlyRupees: Long?,
+        hoursPerYear: Int?,
+    ) {
+        can.require(Capability.EditMachines)
+        can.require(Capability.SeePeopleCost)
+        require(monthlyRupees == null || monthlyRupees >= 0) { "A loan instalment is not negative" }
+        require(hoursPerYear == null || hoursPerYear in 0..MAX_HOURS_PER_YEAR) {
+            "A machine cannot work more hours than there are in a year"
+        }
+        db.withTransaction {
+            if (machines.find(orgId, machineId) == null) return@withTransaction
+            val finance = MachineFinanceEntity(
+                id = machineId,
+                orgId = orgId,
+                monthlyRupees = monthlyRupees?.takeIf { it > 0 },
+                hoursPerYear = hoursPerYear?.takeIf { it > 0 },
+                updatedAt = clock.now(),
+            )
+            machines.upsertFinance(finance)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_MACHINE_FINANCE, finance.id,
+                OutboxJson.encodeToString(finance),
+            )
+        }
+    }
+
+    /**
+     * What an hour on each machine costs, by machine.
+     *
+     * Always computed, whoever is asking; whether it is shown is the screen's
+     * decision against [Capability.SeePeopleCost]. A reader who may not see the
+     * loan simply gets none from the database — the record never reaches the
+     * phone — so there is nothing here to leak.
+     */
+    fun observeRunningCosts(orgId: String): Flow<Map<String, Costing.RunningCost>> {
+        val yearAgo = clock.now() - 365L * 24 * 60 * 60 * 1000
+        return combine(
+            machines.observeRunningFacts(orgId, yearAgo),
+            machines.observeFinance(orgId),
+        ) { facts, finance ->
+            val financeById = finance.associateBy { it.id }
+            facts.associate { it.machineId to Costing.running(it, financeById[it.machineId]) }
+        }
+    }
+
+    fun observeWorkKinds(orgId: String, machineId: String) = machines.observeWorkKinds(orgId, machineId)
+
+    private companion object {
+        const val MAX_HOURS_PER_YEAR = 8_760
+    }
 
     suspend fun findCustomer(orgId: String, customerId: String) = customers.find(orgId, customerId)
 

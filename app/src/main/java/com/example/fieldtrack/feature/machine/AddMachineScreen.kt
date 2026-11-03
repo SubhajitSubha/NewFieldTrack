@@ -47,9 +47,35 @@ data class AddMachineState(
     val plate: String = "",
     val hoursText: String = "",
     val serviceEveryText: String = "250",
+    /**
+     * What the form was opened with, so a save can tell a meter reading somebody
+     * typed from today's hours simply shown back to them.
+     */
+    val initialHoursText: String = "",
+    /** Loan instalment, insurance and the like, each month. */
+    val monthlyText: String = "",
+    val initialMonthlyText: String = "",
+    /** Hours the machine works in a year, if the owner knows. */
+    val hoursPerYearText: String = "",
+    val initialHoursPerYearText: String = "",
+    /** Whether this person may enter and see what a machine costs to own. */
+    val canSeeFinance: Boolean = false,
     val saving: Boolean = false,
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && !saving
+    /** A year has 8,760 hours; nothing works more than that, so it is a typo. */
+    val hoursPerYearTooMany: Boolean
+        get() = (hoursPerYearText.toIntOrNull() ?: 0) > MAX_HOURS_PER_YEAR
+
+    val hoursChanged: Boolean get() = hoursText != initialHoursText
+
+    val financeChanged: Boolean
+        get() = monthlyText != initialMonthlyText || hoursPerYearText != initialHoursPerYearText
+
+    val canSave: Boolean get() = name.isNotBlank() && !saving && !hoursPerYearTooMany
+
+    companion object {
+        const val MAX_HOURS_PER_YEAR = 8_760
+    }
 }
 
 class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
@@ -63,14 +89,28 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setHours(v: String) = _state.update { it.copy(hoursText = v.filter { c -> c.isDigit() }) }
     fun setServiceEvery(v: String) =
         _state.update { it.copy(serviceEveryText = v.filter { c -> c.isDigit() }) }
+    fun setMonthly(v: String) =
+        _state.update { it.copy(monthlyText = v.filter { c -> c.isDigit() }.take(7)) }
+    fun setHoursPerYear(v: String) =
+        _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
+
+    init {
+        viewModelScope.launch {
+            val can = app.sessionStore.load()?.can ?: return@launch
+            _state.update { it.copy(canSeeFinance = canEnterFinance(can)) }
+        }
+    }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
         if (!current.canSave) return@launch
         _state.update { it.copy(saving = true) }
-        val s = app.sessionStore.load() ?: return@launch
+        val s = app.sessionStore.load() ?: run {
+            _state.update { it.copy(saving = false) }
+            return@launch
+        }
 
-        app.directoryRepository.addMachine(
+        val machineId = app.directoryRepository.addMachine(
             orgId = s.orgId,
             name = current.name,
             kind = current.kind,
@@ -78,11 +118,29 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
             // Zero means "do not remind me", which is a real preference for an old
             // machine that gets serviced when it complains rather than on a schedule.
             serviceIntervalHours = current.serviceEveryText.toDoubleOrNull()?.takeIf { it > 0 },
+            hoursUsed = current.hoursText.toDoubleOrNull(),
         )
+        if (current.canSeeFinance && current.financeChanged) {
+            // A refusal here must not undo the machine that was just added.
+            runCatching {
+                app.directoryRepository.setMachineFinance(
+                    orgId = s.orgId,
+                    can = s.can,
+                    machineId = machineId,
+                    monthlyRupees = current.monthlyText.toLongOrNull(),
+                    hoursPerYear = current.hoursPerYearText.toIntOrNull(),
+                )
+            }
+        }
         _state.update { it.copy(saving = false) }
         onSaved()
     }
 }
+
+/** Entering what a machine costs to own takes the same trust as seeing what the business pays. */
+internal fun canEnterFinance(can: com.example.fieldtrack.data.session.Capabilities) =
+    com.example.fieldtrack.data.session.Capability.EditMachines in can &&
+        com.example.fieldtrack.data.session.Capability.SeePeopleCost in can
 
 /**
  * The machine form, used both to add and to correct.
@@ -99,6 +157,8 @@ fun AddMachineScreen(
     onPlate: (String) -> Unit,
     onHours: (String) -> Unit,
     onServiceEvery: (String) -> Unit,
+    onMonthly: (String) -> Unit,
+    onHoursPerYear: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
     titleRes: Int = R.string.machines_new_title,
@@ -167,6 +227,48 @@ fun AddMachineScreen(
                         keyboardType = KeyboardType.Number,
                     )
                 }
+            }
+            // Only for somebody who may see what the business pays: a driver adding
+            // a machine is not asked, and is not told there is a question to skip.
+            if (state.canSeeFinance) {
+                FtSectionLabel(
+                    stringResource(R.string.machines_own_title),
+                    Modifier.padding(top = 4.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        FtTextField(
+                            label = stringResource(R.string.machines_own_monthly),
+                            value = state.monthlyText,
+                            onValueChange = onMonthly,
+                            prefix = "₹",
+                            suffix = stringResource(R.string.machines_own_per_month),
+                            keyboardType = KeyboardType.Number,
+                        )
+                    }
+                    Box(Modifier.weight(1f)) {
+                        FtTextField(
+                            label = stringResource(R.string.machines_own_hours_year),
+                            value = state.hoursPerYearText,
+                            onValueChange = onHoursPerYear,
+                            suffix = stringResource(R.string.machines_service_unit),
+                            keyboardType = KeyboardType.Number,
+                        )
+                    }
+                }
+                Text(
+                    text = if (state.hoursPerYearTooMany) {
+                        stringResource(R.string.machines_own_too_many)
+                    } else {
+                        stringResource(R.string.machines_own_note)
+                    },
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = if (state.hoursPerYearTooMany) {
+                        FieldTrackTheme.colors.dueInk
+                    } else {
+                        FieldTrackTheme.colors.inkTertiary
+                    },
+                )
             }
             if (readOnlyNotice != null) {
                 Text(

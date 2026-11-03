@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.money
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +27,16 @@ data class MachineProfitState(
     val leftOutRupees: Long = 0,
     /** False when this person may not see what people were paid. */
     val seesPeopleCost: Boolean = false,
+    /**
+     * What an hour on this machine costs, from what has been spent on it.
+     * Null until it has loaded; see [Costing.RunningCost.enough] for whether it
+     * says anything yet.
+     */
+    val running: Costing.RunningCost? = null,
+    /** What each kind of work costs per unit, where there is enough of it to say. */
+    val kinds: List<Costing.UnitCost> = emptyList(),
+    /** Whether this person may fill in the loan, for the link that offers to. */
+    val canEditMachine: Boolean = false,
 ) {
     val costsRupees: Long get() = fuelRupees + serviceRupees + peopleRupees
     val leftRupees: Long get() = earnedRupees - costsRupees
@@ -59,7 +70,23 @@ class MachineProfitViewModel(
 
     val state: StateFlow<MachineProfitState> = app.sessionStore.session.flatMapLatest { s ->
         val seesPeople = Capability.SeePeopleCost in s.can
+
+        // What it costs to run, worked out once here from the same figures that
+        // sit in the card above it, so the two can be checked against each other.
+        // Only for somebody who sees what the business pays: the loan is part of
+        // it, and an hourly cost with the loan quietly missing reads as cheaper
+        // than the machine is.
+        val costs = combine(
+            app.directoryRepository.observeRunningCosts(s.orgId),
+            app.directoryRepository.observeWorkKinds(s.orgId, machineId),
+        ) { all, kinds ->
+            val running = all[machineId]
+            running to (if (running == null) emptyList() else kinds.mapNotNull { Costing.perUnit(running, it) }
+                .sortedByDescending { it.jobs })
+        }
+
         combine(
+            combine(
             app.directoryRepository.observeMachines(s.orgId)
                 .map { all -> all.firstOrNull { it.id == machineId }?.name.orEmpty() },
             app.workRepository.observeEarnedOnMachine(s.orgId, machineId),
@@ -81,6 +108,12 @@ class MachineProfitViewModel(
                 owedRupees = if (seesPeople) people.second else 0,
                 leftOutRupees = if (seesPeople) people.third else 0,
                 seesPeopleCost = seesPeople,
+            )
+        }, costs) { base, (running, kinds) ->
+            base.copy(
+                running = if (seesPeople) running else null,
+                kinds = if (seesPeople) kinds else emptyList(),
+                canEditMachine = Capability.EditMachines in s.can,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MachineProfitState())

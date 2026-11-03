@@ -645,6 +645,8 @@ private fun MainNavHost(navController: NavHostController) {
                             navController.navigate(Routes.live(jobId))
                         override fun machine(machineId: String) =
                             navController.navigate("machines/$machineId")
+                        override fun fuel(machineId: String) =
+                            navController.navigate("machines/$machineId/fuel")
                         override fun customer(customerId: String) =
                             navController.navigate("customer/$customerId")
                         override fun customers() = navController.switchTab(Routes.CUSTOMERS)
@@ -1223,6 +1225,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onDraftDescription = vm::setDraftDescription,
                     onDraftCost = vm::setDraftCost,
                     onDraftVendor = vm::setDraftVendor,
+                    onDraftParts = vm::setDraftParts,
                     onDraftSave = vm::saveDraft,
                     onDraftDismiss = vm::dismissDraft,
                 )
@@ -1286,6 +1289,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onServiceDescription = vm::setServiceDescription,
                     onServiceCost = vm::setServiceCost,
                     onServiceVendor = vm::setServiceVendor,
+                    onServiceParts = vm::setServiceParts,
                     onSaveService = vm::saveService,
                     onDismissService = vm::dismissService,
                     onOpenJob = { id -> navController.navigate("jobs/$id") },
@@ -1320,6 +1324,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onPlate = vm::setPlate,
                     onHours = vm::setHours,
                     onServiceEvery = vm::setServiceEvery,
+                    onMonthly = vm::setMonthly,
+                    onHoursPerYear = vm::setHoursPerYear,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
             }
@@ -1339,6 +1345,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onPlate = vm::setPlate,
                     onHours = vm::setHours,
                     onServiceEvery = vm::setServiceEvery,
+                    onMonthly = vm::setMonthly,
+                    onHoursPerYear = vm::setHoursPerYear,
                     onSave = { vm.save { navController.popBackStack() } },
                     titleRes = R.string.edit_machine_title,
                     saveLabelRes = R.string.edit_save,
@@ -1461,6 +1469,7 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onBack = { navController.popBackStack() },
                     onSeeMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
+                    onEditMachine = { navController.navigate("machines/$machineId/edit") },
                 )
             }
 

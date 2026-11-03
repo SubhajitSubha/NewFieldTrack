@@ -6,6 +6,8 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.db.dao.WorkKindFacts
+import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
@@ -75,8 +77,35 @@ data class StartWorkState(
     /** A rate this contractor has used before for this work — offered as one tap. */
     val suggestedRates: List<RateSuggestion> = emptyList(),
     val starting: Boolean = false,
+    /**
+     * What an hour on the chosen machine costs, and how its work has gone.
+     * Null for somebody who may not see what the business pays, for a job with
+     * no machine, or while it loads — the hint is then simply not there.
+     */
+    val machineCost: Costing.RunningCost? = null,
+    val machineKinds: List<WorkKindFacts> = emptyList(),
 ) {
     val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+
+    /**
+     * What this machine costs for the work being set up, if enough is known.
+     *
+     * By the unit when the machine has done enough of this kind of work to say
+     * how fast it goes; by the hour when the job is itself paid by the hour; and
+     * otherwise only the hourly figure, because dividing it by a speed nobody has
+     * measured would be a guess dressed as a number.
+     */
+    val costHint: CostHint?
+        get() {
+            val cost = machineCost?.takeIf { it.enough } ?: return null
+            val perHour = cost.rounded().total
+            if (unit == MeasureUnit.Hour && billingMode == BillingMode.PerHour) {
+                return CostHint.PerUnit(perHour)
+            }
+            val kind = machineKinds.firstOrNull { it.workType == workType.key && it.unit == unit }
+            val perUnit = kind?.let { Costing.perUnit(cost, it) }
+            return perUnit?.let { CostHint.PerUnit(it.costRupees) } ?: CostHint.OnlyHourly(perHour)
+        }
 
     val canGoNext: Boolean
         get() = when (step) {
@@ -84,6 +113,15 @@ data class StartWorkState(
             1 -> true
             else -> rateRupees > 0
         }
+}
+
+/** What the machine chosen for a job costs, in the terms the rate is being set in. */
+sealed interface CostHint {
+    /** What one unit of this work costs on this machine. */
+    data class PerUnit(val costRupees: Long) : CostHint
+
+    /** Only what an hour costs; there is not enough of this work to say per unit. */
+    data class OnlyHourly(val perHourRupees: Long) : CostHint
 }
 
 /**
@@ -165,6 +203,32 @@ class StartWorkViewModel(
             app.sessionStore.session
                 .flatMapLatest { app.directoryRepository.observeMachines(it.orgId) }
                 .collect { machines -> _state.update { state -> state.copy(machines = machines) } }
+        }
+        // What the chosen machine costs to run, for the hint under the rate. Only
+        // for somebody who sees what the business pays: the loan is part of it, and
+        // the person setting a price is exactly the one who must not be shown a cost
+        // missing it.
+        viewModelScope.launch {
+            combine(
+                app.sessionStore.session,
+                _state.map { it.machineId }.distinctUntilChanged(),
+            ) { s, machineId -> s to machineId }
+                .flatMapLatest { (s, machineId) ->
+                    val allowed = Capability.SeeMoney in s.can && Capability.SeePeopleCost in s.can
+                    if (machineId == null || !allowed) {
+                        kotlinx.coroutines.flow.flowOf<Pair<Costing.RunningCost?, List<WorkKindFacts>>>(
+                            null to emptyList()
+                        )
+                    } else {
+                        combine(
+                            app.directoryRepository.observeRunningCosts(s.orgId).map { it[machineId] },
+                            app.directoryRepository.observeWorkKinds(s.orgId, machineId),
+                        ) { running, kinds -> running to kinds }
+                    }
+                }
+                .collect { (running, kinds) ->
+                    _state.update { it.copy(machineCost = running, machineKinds = kinds) }
+                }
         }
         viewModelScope.launch {
             combine(

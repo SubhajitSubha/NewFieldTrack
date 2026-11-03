@@ -24,6 +24,8 @@ import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import com.example.fieldtrack.data.db.entity.MachineEntity
 import kotlinx.serialization.encodeToString
 
 /** Something the caller asked for that the data will not allow. */
@@ -631,8 +633,19 @@ class WorkRepository(
 
     fun observeMachinesWithLiveJobs(orgId: String) = jobs.observeMachinesWithLiveJobs(orgId)
 
-    fun observeServiceDue(orgId: String, withinHours: Double) =
-        machines.observeServiceDue(orgId, withinHours)
+    /**
+     * Machines whose next service is within [withinHours] of work, soonest first —
+     * on their hours as they stand today, not the last reading somebody typed.
+     */
+    fun observeServiceDue(orgId: String, withinHours: Double): Flow<List<MachineEntity>> =
+        machines.observeAllWithWork(orgId).map { rows ->
+            rows.map { it.effective() }
+                .filter { it.serviceIntervalHours != null }
+                .map { it to ((it.lastServiceAtHours ?: 0.0) + it.serviceIntervalHours!! - it.hoursUsed) }
+                .filter { (_, left) -> left <= withinHours }
+                .sortedBy { (_, left) -> left }
+                .map { (machine, _) -> machine }
+        }
 
     fun observeRecentService(orgId: String, limit: Int = 50) =
         machines.observeRecentService(orgId, limit)
@@ -687,21 +700,27 @@ class WorkRepository(
         costRupees: Long? = null,
         vendor: String? = null,
         closesBreakdownId: String? = null,
+        /** What was changed — filters, oil, a belt. Optional. */
+        partsNote: String? = null,
     ): String {
         val id = ids.newId()
         db.withTransaction {
             val machine = machines.find(orgId, machineId) ?: return@withTransaction
+            // The hours it has worked today, not the last reading: a service done
+            // after a season's work is stamped with that season's hours, so the
+            // next one is counted from here.
+            val hoursNow = machines.findWithWork(orgId, machineId)?.effective()?.hoursUsed
+                ?: machine.hoursUsed
             val record = ServiceRecordEntity(
                 id = id,
                 orgId = orgId,
                 machineId = machineId,
                 description = description.trim(),
                 costRupees = costRupees,
-                // Stamped with the hours on the clock now, so the next service is
-                // counted from when this one actually happened.
-                atMachineHours = machine.hoursUsed,
+                atMachineHours = hoursNow,
                 atMillis = clock.now(),
                 vendor = vendor?.trim()?.ifBlank { null },
+                partsNote = partsNote?.trim()?.ifBlank { null },
             )
             machines.upsertService(record)
             syncQueue.enqueueUpsert(
@@ -709,7 +728,7 @@ class WorkRepository(
             )
 
             val serviced = machine.copy(
-                lastServiceAtHours = machine.hoursUsed,
+                lastServiceAtHours = hoursNow,
                 updatedAt = clock.now(),
             )
             machines.upsert(serviced)

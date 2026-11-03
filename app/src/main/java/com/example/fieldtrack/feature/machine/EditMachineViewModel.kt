@@ -36,13 +36,27 @@ class EditMachineViewModel(
             _allowed.value = Capability.EditMachines in s.can
             val machine = app.directoryRepository.findMachine(s.orgId, machineId)
                 ?: return@launch
+            val finance = if (canEnterFinance(s.can)) {
+                app.directoryRepository.findMachineFinance(s.orgId, machineId)
+            } else null
+            // Today's hours, which is what the meter should read if nobody has
+            // touched it — shown whole, and saved only if it is changed.
+            val hours = machine.hoursUsed.toLong().toString()
+            val monthly = finance?.monthlyRupees?.toString().orEmpty()
+            val perYear = finance?.hoursPerYear?.toString().orEmpty()
             _state.update {
                 it.copy(
                     kind = machine.kind,
                     name = machine.name,
                     plate = machine.plate.orEmpty(),
-                    hoursText = machine.hoursUsed.toLong().toString(),
+                    hoursText = hours,
+                    initialHoursText = hours,
                     serviceEveryText = machine.serviceIntervalHours?.toLong()?.toString().orEmpty(),
+                    monthlyText = monthly,
+                    initialMonthlyText = monthly,
+                    hoursPerYearText = perYear,
+                    initialHoursPerYearText = perYear,
+                    canSeeFinance = canEnterFinance(s.can),
                 )
             }
         }
@@ -54,6 +68,10 @@ class EditMachineViewModel(
     fun setHours(v: String) = _state.update { it.copy(hoursText = v.filter { c -> c.isDigit() }) }
     fun setServiceEvery(v: String) =
         _state.update { it.copy(serviceEveryText = v.filter { c -> c.isDigit() }) }
+    fun setMonthly(v: String) =
+        _state.update { it.copy(monthlyText = v.filter { c -> c.isDigit() }.take(7)) }
+    fun setHoursPerYear(v: String) =
+        _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
@@ -71,11 +89,22 @@ class EditMachineViewModel(
                 name = current.name,
                 kind = current.kind,
                 plate = current.plate,
-                hoursUsed = current.hoursText.toDoubleOrNull(),
+                // Only a reading somebody typed. The form opens on today's hours;
+                // saving a corrected name must not turn them into a new reading.
+                hoursUsed = if (current.hoursChanged) current.hoursText.toDoubleOrNull() else null,
                 // Zero means "do not remind me", which is a real preference for an old
                 // machine that gets serviced when it complains rather than on a schedule.
                 serviceIntervalHours = current.serviceEveryText.toDoubleOrNull()?.takeIf { it > 0 },
             )
+            if (current.canSeeFinance && current.financeChanged) {
+                app.directoryRepository.setMachineFinance(
+                    orgId = s.orgId,
+                    can = s.can,
+                    machineId = machineId,
+                    monthlyRupees = current.monthlyText.toLongOrNull(),
+                    hoursPerYear = current.hoursPerYearText.toIntOrNull(),
+                )
+            }
         }.onFailure { _allowed.value = false }
         _state.update { it.copy(saving = false) }
         onSaved()

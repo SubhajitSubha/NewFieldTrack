@@ -11,6 +11,7 @@ import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.JobEventEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
+import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
@@ -183,6 +184,8 @@ class RestoreApplier(
                 }
                 SyncQueue.TABLE_FIELDS ->
                     db.customerDao().upsertField(decode<FieldEntity>(json))
+                SyncQueue.TABLE_MACHINE_FINANCE ->
+                    db.machineDao().upsertFinance(decode<MachineFinanceEntity>(json))
                 SyncQueue.TABLE_TEAM_EVENTS ->
                     db.orgDao().addTeamEvent(decode<TeamEventEntity>(json))
                 SyncQueue.TABLE_SERVICE ->

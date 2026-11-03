@@ -60,6 +60,24 @@ sealed interface HomeAlert {
         override val rank get() = 1
     }
 
+    /**
+     * A machine using clearly more diesel per hour than it has been.
+     *
+     * Often the first sign of something wrong that no breakdown has reported yet:
+     * a leak, a blocked filter, an implement dragging. Or of diesel going where it
+     * should not. Either way a glance is worth it, and it is not something anybody
+     * would notice from a list of fills.
+     */
+    data class FuelHigh(
+        val machineId: String,
+        val machineName: String,
+        val recentLitresPerHour: Double,
+        val beforeLitresPerHour: Double,
+        val percent: Int,
+    ) : HomeAlert {
+        override val rank get() = 3
+    }
+
     /** Money owed for longer than [OVERDUE_DAYS]. One customer is named; several are counted. */
     data class Overdue(
         val customers: Int,
@@ -74,7 +92,7 @@ sealed interface HomeAlert {
 
     /** Crew who worked on a job and nobody has said what they were paid. */
     data class Unpriced(val count: Int) : HomeAlert {
-        override val rank get() = 3
+        override val rank get() = 4
     }
 
     data class ServiceSoon(
@@ -83,12 +101,12 @@ sealed interface HomeAlert {
         val kind: MachineKind,
         val hoursLeft: Double,
     ) : HomeAlert {
-        override val rank get() = 4
+        override val rank get() = 5
     }
 
     /** Work kept on this phone that has not reached the server yet, and will once it can. */
     data class Waiting(val count: Int) : HomeAlert {
-        override val rank get() = 5
+        override val rank get() = 6
     }
 }
 

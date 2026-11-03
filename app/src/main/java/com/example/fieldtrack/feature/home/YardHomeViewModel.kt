@@ -175,6 +175,7 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         machineKind = machines[job.machineId]?.kind ?: MachineKind.Other,
                         byName = people[job.operatorPersonId],
                         sent = job.syncState == com.example.fieldtrack.data.db.SyncState.Synced,
+                        lostRupees = books.lostByJob[job.id],
                     )
                 },
                 ownJob = mine?.toOpenJob(

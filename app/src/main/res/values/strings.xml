@@ -278,7 +278,7 @@
     <string name="upkeep_log_service">Log a service</string>
     <string name="upkeep_hours_to_go">%1$s to go</string>
     <string name="upkeep_overdue">Overdue</string>
-    <string name="upkeep_last_at">Last at %1$s</string>
+    <string name="upkeep_last_at">Counted from %1$s</string>
     <string name="upkeep_due_at">Due at %1$s</string>
     <string name="upkeep_hours_value">%1$s hr</string>
     <string name="upkeep_new_service">Log a service</string>
@@ -432,7 +432,7 @@
     <string name="machine_driving">%1$s driving</string>
     <string name="machine_service_in">Service due in %1$s</string>
     <string name="machine_service_overdue">Service overdue</string>
-    <string name="machine_service_last">Last done at %1$s</string>
+    <string name="machine_service_last">Counted from %1$s</string>
     <string name="machine_no_schedule">No service schedule set</string>
     <string name="machine_action_fuel">Fuel</string>
     <string name="machine_action_service">Service</string>
@@ -452,7 +452,7 @@
     <string name="fuel_spent_all">Spent on this machine</string>
     <string name="fuel_litres_total">%1$s L</string>
     <string name="fuel_per_hour">%1$s L per hour</string>
-    <string name="fuel_per_hour_note">Across the hours this machine has run</string>
+    <string name="fuel_per_hour_note">From the jobs where diesel was put in, over the hours of those jobs</string>
     <string name="fuel_no_hours">Not enough hours recorded to work out a rate yet</string>
     <string name="fuel_entries">Entries</string>
     <string name="fuel_none">No diesel recorded for this machine yet.</string>
@@ -599,6 +599,58 @@
     <string name="notify_reminder_title">Still working for %1$s?</string>
     <string name="notify_reminder_body">The clock has run %1$s. Pause it if the work has stopped, so the bill is right.</string>
 
+    <!-- What an hour on a machine costs. Estimates, and said to be. -->
+    <string name="cost_about">about %1$s</string>
+    <string name="cost_hour_title">What an hour costs</string>
+    <string name="cost_hour_not_enough">Not enough work recorded yet</string>
+    <string name="cost_hour_need">About %1$d hours of finished work are needed before an hourly cost means anything. So far: %2$s hours.</string>
+    <string name="cost_hour_diesel">Diesel</string>
+    <string name="cost_hour_repairs">Repairs and service</string>
+    <string name="cost_hour_loan">Loan share</string>
+    <string name="cost_hour_loan_none">Loan or instalment</string>
+    <string name="cost_hour_loan_not_entered">not entered</string>
+    <string name="cost_hour_loan_needs_hours">needs hours a year</string>
+    <string name="cost_hour_add_loan">Add what you pay on it</string>
+    <string name="cost_hour_add_hours">Say how many hours it works in a year</string>
+    <string name="cost_hour_total">An hour costs</string>
+    <string name="cost_hour_basis">From %1$s hours of finished work since you added this machine. This is the machine only, not workers\u2019 pay.</string>
+    <string name="cost_kinds_title">By kind of work</string>
+    <string name="cost_kind_title">%1$s \u00b7 %2$s</string>
+    <string name="cost_kind_line">Costs about %1$s \u00b7 you bill about %2$s</string>
+    <string name="cost_kind_keeps">keeps about %1$s</string>
+    <string name="cost_kind_loses">loses about %1$s</string>
+    <string name="cost_kinds_note">Worked out from how fast this machine really got through the work. Before workers\u2019 pay.</string>
+
+    <!-- Under the rate, when a job is being set up. -->
+    <string name="start_cost_unit">On %1$s your cost is about %2$s %3$s</string>
+    <string name="start_cost_keep">At %1$s you keep about %2$s %3$s.</string>
+    <string name="start_cost_lose">At %1$s you lose about %2$s %3$s.</string>
+    <string name="start_cost_note">Diesel, repairs and loan. Before workers\u2019 pay.</string>
+    <string name="start_cost_hour">%1$s costs about %2$s an hour to run</string>
+    <string name="start_cost_hour_note">There is not enough of this work on it yet to say what each one costs.</string>
+
+    <!-- A job's own page: a loss, and the machine's share. -->
+    <string name="cost_lost">This job lost %1$s</string>
+    <string name="cost_lost_note">What it cost came to more than it was billed for. Look at the rate, and at what went into it.</string>
+    <string name="cost_share_keeps">Counting the machine\u2019s own repairs and loan (about %1$s for the hours it ran), this job left about %2$s.</string>
+    <string name="cost_share_loses">Counting the machine\u2019s own repairs and loan (about %1$s for the hours it ran), this job lost about %2$s.</string>
+    <string name="cost_share_note">An estimate, spread over the hours the machine worked. The figures above are what was really spent.</string>
+
+    <string name="job_lost_short">Lost %1$s</string>
+
+    <!-- The season: loan instalments, and jobs that lost. -->
+    <string name="season_loan">Loan instalments, about</string>
+    <string name="season_loan_note">What you entered on each machine, for the months in this season. Not a record of payments made.</string>
+    <plurals name="season_lost">
+        <item quantity="one">%1$d job lost money: %2$s</item>
+        <item quantity="other">%1$d jobs lost money: %2$s between them</item>
+    </plurals>
+    <string name="season_lost_note">Each cost more than it was billed for. Only jobs where every cost has a figure are counted.</string>
+
+    <string name="upkeep_parts">What was changed</string>
+    <string name="upkeep_parts_hint">Filters, oil, a belt \u2014 so next time you know what was done</string>
+    <string name="upkeep_parts_changed">Changed: %1$s</string>
+
     <!-- How this phone shows the app. -->
     <string name="display_title">Display</string>
     <string name="display_row_note">Light or dark, and bigger text</string>
@@ -650,6 +702,8 @@
     </plurals>
     <string name="home_alert_clock">%1$s\u2019s clock is still running</string>
     <string name="home_alert_clock_note">%1$s, since %2$s</string>
+    <string name="home_alert_fuel">%1$s is using more diesel</string>
+    <string name="home_alert_fuel_note">About %1$s L an hour lately, %2$s before: %3$d%% more</string>
     <string name="home_alert_down">%1$s is down</string>
     <string name="home_alert_down_note">Breakdown reported %1$s</string>
     <string name="home_alert_down_days">Down for %1$s</string>
@@ -869,6 +923,12 @@
     <string name="machines_service_every">Service every</string>
     <string name="machines_service_every_hint">250</string>
     <string name="machines_service_unit">hours</string>
+    <string name="machines_own_title">What it costs you to own</string>
+    <string name="machines_own_monthly">Loan or instalment</string>
+    <string name="machines_own_per_month">a month</string>
+    <string name="machines_own_hours_year">Hours it works in a year</string>
+    <string name="machines_own_note">Used to work out what an hour on this machine really costs. Only you and your managers can see this. Leave the hours blank and the last year of work is used.</string>
+    <string name="machines_own_too_many">A year only has 8,760 hours. Check this number.</string>
     <string name="machines_save">Save machine</string>
 
     <!-- ================================= more ================================ -->

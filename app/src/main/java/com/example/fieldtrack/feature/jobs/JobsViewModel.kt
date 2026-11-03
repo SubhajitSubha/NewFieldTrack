@@ -42,6 +42,8 @@ data class JobCard(
     val status: FtStatus,
     /** True while the job is still open, which changes what the row leads with. */
     val live: Boolean,
+    /** How much this job lost, when it did and every cost is priced. */
+    val lostRupees: Long? = null,
 )
 
 data class JobsState(
@@ -50,6 +52,12 @@ data class JobsState(
     val jobs: List<JobCard> = emptyList(),
     /** Whether this person may correct a job after it has been billed. */
     val canAmend: Boolean = false,
+    /**
+     * Whether this person may see what a job came to. The list used to show every
+     * amount to everybody who could reach it, which was harmless while only owners
+     * could; a manager given the machines but not the money can reach it now.
+     */
+    val canSeeMoney: Boolean = true,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -67,6 +75,11 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 JobFilter.Week -> app.workRepository
                     .observeCompletedToday(s.orgId, startOfToday(now) - 6 * DAY_MILLIS)
             }
+            val margins = if (Capability.SeeMoney in s.can && Capability.SeePeopleCost in s.can) {
+                app.db.orgDao().observeJobMargins(s.orgId, startOfToday(now) - 6 * DAY_MILLIS, Long.MAX_VALUE)
+            } else {
+                kotlinx.coroutines.flow.flowOf(emptyList())
+            }
             combine(
                 source,
                 app.directoryRepository.observeCustomers(s.orgId),
@@ -76,15 +89,18 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 // job, and the active-only list silently dropped it: every job a
                 // driver ever did went nameless the moment they were let go.
                 app.teamRepository.observeEveryone(s.orgId),
-            ) { jobs, customers, machines, team ->
+                margins,
+            ) { jobs, customers, machines, team, jobMargins ->
                 val customerNames = customers.associate { it.id to it.name }
                 val machineKinds = machines.associate { it.id to it.kind }
                 val memberNames = team.associate { it.personId to it.displayName }
+                val lost = jobMargins.mapNotNull { m -> m.lostRupees?.let { m.jobId to it } }.toMap()
 
                 JobsState(
                     loaded = true,
                     filter = chosen,
                     canAmend = Capability.AmendBilledWork in s.can,
+                    canSeeMoney = s.canSeeMoney,
                     jobs = jobs.map { job ->
                         val live = job.status == JobStatus.Running || job.status == JobStatus.Paused
                         JobCard(
@@ -104,6 +120,7 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                                 else -> FtStatus.Completed
                             },
                             live = live,
+                            lostRupees = lost[job.id],
                         )
                     },
                 )

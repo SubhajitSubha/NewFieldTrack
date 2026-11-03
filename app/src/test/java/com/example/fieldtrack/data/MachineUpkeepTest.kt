@@ -282,7 +282,7 @@ class MachineUpkeepTest {
     @Test
     fun `a machine overdue for service is listed`() = runTest {
         // Due at 800 + 280 = 1080; it is on 1000, so 80 hours out.
-        val due = h.db.machineDao().observeServiceDue(TestHarness.ORG_A, 100.0).first()
+        val due = h.work.observeServiceDue(TestHarness.ORG_A, 100.0).first()
         assertEquals(1, due.size)
         assertEquals(MACHINE, due.first().id)
     }
