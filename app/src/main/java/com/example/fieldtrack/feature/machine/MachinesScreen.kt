@@ -37,7 +37,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -64,9 +63,11 @@ data class MachinesState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class MachinesViewModel(app: FieldFlowApplication) : ViewModel() {
 
-    private val session = MutableStateFlow<com.example.fieldtrack.data.session.Session?>(null)
-
-    val state: StateFlow<MachinesState> = session.filterNotNull().flatMapLatest { s ->
+    // Watched, not read once. This list used to take the session at the moment the
+    // screen was built and keep it: switch to another business and the Machines tab
+    // went on listing the one you had left, with that business's permissions on the
+    // add button. Every other screen follows the session; this one now does too.
+    val state: StateFlow<MachinesState> = app.sessionStore.session.flatMapLatest { s ->
         app.directoryRepository.observeMachines(s.orgId).map { machines ->
             MachinesState(
                 loaded = true,
@@ -89,7 +90,7 @@ class MachinesViewModel(app: FieldFlowApplication) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MachinesState())
 
     init {
-        viewModelScope.launch { session.value = app.sessionStore.load() }
+        viewModelScope.launch { app.sessionStore.load() }
     }
 }
 

@@ -24,8 +24,12 @@ import org.robolectric.annotation.Config
  * Against the real notification manager Robolectric provides, so these are the
  * notifications a phone would actually hold — not a description of them.
  */
+// A plain Application, not the app's own. FieldFlowApplication starts the real clock
+// watcher, which clears the notification shade whenever nobody has an open job —
+// correct in the app, but in a test it cleared notifications this class had just
+// posted, at whatever moment a busy machine happened to run it.
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], application = Application::class)
 class WorkClockNotifierTest {
 
     private val app = ApplicationProvider.getApplicationContext<Application>()

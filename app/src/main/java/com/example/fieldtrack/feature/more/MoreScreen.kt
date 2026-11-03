@@ -132,6 +132,12 @@ fun MoreScreen(
     onMoneyOut: () -> Unit,
     onSeason: () -> Unit,
     onMachines: () -> Unit,
+    /**
+     * Opens the customers, for somebody who has them as a tab. Null for a driver
+     * who has no customer list to open — the row then only states the count, as it
+     * always did, rather than leading to a list they were never meant to have.
+     */
+    onCustomers: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -240,6 +246,8 @@ fun MoreScreen(
                             color = colors.inkTertiary,
                         )
                     },
+                    showChevron = onCustomers != null,
+                    onClick = onCustomers,
                 )
                 // Hidden outright, not merely unopenable. A rate card is nothing
                 // but the prices this business charges, so showing it to somebody

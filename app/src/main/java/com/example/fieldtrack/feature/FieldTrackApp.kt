@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature
 
+import androidx.compose.runtime.key
+
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
@@ -290,7 +292,8 @@ internal object Routes {
  */
 @Composable
 fun FieldTrackApp(
-    navController: NavHostController = rememberNavController(),
+    /** For tests, which drive navigation themselves. The app lets [businessNavController] make it. */
+    navController: NavHostController? = null,
     /** A job to go straight to, from the clock notification. */
     openJobRequests: StateFlow<String?> = MutableStateFlow(null),
     onOpenJobHandled: () -> Unit = {},
@@ -299,6 +302,8 @@ fun FieldTrackApp(
     val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { app.sessionStore.load() }
+
+    val controller = navController ?: businessNavController(startup)
 
     AppTheme {
       // Signing in and setting up are single columns too, and get the same
@@ -451,11 +456,36 @@ fun FieldTrackApp(
                 )
             }
 
-            is Startup.Ready -> MainGraph(navController, openJobRequests, onOpenJobHandled)
+            is Startup.Ready -> MainGraph(controller, openJobRequests, onOpenJobHandled)
         }
       }
       }
     }
+}
+
+/**
+ * One navigation history per business, not one for the life of the app.
+ *
+ * A controller remembers the screens that were open and, for each tab, the screens
+ * that were stacked on it. Kept across a switch of business, it handed the next
+ * business the last one's: the Machines tab reopened on the other business's
+ * machines, and a machine page opened in one could come back in another. A fresh
+ * controller starts at Home, which is where a switch should land anyway.
+ *
+ * Keyed on who is working for whom. The session goes through Loading for other
+ * reasons too — a permission refreshed from the server, say — and that must not
+ * throw anybody back to Home, so Loading keeps the last business's controller;
+ * signing out or having no business yet forgets it.
+ */
+@Composable
+private fun businessNavController(startup: Startup): NavHostController {
+    val last = remember { arrayOfNulls<String>(1) }
+    when (startup) {
+        is Startup.Ready -> last[0] = "${startup.session.orgId}/${startup.session.personId}"
+        Startup.Loading -> Unit
+        else -> last[0] = null
+    }
+    return key(last[0]) { rememberNavController() }
 }
 
 /** Which home, and so which tabs, the signed-in person gets. Field until the session is read. */
@@ -609,12 +639,23 @@ private fun bottomDestinations(roots: List<String>, driver: Boolean) = roots.map
  * Without this, tapping Home then Customers then Home three times leaves six screens
  * on the back stack and the device back button walks a trail nobody remembers making.
  */
-private fun NavHostController.switchTab(route: String) {
+internal fun NavHostController.switchTab(route: String) {
     navigate(route) {
         popUpTo(Routes.HOME) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/**
+ * Opens a screen from somewhere that is not the tab bar.
+ *
+ * A screen that is a tab for this person is switched to as a tab; anything else is
+ * pushed, with a way back. See the note where this is used for what goes wrong
+ * when a tab is pushed.
+ */
+internal fun NavHostController.openScreen(route: String, tabs: List<String>) {
+    if (route in tabs) switchTab(route) else navigate(route)
 }
 
 @Composable
@@ -625,6 +666,19 @@ private fun MainNavHost(navController: NavHostController) {
     val canEditCustomers = remember {
         app.sessionStore.current()?.can?.let { Capability.EditCustomers in it } ?: false
     }
+
+    // Opening a screen that is also a tab has to go through the tab bar's own
+    // route. Pushed on top of another screen it looked right — the bar showed it
+    // selected — but the history said otherwise: Machines opened from More sat on
+    // top of More, and tapping the More tab restored that whole pair and landed
+    // back on Machines, so More could not be reached again.
+    val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+    val roots = Routes.roots(
+        homeKindOf(startup, business),
+        (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()),
+    )
+    val open: (String) -> Unit = { route -> navController.openScreen(route, roots) }
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
 
@@ -1205,7 +1259,7 @@ private fun MainNavHost(navController: NavHostController) {
                 val state by vm.state.collectAsStateWithLifecycle()
                 FleetScreen(
                     state = state,
-                    onSeeAllMachines = { navController.navigate(Routes.MACHINES) },
+                    onSeeAllMachines = { open(Routes.MACHINES) },
                     onUpkeep = { navController.navigate(Routes.UPKEEP) },
                 )
             }
@@ -1370,7 +1424,10 @@ private fun MainNavHost(navController: NavHostController) {
                     onRates = { navController.navigate(Routes.RATES) },
                     onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
                     onSeason = { navController.navigate(Routes.SEASON) },
-                    onMachines = { navController.navigate(Routes.MACHINES) },
+                    onMachines = { open(Routes.MACHINES) },
+                    onCustomers = if (Routes.CUSTOMERS in roots) {
+                        { open(Routes.CUSTOMERS) }
+                    } else null,
                 )
             }
 
@@ -1681,11 +1738,9 @@ private fun MainNavHost(navController: NavHostController) {
                         // Switching changes what the whole app is looking at, so
                         // it goes home rather than leaving the user on a screen
                         // about a business they have just stopped looking at.
-                        vm.switchTo(orgId) {
-                            navController.navigate(Routes.HOME) {
-                                popUpTo(Routes.HOME) { inclusive = true }
-                            }
-                        }
+                        // Nothing to navigate: the switch builds a fresh history for the
+                        // business (see businessNavController), which starts at Home.
+                        vm.switchTo(orgId) {}
                     },
                     onJoinAnother = { navController.navigate(Routes.JOIN_ANOTHER) },
                     onDismissRefusal = vm::clearRefusal,
