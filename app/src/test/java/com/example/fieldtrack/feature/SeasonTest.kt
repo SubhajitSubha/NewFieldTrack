@@ -6,8 +6,7 @@ import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.PayoutCovers
 import com.example.fieldtrack.data.session.Capabilities
-import com.example.fieldtrack.feature.customer.previousSeasonStart
-import com.example.fieldtrack.feature.customer.seasonStart
+import com.example.fieldtrack.data.season.SeasonCalendar
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -53,12 +52,14 @@ class SeasonTest {
         operatorPersonId = TestHarness.DRIVER,
     )
 
+    private val usual = SeasonCalendar.Default
+
     @Test
     fun `kharif begins in June and rabi in November`() {
-        assertEquals(LocalDate.of(2026, 6, 1), seasonStart(millis(LocalDate.of(2026, 8, 14)), zone))
-        assertEquals(LocalDate.of(2026, 11, 1), seasonStart(millis(LocalDate.of(2026, 12, 2)), zone))
+        assertEquals(LocalDate.of(2026, 6, 1), usual.current(millis(LocalDate.of(2026, 8, 14)), zone).start)
+        assertEquals(LocalDate.of(2026, 11, 1), usual.current(millis(LocalDate.of(2026, 12, 2)), zone).start)
         // January to May is the back half of the rabi that began in November.
-        assertEquals(LocalDate.of(2025, 11, 1), seasonStart(millis(LocalDate.of(2026, 3, 9)), zone))
+        assertEquals(LocalDate.of(2025, 11, 1), usual.current(millis(LocalDate.of(2026, 3, 9)), zone).start)
     }
 
     @Test
@@ -68,11 +69,11 @@ class SeasonTest {
         // wrong season twice a year.
         assertEquals(
             LocalDate.of(2025, 11, 1),
-            previousSeasonStart(millis(LocalDate.of(2026, 8, 14)), zone),
+            usual.previous(millis(LocalDate.of(2026, 8, 14)), zone).start,
         )
         assertEquals(
             LocalDate.of(2026, 6, 1),
-            previousSeasonStart(millis(LocalDate.of(2026, 12, 2)), zone),
+            usual.previous(millis(LocalDate.of(2026, 12, 2)), zone).start,
         )
     }
 
@@ -153,8 +154,8 @@ class SeasonTest {
 
         val dao = h.db.orgDao()
         val workedAt = h.nowMillis
-        val thisSeason = millis(seasonStart(workedAt, zone))
-        val lastSeason = millis(previousSeasonStart(workedAt, zone))
+        val thisSeason = millis(usual.current(workedAt, zone).start)
+        val lastSeason = millis(usual.previous(workedAt, zone).start)
 
         // In the season it happened in...
         assertEquals(

@@ -574,6 +574,8 @@
     <string name="home_nobody_owes">Nobody owes you</string>
     <string name="home_this_season">This season</string>
     <string name="home_season_since">Earned since %1$s</string>
+    <!-- The business named its seasons: "Kharif · earned since 1 Jun". -->
+    <string name="home_season_named_since">%1$s · earned since %2$s</string>
     <string name="home_your_own_work">Your own work</string>
     <string name="home_crew_now">Out on jobs</string>
     <string name="home_crew_since">since %1$s</string>
@@ -1191,6 +1193,8 @@
     <string name="season_last">Last season</string>
     <string name="season_span">%1$s to %2$s</string>
     <string name="season_span_now">%1$s until today</string>
+    <!-- A named season: "Kharif · 1 Jun 2026 until today". -->
+    <string name="season_named_span">%1$s · %2$s</string>
     <string name="season_earned">Billed to customers</string>
     <string name="season_diesel">Diesel</string>
     <string name="season_service">Repairs and service</string>
@@ -1574,4 +1578,46 @@
     <string name="skip_description">You can start recording work immediately.\nJoin a business later without losing your data.</string>
     <string name="settings_title">Settings</string>
 
+
+    <!-- ======================= when the seasons begin ======================= -->
+    <string name="season_edit_title">When your seasons begin</string>
+    <string name="season_edit_intro">Say on which day each of your seasons starts. \"This season\" and \"last season\" all over the app follow these dates.</string>
+    <string name="season_edit_season_n">Season %1$d</string>
+    <string name="season_edit_remove_cd">Remove season %1$d</string>
+    <string name="season_edit_name">Name (optional)</string>
+    <string name="season_edit_name_hint">Kharif, Rabi, Summer\u2026</string>
+    <string name="season_edit_begins">Begins on</string>
+    <string name="season_edit_day">Day</string>
+    <string name="season_edit_day_range">A day from 1 to %1$d.</string>
+    <string name="season_edit_duplicate">Another season begins on this day.</string>
+    <string name="season_edit_add">Add a season</string>
+    <string name="season_edit_usual">Use June and November</string>
+    <string name="season_edit_today">Today is in %1$s, which began on %2$s.</string>
+    <string name="season_edit_today_unnamed">Today is in the season that began on %1$s.</string>
+    <string name="season_edit_not_for_you">Only the owner can change when seasons begin.</string>
+    <!-- "Kharif 1 Jun": a season's name, then the day it begins. -->
+    <string name="season_start_item">%1$s %2$s</string>
+    <string name="season_starts_join">%1$s · %2$s</string>
+    <string name="profile_seasons">Seasons begin</string>
+    <string name="season_begin_line">Seasons begin %1$s</string>
+    <string name="season_change">Change</string>
+
+    <!-- ======================== the price calculator ======================== -->
+    <string name="more_price">Work out a price</string>
+    <string name="more_price_note">A quick sum. Nothing is saved.</string>
+    <string name="price_title">Work out a price</string>
+    <string name="price_subtitle">A quick sum. Nothing is saved.</string>
+    <string name="price_result_label">The bill would come to</string>
+    <string name="price_result_blank">—</string>
+    <!-- "4 bigha × ₹1,000 / bigha": the amount of work, then the rate. -->
+    <string name="price_sum">%1$s × %2$s</string>
+    <string name="price_need_both">Put in the rate and how much work.</string>
+    <string name="price_need_rate">Put in the rate.</string>
+    <string name="price_need_quantity">Put in how much work.</string>
+    <string name="price_need_agreed">Put in the agreed amount.</string>
+    <string name="price_charged">How it is charged</string>
+    <string name="price_agreed">Agreed amount</string>
+    <string name="price_how_much">How much work</string>
+    <string name="price_hours">Hours</string>
+    <string name="price_minutes">Minutes</string>
 </resources>

@@ -135,6 +135,10 @@ import com.example.fieldtrack.data.auth.FirebasePhoneAuth
 import com.example.fieldtrack.feature.signin.SignInScreen
 import com.example.fieldtrack.feature.signin.SignInStep
 import com.example.fieldtrack.feature.signin.SignInViewModel
+import com.example.fieldtrack.feature.calculator.PriceScreen
+import com.example.fieldtrack.feature.season.SeasonsScreen
+import com.example.fieldtrack.feature.season.SeasonsViewModel
+import com.example.fieldtrack.feature.calculator.PriceViewModel
 import com.example.fieldtrack.feature.rates.RateCardScreen
 import com.example.fieldtrack.feature.rates.RateCardViewModel
 import com.example.fieldtrack.feature.orgs.OrgSwitcherScreen
@@ -207,6 +211,7 @@ internal object Routes {
     const val EDIT_MACHINE = "machines/{machineId}/edit"
     const val MORE = "more"
     const val PROFILE = "more/profile"
+    const val SEASONS_EDIT = "more/profile/seasons"
     const val TEAM = "more/team"
     const val MEMBER = "more/team/{membershipId}"
     const val EDIT_PROFILE = "more/profile/name"
@@ -214,6 +219,7 @@ internal object Routes {
     const val BACKUP = "more/backup"
     const val DISPLAY = "more/display"
     const val RATES = "more/rates"
+    const val PRICE = "more/price"
     const val ORGS = "more/businesses"
     const val JOIN_ANOTHER = "more/businesses/join"
     const val UPKEEP = "fleet/upkeep"
@@ -804,6 +810,23 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onBack = { navController.popBackStack() },
                     onWindow = vm::setWindow,
+                    onChangeSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                )
+            }
+
+            composable(Routes.SEASONS_EDIT) {
+                val vm: SeasonsViewModel = appViewModel { SeasonsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                SeasonsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onDay = vm::setDay,
+                    onMonth = vm::setMonth,
+                    onAdd = vm::add,
+                    onRemove = vm::remove,
+                    onUsual = vm::useUsual,
+                    onSave = { vm.save { navController.popBackStack() } },
                 )
             }
 
@@ -1422,12 +1445,30 @@ private fun MainNavHost(navController: NavHostController) {
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onDisplay = { navController.navigate(Routes.DISPLAY) },
                     onRates = { navController.navigate(Routes.RATES) },
+                    onPrice = { navController.navigate(Routes.PRICE) },
                     onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
                     onSeason = { navController.navigate(Routes.SEASON) },
                     onMachines = { open(Routes.MACHINES) },
                     onCustomers = if (Routes.CUSTOMERS in roots) {
                         { open(Routes.CUSTOMERS) }
                     } else null,
+                )
+            }
+
+            composable(Routes.PRICE) {
+                val vm: PriceViewModel = appViewModel { PriceViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PriceScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onWorkType = vm::selectWorkType,
+                    onBillingMode = vm::setBillingMode,
+                    onUnit = vm::setUnit,
+                    onRate = vm::setRate,
+                    onPickRate = vm::pickRate,
+                    onQuantity = vm::setQuantity,
+                    onHours = vm::setHours,
+                    onMinutes = vm::setMinutes,
                 )
             }
 
@@ -1760,6 +1801,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onEditName = { navController.navigate(Routes.EDIT_PROFILE) },
                     onEditBusiness = { navController.navigate(Routes.EDIT_BUSINESS) },
+                    onEditSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
                     onBusinessMode = vm::setBusinessMode,
                     onBusinesses = { navController.navigate(Routes.ORGS) },
                     onSignOut = {

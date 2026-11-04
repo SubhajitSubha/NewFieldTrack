@@ -5,8 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.session.Capability
-import com.example.fieldtrack.feature.customer.previousSeasonStart
-import com.example.fieldtrack.feature.customer.seasonStart
+import com.example.fieldtrack.data.season.SeasonStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +24,12 @@ data class SeasonState(
     val window: SeasonWindow = SeasonWindow.Now,
     val fromMillis: Long = 0,
     val toMillis: Long = 0,
+    /** What the business calls the season shown, if it has named them. */
+    val seasonName: String? = null,
+    /** The days the business's seasons begin, for saying what a season is here. */
+    val seasonStarts: List<SeasonStart> = emptyList(),
+    /** Whether this reader may change when the seasons begin: the owner. */
+    val canChangeSeasons: Boolean = false,
     val earnedRupees: Long = 0,
     val fuelRupees: Long = 0,
     val serviceRupees: Long = 0,
@@ -76,9 +81,10 @@ data class SeasonState(
  * leave them out; here there is nothing to leave out, because the season is
  * the stretch of time those wages were for.
  *
- * Seasons rather than months because that is the unit the work comes in:
- * kharif from June, rabi from November, and a contractor's book effectively
- * starts again at each. A calendar month cuts a harvest in half.
+ * Seasons rather than months because that is the unit the work comes in: a
+ * contractor's book effectively starts again at each, and a calendar month cuts
+ * a harvest in half. When they begin is the business's own to say — see
+ * [com.example.fieldtrack.data.season.SeasonCalendar].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
@@ -88,24 +94,26 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setWindow(value: SeasonWindow) = window.update { value }
 
     val state: StateFlow<SeasonState> = combine(
-        app.sessionStore.session,
+        app.seasonedSession,
         window,
-    ) { session, chosen -> session to chosen }
-        .flatMapLatest { (s, chosen) ->
+    ) { sessionAndSeasons, chosen -> sessionAndSeasons to chosen }
+        .flatMapLatest { (sessionAndSeasons, chosen) ->
+            val (s, seasons) = sessionAndSeasons
             val zone = ZoneId.systemDefault()
             val now = System.currentTimeMillis()
-            val from = when (chosen) {
-                SeasonWindow.Now -> seasonStart(now, zone)
-                SeasonWindow.Last -> previousSeasonStart(now, zone)
-            }.atStartOfDay(zone).toInstant().toEpochMilli()
+            val thisSeason = seasons.current(now, zone)
+            val shown = when (chosen) {
+                SeasonWindow.Now -> thisSeason
+                SeasonWindow.Last -> seasons.previous(now, zone)
+            }
+            val from = shown.startMillis(zone)
             // The season running now has not ended, so it runs to this moment.
             // The one before ends where this one starts, a millisecond short of
             // it so a job worked on the first morning of the new season is
             // counted once and in the right place.
             val to = when (chosen) {
                 SeasonWindow.Now -> now
-                SeasonWindow.Last -> seasonStart(now, zone)
-                    .atStartOfDay(zone).toInstant().toEpochMilli() - 1
+                SeasonWindow.Last -> thisSeason.startMillis(zone) - 1
             }
             val seesPeople = Capability.SeePeopleCost in s.can
             val dao = app.db.orgDao()
@@ -145,6 +153,9 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     window = chosen,
                     fromMillis = from,
                     toMillis = to,
+                    seasonName = shown.name,
+                    seasonStarts = seasons.starts,
+                    canChangeSeasons = Capability.EditBusiness in s.can,
                     earnedRupees = if (s.canSeeMoney) earned else 0,
                     fuelRupees = if (s.canSeeMoney) fuel else 0,
                     serviceRupees = if (s.canSeeMoney) service else 0,

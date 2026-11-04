@@ -1,6 +1,7 @@
 package com.example.fieldtrack.data.repository
 
 import androidx.room.withTransaction
+import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
@@ -130,7 +131,7 @@ class WorkRepository(
      */
     fun billableRupees(job: JobEntity, now: Long = clock.now()): Long =
         if (job.billingMode == BillingMode.PerHour) {
-            Math.round(billableQuantity(job, now) * job.rateRupees)
+            Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateRupees)
         } else {
             job.amountRupees
         }

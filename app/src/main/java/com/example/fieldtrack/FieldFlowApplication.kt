@@ -9,7 +9,10 @@ import com.example.fieldtrack.data.repository.DirectoryRepository
 import com.example.fieldtrack.data.repository.LedgerRepository
 import com.example.fieldtrack.data.repository.TeamRepository
 import com.example.fieldtrack.data.repository.WorkRepository
+import com.example.fieldtrack.data.season.SeasonCalendar
 import com.example.fieldtrack.data.session.SessionStore
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import com.example.fieldtrack.data.sync.FirestoreInviteLookup
 import com.example.fieldtrack.data.sync.FirestoreRestore
 import com.example.fieldtrack.data.sync.RemoteRestore
@@ -90,6 +93,19 @@ class FieldFlowApplication : Application() {
     }
 
     val sessionStore: SessionStore by lazy { SessionStore(this, db) }
+
+    /**
+     * The session together with when its business's seasons begin, each following
+     * the other: a switch of business brings that business's calendar, and an
+     * owner changing the dates reaches every screen already showing "this season".
+     * For anything that asks which season it is.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val seasonedSession: kotlinx.coroutines.flow.Flow<Pair<com.example.fieldtrack.data.session.Session, SeasonCalendar>> by lazy {
+        sessionStore.session.flatMapLatest { s ->
+            directoryRepository.observeSeasons(s.orgId).map { s to it }
+        }
+    }
 
     /**
      * Where local changes go. The only place in the app that names a server.

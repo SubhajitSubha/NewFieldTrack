@@ -7,7 +7,7 @@ import com.example.fieldtrack.data.db.EntryMethod
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
-import com.example.fieldtrack.feature.customer.seasonStart
+import com.example.fieldtrack.data.season.SeasonCalendar
 import com.example.fieldtrack.feature.startOfToday
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +63,7 @@ class DriverJobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     private val period = MutableStateFlow(DriverPeriod.Week)
 
-    val state: StateFlow<DriverJobsState> = app.sessionStore.session.flatMapLatest { s ->
+    val state: StateFlow<DriverJobsState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
         combine(
             period,
             app.directoryRepository.observeCustomers(s.orgId),
@@ -71,7 +71,7 @@ class DriverJobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.workRepository.observeForOperator(s.orgId, s.personId),
         ) { chosen, customers, machines, allJobs ->
             val now = System.currentTimeMillis()
-            val from = chosen.startMillis(now)
+            val from = chosen.startMillis(now, seasons)
             val names = customers.associate { it.id to it.name }
             val mine = allJobs
                 .filter { it.workedAt >= from && it.status != JobStatus.Discarded }
@@ -132,16 +132,13 @@ class DriverJobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
         return perDay.toList()
     }
 
-    private fun DriverPeriod.startMillis(now: Long): Long = when (this) {
+    private fun DriverPeriod.startMillis(now: Long, seasons: SeasonCalendar): Long = when (this) {
         DriverPeriod.Week -> startOfWeek(now)
         DriverPeriod.Month -> Calendar.getInstance().apply {
             timeInMillis = startOfToday(now)
             set(Calendar.DAY_OF_MONTH, 1)
         }.timeInMillis
-        DriverPeriod.Season -> seasonStart(now)
-            .atStartOfDay(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+        DriverPeriod.Season -> seasons.current(now).startMillis()
     }
 
     private fun startOfWeek(now: Long): Long = Calendar.getInstance().apply {

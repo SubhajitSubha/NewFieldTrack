@@ -22,6 +22,8 @@ import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import com.example.fieldtrack.data.season.SeasonCalendar
 import kotlinx.serialization.encodeToString
 
 /**
@@ -41,6 +43,21 @@ class DirectoryRepository(
     private val customers = db.customerDao()
     private val machines = db.machineDao()
     private val jobs = db.jobDao()
+
+    // ----------------------------------------------------------------- seasons
+
+    /**
+     * When this business's seasons begin, live.
+     *
+     * Read off the business's own row rather than the session. The session is a
+     * snapshot taken when somebody signs in, and an owner who changes the dates
+     * expects a driver's phone to follow when the change reaches it — which it
+     * does through this, because the row is what the sync updates.
+     */
+    fun observeSeasons(orgId: String): Flow<SeasonCalendar> =
+        db.orgDao().observeOrg(orgId)
+            .map { SeasonCalendar.parse(it?.seasons) }
+            .distinctUntilChanged()
 
     // ---------------------------------------------------------------- customers
 

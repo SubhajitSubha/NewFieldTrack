@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.work
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.CustomerEntity
@@ -44,8 +45,7 @@ data class PastWorkState(
     val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
     val amountRupees: Long
-        get() = if (billingMode == BillingMode.Fixed) rateRupees
-        else Math.round(quantity * rateRupees)
+        get() = Billing.amount(billingMode, quantity, rateRupees)
 
     /** Minutes between the two times, when both are given and make sense. */
     val workedMinutes: Int?

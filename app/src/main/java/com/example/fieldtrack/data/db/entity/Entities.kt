@@ -3,6 +3,7 @@ package com.example.fieldtrack.data.db.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.EntryMethod
@@ -63,6 +64,13 @@ data class OrgEntity(
     val upiId: String? = null,
     /** What this business measures land in by default. Overridable per job. */
     val defaultLandUnit: MeasureUnit = MeasureUnit.Acre,
+    /**
+     * When this business's seasons begin, as [com.example.fieldtrack.data.season.SeasonCalendar]
+     * writes them. Null until somebody sets them, which reads as the usual June and
+     * November — and stays null rather than being filled in with those, so that the
+     * app can tell a business that chose them from one that has never been asked.
+     */
+    val seasons: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
@@ -600,10 +608,9 @@ data class JobEntity(
     /** What this job is worth, rounded to the rupee the way a contractor would. */
     val amountRupees: Long
         get() = when (billingMode) {
-            BillingMode.Fixed -> rateRupees
             // Trips carry their own prices; multiplying loses every rate change.
             BillingMode.PerTrip -> tripTotalRupees
-            else -> Math.round(quantity * rateRupees)
+            else -> Billing.amount(billingMode, quantity, rateRupees)
         }
 }
 

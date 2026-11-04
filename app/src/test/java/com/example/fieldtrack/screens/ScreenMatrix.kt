@@ -108,6 +108,89 @@ abstract class ScreenMatrix(
         capture("sheets", "start-hint-loss")
     }
 
+    /** The price calculator, through the questions a contractor would put to it. */
+    @Test fun price() {
+        runBlocking { seedBusiness(business = true) }
+        start()
+        compose.runOnUiThread { nav.navigate(Routes.PRICE) }
+        settle()
+        fun tap(text: String) {
+            runCatching { compose.onNode(hasText(text)).performScrollTo() }
+            runCatching { compose.onNode(hasText(text)).performClick() }
+            settle()
+        }
+        // The fields in the order they sit: rate first, then the quantity (or hours, minutes).
+        fun type(index: Int, text: String) {
+            runCatching { compose.onAllNodes(hasSetTextAction())[index].performTextReplacement(text) }
+            settle()
+        }
+        // Rate filled in from the rate card; nothing asked of it yet.
+        capture("price", "price-start")
+        type(1, "4")
+        capture("price", "price-bigha")
+        scrollEverythingToEnd(); settle()
+        capture("price", "price-bigha.end")
+        tap("Per hour")
+        capture("price", "price-hour-empty")
+        type(0, "900"); type(1, "2"); type(2, "30")
+        capture("price", "price-hour")
+        tap("Hauling")
+        type(1, "5")
+        capture("price", "price-trips")
+        tap("Other")
+        tap("Fixed price")
+        capture("price", "price-fixed")
+    }
+
+    /** A business with three named seasons: where they show, and the editor with mistakes in it. */
+    @Test fun seasons() {
+        runBlocking {
+            seedBusiness(business = true)
+            val org = app.db.orgDao().findOrg(ORG)!!
+            val south = com.example.fieldtrack.data.season.SeasonCalendar.of(
+                listOf(
+                    com.example.fieldtrack.data.season.SeasonStart(4, 1, "Virippu"),
+                    com.example.fieldtrack.data.season.SeasonStart(8, 15, "Mundakan"),
+                    com.example.fieldtrack.data.season.SeasonStart(12, 1, "Puncha"),
+                )
+            )!!
+            app.db.orgDao().upsertOrg(org.copy(seasons = south.encode()))
+        }
+        start()
+        listOf(
+            "home" to Routes.HOME, "season" to Routes.SEASON, "profile" to Routes.PROFILE,
+            "seasons-edit" to Routes.SEASONS_EDIT,
+        ).forEach { (name, route) -> shoot("seasons", name, route) }
+
+        compose.runOnUiThread { nav.navigate(Routes.SEASON) }
+        settle()
+        runCatching { compose.onNode(hasText("Last season")).performClick() }
+        settle()
+        capture("seasons", "season-last")
+
+        // The editor, with two mistakes in turn. Fields in the order they sit: each
+        // season's name, then its day.
+        compose.runOnUiThread { nav.navigate(Routes.SEASONS_EDIT) }
+        settle()
+        fun typeIn(index: Int, text: String) {
+            runCatching { compose.onAllNodes(hasSetTextAction())[index].performTextReplacement(text) }
+            settle()
+        }
+        fun chip(text: String, index: Int) {
+            runCatching { compose.onAllNodes(hasText(text))[index].performScrollTo() }
+            runCatching { compose.onAllNodes(hasText(text))[index].performClick() }
+            settle()
+        }
+        chip("Apr", 1)           // the second season, moved onto the first one's month...
+        typeIn(3, "1")           // ...and day: two seasons on one day
+        capture("seasons", "seasons-edit-duplicate")
+        chip("Feb", 2)           // the third season in February...
+        typeIn(5, "30")          // ...on a day February does not have
+        capture("seasons", "seasons-edit-bad-day")
+        scrollEverythingToEnd(); settle()
+        capture("seasons", "seasons-edit-bad-day.end")
+    }
+
     /** The Jobs list on "Done today", where the amounts and the loss mark are. */
     @Test fun jobsDone() {
         runBlocking { seedBusiness(business = true) }
@@ -160,6 +243,7 @@ abstract class ScreenMatrix(
             "home" to Routes.HOME, "jobs" to Routes.JOBS, "customers" to Routes.CUSTOMERS,
             "fleet" to Routes.FLEET, "machines" to Routes.MACHINES, "money-out" to Routes.MONEY_OUT,
             "season" to Routes.SEASON, "team" to Routes.TEAM, "rates" to Routes.RATES,
+            "price" to Routes.PRICE, "seasons-edit" to Routes.SEASONS_EDIT,
             "upkeep" to Routes.UPKEEP, "backup" to Routes.BACKUP,
         ).forEach { (name, route) -> shoot("empty", name, route) }
     }
@@ -182,7 +266,9 @@ abstract class ScreenMatrix(
         start()
         listOf(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
-            "more" to Routes.MORE, "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
+            "more" to Routes.MORE, "price" to Routes.PRICE, "profile" to Routes.PROFILE,
+            "seasons-edit" to Routes.SEASONS_EDIT,
+            "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
         ).forEach { (name, route) -> shoot("driver", name, route) }
     }
 
@@ -205,6 +291,7 @@ abstract class ScreenMatrix(
         listOf(
             "home" to Routes.HOME, "jobs" to Routes.JOBS, "fleet" to Routes.FLEET,
             "machine" to "machines/${ids.machineId}", "machine-edit" to "machines/${ids.machineId}/edit",
+            "more" to Routes.MORE, "price" to Routes.PRICE,
         ).forEach { (name, route) -> shoot("manager-machines", name, route) }
         jobsDone("manager-machines")
     }
@@ -523,6 +610,8 @@ abstract class ScreenMatrix(
         "backup" to Routes.BACKUP,
         "display" to Routes.DISPLAY,
         "rates" to Routes.RATES,
+        "price" to Routes.PRICE,
+        "seasons-edit" to Routes.SEASONS_EDIT,
         "orgs" to Routes.ORGS,
         "join-another" to Routes.JOIN_ANOTHER,
     )

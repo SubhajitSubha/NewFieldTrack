@@ -9,7 +9,6 @@ import com.example.fieldtrack.feature.customer.entriesFor
 import com.example.fieldtrack.feature.customer.financialYearStart
 import com.example.fieldtrack.feature.customer.lastSettledAt
 import com.example.fieldtrack.feature.customer.periodStart
-import com.example.fieldtrack.feature.customer.seasonStart
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -45,19 +44,21 @@ class StatementOptionsTest {
 
     // ------------------------------------------------------------------ seasons
 
+    private val usual = com.example.fieldtrack.data.season.SeasonCalendar.Default
+
     @Test
     fun `the season running in October began in June`() {
-        assertEquals(LocalDate.of(2026, 6, 1), seasonStart(at(2026, 10, 11), india))
+        assertEquals(LocalDate.of(2026, 6, 1), usual.current(at(2026, 10, 11), india).start)
     }
 
     @Test
     fun `the season running in December began in November`() {
-        assertEquals(LocalDate.of(2026, 11, 1), seasonStart(at(2026, 12, 20), india))
+        assertEquals(LocalDate.of(2026, 11, 1), usual.current(at(2026, 12, 20), india).start)
     }
 
     @Test
     fun `February is the back half of the season that began last November`() {
-        assertEquals(LocalDate.of(2025, 11, 1), seasonStart(at(2026, 2, 14), india))
+        assertEquals(LocalDate.of(2025, 11, 1), usual.current(at(2026, 2, 14), india).start)
     }
 
     @Test
@@ -99,7 +100,7 @@ class StatementOptionsTest {
             payment(3_000, at(2026, 5, 1)),
             charge(5_000, at(2026, 6, 1)),
         )
-        val start = periodStart(StatementPeriod.SinceSettled, at(2026, 10, 11), entries, zone = india)!!
+        val start = periodStart(StatementPeriod.SinceSettled, at(2026, 10, 11), entries, seasons = usual, zone = india)!!
         val shown = entriesFor(entries, StatementContent.Everything, start, null)
 
         assertEquals("only what came after the account was squared", 1, shown.size)
@@ -109,7 +110,7 @@ class StatementOptionsTest {
     @Test
     fun `a never-settled account falls back to showing everything`() {
         val entries = listOf(charge(3_000, at(2026, 4, 1)))
-        assertNull(periodStart(StatementPeriod.SinceSettled, at(2026, 10, 11), entries, zone = india))
+        assertNull(periodStart(StatementPeriod.SinceSettled, at(2026, 10, 11), entries, seasons = usual, zone = india))
     }
 
     // ------------------------------------------------------------------ opening
@@ -121,7 +122,7 @@ class StatementOptionsTest {
             payment(4_800, at(2026, 2, 10)),
             charge(3_000, at(2026, 6, 10)),
         )
-        val start = periodStart(StatementPeriod.FinancialYear, at(2026, 10, 11), entries, zone = india)
+        val start = periodStart(StatementPeriod.FinancialYear, at(2026, 10, 11), entries, seasons = usual, zone = india)
 
         assertEquals("7,200 billed less 4,800 paid, both before April", 2_400L, balanceBefore(entries, start))
     }

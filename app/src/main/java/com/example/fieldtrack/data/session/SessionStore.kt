@@ -5,6 +5,7 @@ import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.IdGenerator
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.season.SeasonCalendar
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.sync.PullWatermarks
 import com.example.fieldtrack.data.sync.RemoteRestore
@@ -305,6 +306,26 @@ class SessionStore(
         )
         _startup.value = Startup.Ready(
             session.copy(businessName = name.trim(), landUnit = landUnit)
+        )
+    }
+
+    /**
+     * Sets when this business's seasons begin.
+     *
+     * Its own call, not another argument to [updateBusiness]: that one rewrites the
+     * letterhead from a form and takes every field explicitly so none can be
+     * blanked by accident, and the seasons are edited on a screen of their own.
+     * Stored as given, even when it is the usual dates — somebody who chose June
+     * and November should not have them shift if the usual dates ever change.
+     */
+    suspend fun updateSeasons(calendar: SeasonCalendar) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        val updated = org.copy(seasons = calendar.encode(), updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
         )
     }
 

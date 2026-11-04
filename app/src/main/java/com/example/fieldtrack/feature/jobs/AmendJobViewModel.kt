@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.jobs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.session.Capability
@@ -40,8 +41,7 @@ data class AmendJobState(
      * are the same figure.
      */
     val newAmountRupees: Long
-        get() = if (billingMode == BillingMode.Fixed) rateRupees
-        else Math.round(quantity * rateRupees)
+        get() = Billing.amount(billingMode, quantity, rateRupees)
 
     /** Positive when the customer ends up owing more. */
     val deltaRupees: Long get() = newAmountRupees - originalAmountRupees

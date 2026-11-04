@@ -90,6 +90,7 @@ fun HomeScreen(
                     owing = state.owingCustomers,
                     season = state.seasonEarnedRupees,
                     seasonFrom = state.seasonFromMillis,
+                    seasonName = state.seasonName,
                     onOpenCustomers = onOpenCustomers,
                     onOpenSeason = onOpenSeason,
                 )
@@ -223,6 +224,7 @@ internal fun MoneyFigures(
     owing: Int,
     season: Long,
     seasonFrom: Long,
+    seasonName: String?,
     onOpenCustomers: () -> Unit,
     onOpenSeason: () -> Unit,
 ) {
@@ -246,7 +248,11 @@ internal fun MoneyFigures(
         FigureCard(
             label = stringResource(R.string.home_this_season),
             value = if (loaded) rupees(season) else NOT_YET,
-            note = stringResource(R.string.home_season_since, dayMonth(seasonFrom)),
+            note = if (seasonName == null) {
+                stringResource(R.string.home_season_since, dayMonth(seasonFrom))
+            } else {
+                stringResource(R.string.home_season_named_since, seasonName, dayMonth(seasonFrom))
+            },
             onClick = onOpenSeason,
             modifier = Modifier.weight(1f),
         )

@@ -96,6 +96,7 @@ fun YardHomeScreen(
                     owing = state.owingCustomers,
                     season = state.seasonEarnedRupees,
                     seasonFrom = state.seasonFromMillis,
+                    seasonName = state.seasonName,
                     onOpenCustomers = onOpenCustomers,
                     onOpenSeason = onOpenSeason,
                 )

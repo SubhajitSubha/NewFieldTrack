@@ -132,6 +132,8 @@ fun MoreScreen(
     onMoneyOut: () -> Unit,
     onSeason: () -> Unit,
     onMachines: () -> Unit,
+    /** Opens the price calculator. Shown only to somebody who may see rates. */
+    onPrice: () -> Unit,
     /**
      * Opens the customers, for somebody who has them as a tab. Null for a driver
      * who has no customer list to open — the row then only states the count, as it
@@ -280,6 +282,17 @@ fun MoreScreen(
                     },
                     showChevron = true,
                     onClick = onRates,
+                )
+                FtRowDivider()
+                // Beside the rates it starts from, and behind the same switch: a
+                // price is money, and what a rate card holds is exactly what this
+                // multiplies.
+                FtListRow(
+                    title = stringResource(R.string.more_price),
+                    subtitle = stringResource(R.string.more_price_note),
+                    leading = { FtIconTile(FieldTrackIcons.Rupee, size = 40.dp) },
+                    showChevron = true,
+                    onClick = onPrice,
                 )
                 }
 

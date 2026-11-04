@@ -32,7 +32,10 @@ import com.example.fieldtrack.R
 import com.example.fieldtrack.data.auth.formatIndianPhone
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
+import com.example.fieldtrack.data.season.SeasonCalendar
+import com.example.fieldtrack.data.season.SeasonStart
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.feature.season.seasonStartsSummary
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
@@ -86,6 +89,8 @@ data class ProfileState(
     val upiId: String? = null,
     val gstin: String? = null,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** When the business's seasons begin, as the owner set them (or the usual dates). */
+    val seasonStarts: List<SeasonStart> = SeasonCalendar.Default.starts,
     val businessMode: Boolean = false,
     /** False for a driver, who may not change the business they work for. */
     val canEditBusiness: Boolean = false,
@@ -113,6 +118,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 upiId = org?.upiId,
                 gstin = org?.gstin,
                 landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
+                seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
                 businessMode = businessMode,
                 canEditBusiness = Capability.EditBusiness in s.can,
                 orgId = s.orgId,
@@ -148,6 +154,7 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onEditName: () -> Unit,
     onEditBusiness: () -> Unit,
+    onEditSeasons: () -> Unit,
     onBusinessMode: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onBusinesses: () -> Unit,
@@ -264,6 +271,17 @@ fun ProfileScreen(
                     label = stringResource(R.string.profile_land_measured_in),
                     value = stringResource(state.landUnit.labelRes),
                     onClick = onEditBusiness.takeIf { state.canEditBusiness },
+                )
+                FtRowDivider()
+                // Under the label, not beside it: named seasons make a line far longer
+                // than the clipped value a row like the ones above can hold, and the
+                // dates are the whole point of the row.
+                FtListRow(
+                    title = stringResource(R.string.profile_seasons),
+                    subtitle = seasonStartsSummary(state.seasonStarts),
+                    subtitleMaxLines = 3,
+                    showChevron = state.canEditBusiness,
+                    onClick = onEditSeasons.takeIf { state.canEditBusiness },
                 )
                 FtRowDivider()
                 Row(

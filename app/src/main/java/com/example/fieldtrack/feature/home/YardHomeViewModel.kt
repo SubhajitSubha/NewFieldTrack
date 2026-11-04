@@ -10,7 +10,6 @@ import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.session.Capability
-import com.example.fieldtrack.feature.customer.seasonStart
 import com.example.fieldtrack.feature.startOfToday
 import com.example.fieldtrack.data.repository.ClockCheck
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,6 +61,8 @@ data class YardHomeState(
     val owingCustomers: Int = 0,
     val seasonEarnedRupees: Long = 0,
     val seasonFromMillis: Long = 0,
+    /** What the business calls this season, if it has named them. */
+    val seasonName: String? = null,
     val doneToday: List<TodayRow> = emptyList(),
     val ownJob: OpenJob? = null,
     val alerts: List<HomeAlert> = emptyList(),
@@ -86,11 +87,12 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val team: List<MembershipEntity>,
     )
 
-    val state: StateFlow<YardHomeState> = app.sessionStore.session.flatMapLatest { s ->
+    val state: StateFlow<YardHomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
         val zone = ZoneId.systemDefault()
-        val seasonFrom = seasonStart(now, zone).atStartOfDay(zone).toInstant().toEpochMilli()
+        val season = seasons.current(now, zone)
+        val seasonFrom = season.startMillis(zone)
 
         val work = combine(
             app.workRepository.observeCompletedToday(s.orgId, sevenDaysFrom(now)),
@@ -163,6 +165,7 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 owingCustomers = owed.size,
                 seasonEarnedRupees = books.seasonEarned,
                 seasonFromMillis = seasonFrom,
+                seasonName = season.name,
                 doneToday = today.map { job ->
                     TodayRow(
                         jobId = job.id,

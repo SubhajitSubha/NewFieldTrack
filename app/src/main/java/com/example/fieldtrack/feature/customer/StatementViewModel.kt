@@ -8,6 +8,7 @@ import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
+import com.example.fieldtrack.data.season.SeasonCalendar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,6 +73,7 @@ class StatementViewModel(
     private var entries: List<LedgerEntryEntity> = emptyList()
     private var jobsById: Map<String, JobEntity> = emptyMap()
     private var org: OrgEntity? = null
+    private var seasons: SeasonCalendar = SeasonCalendar.Default
     private var customer: CustomerEntity? = null
     private var orgId: String = ""
 
@@ -80,6 +82,7 @@ class StatementViewModel(
             val session = app.sessionStore.load() ?: return@launch
             orgId = session.orgId
             org = app.db.orgDao().observeOrg(session.orgId).first()
+            seasons = SeasonCalendar.parse(org?.seasons)
             customer = app.directoryRepository.findCustomer(session.orgId, customerId)
             entries = app.ledgerRepository.observeLedger(session.orgId, customerId).first()
             // The ledger note is only the work type. A dues list that says
@@ -163,6 +166,7 @@ class StatementViewModel(
             period = current.period,
             now = now,
             entries = entries,
+            seasons = seasons,
             customStart = current.customStartMillis,
         )
         val end = current.customEndMillis.takeIf { current.period == StatementPeriod.Custom }

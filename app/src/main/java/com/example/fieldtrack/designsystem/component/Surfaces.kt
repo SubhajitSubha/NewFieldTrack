@@ -162,6 +162,8 @@ fun FtListRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    /** One line unless the subtitle is the point of the row, as a list of dates is. */
+    subtitleMaxLines: Int = 1,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
     showChevron: Boolean = false,
@@ -211,7 +213,7 @@ fun FtListRow(
                         text = subtitle,
                         style = FieldTrackTheme.type.caption,
                         color = FieldTrackTheme.colors.inkTertiary,
-                        maxLines = 1,
+                        maxLines = subtitleMaxLines,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp),
                     )

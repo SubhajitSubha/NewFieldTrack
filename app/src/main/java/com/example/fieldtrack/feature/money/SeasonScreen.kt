@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -19,6 +20,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.designsystem.component.FtButton
+import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtRowDivider
@@ -26,6 +29,7 @@ import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.rupees
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
+import com.example.fieldtrack.feature.season.seasonStartsSummary
 
 /**
  * A season's work, added up.
@@ -44,6 +48,8 @@ fun SeasonScreen(
     state: SeasonState,
     onBack: () -> Unit,
     onWindow: (SeasonWindow) -> Unit,
+    /** Opens the editor for when seasons begin. Used only when [SeasonState.canChangeSeasons]. */
+    onChangeSeasons: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -65,6 +71,9 @@ fun SeasonScreen(
                     dayMonthYear(state.fromMillis),
                     dayMonthYear(state.toMillis),
                 )
+            }.let { span ->
+                // Named seasons say which one this is: "Kharif · 1 Jun 2026 until today".
+                state.seasonName?.let { stringResource(R.string.season_named_span, it, span) } ?: span
             },
             onBack = onBack,
             backContentDescription = stringResource(R.string.action_back_cd),
@@ -89,6 +98,40 @@ fun SeasonScreen(
                     selected = state.window == SeasonWindow.Last,
                     onClick = { onWindow(SeasonWindow.Last) },
                 )
+            }
+
+            // When seasons begin, said on the one screen that is all about them: the
+            // business's own dates, which differ from one district to the next, and
+            // the owner's way to change them. Above the early returns below so it is
+            // here whether or not there is anything to total.
+            if (state.seasonStarts.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(
+                            R.string.season_begin_line,
+                            seasonStartsSummary(state.seasonStarts),
+                        ),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 2.dp),
+                    )
+                    if (state.canChangeSeasons) {
+                        FtButton(
+                            text = stringResource(R.string.season_change),
+                            onClick = onChangeSeasons,
+                            tone = FtButtonTone.Secondary,
+                            height = 40.dp,
+                            // A width of its own: a button fills what it is given, and in
+                            // a row beside the line of dates it left them none — one
+                            // letter to a row.
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .width(112.dp),
+                        )
+                    }
+                }
             }
 
             if (!state.canSeeMoney) {

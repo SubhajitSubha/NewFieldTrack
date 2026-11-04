@@ -308,9 +308,24 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
     }
 }
 
+/**
+ * When the business's seasons begin.
+ *
+ * Nullable with no default: a business that has never said keeps the usual June
+ * and November, read by [com.example.fieldtrack.data.season.SeasonCalendar] as
+ * "nothing set". Nothing is back-filled, so nobody's "this season" moves the day
+ * they update, and a row written by an older build — which has no such column and
+ * sends none — reads the same way.
+ */
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE organisations ADD COLUMN seasons TEXT")
+    }
+}
+
 /** Every migration, in order. Add to this list and the builder picks it up. */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
 )

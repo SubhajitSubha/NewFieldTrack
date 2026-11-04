@@ -2,6 +2,7 @@ package com.example.fieldtrack.feature.customer
 
 import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
+import com.example.fieldtrack.data.season.SeasonCalendar
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -11,38 +12,6 @@ enum class StatementPeriod { Season, FinancialYear, ThreeMonths, SinceSettled, C
 
 /** What goes on it. */
 enum class StatementContent { Everything, UnpaidOnly, PaymentsOnly, PickedJobs }
-
-/**
- * The first day of the crop season that is currently running.
- *
- * Kharif is sown from June and Rabi from November, so those are the two moments a
- * contractor's book effectively starts again. Regional and approximate — a farmer in
- * Kerala keeps a different calendar — which is why it sits in one function with a
- * name, rather than scattered through the screen that offers it.
- */
-fun seasonStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
-    val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-    return when {
-        today.monthValue >= 11 -> LocalDate.of(today.year, 11, 1)
-        today.monthValue >= 6 -> LocalDate.of(today.year, 6, 1)
-        // January to May is the back half of the Rabi season that began in November.
-        else -> LocalDate.of(today.year - 1, 11, 1)
-    }
-}
-
-/**
- * The season before the one running now.
- *
- * Found by stepping back a day from this season's first morning and asking
- * again, rather than by subtracting six months — the two seasons are not the
- * same length (June to November is five months, November to June is seven)
- * and arithmetic on months would land in the wrong one twice a year.
- */
-fun previousSeasonStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
-    val thisOne = seasonStart(now, zone)
-    val dayBefore = thisOne.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-    return seasonStart(dayBefore, zone)
-}
 
 /** The first day of the financial year in progress, which starts in April. */
 fun financialYearStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
@@ -84,10 +53,16 @@ fun periodStart(
     period: StatementPeriod,
     now: Long,
     entries: List<LedgerEntryEntity>,
+    /**
+     * Required, with no usual-dates default: this is the argument somebody forgets,
+     * and a statement quietly starting from June in a business that sows in
+     * September is the mistake the calendar exists to prevent.
+     */
+    seasons: SeasonCalendar,
     customStart: Long? = null,
     zone: ZoneId = ZoneId.systemDefault(),
 ): Long? = when (period) {
-    StatementPeriod.Season -> seasonStart(now, zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    StatementPeriod.Season -> seasons.current(now, zone).startMillis(zone)
     StatementPeriod.FinancialYear ->
         financialYearStart(now, zone).atStartOfDay(zone).toInstant().toEpochMilli()
     StatementPeriod.ThreeMonths ->

@@ -62,7 +62,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         LedgerEntryEntity::class,
         OutboxEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

@@ -156,12 +156,39 @@ class MigrationTest {
     }
 
     @Test
+    fun `a business keeps everything and has no seasons of its own until it sets them`() {
+        create(14) {
+            it.execSQL(
+                "INSERT INTO organisations (id, name, defaultLandUnit, createdAt, updatedAt, syncState) " +
+                    "VALUES ('o1', 'Singh Agro', 'Bigha', 1700000000000, 1700000000000, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT name, defaultLandUnit, seasons, syncState FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Singh Agro", c.getString(0))
+            assertEquals("Bigha", c.getString(1))
+            assertTrue("nothing back-filled: June and November stay the default, not a choice", c.isNull(2))
+            assertEquals("Synced", c.getString(3))
+        }
+        // And what an app of this version stores reads back as what was meant.
+        val calendar = com.example.fieldtrack.data.season.SeasonCalendar.of(
+            listOf(com.example.fieldtrack.data.season.SeasonStart(4, 1, "Virippu"))
+        )!!
+        db.execSQL("UPDATE organisations SET seasons = '${calendar.encode().replace("'", "''")}' WHERE id = 'o1'")
+        db.query("SELECT seasons FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(calendar, com.example.fieldtrack.data.season.SeasonCalendar.parse(c.getString(0)))
+        }
+    }
+
+    @Test
     fun `a phone that never updated gets to the current schema from the very first version`() {
         create(1)
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(14, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(15, c.getInt(0))
         }
     }
 }
