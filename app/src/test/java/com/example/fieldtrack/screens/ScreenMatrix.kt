@@ -5,6 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.fillMaxSize
+import com.example.fieldtrack.feature.fields.GpsAccess
+import com.example.fieldtrack.feature.fields.Signal
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollAction
@@ -189,6 +195,61 @@ abstract class ScreenMatrix(
         capture("seasons", "seasons-edit-bad-day")
         scrollEverythingToEnd(); settle()
         capture("seasons", "seasons-edit-bad-day.end")
+    }
+
+    /** Measuring a plot by walking, in every state the screen can be in: no GPS, a walk, a result. */
+    @Test fun measure() {
+        val lat0 = 30.9; val lon0 = 75.85
+        val metreLat = 1.0 / 111_194.9266
+        val metreLon = metreLat / Math.cos(Math.toRadians(lat0))
+        fun walk(vararg m: Pair<Int, Int>) = m.mapIndexed { i, (e, n) ->
+            com.example.fieldtrack.data.measure.Point(lat0 + n * metreLat, lon0 + e * metreLon, i * 10_000L)
+        }
+        val rectangle = walk(0 to 0, 60 to 0, 120 to 0, 120 to 45, 60 to 45, 0 to 45)
+        val ready = com.example.fieldtrack.feature.fields.MeasureState(
+            loaded = true, signal = Signal.Good, accuracyMetres = 6,
+            here = rectangle.first(),
+        )
+        var shown by mutableStateOf(ready)
+        var refused by mutableStateOf(false)
+        val none = com.example.fieldtrack.feature.fields.MeasureActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+        compose.setContent {
+            com.example.fieldtrack.feature.AppTheme {
+                androidx.compose.foundation.layout.BoxWithConstraints(androidx.compose.ui.Modifier.fillMaxSize()) {
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        com.example.fieldtrack.designsystem.layout.LocalWidthClass provides
+                            com.example.fieldtrack.designsystem.layout.WidthClass.of(maxWidth)
+                    ) { com.example.fieldtrack.feature.fields.MeasureScreen(shown, none, permanentlyRefused = refused) }
+                }
+            }
+        }
+        fun show(name: String, state: com.example.fieldtrack.feature.fields.MeasureState, permanentlyRefused: Boolean = false) {
+            shown = state; refused = permanentlyRefused; settle(); capture("measure", name)
+        }
+        show("setup-permission", ready.copy(access = GpsAccess.NotPermitted))
+        show("setup-refused", ready.copy(access = GpsAccess.NotPermitted), permanentlyRefused = true)
+        show("setup-precise", ready.copy(access = GpsAccess.NotPrecise))
+        show("setup-off", ready.copy(access = GpsAccess.SwitchedOff))
+        show("searching", ready.copy(signal = Signal.None, accuracyMetres = null, here = null))
+        show("weak", ready.copy(signal = Signal.Weak, accuracyMetres = 34))
+        show("ready", ready)
+        show("walking", ready.copy(walking = true, points = rectangle.take(4), here = rectangle[4]))
+        show(
+            "walking-cut-off",
+            ready.copy(walking = true, interrupted = true, signal = Signal.None, points = rectangle.take(4), here = rectangle[3]),
+        )
+        fun finished(points: List<com.example.fieldtrack.data.measure.Point>, unit: MeasureUnit, perAcre: String = "", interrupted: Boolean = false) =
+            ready.copy(
+                finished = true, points = points, here = points.last(), unit = unit, perAcreText = perAcre,
+                interrupted = interrupted, shape = com.example.fieldtrack.data.measure.Shape(points),
+            )
+        show("result", finished(rectangle, MeasureUnit.Acre))
+        show("result-bigha-unknown", finished(rectangle, MeasureUnit.Bigha))
+        show("result-bigha", finished(rectangle, MeasureUnit.Bigha, "1.6"))
+        show("result-warnings", finished(walk(0 to 0, 120 to 45, 120 to 0, 0 to 45, 40 to 80), MeasureUnit.Kanal, interrupted = true))
+        show("result-too-small", finished(walk(0 to 0, 5 to 0, 5 to 5), MeasureUnit.Acre))
+        scrollEverythingToEnd(); settle()
+        capture("measure", "result-too-small.end")
     }
 
     /** The Jobs list on "Done today", where the amounts and the loss mark are. */

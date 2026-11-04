@@ -66,6 +66,7 @@ fun FieldEditScreen(
     onArea: (String) -> Unit,
     onUnit: (MeasureUnit) -> Unit,
     onCrop: (String) -> Unit,
+    onMeasure: () -> Unit,
     onDropPin: () -> Unit,
     onSave: () -> Unit,
     onRemove: () -> Unit,
@@ -143,6 +144,19 @@ fun FieldEditScreen(
                     )
                 }
             }
+
+            FtButton(
+                text = stringResource(R.string.field_measure),
+                onClick = onMeasure,
+                tone = FtButtonTone.Secondary,
+                height = 48.dp,
+            )
+            Text(
+                text = stringResource(R.string.field_measure_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
 
             FtSectionLabel(stringResource(R.string.field_crop_label))
             FtTextField(

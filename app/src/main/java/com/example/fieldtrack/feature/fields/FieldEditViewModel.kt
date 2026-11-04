@@ -98,6 +98,11 @@ class FieldEditViewModel(
 
     fun setUnit(value: MeasureUnit) = _state.update { it.copy(unit = value) }
 
+    /** A size walked out on the measuring screen, in the unit it was given in. */
+    fun applyMeasured(area: Double, unit: MeasureUnit) = _state.update {
+        it.copy(areaText = if (area % 1.0 == 0.0) area.toLong().toString() else area.toString(), unit = unit)
+    }
+
     fun setCrop(value: String) = _state.update { it.copy(crop = value) }
 
     /**

@@ -43,6 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.feature.fields.MeasureDestination
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
@@ -201,6 +204,7 @@ internal object Routes {
     const val FIELD = "field/{fieldId}"
     const val SEASON = "season"
     const val FIELD_EDIT = "field/{fieldId}/edit"
+    const val MEASURE = "field-measure/{unit}"
     const val PAST_WORK = "start/past"
     const val NEW_CUSTOMER = "customer/new"
     const val LIVE = "live/{jobId}"
@@ -279,6 +283,7 @@ internal object Routes {
     fun newField(customerId: String) = "customer/$customerId/fields/new"
     fun field(fieldId: String) = "field/$fieldId"
     fun editField(fieldId: String) = "field/$fieldId/edit"
+    fun measure(unit: MeasureUnit) = "field-measure/${unit.name}"
     fun startOnField(fieldId: String) = "start-on/$fieldId"
 
     /** The cost sheet for one job, optionally opened on a cost already there. */
@@ -844,14 +849,32 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(Routes.MEASURE) { entry ->
+                // Back to the form with the size and unit, which it picks up from its own
+                // saved state; a unit name that is not one falls back to the usual.
+                val unit = entry.arguments?.getString("unit")
+                    ?.let { name -> MeasureUnit.entries.firstOrNull { it.name == name } } ?: MeasureUnit.Acre
+                MeasureDestination(
+                    unit = unit,
+                    onBack = { navController.popBackStack() },
+                    onUse = { area, chosen ->
+                        navController.previousBackStackEntry?.savedStateHandle?.run {
+                            set(MEASURED_AREA, area)
+                            set(MEASURED_UNIT, chosen.name)
+                        }
+                        navController.popBackStack()
+                    },
+                )
+            }
+
             composable(Routes.FIELD_NEW) { entry ->
                 val customerId = entry.arguments?.getString("customerId").orEmpty()
-                FieldEditDestination(navController, customerId = customerId, fieldId = null)
+                FieldEditDestination(navController, entry, customerId = customerId, fieldId = null)
             }
 
             composable(Routes.FIELD_EDIT) { entry ->
                 val fieldId = entry.arguments?.getString("fieldId").orEmpty()
-                FieldEditDestination(navController, customerId = "", fieldId = fieldId)
+                FieldEditDestination(navController, entry, customerId = "", fieldId = fieldId)
             }
 
             composable(Routes.FIELD) { entry ->
@@ -2127,10 +2150,14 @@ private fun receiptFor(
     }
 }
 
+private const val MEASURED_AREA = "measuredArea"
+private const val MEASURED_UNIT = "measuredUnit"
+
 /** Writing a plot down, or correcting one. One screen, two ways in. */
 @Composable
 private fun FieldEditDestination(
     navController: NavHostController,
+    entry: NavBackStackEntry,
     customerId: String,
     fieldId: String?,
 ) {
@@ -2141,6 +2168,20 @@ private fun FieldEditDestination(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // A size walked out on the measuring screen, taken once and cleared so that
+    // coming back to this form later does not apply it again.
+    val handle = entry.savedStateHandle
+    val measured by handle.getStateFlow<Double?>(MEASURED_AREA, null).collectAsStateWithLifecycle()
+    LaunchedEffect(measured) {
+        val area = measured ?: return@LaunchedEffect
+        handle.get<String>(MEASURED_UNIT)
+            ?.let { name -> MeasureUnit.entries.firstOrNull { it.name == name } }
+            ?.let { vm.applyMeasured(area, it) }
+        handle[MEASURED_AREA] = null
+        handle[MEASURED_UNIT] = null
+    }
+
     FieldEditScreen(
         state = state,
         onBack = { navController.popBackStack() },
@@ -2148,6 +2189,7 @@ private fun FieldEditDestination(
         onArea = vm::setArea,
         onUnit = vm::setUnit,
         onCrop = vm::setCrop,
+        onMeasure = { navController.navigate(Routes.measure(state.unit)) },
         onDropPin = { vm.dropPin(context) },
         onSave = { vm.save { navController.popBackStack() } },
         // Back twice: the field's own screen is about to stop existing.

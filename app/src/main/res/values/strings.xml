@@ -1579,6 +1579,50 @@
     <string name="settings_title">Settings</string>
 
 
+    <!-- ====================== measuring a plot by walking ====================== -->
+    <string name="field_measure">Measure by walking</string>
+    <string name="field_measure_note">Walk round the edge of the field with the phone. It tells you the size.</string>
+    <string name="measure_title">Measure by walking</string>
+    <string name="measure_subtitle">Walk round the edge of the field</string>
+    <string name="measure_allow_title">The phone\'s location is needed</string>
+    <string name="measure_allow_note">FieldTrack uses the GPS only while you measure. The path stays on this phone and is deleted when you are done.</string>
+    <string name="measure_allow">Allow location</string>
+    <string name="measure_precise_title">Precise location is needed</string>
+    <string name="measure_precise_note">Choose Precise when the phone asks. A walk round a field needs it; the approximate position can be hundreds of metres out.</string>
+    <string name="measure_precise_denied_note">Turn on precise location for FieldTrack in the phone\'s settings, then come back.</string>
+    <string name="measure_denied_note">Location was refused. Allow it for FieldTrack in the phone\'s settings, then come back.</string>
+    <string name="measure_settings">Open settings</string>
+    <string name="measure_off_title">Location is switched off</string>
+    <string name="measure_off_note">Switch location on in the phone\'s settings, then come back.</string>
+    <string name="measure_off_open">Open location settings</string>
+    <string name="measure_searching">Looking for the GPS. Step out into the open; it can take a minute.</string>
+    <string name="measure_weak">The GPS is weak right now, about %1$d m off. Wait a moment, or move to open ground.</string>
+    <string name="measure_ready">The GPS is ready, about %1$d m. Go to one corner of the field, then start.</string>
+    <string name="measure_start">Start walking</string>
+    <string name="measure_walking">Walk round the edge of the field, then tap Finish where you began.</string>
+    <string name="measure_walked">%1$s m walked</string>
+    <string name="measure_signal_lost">No GPS reading just now, so nothing is being added. Keep to open ground.</string>
+    <string name="measure_interrupted">Readings stopped for a while, because the screen went off or the app was away. Part of the walk may be missing: start over, or carry on from where you are.</string>
+    <string name="measure_accuracy_note">A phone\'s GPS is good to a few metres. Right for knowing a field\'s size, not for a land record.</string>
+    <string name="measure_finish">Finish</string>
+    <string name="measure_keep">Keep walking</string>
+    <string name="measure_over">Start over</string>
+    <string name="measure_use">Use this size</string>
+    <string name="measure_result_label">This field is about</string>
+    <string name="measure_area">%1$s %2$s</string>
+    <string name="measure_round">%1$s m round the edge</string>
+    <string name="measure_per_acre_label">In your area, one acre is how many %1$s?</string>
+    <string name="measure_per_acre_hint">For example 1.6</string>
+    <string name="measure_per_acre_note">A %1$s is not the same size everywhere, so say how many make an acre where you live. It is remembered.</string>
+    <string name="measure_not_enough">That is too small to be a field. Walk all the way round it, then tap Finish.</string>
+    <string name="measure_crosses">The path crosses itself, so the size will be wrong. Start over and walk round the edge once, without crossing.</string>
+    <string name="measure_gap">You finished %1$s m from where you began. Walk back to the corner you started at for a truer size.</string>
+    <string name="measure_discard_title">Stop measuring?</string>
+    <string name="measure_discard_note">The walk so far will be thrown away.</string>
+    <string name="measure_discard_yes">Stop and discard</string>
+    <string name="measure_keep_going">Keep going</string>
+    <string name="measure_path_cd">Path walked so far, %1$s metres</string>
+
     <!-- ======================= when the seasons begin ======================= -->
     <string name="season_edit_title">When your seasons begin</string>
     <string name="season_edit_intro">Say on which day each of your seasons starts. \"This season\" and \"last season\" all over the app follow these dates.</string>
