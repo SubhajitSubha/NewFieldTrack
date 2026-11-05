@@ -48,6 +48,15 @@ class Converters {
     @TypeConverter fun breakdownToDb(v: BreakdownCategory?): String? = v?.name
     @TypeConverter fun breakdownFromDb(v: String?): BreakdownCategory? = v?.let { decode<BreakdownCategory>(it) }
 
+    @TypeConverter fun dayPartToDb(v: DayPart?): String? = v?.name
+    @TypeConverter fun dayPartFromDb(v: String?): DayPart? = v?.let { decode<DayPart>(it) }
+
+    @TypeConverter fun bookingStatusToDb(v: BookingStatus?): String? = v?.name
+    @TypeConverter fun bookingStatusFromDb(v: String?): BookingStatus? = v?.let { decode<BookingStatus>(it) }
+
+    @TypeConverter fun cancelReasonToDb(v: CancelReason?): String? = v?.name
+    @TypeConverter fun cancelReasonFromDb(v: String?): CancelReason? = v?.let { decode<CancelReason>(it) }
+
     @TypeConverter fun syncStateToDb(v: SyncState?): String? = v?.name
     @TypeConverter fun syncStateFromDb(v: String?): SyncState? = v?.let { decode<SyncState>(it) }
 

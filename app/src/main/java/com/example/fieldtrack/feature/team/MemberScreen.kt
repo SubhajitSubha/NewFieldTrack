@@ -75,6 +75,7 @@ fun MemberScreen(
     onCloseBills: (Boolean) -> Unit,
     onEditTeam: (Boolean) -> Unit,
     onEditMachines: (Boolean) -> Unit,
+    onPlanWork: (Boolean) -> Unit,
     onPayOut: (Boolean) -> Unit,
     onSeePeopleCost: (Boolean) -> Unit,
     onSave: () -> Unit,
@@ -343,6 +344,14 @@ fun MemberScreen(
                             checked = state.canCloseBills || state.role == MemberRole.Owner,
                             enabled = state.role != MemberRole.Owner,
                             onChange = onCloseBills,
+                        )
+                        FtRowDivider()
+                        PermissionRow(
+                            title = stringResource(R.string.team_perm_plan),
+                            note = stringResource(R.string.team_perm_plan_note),
+                            checked = state.canPlanWork || state.role == MemberRole.Owner,
+                            enabled = state.role != MemberRole.Owner,
+                            onChange = onPlanWork,
                         )
                     }
 
@@ -688,6 +697,7 @@ private fun GrantSummary(state: MemberState) {
         if (state.canCloseBills) add(R.string.team_perm_bills)
         if (state.canEditTeam) add(R.string.team_perm_team)
         if (state.canEditMachines) add(R.string.team_perm_machines)
+        if (state.canPlanWork) add(R.string.team_perm_plan)
         if (state.canPayOut) add(R.string.team_perm_payout)
         if (state.canSeePeopleCost) add(R.string.team_perm_people_cost)
     }

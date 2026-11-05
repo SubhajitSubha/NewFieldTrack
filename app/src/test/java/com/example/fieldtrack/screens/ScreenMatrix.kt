@@ -252,6 +252,70 @@ abstract class ScreenMatrix(
         capture("measure", "result-too-small.end")
     }
 
+    /** Planning a day: the plan, the booking form and every question it can ask, and starting from a booking. */
+    @Test fun plan() {
+        val ids = runBlocking { seedBusiness(business = true) }
+        start()
+        fun tap(text: String, index: Int = 0) {
+            runCatching { compose.onAllNodes(hasText(text))[index].performScrollTo() }
+            runCatching { compose.onAllNodes(hasText(text))[index].performClick() }
+            settle()
+        }
+        fun open(route: String) { compose.runOnUiThread { nav.navigate(route) }; settle() }
+
+        open(Routes.PLAN)
+        capture("plan", "today")
+        tap("Tomorrow")
+        capture("plan", "tomorrow")
+        tap("Pick a day")
+        capture("plan", "pick-day")
+        runCatching { compose.onNode(hasText("Cancel")).performClick() }; settle()
+
+        open(Routes.booking())
+        capture("plan", "form-new")
+        tap("Choose the farmer")
+        capture("plan", "form-farmer")
+        // Searched for: on a phone on its side the farmer is below a list with no room for him.
+        runCatching { compose.onNode(hasSetTextAction()).performTextInput("Ramesh") }; settle()
+        tap("Ramesh Singh")
+        tap("Another day")
+        capture("plan", "form-day-picker")
+        runCatching { compose.onNode(hasText("Cancel")).performClick() }; settle()
+        tap("Set a time")
+        capture("plan", "form-time")
+        runCatching { compose.onNode(hasText("Cancel")).performClick() }; settle()
+        // Today morning on the Swaraj with Gurmeet: already booked, twice over.
+        tap("Swaraj 855")
+        tap("Gurmeet Singh")
+        capture("plan", "form-clash")
+        scrollEverythingToEnd(); settle()
+        capture("plan", "form-clash.end")
+
+        open(Routes.booking(ids.bookingId))
+        capture("plan", "form-down")
+        tap("Cancel booking")
+        capture("plan", "form-cancel-why")
+        runCatching { compose.onNode(hasText("Keep booking")).performClick() }; settle()
+        open(Routes.booking(ids.missedBookingId))
+        capture("plan", "form-missed")
+        scrollEverythingToEnd(); settle()
+        capture("plan", "form-missed.end")
+
+        // Starting: from a booking, and a customer with a booking asking whether this is it.
+        open(Routes.startBooking(ids.missedBookingId))
+        capture("plan", "start-from-booking")
+        open(Routes.START)
+        runCatching { compose.onNode(hasSetTextAction()).performTextInput("Ramesh") }; settle()
+        tap("Ramesh Singh")
+        capture("plan", "start-asks-booking")
+
+        // The switch that lets somebody plan, on a member's own page.
+        open("more/team/${ids.driverMembershipId}")
+        tap("Set each one by hand")
+        scrollEverythingToEnd(); settle()
+        capture("plan", "member-switches")
+    }
+
     /** The Jobs list on "Done today", where the amounts and the loss mark are. */
     @Test fun jobsDone() {
         runBlocking { seedBusiness(business = true) }
@@ -305,6 +369,7 @@ abstract class ScreenMatrix(
             "fleet" to Routes.FLEET, "machines" to Routes.MACHINES, "money-out" to Routes.MONEY_OUT,
             "season" to Routes.SEASON, "team" to Routes.TEAM, "rates" to Routes.RATES,
             "price" to Routes.PRICE, "seasons-edit" to Routes.SEASONS_EDIT,
+            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "booking-new" to Routes.booking(),
             "upkeep" to Routes.UPKEEP, "backup" to Routes.BACKUP,
         ).forEach { (name, route) -> shoot("empty", name, route) }
     }
@@ -313,8 +378,10 @@ abstract class ScreenMatrix(
     @Test fun solo() {
         runBlocking { seedBusiness(business = false) }
         start()
-        listOf("home" to Routes.HOME, "customers" to Routes.CUSTOMERS, "machines" to Routes.MACHINES)
-            .forEach { (name, route) -> shoot("solo", name, route) }
+        listOf(
+            "home" to Routes.HOME, "customers" to Routes.CUSTOMERS, "machines" to Routes.MACHINES,
+            "plan" to Routes.PLAN, "booking-new" to Routes.booking(),
+        ).forEach { (name, route) -> shoot("solo", name, route) }
     }
 
     /** A plain driver: no money anywhere, their own work only. */
@@ -329,6 +396,8 @@ abstract class ScreenMatrix(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
             "more" to Routes.MORE, "price" to Routes.PRICE, "profile" to Routes.PROFILE,
             "seasons-edit" to Routes.SEASONS_EDIT,
+            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "booking-new" to Routes.booking(),
+            "booking" to Routes.booking(ids.bookingId), "start-booking" to Routes.startBooking(ids.missedBookingId),
             "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
         ).forEach { (name, route) -> shoot("driver", name, route) }
     }
@@ -352,7 +421,7 @@ abstract class ScreenMatrix(
         listOf(
             "home" to Routes.HOME, "jobs" to Routes.JOBS, "fleet" to Routes.FLEET,
             "machine" to "machines/${ids.machineId}", "machine-edit" to "machines/${ids.machineId}/edit",
-            "more" to Routes.MORE, "price" to Routes.PRICE,
+            "more" to Routes.MORE, "price" to Routes.PRICE, "plan" to Routes.PLAN,
         ).forEach { (name, route) -> shoot("manager-machines", name, route) }
         jobsDone("manager-machines")
     }
@@ -485,6 +554,12 @@ abstract class ScreenMatrix(
         val ownJobId: String,
         val driverMembershipId: String,
         val driverPersonId: String,
+        /** Tomorrow afternoon on the broken harvester. */
+        val bookingId: String,
+        /** Promised for yesterday and never started. */
+        val missedBookingId: String,
+        /** Cancelled for tomorrow because of rain. */
+        val cancelledBookingId: String,
     )
 
     private suspend fun seedSession(orgId: String, personId: String, role: MemberRole, business: Boolean) {
@@ -597,10 +672,28 @@ abstract class ScreenMatrix(
         work.recordService(ORG, deere, "Oil and filters", 2_400, "Singh Motors")
         ledger.recordPayout(ORG, owner, 12_000, PayoutCovers.Period, now - day, OWNER, toPersonId = driverPerson, method = PaymentMethod.Cash)
 
+        // The plan: a day with a double-booked machine and driver, work already under
+        // way, a booking on a broken machine, one promised for yesterday, one rained off.
+        val plan = app.planRepository
+        val today = com.example.fieldtrack.data.plan.PlanDay.today(now, 4)
+        val morning = com.example.fieldtrack.data.db.DayPart.Morning
+        val whole = com.example.fieldtrack.data.db.DayPart.WholeDay
+        val afternoon = com.example.fieldtrack.data.db.DayPart.Afternoon
+        plan.save(owner, ORG, null, ramesh, field.id, "Rotavator", today, morning, 6 * 60 + 30, swaraj, driverPerson, "Gate by the canal")
+        plan.save(owner, ORG, null, harjit, null, "Ploughing", today, morning, null, swaraj, driverPerson, null)
+        val underWay = plan.save(owner, ORG, null, harjit, null, "Ploughing", today, whole, null, deere, driverPerson, null)
+        db.execSQL("UPDATE jobs SET bookingId = '$underWay' WHERE id = '$crew'")
+        val tomorrow = plan.save(owner, ORG, null, ramesh, field.id, "Harvesting", today + 1, afternoon, 14 * 60, kartar, null, "Bring the long header")
+        plan.save(owner, ORG, null, harjit, null, "Ploughing", today + 1, whole, null, null, null, null)
+        val rained = plan.save(owner, ORG, null, ramesh, null, "Sowing", today + 1, morning, null, deere, driverPerson, null)
+        plan.cancel(owner, ORG, rained, com.example.fieldtrack.data.db.CancelReason.Rain)
+        val missed = plan.save(owner, ORG, null, ramesh, null, "Rotavator", today - 1, morning, null, deere, driverPerson, null)
+
         return Ids(
             customerId = ramesh, fieldId = field.id, machineId = swaraj, doneJobId = done,
             costId = cost.id, lossJobId = loss, crewJobId = crew, ownJobId = own,
             driverMembershipId = membershipId(ORG, driverPerson), driverPersonId = driverPerson,
+            bookingId = tomorrow, missedBookingId = missed, cancelledBookingId = rained,
         )
     }
 
@@ -673,6 +766,13 @@ abstract class ScreenMatrix(
         "rates" to Routes.RATES,
         "price" to Routes.PRICE,
         "seasons-edit" to Routes.SEASONS_EDIT,
+        "plan" to Routes.PLAN,
+        "plan-settings" to Routes.PLAN_SETTINGS,
+        "booking-new" to Routes.booking(),
+        "booking" to Routes.booking(ids.bookingId),
+        "booking-missed" to Routes.booking(ids.missedBookingId),
+        "booking-cancelled" to Routes.booking(ids.cancelledBookingId),
+        "start-booking" to Routes.startBooking(ids.bookingId),
         "orgs" to Routes.ORGS,
         "join-another" to Routes.JOIN_ANOTHER,
     )

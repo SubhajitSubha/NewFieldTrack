@@ -9,11 +9,14 @@ import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.db.dao.WorkKindFacts
 import com.example.fieldtrack.data.costing.Costing
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.db.dao.BookingRow
+import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.session.Session
 import com.example.fieldtrack.feature.WorkTypeOption
+import com.example.fieldtrack.feature.plan.observePlanToday
 import com.example.fieldtrack.feature.unitsFor
 import com.example.fieldtrack.feature.workTypeOptions
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,6 +87,12 @@ data class StartWorkState(
      */
     val machineCost: Costing.RunningCost? = null,
     val machineKinds: List<WorkKindFacts> = emptyList(),
+    /** The booking this work is being started from, which is what makes that booking started. */
+    val bookingId: String? = null,
+    /** What this customer has booked and not started, offered as "is this that work?". */
+    val openBookings: List<BookingRow> = emptyList(),
+    /** The plan's today, for saying which day an offered booking was for. */
+    val planToday: Long = 0,
 ) {
     val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
@@ -149,6 +158,13 @@ class StartWorkViewModel(
      * who it is for and which field.
      */
     private val forFieldId: String? = null,
+    /**
+     * Set when the job was started from a booking on the plan.
+     *
+     * Everything the booking says is carried in, and the job it becomes is linked to
+     * it. Like [forCustomerId] it answers step one, so backing out leaves.
+     */
+    private val forBookingId: String? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StartWorkState())
@@ -187,6 +203,29 @@ class StartWorkViewModel(
                     }
                 }
             }
+            val booking = forBookingId?.let { app.planRepository.observe(s.orgId, it).first() }?.booking
+            booking?.let { b ->
+                app.directoryRepository.findCustomer(s.orgId, b.customerId)?.let { customer ->
+                    selectCustomer(customer)
+                    _state.update { it.copy(step = 1) }
+                    applyBooking(b, app.directoryRepository.observeMachines(s.orgId).first())
+                }
+            }
+        }
+        // Whatever this customer has booked and not yet started, for "is this that work?".
+        // Not asked once the work is already tied to a booking.
+        viewModelScope.launch {
+            combine(
+                app.sessionStore.session,
+                _state.map { it.customer?.id }.distinctUntilChanged(),
+            ) { s, id -> s to id }
+                .flatMapLatest { (s, id) ->
+                    if (id == null) kotlinx.coroutines.flow.flowOf(0L to emptyList<BookingRow>())
+                    else app.observePlanToday(s.orgId).flatMapLatest { (_, today) ->
+                        app.planRepository.observeOpenFor(s.orgId, id, today).map { today to it }
+                    }
+                }
+                .collect { (today, rows) -> _state.update { it.copy(planToday = today, openBookings = rows) } }
         }
         viewModelScope.launch {
             combine(
@@ -247,12 +286,35 @@ class StartWorkViewModel(
         // has to drop it, or the job is filed against a plot that is not theirs.
         _state.update {
             if (it.customer?.id == customer.id) it.copy(customer = customer)
-            else it.copy(customer = customer, fieldId = null)
+            // Nor does a booking made for them.
+            else it.copy(customer = customer, fieldId = null, bookingId = null)
         }
         refreshSuggestedRate()
     }
 
     fun selectField(id: String?) = _state.update { it.copy(fieldId = id) }
+
+    /** Fills the job in from a booking and ties the two together. */
+    fun useBooking(row: BookingRow) = applyBooking(row.booking, _state.value.machines)
+
+    /** "Not this one": keeps what was filled in, and lets go of the booking. */
+    fun dropBooking() = _state.update { it.copy(bookingId = null) }
+
+    private fun applyBooking(b: BookingEntity, machines: List<MachineEntity>) {
+        val option = workTypeOptions.firstOrNull { it.key == b.workType } ?: _state.value.workType
+        _state.update {
+            it.copy(
+                bookingId = b.id,
+                fieldId = b.fieldId,
+                // A machine since removed is not carried into a job that could not name it.
+                machineId = b.machineId?.takeIf { id -> machines.any { m -> m.id == id } },
+                workType = option,
+                billingMode = option.defaultMode,
+                unit = resolveUnit(option.defaultMode, orgLandUnit),
+            )
+        }
+        refreshSuggestedRate()
+    }
 
     fun selectMachine(id: String?) = _state.update { it.copy(machineId = id) }
 
@@ -297,7 +359,7 @@ class StartWorkViewModel(
     fun back(): Boolean {
         val step = _state.value.step
         if (step == 0) return true
-        if (step == 1 && forCustomerId != null) return true
+        if (step == 1 && (forCustomerId != null || forBookingId != null)) return true
         _state.update { it.copy(step = step - 1) }
         return false
     }
@@ -331,6 +393,7 @@ class StartWorkViewModel(
             // The whole reason fields exist. Without this the plot screens
             // would show nought earned on every field, for ever.
             fieldId = current.fieldId,
+            bookingId = current.bookingId,
         )
         // Remember what was charged, against this customer, so "what I charged Ramesh
         // last time" is the number offered first next time. Switched off on the rate

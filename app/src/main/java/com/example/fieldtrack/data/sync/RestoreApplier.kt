@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.SyncQueue
+import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FuelEntryEntity
@@ -186,6 +187,8 @@ class RestoreApplier(
                     db.customerDao().upsertField(decode<FieldEntity>(json))
                 SyncQueue.TABLE_MACHINE_FINANCE ->
                     db.machineDao().upsertFinance(decode<MachineFinanceEntity>(json))
+                SyncQueue.TABLE_BOOKINGS ->
+                    db.bookingDao().upsert(decode<BookingEntity>(json))
                 SyncQueue.TABLE_TEAM_EVENTS ->
                     db.orgDao().addTeamEvent(decode<TeamEventEntity>(json))
                 SyncQueue.TABLE_SERVICE ->

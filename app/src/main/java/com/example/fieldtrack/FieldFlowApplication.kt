@@ -7,6 +7,7 @@ import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.repository.DirectoryRepository
 import com.example.fieldtrack.data.repository.LedgerRepository
+import com.example.fieldtrack.data.repository.PlanRepository
 import com.example.fieldtrack.data.repository.TeamRepository
 import com.example.fieldtrack.data.repository.WorkRepository
 import com.example.fieldtrack.data.season.SeasonCalendar
@@ -81,6 +82,10 @@ class FieldFlowApplication : Application() {
 
     val directoryRepository: DirectoryRepository by lazy {
         DirectoryRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository)
+    }
+
+    val planRepository: PlanRepository by lazy {
+        PlanRepository(db = db, syncQueue = syncQueue)
     }
 
     val teamRepository: TeamRepository by lazy {

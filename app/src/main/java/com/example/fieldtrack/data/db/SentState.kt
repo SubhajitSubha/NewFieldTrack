@@ -33,7 +33,7 @@ object SentState {
     val TABLES = listOf(
         "organisations", "memberships", "invites", "customers", "fields", "machines", "machine_finance",
         "fuel_entries", "service_records", "payouts", "job_costs", "team_events",
-        "breakdowns", "rates", "jobs", "job_events", "ledger_entries",
+        "breakdowns", "rates", "jobs", "job_events", "ledger_entries", "bookings",
     )
 
     /**

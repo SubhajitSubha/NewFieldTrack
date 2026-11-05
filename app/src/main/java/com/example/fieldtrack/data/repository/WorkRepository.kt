@@ -146,6 +146,8 @@ class WorkRepository(
         machineId: String? = null,
         fieldId: String? = null,
         operatorPersonId: String? = null,
+        /** The booking this work was planned as, which is what makes that booking started. */
+        bookingId: String? = null,
     ): String {
         val now = clock.now()
         val job = JobEntity(
@@ -155,6 +157,7 @@ class WorkRepository(
             fieldId = fieldId,
             machineId = machineId,
             operatorPersonId = operatorPersonId,
+            bookingId = bookingId,
             workType = workType,
             billingMode = billingMode,
             unit = unit,

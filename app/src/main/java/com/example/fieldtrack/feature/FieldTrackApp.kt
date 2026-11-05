@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.feature.fields.MeasureDestination
 import androidx.navigation.NavBackStackEntry
@@ -139,6 +140,13 @@ import com.example.fieldtrack.feature.signin.SignInScreen
 import com.example.fieldtrack.feature.signin.SignInStep
 import com.example.fieldtrack.feature.signin.SignInViewModel
 import com.example.fieldtrack.feature.calculator.PriceScreen
+import com.example.fieldtrack.feature.plan.BookingFormActions
+import com.example.fieldtrack.feature.plan.BookingFormScreen
+import com.example.fieldtrack.feature.plan.BookingFormViewModel
+import com.example.fieldtrack.feature.plan.PlanScreen
+import com.example.fieldtrack.feature.plan.PlanSettingsScreen
+import com.example.fieldtrack.feature.plan.PlanSettingsViewModel
+import com.example.fieldtrack.feature.plan.PlanViewModel
 import com.example.fieldtrack.feature.season.SeasonsScreen
 import com.example.fieldtrack.feature.season.SeasonsViewModel
 import com.example.fieldtrack.feature.calculator.PriceViewModel
@@ -205,6 +213,10 @@ internal object Routes {
     const val SEASON = "season"
     const val FIELD_EDIT = "field/{fieldId}/edit"
     const val MEASURE = "field-measure/{unit}"
+    const val START_BOOKING = "start-booking/{bookingId}"
+    const val PLAN = "plan"
+    const val BOOKING = "plan/booking?id={id}&day={day}"
+    const val PLAN_SETTINGS = "more/profile/plan"
     const val PAST_WORK = "start/past"
     const val NEW_CUSTOMER = "customer/new"
     const val LIVE = "live/{jobId}"
@@ -285,6 +297,11 @@ internal object Routes {
     fun editField(fieldId: String) = "field/$fieldId/edit"
     fun measure(unit: MeasureUnit) = "field-measure/${unit.name}"
     fun startOnField(fieldId: String) = "start-on/$fieldId"
+    fun startBooking(bookingId: String) = "start-booking/$bookingId"
+
+    /** A booking's own screen: a new one when [id] is null, starting on [day] if given. */
+    fun booking(id: String? = null, day: Long? = null) =
+        "plan/booking?id=${id.orEmpty()}&day=${day ?: -1}"
 
     /** The cost sheet for one job, optionally opened on a cost already there. */
     fun jobCost(jobId: String, costId: String? = null) =
@@ -738,6 +755,7 @@ private fun MainNavHost(navController: NavHostController) {
                             onOpenMachine = { id -> navController.navigate("machines/$id") },
                             onOpenBackup = { navController.navigate(Routes.BACKUP) },
                             alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
                         )
                     }
                     HomeKind.Solo -> {
@@ -757,6 +775,7 @@ private fun MainNavHost(navController: NavHostController) {
                             onOpenJob = { id -> navController.navigate("jobs/$id") },
                             onOpenBackup = { navController.navigate(Routes.BACKUP) },
                             alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
                         )
                     }
                     HomeKind.Yard -> {
@@ -776,6 +795,7 @@ private fun MainNavHost(navController: NavHostController) {
                             onOpenSeason = { navController.navigate(Routes.SEASON) },
                             onOpenBackup = { navController.navigate(Routes.BACKUP) },
                             alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
                         )
                     }
                 }
@@ -792,6 +812,77 @@ private fun MainNavHost(navController: NavHostController) {
                     navController,
                     forCustomerId = null,
                     forFieldId = entry.arguments?.getString("fieldId"),
+                )
+            }
+
+            composable(Routes.START_BOOKING) { entry ->
+                StartWorkDestination(
+                    navController,
+                    forCustomerId = null,
+                    forBookingId = entry.arguments?.getString("bookingId"),
+                )
+            }
+
+            composable(Routes.PLAN) {
+                val vm: PlanViewModel = appViewModel { PlanViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PlanScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onDay = vm::pick,
+                    onStep = vm::step,
+                    onNew = { navController.navigate(Routes.booking(day = state.day)) },
+                    onOpen = { navController.navigate(Routes.booking(id = it)) },
+                    onStart = { navController.navigate(Routes.startBooking(it)) },
+                )
+            }
+
+            composable(
+                Routes.BOOKING,
+                arguments = listOf(
+                    navArgument("id") { defaultValue = ""; nullable = false },
+                    navArgument("day") { type = NavType.LongType; defaultValue = -1L },
+                ),
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty().ifBlank { null }
+                val day = entry.arguments?.getLong("day")?.takeIf { it >= 0 }
+                val vm: BookingFormViewModel = appViewModel(key = "booking-${'$'}{id.orEmpty()}") {
+                    BookingFormViewModel(it, id, day)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val leave = { navController.popBackStack(); Unit }
+                BookingFormScreen(
+                    state = state,
+                    onBack = leave,
+                    actions = BookingFormActions(
+                        onQuery = vm::setQuery,
+                        onCustomer = vm::selectCustomer,
+                        onNewFarmer = { navController.navigate(Routes.NEW_CUSTOMER) },
+                        onField = vm::selectField,
+                        onWork = vm::selectWorkType,
+                        onDay = vm::setDay,
+                        onPart = vm::setPart,
+                        onTime = vm::setStartMinute,
+                        onMachine = vm::selectMachine,
+                        onDriver = vm::selectDriver,
+                        onNote = vm::setNote,
+                        onSave = { vm.save(leave) },
+                        onCancel = { vm.cancel(it, leave) },
+                        onDone = { vm.markDone(leave) },
+                        onReopen = { vm.reopen(leave) },
+                    ),
+                )
+            }
+
+            composable(Routes.PLAN_SETTINGS) {
+                val vm: PlanSettingsViewModel = appViewModel { PlanSettingsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PlanSettingsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onHour = vm::stepHour,
+                    onDriversSeeAll = vm::setDriversSeeAll,
+                    onSave = { vm.save { navController.popBackStack() } },
                 )
             }
 
@@ -1735,6 +1826,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onCloseBills = vm::setCloseBills,
                     onEditTeam = vm::setEditTeam,
                     onEditMachines = vm::setEditMachines,
+                    onPlanWork = vm::setPlanWork,
                     onPayOut = vm::setPayOut,
                     onSeePeopleCost = vm::setSeePeopleCost,
                     onSave = { vm.save { navController.popBackStack() } },
@@ -1825,6 +1917,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onEditName = { navController.navigate(Routes.EDIT_PROFILE) },
                     onEditBusiness = { navController.navigate(Routes.EDIT_BUSINESS) },
                     onEditSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                    onEditPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
                     onBusinessMode = vm::setBusinessMode,
                     onBusinesses = { navController.navigate(Routes.ORGS) },
                     onSignOut = {
@@ -2214,11 +2307,12 @@ private fun StartWorkDestination(
     navController: NavHostController,
     forCustomerId: String?,
     forFieldId: String? = null,
+    forBookingId: String? = null,
 ) {
             val vm: StartWorkViewModel = appViewModel(
-                key = "start-${forCustomerId.orEmpty()}-${forFieldId.orEmpty()}"
+                key = "start-${forCustomerId.orEmpty()}-${forFieldId.orEmpty()}-${forBookingId.orEmpty()}"
             ) {
-        StartWorkViewModel(it, forCustomerId, forFieldId)
+        StartWorkViewModel(it, forCustomerId, forFieldId, forBookingId)
     }
             val state by vm.state.collectAsStateWithLifecycle()
             var addingMachine by remember { mutableStateOf(false) }
@@ -2239,6 +2333,8 @@ private fun StartWorkDestination(
                 onSelectMachine = vm::selectMachine,
                 onSelectField = vm::selectField,
                 onSelectWorkType = vm::selectWorkType,
+                onUseBooking = vm::useBooking,
+                onDropBooking = vm::dropBooking,
                 onBillingMode = vm::setBillingMode,
                 onUnit = vm::setUnit,
                 onRate = vm::setRate,

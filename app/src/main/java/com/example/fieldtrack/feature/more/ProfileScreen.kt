@@ -35,7 +35,9 @@ import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.season.SeasonCalendar
 import com.example.fieldtrack.data.season.SeasonStart
 import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.feature.plan.timeOfDay
 import com.example.fieldtrack.feature.season.seasonStartsSummary
+import com.example.fieldtrack.data.plan.PlanSettings
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
@@ -91,6 +93,8 @@ data class ProfileState(
     val landUnit: MeasureUnit = MeasureUnit.Acre,
     /** When the business's seasons begin, as the owner set them (or the usual dates). */
     val seasonStarts: List<SeasonStart> = SeasonCalendar.Default.starts,
+    /** How the plan is read: the hour its day turns over, and whether drivers see everybody's work. */
+    val plan: PlanSettings = PlanSettings(),
     val businessMode: Boolean = false,
     /** False for a driver, who may not change the business they work for. */
     val canEditBusiness: Boolean = false,
@@ -119,6 +123,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 gstin = org?.gstin,
                 landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
                 seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
+                plan = PlanSettings(PlanSettings.cleanHour(org?.planDayStartHour), org?.driversSeeAll ?: false),
                 businessMode = businessMode,
                 canEditBusiness = Capability.EditBusiness in s.can,
                 orgId = s.orgId,
@@ -155,6 +160,7 @@ fun ProfileScreen(
     onEditName: () -> Unit,
     onEditBusiness: () -> Unit,
     onEditSeasons: () -> Unit,
+    onEditPlan: () -> Unit,
     onBusinessMode: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onBusinesses: () -> Unit,
@@ -282,6 +288,17 @@ fun ProfileScreen(
                     subtitleMaxLines = 3,
                     showChevron = state.canEditBusiness,
                     onClick = onEditSeasons.takeIf { state.canEditBusiness },
+                )
+                FtRowDivider()
+                FtListRow(
+                    title = stringResource(R.string.profile_plan),
+                    subtitle = stringResource(
+                        if (state.plan.driversSeeAll) R.string.profile_plan_summary_all else R.string.profile_plan_summary_own,
+                        timeOfDay(state.plan.dayStartHour * 60),
+                    ),
+                    subtitleMaxLines = 3,
+                    showChevron = state.canEditBusiness,
+                    onClick = onEditPlan.takeIf { state.canEditBusiness },
                 )
                 FtRowDivider()
                 Row(

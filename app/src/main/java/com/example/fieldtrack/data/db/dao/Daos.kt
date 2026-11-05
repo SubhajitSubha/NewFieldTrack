@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobStatus
+import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
@@ -533,6 +534,9 @@ interface CustomerDao {
 
     @Query("SELECT * FROM fields WHERE orgId = :orgId AND customerId = :customerId AND deletedAt IS NULL ORDER BY name")
     fun observeFields(orgId: String, customerId: String): Flow<List<FieldEntity>>
+
+    @Query("SELECT * FROM fields WHERE orgId = :orgId AND deletedAt IS NULL")
+    fun observeAllFields(orgId: String): Flow<List<FieldEntity>>
 
     @Query("SELECT * FROM fields WHERE orgId = :orgId AND id = :id")
     fun observeField(orgId: String, id: String): Flow<FieldEntity?>
@@ -1416,4 +1420,70 @@ interface OutboxDao {
 
     @Query("UPDATE outbox SET attempts = attempts + 1, lastAttemptAt = :now, lastError = :error WHERE seq = :seq")
     suspend fun recordFailure(seq: Long, now: Long, error: String?)
+}
+
+/**
+ * A booking and how far the work it asked for has got.
+ *
+ * [jobStatus] is the status of the job started from it, or null when none was —
+ * which is how "started" is known without anybody having written it onto the booking.
+ * A discarded job does not count: the work did not happen, so the booking is open again.
+ */
+data class BookingRow(
+    @androidx.room.Embedded val booking: BookingEntity,
+    val jobStatus: JobStatus?,
+)
+
+private const val BOOKING_ROWS = """
+    SELECT bookings.*, (
+        SELECT jobs.status FROM jobs
+        WHERE jobs.bookingId = bookings.id AND jobs.deletedAt IS NULL AND jobs.status != 'Discarded'
+        ORDER BY CASE jobs.status WHEN 'Running' THEN 0 WHEN 'Paused' THEN 1 ELSE 2 END
+        LIMIT 1
+    ) AS jobStatus FROM bookings
+"""
+
+@Dao
+interface BookingDao {
+    @Upsert suspend fun upsert(booking: BookingEntity)
+
+    @Query("SELECT * FROM bookings WHERE orgId = :orgId AND id = :id")
+    suspend fun find(orgId: String, id: String): BookingEntity?
+
+    @Query(BOOKING_ROWS + " WHERE orgId = :orgId AND id = :id")
+    fun observe(orgId: String, id: String): Flow<BookingRow?>
+
+    @Query(BOOKING_ROWS + " WHERE orgId = :orgId AND deletedAt IS NULL AND day BETWEEN :from AND :to ORDER BY day, createdAt")
+    fun observeDays(orgId: String, from: Long, to: Long): Flow<List<BookingRow>>
+
+    /**
+     * Planned for a day before [before] and never started. These are the ones that
+     * were promised and did not happen, which nothing may quietly drop: a phone that
+     * had not synced would otherwise cancel real work by looking away.
+     */
+    @Query(
+        BOOKING_ROWS + """
+        WHERE orgId = :orgId AND deletedAt IS NULL AND day < :before AND status = 'Planned'
+          AND NOT EXISTS (
+              SELECT 1 FROM jobs WHERE jobs.bookingId = bookings.id
+                AND jobs.deletedAt IS NULL AND jobs.status != 'Discarded'
+          )
+        ORDER BY day, createdAt
+        """
+    )
+    fun observeOverdue(orgId: String, before: Long): Flow<List<BookingRow>>
+
+    /** What this customer has booked and not started, up to and including [throughDay]. */
+    @Query(
+        BOOKING_ROWS + """
+        WHERE orgId = :orgId AND customerId = :customerId AND deletedAt IS NULL
+          AND day <= :throughDay AND status = 'Planned'
+          AND NOT EXISTS (
+              SELECT 1 FROM jobs WHERE jobs.bookingId = bookings.id
+                AND jobs.deletedAt IS NULL AND jobs.status != 'Discarded'
+          )
+        ORDER BY day DESC, createdAt
+        """
+    )
+    fun observeOpenFor(orgId: String, customerId: String, throughDay: Long): Flow<List<BookingRow>>
 }

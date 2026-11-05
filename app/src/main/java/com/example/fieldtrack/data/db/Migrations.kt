@@ -323,9 +323,54 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
     }
 }
 
+/**
+ * Bookings, who may make them, and when the plan's day turns over.
+ *
+ * `canPlanWork` starts as `canEditTeam`: whoever already runs the team was running
+ * the yard, and planning its days is part of that. Nobody else gains it silently, and
+ * nobody loses anything — no plan existed before.
+ */
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `bookings` (
+                `id` TEXT NOT NULL,
+                `orgId` TEXT NOT NULL,
+                `customerId` TEXT NOT NULL,
+                `fieldId` TEXT,
+                `workType` TEXT NOT NULL,
+                `day` INTEGER NOT NULL,
+                `part` TEXT NOT NULL,
+                `startMinute` INTEGER,
+                `machineId` TEXT,
+                `operatorPersonId` TEXT,
+                `note` TEXT,
+                `status` TEXT NOT NULL,
+                `cancelReason` TEXT,
+                `movedCount` INTEGER NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `deletedAt` INTEGER,
+                `syncState` TEXT NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_bookings_orgId` ON `bookings` (`orgId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_bookings_orgId_day` ON `bookings` (`orgId`, `day`)")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN bookingId TEXT")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_jobs_bookingId` ON `jobs` (`bookingId`)")
+        db.execSQL("ALTER TABLE organisations ADD COLUMN planDayStartHour INTEGER")
+        db.execSQL("ALTER TABLE organisations ADD COLUMN driversSeeAll INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE memberships ADD COLUMN canPlanWork INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("UPDATE memberships SET canPlanWork = canEditTeam")
+    }
+}
+
 /** Every migration, in order. Add to this list and the builder picks it up. */
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
 )

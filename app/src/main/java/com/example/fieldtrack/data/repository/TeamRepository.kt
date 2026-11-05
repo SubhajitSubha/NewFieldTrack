@@ -402,6 +402,7 @@ class TeamRepository(
         canCloseBills: Boolean,
         canEditTeam: Boolean = false,
         canEditMachines: Boolean = false,
+        canPlanWork: Boolean = false,
         canPayOut: Boolean = false,
         canSeePeopleCost: Boolean = false,
         /** Null leaves the role alone; passing one promotes or demotes. */
@@ -450,6 +451,7 @@ class TeamRepository(
                 canCloseBills = whenDemoted(existing, newRole) ?: canCloseBills,
                 canEditTeam = whenDemoted(existing, newRole) ?: canEditTeam,
                 canEditMachines = whenDemoted(existing, newRole) ?: canEditMachines,
+                canPlanWork = whenDemoted(existing, newRole) ?: canPlanWork,
                 canPayOut = whenDemoted(existing, newRole) ?: canPayOut,
                 canSeePeopleCost = whenDemoted(existing, newRole) ?: canSeePeopleCost,
                 updatedAt = clock.now(),
@@ -476,6 +478,7 @@ class TeamRepository(
                 updated.canCloseBills != existing.canCloseBills ||
                 updated.canEditTeam != existing.canEditTeam ||
                 updated.canEditMachines != existing.canEditMachines ||
+                updated.canPlanWork != existing.canPlanWork ||
                 updated.canPayOut != existing.canPayOut ||
                 updated.canSeePeopleCost != existing.canSeePeopleCost
             ) {
@@ -629,6 +632,7 @@ class TeamRepository(
                 role = MemberRole.Owner,
                 canEditTeam = true,
                 canEditMachines = true,
+                canPlanWork = true,
                 canPayOut = true,
                 canSeePeopleCost = true,
                 // An owner has every capability by definition. Written down
@@ -659,6 +663,7 @@ class TeamRepository(
                 canCloseBills = false,
                 canEditTeam = false,
                 canEditMachines = false,
+                canPlanWork = false,
                 canPayOut = false,
                 canSeePeopleCost = false,
                 updatedAt = now,

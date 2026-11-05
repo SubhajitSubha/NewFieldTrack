@@ -47,7 +47,11 @@ import com.example.fieldtrack.feature.billingLabel
 import com.example.fieldtrack.feature.captionRes
 import com.example.fieldtrack.feature.iconFor
 import com.example.fieldtrack.feature.initialsOf
+import com.example.fieldtrack.data.db.dao.BookingRow
 import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.feature.plan.dayName
+import com.example.fieldtrack.feature.plan.partName
+import com.example.fieldtrack.feature.plan.workName
 import com.example.fieldtrack.feature.unitInPhrase
 import com.example.fieldtrack.feature.unitsFor
 import com.example.fieldtrack.feature.workTypeOptions
@@ -69,6 +73,8 @@ fun StartWorkScreen(
     onNext: () -> Unit,
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
+    onUseBooking: (BookingRow) -> Unit = {},
+    onDropBooking: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -97,6 +103,7 @@ fun StartWorkScreen(
                 0 -> CustomerStep(state, onQuery, onNewCustomer, onSelectCustomer)
                 1 -> WorkStep(
                     state, onSelectMachine, onSelectField, onSelectWorkType, onNewMachine,
+                    onUseBooking, onDropBooking,
                 )
                 else -> RateStep(state, onBillingMode, onUnit, onRate)
             }
@@ -207,6 +214,55 @@ private fun CustomerStep(
     }
 }
 
+/**
+ * Whether this is work that was booked.
+ *
+ * Asked rather than guessed: a farmer may have two jobs on the plan, or this may be
+ * something else entirely. Answering is what keeps the booking from being left on the
+ * list as a promise nobody kept.
+ */
+@Composable
+private fun BookingHint(state: StartWorkState, onUse: (BookingRow) -> Unit, onDrop: () -> Unit) {
+    val colors = FieldTrackTheme.colors
+    if (state.bookingId != null) {
+        FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+            Text(
+                text = stringResource(R.string.plan_start_from_booking),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.inkSecondary,
+            )
+            FtButton(
+                text = stringResource(R.string.plan_start_not_this),
+                onClick = onDrop,
+                tone = FtButtonTone.Quiet,
+                height = 44.dp,
+            )
+        }
+        return
+    }
+    state.openBookings.forEach { row ->
+        FtCard(background = colors.primaryWash, borderColor = colors.primaryWash) {
+            Text(
+                text = stringResource(
+                    R.string.plan_start_booked,
+                    dayName(row.booking.day, state.planToday),
+                    workName(row.booking.workType),
+                    partName(row.booking.part).lowercase(),
+                ),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.primaryPressed,
+            )
+            FtButton(
+                text = stringResource(R.string.plan_start_use),
+                onClick = { onUse(row) },
+                tone = FtButtonTone.Secondary,
+                height = 46.dp,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkStep(
@@ -215,6 +271,8 @@ private fun WorkStep(
     onSelectField: (String?) -> Unit,
     onSelectWorkType: (com.example.fieldtrack.feature.WorkTypeOption) -> Unit,
     onNewMachine: () -> Unit,
+    onUseBooking: (BookingRow) -> Unit,
+    onDropBooking: () -> Unit,
 ) {
     val dimens = FieldTrackTheme.dimens
     Column(
@@ -245,6 +303,8 @@ private fun WorkStep(
                 }
             }
         }
+
+        BookingHint(state, onUseBooking, onDropBooking)
 
         // Asked only when there is something to ask. A farmer nobody has
         // written plots down for gets no question and loses no tap.

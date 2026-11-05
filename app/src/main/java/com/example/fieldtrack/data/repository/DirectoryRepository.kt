@@ -23,6 +23,7 @@ import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import com.example.fieldtrack.data.plan.PlanSettings
 import com.example.fieldtrack.data.season.SeasonCalendar
 import kotlinx.serialization.encodeToString
 
@@ -57,6 +58,15 @@ class DirectoryRepository(
     fun observeSeasons(orgId: String): Flow<SeasonCalendar> =
         db.orgDao().observeOrg(orgId)
             .map { SeasonCalendar.parse(it?.seasons) }
+            .distinctUntilChanged()
+
+    /**
+     * How this business reads its plan, live, from its own row for the reason
+     * [observeSeasons] gives: a driver's phone follows when the owner changes it.
+     */
+    fun observePlanSettings(orgId: String): Flow<PlanSettings> =
+        db.orgDao().observeOrg(orgId)
+            .map { PlanSettings(PlanSettings.cleanHour(it?.planDayStartHour), it?.driversSeeAll ?: false) }
             .distinctUntilChanged()
 
     // ---------------------------------------------------------------- customers
@@ -543,6 +553,8 @@ class DirectoryRepository(
             )
         }
     }
+
+    fun observeAllFields(orgId: String): Flow<List<FieldEntity>> = customers.observeAllFields(orgId)
 
     fun observeFields(orgId: String, customerId: String): Flow<List<FieldEntity>> =
         customers.observeFields(orgId, customerId)

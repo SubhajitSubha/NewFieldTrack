@@ -30,6 +30,7 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.iconForWork
 import com.example.fieldtrack.feature.measure
+import com.example.fieldtrack.feature.plan.PlanCard
 
 /**
  * A one-person business's home.
@@ -53,6 +54,7 @@ fun HomeScreen(
     onOpenBackup: () -> Unit,
     alertActions: AlertActions,
     modifier: Modifier = Modifier,
+    onOpenPlan: () -> Unit = {},
 ) {
     val blocks = buildList {
         if (state.canSeeMoney) {
@@ -79,6 +81,8 @@ fun HomeScreen(
                 dark = !state.canSeeMoney,
             )
         })
+
+        add(HomeBlock(Pane.Main) { PlanCard(state.plan, onOpenPlan) })
 
         add(HomeBlock(Pane.Main) { AttentionCard(state.alerts, state.loaded, alertActions) })
 

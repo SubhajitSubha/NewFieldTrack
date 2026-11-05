@@ -3,6 +3,8 @@ package com.example.fieldtrack.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.feature.plan.PlanSummary
+import com.example.fieldtrack.feature.plan.observePlanSummary
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.SyncState
 import com.example.fieldtrack.data.db.MachineKind
@@ -80,6 +82,7 @@ data class HomeState(
     val alerts: List<HomeAlert> = emptyList(),
     val pendingUploads: Int = 0,
     val uploadsStuck: Boolean = false,
+    val plan: PlanSummary = PlanSummary(),
 )
 
 /** Everything an owner's home reads, gathered so the combines stay under five. */
@@ -227,7 +230,7 @@ internal fun JobEntity.toOpenJob(
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
-    val state: StateFlow<HomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
+    private val core: Flow<HomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
         val zone = ZoneId.systemDefault()
@@ -286,7 +289,14 @@ class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 uploadsStuck = yard.stuck,
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
+    }
+
+    /** The plan in a line: what is on today and tomorrow, and what was missed. */
+    val state: StateFlow<HomeState> = combine(
+        core,
+        app.sessionStore.session.flatMapLatest { app.observePlanSummary(it) },
+    ) { st, plan -> st.copy(plan = plan) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 
     fun pause(jobId: String) = act { orgId -> app.workRepository.pause(orgId, jobId) }
 

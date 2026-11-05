@@ -28,6 +28,17 @@ class PullWatermarks(context: Context) {
     }
 
     /**
+     * When a pass last came back whole, or zero if none has. What lets a screen that
+     * shows other people's plans say how old they are: an empty list is only "nothing
+     * planned" if this phone has recently been able to hear.
+     */
+    fun lastSuccessAt(orgId: String): Long = prefs.getLong(success(orgId), 0L)
+
+    fun recordSuccess(orgId: String, at: Long) {
+        prefs.edit().putLong(success(orgId), at).apply()
+    }
+
+    /**
      * Moves the mark forward.
      *
      * Never backward: a pass that came back with less than it asked for must not
@@ -71,12 +82,13 @@ class PullWatermarks(context: Context) {
 
     /** Forgotten on removal, so rejoining later reads the business from scratch. */
     fun forget(orgId: String) {
-        prefs.edit().remove(mark(orgId)).remove(attempt(orgId)).remove(seeded(orgId))
+        prefs.edit().remove(mark(orgId)).remove(attempt(orgId)).remove(success(orgId)).remove(seeded(orgId))
             .remove(refusedKey(orgId)).apply()
     }
 
     private fun mark(orgId: String) = "mark.$orgId"
     private fun attempt(orgId: String) = "attempt.$orgId"
+    private fun success(orgId: String) = "success.$orgId"
     private fun seeded(orgId: String) = "seeded.$orgId"
 
     private companion object {

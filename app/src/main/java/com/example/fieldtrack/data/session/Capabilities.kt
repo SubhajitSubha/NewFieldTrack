@@ -18,6 +18,9 @@ enum class Capability {
     /** Add or correct machines, their hours and their service schedule. */
     EditMachines,
 
+    /** Book work for a day, give it a machine and a driver, move it, cancel it. */
+    PlanWork,
+
     /** Rename the business, change the land unit it works in. */
     EditBusiness,
 
@@ -88,6 +91,7 @@ value class Capabilities(private val granted: Set<Capability>) {
                     if (membership.canSeeMoney) add(Capability.SeeMoney)
                     if (membership.canEditTeam) add(Capability.EditTeam)
                     if (membership.canEditMachines) add(Capability.EditMachines)
+                    if (membership.canPlanWork) add(Capability.PlanWork)
                     if (membership.canPayOut) add(Capability.PayOut)
                     if (membership.canSeePeopleCost) add(Capability.SeePeopleCost)
                     if (membership.canCloseBills) {

@@ -72,6 +72,13 @@ service cloud.firestore {
       return isOwner(orgId) || may(orgId, 'canEditTeam');
     }
 
+    // Who may plan the work: an owner, or somebody an owner has said may. Not the
+    // same switch as running the team — a trusted senior driver can be allowed to
+    // book the week without being able to take anybody on or let them go.
+    function mayPlan(orgId) {
+      return isOwner(orgId) || may(orgId, 'canPlanWork');
+    }
+
     /**
      * Whether an invite code stays within what its maker holds.
      *
@@ -417,6 +424,26 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Work booked for a day.
+      //
+      // Readable by every member, because the driver the booking is for has to
+      // see it; who is shown which ones is the app's business, and a booking
+      // holds no money. Written only by those who plan.
+      //
+      // Drivers never write one. Starting the work writes the job, and the job
+      // carries the booking it came from, so a booking is "started" by what
+      // exists rather than by something a handset had to remember to update —
+      // which is also why two phones can never fight over one.
+      //
+      // Never deleted from a handset: a booking that did not happen is
+      // cancelled, with a reason, so "why was nobody sent on Tuesday" has an
+      // answer.
+      match /bookings/{bookingId} {
+        allow read: if isMember(orgId);
+        allow create, update: if mayPlan(orgId);
+        allow delete: if false;
+      }
+
       // What the business paid out — wages, labour, anything to a person.
       //
       // Its own block because the generic grant below would let every member
@@ -514,7 +541,8 @@ service cloud.firestore {
                            && collection != 'payouts'
                            && collection != 'job_costs'
                            && collection != 'job_cost_amounts'
-                           && collection != 'machine_finance';
+                           && collection != 'machine_finance'
+                           && collection != 'bookings';
       }
     }
 

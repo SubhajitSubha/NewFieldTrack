@@ -26,6 +26,7 @@ import com.example.fieldtrack.designsystem.format.rupees
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.home.AlertActions
+import com.example.fieldtrack.feature.plan.PlanCard
 import com.example.fieldtrack.feature.home.AttentionCard
 import com.example.fieldtrack.feature.home.FigureCard
 import com.example.fieldtrack.feature.home.HeroButton
@@ -66,6 +67,7 @@ fun DriverHomeScreen(
     onOpenBackup: () -> Unit,
     alertActions: AlertActions,
     modifier: Modifier = Modifier,
+    onOpenPlan: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
 
@@ -88,6 +90,8 @@ fun DriverHomeScreen(
                 )
             }
         })
+
+        add(HomeBlock(Pane.Main) { PlanCard(state.plan, onOpenPlan) })
 
         // Only when there is something. A driver opens this screen thirty times a
         // day; an "all clear" card every time would teach them to skip the spot

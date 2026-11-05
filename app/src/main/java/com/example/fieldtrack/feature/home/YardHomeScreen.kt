@@ -33,6 +33,7 @@ import com.example.fieldtrack.designsystem.format.rupees
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.measure
+import com.example.fieldtrack.feature.plan.PlanCard
 
 /** How many of today's jobs the home lists before handing over to the Jobs tab. */
 private const val DONE_TODAY_SHOWN = 5
@@ -61,6 +62,7 @@ fun YardHomeScreen(
     onOpenBackup: () -> Unit,
     alertActions: AlertActions,
     modifier: Modifier = Modifier,
+    onOpenPlan: () -> Unit = {},
 ) {
     val ownWork = HomeBlock(Pane.Side) {
         if (state.ownJob == null) HomeSection(stringResource(R.string.home_your_own_work))
@@ -80,6 +82,8 @@ fun YardHomeScreen(
 
         // Somebody who is driving themselves wants their own clock near the top.
         if (state.ownJob != null) add(ownWork)
+
+        add(HomeBlock(Pane.Side) { PlanCard(state.plan, onOpenPlan) })
 
         add(HomeBlock(Pane.Side) { AttentionCard(state.alerts, state.loaded, alertActions) })
 

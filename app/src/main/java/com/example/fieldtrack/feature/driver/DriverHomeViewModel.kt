@@ -3,6 +3,8 @@ package com.example.fieldtrack.feature.driver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.feature.plan.PlanSummary
+import com.example.fieldtrack.feature.plan.observePlanSummary
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.SyncState
 import com.example.fieldtrack.data.db.MachineKind
@@ -18,6 +20,7 @@ import com.example.fieldtrack.feature.home.uploadAlert
 import com.example.fieldtrack.data.sync.SyncStage
 import com.example.fieldtrack.feature.startOfToday
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -67,6 +70,7 @@ data class DriverHomeState(
      * not take payments, so the card is absent rather than reading ₹0.
      */
     val cashWithYouRupees: Long? = null,
+    val plan: PlanSummary = PlanSummary(),
 )
 
 /**
@@ -91,7 +95,7 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val pending: Int,
     )
 
-    val state: StateFlow<DriverHomeState> = app.sessionStore.session.flatMapLatest { s ->
+    private val core: Flow<DriverHomeState> = app.sessionStore.session.flatMapLatest { s ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
         val weekStart = Calendar.getInstance().apply {
@@ -188,7 +192,14 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 cashWithYouRupees = cashTaken,
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DriverHomeState())
+    }
+
+    /** The plan in a line: what is on today and tomorrow, and what was missed. */
+    val state: StateFlow<DriverHomeState> = combine(
+        core,
+        app.sessionStore.session.flatMapLatest { app.observePlanSummary(it) },
+    ) { st, plan -> st.copy(plan = plan) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DriverHomeState())
 
     /** Whether this person's bar carries Customers rather than Machines. */
     val dealsWithCustomers: Boolean

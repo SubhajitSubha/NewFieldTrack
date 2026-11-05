@@ -37,6 +37,7 @@ data class MemberState(
     val canCloseBills: Boolean = false,
     val canEditTeam: Boolean = false,
     val canEditMachines: Boolean = false,
+    val canPlanWork: Boolean = false,
     val canPayOut: Boolean = false,
     val canSeePeopleCost: Boolean = false,
     /** Only an owner may hand on the switches that create a peer. */
@@ -53,7 +54,7 @@ data class MemberState(
 ) {
     val canSave: Boolean get() = editable && !saving && displayName.isNotBlank()
 
-    /** The seven switches as one value, so a preset can be compared against them. */
+    /** The switches as one value, so a preset can be compared against them. */
     val grants: Grants
         get() = Grants(
             seeMoney = canSeeMoney,
@@ -61,6 +62,7 @@ data class MemberState(
             closeBills = canCloseBills,
             editTeam = canEditTeam,
             editMachines = canEditMachines,
+            planWork = canPlanWork,
             payOut = canPayOut,
             seePeopleCost = canSeePeopleCost,
         )
@@ -143,6 +145,7 @@ class MemberViewModel(
                     canSeeMoney = member.canSeeMoney,
                     canEditTeam = member.canEditTeam,
                     canEditMachines = member.canEditMachines,
+                    canPlanWork = member.canPlanWork,
                     canPayOut = member.canPayOut,
                     canSeePeopleCost = member.canSeePeopleCost,
                     editableByOwnerOnly = s.role == MemberRole.Owner,
@@ -174,7 +177,7 @@ class MemberViewModel(
     fun setRole(value: MemberRole) = _state.update { it.copy(role = value, problem = null) }
 
     /**
-     * Picks a job, which writes all seven switches and the role at once.
+     * Picks a job, which writes every switch and the role at once.
      *
      * Every switch is set, the off ones included. Half-applying a preset — only
      * turning things on — would mean choosing Driver for a former manager left
@@ -190,6 +193,7 @@ class MemberViewModel(
             canCloseBills = g.closeBills,
             canEditTeam = g.editTeam,
             canEditMachines = g.editMachines,
+            canPlanWork = g.planWork,
             canPayOut = g.payOut,
             canSeePeopleCost = g.seePeopleCost,
             problem = null,
@@ -224,6 +228,7 @@ class MemberViewModel(
                 canCloseBills = current.canCloseBills,
                 canEditTeam = current.canEditTeam,
                 canEditMachines = current.canEditMachines,
+                canPlanWork = current.canPlanWork,
                 canPayOut = current.canPayOut,
                 canSeePeopleCost = current.canSeePeopleCost,
                 role = current.role,
@@ -249,6 +254,7 @@ class MemberViewModel(
 
     fun setEditTeam(v: Boolean) = _state.update { it.copy(canEditTeam = v) }
     fun setEditMachines(v: Boolean) = _state.update { it.copy(canEditMachines = v) }
+    fun setPlanWork(v: Boolean) = _state.update { it.copy(canPlanWork = v) }
     fun setPayOut(v: Boolean) = _state.update { it.copy(canPayOut = v) }
     fun setSeePeopleCost(v: Boolean) = _state.update { it.copy(canSeePeopleCost = v) }
 

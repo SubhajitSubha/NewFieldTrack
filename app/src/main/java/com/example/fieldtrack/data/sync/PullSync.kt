@@ -95,6 +95,7 @@ class PullSync(
             val wasRefused = marks.refused(orgId)
             if (wasRefused.any { it !in page.refused }) marks.markUnseeded(orgId)
             marks.rememberRefused(orgId, page.refused)
+            marks.recordSuccess(orgId, now)
 
             Log.d(TAG, "wrote $written rows for $orgId")
             written

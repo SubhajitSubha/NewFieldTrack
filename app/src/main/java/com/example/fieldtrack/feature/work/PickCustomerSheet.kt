@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.designsystem.component.FtAvatar
+import com.example.fieldtrack.designsystem.component.FtButton
+import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtTextField
@@ -41,6 +43,9 @@ fun PickCustomerSheet(
     onQuery: (String) -> Unit,
     onPick: (CustomerEntity) -> Unit,
     onDismiss: () -> Unit,
+    /** Set where a farmer who is not on the list yet is a normal thing to meet, as on a phone call. */
+    onNew: (() -> Unit)? = null,
+    title: String = stringResource(R.string.past_pick_customer_title),
 ) {
     val colors = FieldTrackTheme.colors
     val shown = customers.filter {
@@ -64,7 +69,7 @@ fun PickCustomerSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(R.string.past_pick_customer_title),
+                text = title,
                 style = FieldTrackTheme.type.sectionTitle,
                 color = colors.ink,
             )
@@ -75,6 +80,15 @@ fun PickCustomerSheet(
                 placeholder = stringResource(R.string.customers_search),
                 focused = true,
             )
+            onNew?.let {
+                FtButton(
+                    text = stringResource(R.string.plan_new_farmer),
+                    onClick = it,
+                    tone = FtButtonTone.Secondary,
+                    icon = FieldTrackIcons.Add,
+                    height = 48.dp,
+                )
+            }
             LazyColumn(
                 Modifier
                     .fillMaxWidth()

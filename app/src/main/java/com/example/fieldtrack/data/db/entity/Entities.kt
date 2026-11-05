@@ -5,7 +5,10 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.BreakdownCategory
+import com.example.fieldtrack.data.db.CancelReason
+import com.example.fieldtrack.data.db.DayPart
 import com.example.fieldtrack.data.db.EntryMethod
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobEventType
@@ -71,6 +74,15 @@ data class OrgEntity(
      * app can tell a business that chose them from one that has never been asked.
      */
     val seasons: String? = null,
+    /**
+     * The hour the plan's day turns over, 0 to 11. Null reads as 4 a.m.: a harvest
+     * crew working at 1 a.m. is still on yesterday's work, and "tomorrow" should not
+     * already have become today. Settable, because a business that starts at 2 a.m.
+     * or never works past midnight knows better than a default.
+     */
+    val planDayStartHour: Int? = null,
+    /** Whether a driver sees everybody's bookings, or only their own and the unassigned ones. */
+    val driversSeeAll: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
@@ -124,6 +136,8 @@ data class MembershipEntity(
     val canEditTeam: Boolean = false,
     /** May add machines and keep their hours and service schedule. */
     val canEditMachines: Boolean = false,
+    /** May book work for a day, give it a machine and a driver, move it and cancel it. */
+    val canPlanWork: Boolean = false,
     /**
      * May see what each person was paid.
      *
@@ -544,6 +558,7 @@ data class RateEntity(
         Index("operatorPersonId"),
         Index(value = ["orgId", "status"]),
         Index(value = ["orgId", "workedAt"]),
+        Index("bookingId"),
     ],
 )
 @Serializable
@@ -555,6 +570,8 @@ data class JobEntity(
     val machineId: String? = null,
     /** Who did the work. An owner driving their own machine is recorded here too. */
     val operatorPersonId: String? = null,
+    /** The booking this job was started from, if it was. What makes a booking "started". */
+    val bookingId: String? = null,
 
     val workType: String,
     val billingMode: BillingMode,
@@ -670,6 +687,47 @@ data class LedgerEntryEntity(
     val createdAt: Long,
     val syncState: SyncState = SyncState.Pending,
     val deviceId: String? = null,
+)
+
+// --------------------------------------------------------------------- bookings
+
+/**
+ * Work promised for a day: who it is for, what, and optionally which machine and
+ * which driver.
+ *
+ * A plan, not a job. A job is a running clock, and the live-job queries, the
+ * notification, machine status, billing and the season's earnings all hang off that;
+ * a booking is none of them and touches none of them. When somebody starts the work,
+ * the job it becomes carries [JobEntity.bookingId], and that link — not a status
+ * written here — is what makes the booking "started". So a driver's phone never has
+ * to write the plan, and two phones never fight over it.
+ *
+ * [day] is a local calendar day, as `LocalDate.toEpochDay`, not a moment: "Tuesday
+ * morning" must stay Tuesday whatever the phone's clock does afterwards.
+ */
+@Entity(tableName = "bookings", indices = [Index("orgId"), Index(value = ["orgId", "day"])])
+@Serializable
+data class BookingEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val customerId: String,
+    val fieldId: String? = null,
+    val workType: String,
+    val day: Long,
+    val part: DayPart = DayPart.WholeDay,
+    /** Minutes past midnight, when somebody named an hour. Shown, never enforced. */
+    val startMinute: Int? = null,
+    val machineId: String? = null,
+    val operatorPersonId: String? = null,
+    val note: String? = null,
+    val status: BookingStatus = BookingStatus.Planned,
+    val cancelReason: CancelReason? = null,
+    /** How many times it has been moved to another day. Farmers reschedule; the owner should see how often. */
+    val movedCount: Int = 0,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
 )
 
 // ----------------------------------------------------------------------- outbox

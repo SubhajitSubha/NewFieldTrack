@@ -183,12 +183,61 @@ class MigrationTest {
     }
 
     @Test
+    fun `whoever ran the team can plan the work and nobody else gains it`() {
+        create(15) {
+            it.execSQL(
+                "INSERT INTO memberships (id, orgId, personId, displayName, role, canSeeMoney, canAddCustomers, " +
+                    "canCloseBills, canEditTeam, canEditMachines, canPayOut, canSeePeopleCost, active, joinedAt, " +
+                    "updatedAt, syncState, unsentCount) VALUES " +
+                    "('o1_boss', 'o1', 'boss', 'Manager', 'Operator', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'Synced', 0), " +
+                    "('o1_drv', 'o1', 'drv', 'Driver', 'Operator', 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 'Synced', 0)"
+            )
+            it.execSQL(
+                "INSERT INTO organisations (id, name, defaultLandUnit, createdAt, updatedAt, syncState) " +
+                    "VALUES ('o1', 'Singh Agro', 'Acre', 1, 1, 'Synced')"
+            )
+            it.execSQL(
+                "INSERT INTO jobs (id, orgId, customerId, workType, billingMode, unit, rateRupees, quantity, " +
+                    "tripTotalRupees, elapsedSeconds, status, workedAt, recordedAt, entryMethod, createdAt, updatedAt, " +
+                    "syncState, revision) VALUES ('j1', 'o1', 'c1', 'Rotavator', 'PerAcre', 'Acre', 800, 2.0, 0, 0, " +
+                    "'Completed', 1, 1, 'Timed', 1, 1, 'Synced', 1)"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+
+        db.query("SELECT personId, canPlanWork FROM memberships ORDER BY personId").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("boss", c.getString(0)); assertEquals(1, c.getInt(1))
+            assertTrue(c.moveToNext())
+            assertEquals("drv", c.getString(0)); assertEquals(0, c.getInt(1))
+        }
+        db.query("SELECT planDayStartHour, driversSeeAll FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            assertTrue("nothing back-filled: the default hour is not a choice", c.isNull(0))
+            assertEquals(0, c.getInt(1))
+        }
+        db.query("SELECT status, bookingId FROM jobs").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Completed", c.getString(0))
+            assertTrue("old work was not planned", c.isNull(1))
+        }
+        // The new table exists, empty, and takes a booking.
+        db.execSQL(
+            "INSERT INTO bookings (id, orgId, customerId, workType, day, part, status, movedCount, createdAt, " +
+                "updatedAt, syncState) VALUES ('b1', 'o1', 'c1', 'Rotavator', 20000, 'Morning', 'Planned', 0, 1, 1, 'Pending')"
+        )
+        db.query("SELECT COUNT(*) FROM bookings").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(1, c.getInt(0))
+        }
+    }
+
+    @Test
     fun `a phone that never updated gets to the current schema from the very first version`() {
         create(1)
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(15, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(16, c.getInt(0))
         }
     }
 }

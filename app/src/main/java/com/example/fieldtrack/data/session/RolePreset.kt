@@ -3,10 +3,10 @@ package com.example.fieldtrack.data.session
 import com.example.fieldtrack.data.db.MemberRole
 
 /**
- * The seven things an owner can hand to somebody, as one value.
+ * The eight things an owner can hand to somebody, as one value.
  *
  * Gathered into a type so a preset can be compared against what a member
- * actually holds. Spread across seven parameters that comparison is seven
+ * actually holds. Spread across eight parameters that comparison is eight
  * `&&`s that nobody updates when an eighth permission arrives; here it is the
  * compiler's problem.
  */
@@ -18,16 +18,17 @@ data class Grants(
     val editMachines: Boolean = false,
     val payOut: Boolean = false,
     val seePeopleCost: Boolean = false,
+    val planWork: Boolean = false,
 )
 
 /**
- * A job, offered instead of seven switches.
+ * A job, offered instead of eight switches.
  *
  * The switches are the truth — every capability check reads them, and a preset
  * writes nothing the switches could not have written by hand. This exists
- * because asking a contractor which of seven permissions a man should hold is
+ * because asking a contractor which of eight permissions a man should hold is
  * asking them to think in permissions. They do not; they think "he is my
- * senior driver", and that sentence already answers all seven.
+ * senior driver", and that sentence already answers all eight.
  *
  * So a preset is a starting point, never a cage. Change one switch afterwards
  * and the picker says [matching] found nothing and the screen says "set by
@@ -59,7 +60,7 @@ enum class RolePreset {
     Owner,
     ;
 
-    /** What picking this writes to the seven switches. */
+    /** What picking this writes to the switches. */
     val grants: Grants
         get() = when (this) {
             Driver -> Grants()
@@ -76,6 +77,7 @@ enum class RolePreset {
                 editMachines = true,
                 payOut = true,
                 seePeopleCost = true,
+                planWork = true,
             )
             // An owner's capabilities do not come from these columns at all —
             // Capabilities.of short-circuits on the role. They are still written

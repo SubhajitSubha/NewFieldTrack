@@ -114,6 +114,21 @@ enum class MachineKind {
 
 enum class MachineStatus { Idle, Working, Down }
 
+/** The part of a day a booking is for. Farm work does not keep to the clock, so no finer. */
+enum class DayPart { Morning, Afternoon, WholeDay }
+
+/**
+ * Where a booking stands, as somebody who plans said it.
+ *
+ * Not "started": that is read off the job that was started from the booking, so
+ * a driver's phone never has to write the plan. Done is for work that happened
+ * without the app's clock and was entered afterwards.
+ */
+enum class BookingStatus { Planned, Cancelled, Done }
+
+/** Why a booking did not happen. Cheap to say, and the question is always asked later. */
+enum class CancelReason { Rain, Farmer, Machine, Other }
+
 enum class MemberRole { Owner, Operator }
 
 /**

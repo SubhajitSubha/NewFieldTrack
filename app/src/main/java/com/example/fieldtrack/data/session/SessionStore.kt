@@ -5,6 +5,7 @@ import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.IdGenerator
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.plan.PlanSettings
 import com.example.fieldtrack.data.season.SeasonCalendar
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.sync.PullWatermarks
@@ -323,6 +324,25 @@ class SessionStore(
         session.can.require(Capability.EditBusiness)
         val org = db.orgDao().observeOrg(session.orgId).first() ?: return
         val updated = org.copy(seasons = calendar.encode(), updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+    }
+
+    /**
+     * Sets how the business reads its plan: when its day turns over, and whether
+     * drivers see everybody's bookings. Its own call for the reason [updateSeasons] is.
+     */
+    suspend fun updatePlanSettings(settings: PlanSettings) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        val updated = org.copy(
+            planDayStartHour = PlanSettings.cleanHour(settings.dayStartHour),
+            driversSeeAll = settings.driversSeeAll,
+            updatedAt = clock.now(),
+        )
         db.orgDao().upsertOrg(updated)
         syncQueue.enqueueUpsert(
             session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)

@@ -3,6 +3,8 @@ package com.example.fieldtrack.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.feature.plan.PlanSummary
+import com.example.fieldtrack.feature.plan.observePlanSummary
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MachineStatus
@@ -13,6 +15,7 @@ import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.feature.startOfToday
 import com.example.fieldtrack.data.repository.ClockCheck
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -68,6 +71,7 @@ data class YardHomeState(
     val alerts: List<HomeAlert> = emptyList(),
     val pendingUploads: Int = 0,
     val uploadsStuck: Boolean = false,
+    val plan: PlanSummary = PlanSummary(),
 )
 
 /**
@@ -87,7 +91,7 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val team: List<MembershipEntity>,
     )
 
-    val state: StateFlow<YardHomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
+    private val core: Flow<YardHomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
         val zone = ZoneId.systemDefault()
@@ -207,7 +211,14 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 uploadsStuck = yard.stuck,
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YardHomeState())
+    }
+
+    /** The plan in a line: what is on today and tomorrow, and what was missed. */
+    val state: StateFlow<YardHomeState> = combine(
+        core,
+        app.sessionStore.session.flatMapLatest { app.observePlanSummary(it) },
+    ) { st, plan -> st.copy(plan = plan) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YardHomeState())
 
     fun pause(jobId: String) = act { orgId -> app.workRepository.pause(orgId, jobId) }
 
