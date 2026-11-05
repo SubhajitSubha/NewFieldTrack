@@ -118,18 +118,22 @@ private fun DayHeader(state: PlanState, onDay: (Long) -> Unit, onStep: (Int) -> 
                 onClick = { onStep(-1) },
             )
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                val name = dayName(state.day, state.today)
                 Text(
-                    text = dayName(state.day, state.today),
+                    text = name,
                     style = FieldTrackTheme.type.sectionTitle,
                     color = colors.ink,
                     textAlign = TextAlign.Center,
                 )
-                Text(
-                    text = dayDate(state.day),
-                    style = FieldTrackTheme.type.caption,
-                    color = colors.inkTertiary,
-                    textAlign = TextAlign.Center,
-                )
+                // The date under a name like "Tomorrow"; a day already named by its date says it once.
+                if (name != dayDate(state.day)) {
+                    Text(
+                        text = dayDate(state.day),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
             FtIconButton(
                 icon = FieldTrackIcons.Forward,
