@@ -47,6 +47,8 @@ import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.layout.AdaptiveBody
 import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
+import com.example.fieldtrack.designsystem.layout.LocalWidthClass
+import com.example.fieldtrack.designsystem.layout.WidthClass
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import java.text.DateFormat
 import java.util.Date
@@ -81,27 +83,41 @@ fun PlanScreen(
         )
         if (!state.loaded) return@AdaptiveScreen
 
+        // Side by side, the button and the notice move into the right-hand pane. On a
+        // phone on its side a pinned button takes a fifth of the height from the day's
+        // list, and that pane has the room.
+        val twoPane = LocalWidthClass.current == WidthClass.Expanded
+
         AdaptiveBody(
             primary = {
-                if (state.stale) StaleNotice(state.updatedAt)
+                if (!twoPane && state.stale) StaleNotice(state.updatedAt)
                 DayHeader(state, onDay, onStep)
                 if (state.overdue.isNotEmpty()) Overdue(state, onOpen, onStart)
                 Day(state, onOpen, onStart)
             },
-            secondary = { Free(state) },
+            secondary = {
+                if (twoPane) {
+                    if (state.canPlan) PlanNewButton(onNew)
+                    if (state.stale) StaleNotice(state.updatedAt)
+                }
+                Free(state)
+            },
         )
 
-        if (state.canPlan) {
-            Box(Modifier.padding(dimens.screenPadding)) {
-                FtButton(
-                    text = stringResource(R.string.plan_new),
-                    onClick = onNew,
-                    icon = FieldTrackIcons.Add,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+        if (state.canPlan && !twoPane) {
+            Box(Modifier.padding(dimens.screenPadding)) { PlanNewButton(onNew) }
         }
     }
+}
+
+@Composable
+private fun PlanNewButton(onNew: () -> Unit) {
+    FtButton(
+        text = stringResource(R.string.plan_new),
+        onClick = onNew,
+        icon = FieldTrackIcons.Add,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
