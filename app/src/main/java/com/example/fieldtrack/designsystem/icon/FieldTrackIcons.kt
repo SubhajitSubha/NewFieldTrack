@@ -184,6 +184,16 @@ object FieldTrackIcons {
         moveTo(7f, 9f); lineTo(15f, 20f)
     }
 
+    /** Money in general. The rupee sign belongs to rupees; every other currency gets this. */
+    val Banknote: ImageVector by chrome("Banknote") {
+        moveTo(3f, 7f); horizontalLineTo(21f); verticalLineTo(17f); horizontalLineTo(3f); close()
+        circle(12f, 12f, 2.6f)
+    }
+
+    /** The money glyph for the business on screen: the rupee sign for rupees, a banknote otherwise. */
+    fun money(currencyCode: String = com.example.fieldtrack.designsystem.format.Money.style.currencyCode): ImageVector =
+        if (currencyCode == "INR") Rupee else Banknote
+
     val Report: ImageVector by chrome("Report") {
         moveTo(4f, 20f); verticalLineTo(11f)
         moveTo(10f, 20f); verticalLineTo(5f)

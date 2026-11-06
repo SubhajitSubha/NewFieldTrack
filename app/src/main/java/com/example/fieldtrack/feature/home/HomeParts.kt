@@ -889,7 +889,7 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
         }
         is HomeAlert.Overdue -> {
             tone = Tone.Wait
-            icon = FieldTrackIcons.Rupee
+            icon = FieldTrackIcons.money()
             if (alert.customerId != null) {
                 title = stringResource(
                     R.string.home_alert_owes, alert.customerName.orEmpty(), money(alert.amountMinor),

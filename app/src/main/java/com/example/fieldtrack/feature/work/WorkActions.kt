@@ -127,7 +127,7 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
     }
     if (state.canSeeMoney) {
         ActionRow(
-            icon = FieldTrackIcons.Rupee,
+            icon = FieldTrackIcons.money(),
             title = stringResource(R.string.work_rate_title),
             subtitle = stringResource(
                 R.string.work_rate_caption,

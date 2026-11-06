@@ -91,6 +91,8 @@ data class ProfileState(
     val upiId: String? = null,
     val gstin: String? = null,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The currency the business keeps its books in. */
+    val currencyCode: String = "INR",
     /** When the business's seasons begin, as the owner set them (or the usual dates). */
     val seasonStarts: List<SeasonStart> = SeasonCalendar.Default.starts,
     /** How the plan is read: the hour its day turns over, and whether drivers see everybody's work. */
@@ -122,6 +124,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 upiId = org?.upiId,
                 gstin = org?.gstin,
                 landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
+                currencyCode = org?.currencyCode ?: "INR",
                 seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
                 plan = PlanSettings(PlanSettings.cleanHour(org?.planDayStartHour), org?.driversSeeAll ?: false),
                 businessMode = businessMode,
@@ -161,6 +164,7 @@ fun ProfileScreen(
     onEditBusiness: () -> Unit,
     onEditSeasons: () -> Unit,
     onEditPlan: () -> Unit,
+    onEditMoney: () -> Unit,
     onBusinessMode: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onBusinesses: () -> Unit,
@@ -277,6 +281,17 @@ fun ProfileScreen(
                     label = stringResource(R.string.profile_land_measured_in),
                     value = stringResource(state.landUnit.labelRes),
                     onClick = onEditBusiness.takeIf { state.canEditBusiness },
+                )
+                FtRowDivider()
+                FtListRow(
+                    title = stringResource(R.string.profile_money),
+                    subtitle = stringResource(
+                        R.string.profile_money_summary,
+                        com.example.fieldtrack.data.region.Region.nameOf(state.currencyCode),
+                        com.example.fieldtrack.designsystem.format.MoneyStyle.symbolOf(state.currencyCode),
+                    ),
+                    showChevron = true,
+                    onClick = onEditMoney,
                 )
                 FtRowDivider()
                 // Under the label, not beside it: named seasons make a line far longer

@@ -57,6 +57,12 @@ data class MoneyStyle(
     val groupSeparator: Char = ',',
     val symbolAfter: Boolean = false,
 ) {
+    /** The same money written with another person's grouping, for when they change their setting. */
+    fun withGrouping(grouping: DigitGrouping, locale: Locale = Locale.getDefault()): MoneyStyle = copy(
+        grouping = grouping,
+        groupSeparator = if (grouping == DigitGrouping.Indian) ',' else DecimalFormatSymbols.getInstance(locale).groupingSeparator,
+    )
+
     /** How many minor units make one major unit: 100 for rupees, 1 for yen. */
     val unit: Long = pow10(digits)
 

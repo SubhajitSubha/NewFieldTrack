@@ -147,6 +147,8 @@ import com.example.fieldtrack.feature.plan.PlanScreen
 import com.example.fieldtrack.feature.plan.PlanSettingsScreen
 import com.example.fieldtrack.feature.plan.PlanSettingsViewModel
 import com.example.fieldtrack.feature.plan.PlanViewModel
+import com.example.fieldtrack.feature.region.MoneySettingsScreen
+import com.example.fieldtrack.feature.region.MoneySettingsViewModel
 import com.example.fieldtrack.feature.season.SeasonsScreen
 import com.example.fieldtrack.feature.season.SeasonsViewModel
 import com.example.fieldtrack.feature.calculator.PriceViewModel
@@ -217,6 +219,7 @@ internal object Routes {
     const val PLAN = "plan"
     const val BOOKING = "plan/booking?id={id}&day={day}"
     const val PLAN_SETTINGS = "more/profile/plan"
+    const val MONEY_SETTINGS = "more/profile/money"
     const val PAST_WORK = "start/past"
     const val NEW_CUSTOMER = "customer/new"
     const val LIVE = "live/{jobId}"
@@ -473,6 +476,7 @@ fun FieldTrackApp(
                     onOwnerKind = vm::setOwnerKind,
                     onName = vm::setName,
                     onBusinessName = vm::setBusinessName,
+                    onCurrency = vm::setCurrency,
                     onLandUnit = vm::setLandUnit,
                     onMachineKind = vm::setMachineKind,
                     onMachineName = vm::setMachineName,
@@ -890,11 +894,14 @@ private fun MainNavHost(navController: NavHostController) {
                 val settings = app.displaySettings
                 val theme by settings.theme.collectAsStateWithLifecycle()
                 val bigger by settings.biggerText.collectAsStateWithLifecycle()
+                val grouping by settings.grouping.collectAsStateWithLifecycle()
                 DisplayScreen(
                     theme = theme,
                     biggerText = bigger,
+                    grouping = grouping,
                     onTheme = settings::setTheme,
                     onBiggerText = settings::setBiggerText,
+                    onGrouping = settings::setGrouping,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -907,6 +914,18 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onWindow = vm::setWindow,
                     onChangeSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                )
+            }
+
+            composable(Routes.MONEY_SETTINGS) {
+                val vm: MoneySettingsViewModel = appViewModel { MoneySettingsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MoneySettingsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onCurrency = vm::setCurrency,
+                    onWholeUnits = vm::setWholeUnits,
+                    onSave = { vm.save { navController.popBackStack() } },
                 )
             }
 
@@ -1918,6 +1937,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onEditBusiness = { navController.navigate(Routes.EDIT_BUSINESS) },
                     onEditSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
                     onEditPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
+                    onEditMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
                     onBusinessMode = vm::setBusinessMode,
                     onBusinesses = { navController.navigate(Routes.ORGS) },
                     onSignOut = {

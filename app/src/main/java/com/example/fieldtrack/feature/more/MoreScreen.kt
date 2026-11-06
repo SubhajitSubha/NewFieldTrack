@@ -290,7 +290,7 @@ fun MoreScreen(
                 FtListRow(
                     title = stringResource(R.string.more_price),
                     subtitle = stringResource(R.string.more_price_note),
-                    leading = { FtIconTile(FieldTrackIcons.Rupee, size = 40.dp) },
+                    leading = { FtIconTile(FieldTrackIcons.money(), size = 40.dp) },
                     showChevron = true,
                     onClick = onPrice,
                 )

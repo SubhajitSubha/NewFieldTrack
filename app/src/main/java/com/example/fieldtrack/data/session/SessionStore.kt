@@ -205,6 +205,8 @@ class SessionStore(
         businessName: String,
         landUnit: MeasureUnit,
         isBusiness: Boolean,
+        currencyCode: String = "INR",
+        moneyStepMinor: Long = 100,
     ): Session {
         val now = clock.now()
         val personId = prefs.getString(KEY_PERSON, null) ?: ids.newId()
@@ -214,6 +216,8 @@ class SessionStore(
             id = orgId,
             name = businessName.trim(),
             defaultLandUnit = landUnit,
+            currencyCode = currencyCode,
+            moneyStepMinor = moneyStepMinor,
             createdAt = now,
             updatedAt = now,
         )
@@ -263,6 +267,8 @@ class SessionStore(
             role = MemberRole.Owner,
             landUnit = landUnit,
             can = Capabilities.of(membership),
+            currencyCode = currencyCode,
+            moneyStepMinor = moneyStepMinor,
         )
     }
 
@@ -336,6 +342,38 @@ class SessionStore(
         _startup.value = Startup.Ready(
             session.copy(businessName = name.trim(), landUnit = landUnit)
         )
+    }
+
+    /** What came of asking to change a business's money. */
+    enum class MoneyChange { Saved, CurrencyLocked }
+
+    /**
+     * Sets the currency the business keeps its books in, and how bills are rounded.
+     *
+     * The currency is a free choice only until something has been written in it. Past
+     * that point every amount in the books would be read in a different money, and
+     * nothing is converted behind anybody's back: a ledger is append-only, so the
+     * honest way to keep books in another currency is another business. The rounding
+     * can change at any time, because every job keeps the rounding it was made with.
+     */
+    suspend fun updateMoney(currencyCode: String, stepMinor: Long): MoneyChange {
+        val session = current() ?: return MoneyChange.Saved
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return MoneyChange.Saved
+        if (currencyCode != org.currencyCode && db.orgDao().moneyEntryCount(session.orgId) > 0) {
+            return MoneyChange.CurrencyLocked
+        }
+        val step = stepMinor.coerceAtLeast(1)
+        if (currencyCode == org.currencyCode && step == org.moneyStepMinor) return MoneyChange.Saved
+        val updated = org.copy(currencyCode = currencyCode, moneyStepMinor = step, updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+        _startup.value = Startup.Ready(
+            session.copy(currencyCode = currencyCode, moneyStepMinor = step)
+        )
+        return MoneyChange.Saved
     }
 
     /**

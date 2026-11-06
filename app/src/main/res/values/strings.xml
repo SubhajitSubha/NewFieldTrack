@@ -1777,4 +1777,29 @@
     <string name="plan_start_not_this">Not this booking</string>
     <string name="plan_start_booked">On the plan — %1$s: %2$s, %3$s.</string>
     <string name="plan_start_use">Use this booking</string>
+
+    <!-- Money and region -->
+    <string name="currency_pick_title">Pick your currency</string>
+    <string name="currency_search_hint">Search by name or code</string>
+    <string name="onboard_region_title">How you count</string>
+    <string name="onboard_region_caption">We guessed these from your phone. Change anything that is wrong. You can change them later in Profile.</string>
+    <string name="onboard_money_in">You keep your accounts in</string>
+    <string name="profile_money">Money</string>
+    <string name="profile_money_summary">%1$s · %2$s</string>
+    <string name="money_title">Money</string>
+    <string name="money_currency">Currency</string>
+    <string name="money_locked_title">The currency is locked</string>
+    <string name="money_locked_body">This business already has amounts in its books. Changing the currency would read every one of them in a different money, so it stays as it is. To keep books in another currency, start another business.</string>
+    <string name="money_round">Bills are</string>
+    <string name="money_round_whole">Whole units</string>
+    <string name="money_round_exact">Exact, with the small coin</string>
+    <string name="money_round_note_whole">Every bill comes to a whole number, with no paise or cents. Bills already made keep the way they were made.</string>
+    <string name="money_round_note_exact">Bills can include the small coin, such as cents. Bills already made keep the way they were made.</string>
+    <string name="money_round_none">This currency has no small coin.</string>
+    <string name="money_saved">Saved</string>
+    <string name="money_grouping">Digit grouping</string>
+    <string name="money_grouping_auto">Like my phone</string>
+    <string name="money_grouping_indian">1,00,000</string>
+    <string name="money_grouping_international">100,000</string>
+    <string name="money_grouping_note">How big numbers are written on this phone. Only this phone; it changes no bill.</string>
 </resources>

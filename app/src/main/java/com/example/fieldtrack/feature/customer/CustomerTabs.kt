@@ -255,7 +255,7 @@ private fun PaymentMethod?.icon() = when (this) {
     PaymentMethod.Upi -> FieldTrackIcons.Mic
     PaymentMethod.Bank -> FieldTrackIcons.Report
     PaymentMethod.Cheque -> FieldTrackIcons.Bill
-    else -> FieldTrackIcons.Rupee
+    else -> FieldTrackIcons.money()
 }
 
 /** Said once, in the middle of an empty tab, rather than left blank. */

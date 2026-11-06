@@ -3,6 +3,8 @@ package com.example.fieldtrack.feature.more
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +23,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.selection.toggleable
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.settings.GroupingChoice
 import com.example.fieldtrack.data.settings.ThemeChoice
+import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChoiceCard
 import com.example.fieldtrack.designsystem.component.FtEmphasisCard
@@ -37,12 +41,15 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
  * in whatever is chosen — so the person sees the result on this screen rather than
  * having to go back and find out.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DisplayScreen(
     theme: ThemeChoice,
     biggerText: Boolean,
+    grouping: GroupingChoice,
     onTheme: (ThemeChoice) -> Unit,
     onBiggerText: (Boolean) -> Unit,
+    onGrouping: (GroupingChoice) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -127,6 +134,33 @@ fun DisplayScreen(
                 }
             }
 
+            FtSectionLabel(stringResource(R.string.money_grouping), Modifier.padding(top = 8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FtChip(
+                    label = stringResource(R.string.money_grouping_auto),
+                    selected = grouping == GroupingChoice.Auto,
+                    onClick = { onGrouping(GroupingChoice.Auto) },
+                )
+                FtChip(
+                    label = stringResource(R.string.money_grouping_indian),
+                    selected = grouping == GroupingChoice.Indian,
+                    onClick = { onGrouping(GroupingChoice.Indian) },
+                )
+                FtChip(
+                    label = stringResource(R.string.money_grouping_international),
+                    selected = grouping == GroupingChoice.International,
+                    onClick = { onGrouping(GroupingChoice.International) },
+                )
+            }
+            Text(
+                text = stringResource(R.string.money_grouping_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+
             FtSectionLabel(stringResource(R.string.display_sample), Modifier.padding(top = 8.dp))
             FtEmphasisCard {
                 Text(
@@ -135,7 +169,7 @@ fun DisplayScreen(
                     color = colors.onDarkMuted,
                 )
                 Text(
-                    text = money(4_000),
+                    text = money(4_000 * com.example.fieldtrack.designsystem.format.Money.style.unit),
                     style = FieldTrackTheme.type.moneyHero,
                     color = colors.onDark,
                     modifier = Modifier.padding(top = 6.dp),

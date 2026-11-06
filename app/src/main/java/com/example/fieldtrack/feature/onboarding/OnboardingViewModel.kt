@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.region.Region
+import com.example.fieldtrack.designsystem.format.MoneyStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +16,7 @@ import kotlinx.coroutines.launch
 /** Which track the owner picked. Decides whether we ask for a business name. */
 enum class OwnerKind { Solo, Business }
 
-enum class OnboardingStep { Welcome, Role, You, Business, Machine, Done }
+enum class OnboardingStep { Welcome, Role, You, Business, Region, Machine, Done }
 
 data class OnboardingState(
     val step: OnboardingStep = OnboardingStep.Welcome,
@@ -22,6 +24,10 @@ data class OnboardingState(
     val name: String = "",
     val businessName: String = "",
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The currency the business keeps its books in; guessed from the phone, confirmed on the Region step. */
+    val currencyCode: String = "INR",
+    /** The country the phone guessed, which puts that country's currency first in the picker. */
+    val guessedCurrency: String? = null,
     val machineKind: MachineKind = MachineKind.Tractor,
     val machineName: String = "",
     val saving: Boolean = false,
@@ -48,13 +54,22 @@ data class OnboardingState(
  */
 class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
-    private val _state = MutableStateFlow(OnboardingState())
+    private val _state = MutableStateFlow(
+        Region.detect(app).let { guess ->
+            OnboardingState(
+                currencyCode = guess.currencyCode,
+                guessedCurrency = guess.currencyCode,
+                landUnit = guess.landUnit,
+            )
+        }
+    )
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
 
     fun setOwnerKind(kind: OwnerKind) = _state.update { it.copy(ownerKind = kind) }
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setBusinessName(v: String) = _state.update { it.copy(businessName = v) }
     fun setLandUnit(unit: MeasureUnit) = _state.update { it.copy(landUnit = unit) }
+    fun setCurrency(code: String) = _state.update { it.copy(currencyCode = code) }
     fun setMachineKind(kind: MachineKind) = _state.update { it.copy(machineKind = kind) }
     fun setMachineName(v: String) = _state.update { it.copy(machineName = v) }
 
@@ -82,6 +97,8 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
             businessName = current.effectiveBusinessName,
             landUnit = current.landUnit,
             isBusiness = current.ownerKind == OwnerKind.Business,
+            currencyCode = current.currencyCode,
+            moneyStepMinor = MoneyStyle.defaultStepMinor(current.currencyCode),
         )
 
         if (current.machineName.isNotBlank()) {
@@ -104,8 +121,9 @@ private fun OnboardingStep.next(kind: OwnerKind): OnboardingStep = when (this) {
     OnboardingStep.Role -> OnboardingStep.You
     // A solo owner is their own business; asking them to name one twice is friction.
     OnboardingStep.You -> if (kind == OwnerKind.Business) OnboardingStep.Business
-    else OnboardingStep.Machine
-    OnboardingStep.Business -> OnboardingStep.Machine
+    else OnboardingStep.Region
+    OnboardingStep.Business -> OnboardingStep.Region
+    OnboardingStep.Region -> OnboardingStep.Machine
     OnboardingStep.Machine -> OnboardingStep.Done
     OnboardingStep.Done -> OnboardingStep.Done
 }
@@ -115,7 +133,8 @@ private fun OnboardingStep.previous(kind: OwnerKind): OnboardingStep? = when (th
     OnboardingStep.Role -> OnboardingStep.Welcome
     OnboardingStep.You -> OnboardingStep.Role
     OnboardingStep.Business -> OnboardingStep.You
-    OnboardingStep.Machine -> if (kind == OwnerKind.Business) OnboardingStep.Business
+    OnboardingStep.Region -> if (kind == OwnerKind.Business) OnboardingStep.Business
     else OnboardingStep.You
+    OnboardingStep.Machine -> OnboardingStep.Region
     OnboardingStep.Done -> OnboardingStep.Machine
 }

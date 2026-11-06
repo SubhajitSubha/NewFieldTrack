@@ -275,6 +275,27 @@ interface OrgDao {
     fun observeUnpricedJobCostCount(orgId: String): Flow<Int>
 
     /**
+     * How many amounts this business has put in its books, of any kind.
+     *
+     * Not zero means its currency is no longer a free choice: every one of them is
+     * written in it.
+     */
+    @Query(
+        """
+        SELECT
+            (SELECT COUNT(*) FROM ledger_entries WHERE orgId = :orgId) +
+            (SELECT COUNT(*) FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL) +
+            (SELECT COUNT(*) FROM payouts WHERE orgId = :orgId) +
+            (SELECT COUNT(*) FROM fuel_entries WHERE orgId = :orgId) +
+            (SELECT COUNT(*) FROM rates WHERE orgId = :orgId) +
+            (SELECT COUNT(*) FROM service_records WHERE orgId = :orgId AND costMinor IS NOT NULL) +
+            (SELECT COUNT(*) FROM job_costs WHERE orgId = :orgId AND amountMinor IS NOT NULL) +
+            (SELECT COUNT(*) FROM machine_finance WHERE orgId = :orgId AND monthlyMinor IS NOT NULL)
+        """
+    )
+    suspend fun moneyEntryCount(orgId: String): Int
+
+    /**
      * What the business billed over a stretch of time.
      *
      * Completed work only, and the same arithmetic the job itself uses, so a

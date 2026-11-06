@@ -369,7 +369,7 @@ abstract class ScreenMatrix(
             "fleet" to Routes.FLEET, "machines" to Routes.MACHINES, "money-out" to Routes.MONEY_OUT,
             "season" to Routes.SEASON, "team" to Routes.TEAM, "rates" to Routes.RATES,
             "price" to Routes.PRICE, "seasons-edit" to Routes.SEASONS_EDIT,
-            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "booking-new" to Routes.booking(),
+            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "money-settings" to Routes.MONEY_SETTINGS, "booking-new" to Routes.booking(),
             "upkeep" to Routes.UPKEEP, "backup" to Routes.BACKUP,
         ).forEach { (name, route) -> shoot("empty", name, route) }
     }
@@ -396,7 +396,7 @@ abstract class ScreenMatrix(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
             "more" to Routes.MORE, "price" to Routes.PRICE, "profile" to Routes.PROFILE,
             "seasons-edit" to Routes.SEASONS_EDIT,
-            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "booking-new" to Routes.booking(),
+            "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "money-settings" to Routes.MONEY_SETTINGS, "booking-new" to Routes.booking(),
             "booking" to Routes.booking(ids.bookingId), "start-booking" to Routes.startBooking(ids.missedBookingId),
             "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
         ).forEach { (name, route) -> shoot("driver", name, route) }
@@ -440,6 +440,17 @@ abstract class ScreenMatrix(
         runCatching { compose.onNode(hasText("I do not have a code")).performClick() }
         settle()
         capture("pre", "onboarding")
+        // On through the steps, to the one that asks about money and land.
+        fun tap(text: String) {
+            runCatching { compose.onNode(hasText(text)).performClick() }
+            settle()
+        }
+        tap("Get started"); capture("pre", "onboarding-role")
+        tap("Continue")
+        runCatching { compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("Harpal Singh") }
+        settle(); capture("pre", "onboarding-you")
+        tap("Continue"); capture("pre", "onboarding-region")
+        tap("US Dollar"); capture("pre", "onboarding-currency")
     }
 
     // --------------------------------------------------------------- mechanics
@@ -767,7 +778,7 @@ abstract class ScreenMatrix(
         "price" to Routes.PRICE,
         "seasons-edit" to Routes.SEASONS_EDIT,
         "plan" to Routes.PLAN,
-        "plan-settings" to Routes.PLAN_SETTINGS,
+        "plan-settings" to Routes.PLAN_SETTINGS, "money-settings" to Routes.MONEY_SETTINGS,
         "booking-new" to Routes.booking(),
         "booking" to Routes.booking(ids.bookingId),
         "booking-missed" to Routes.booking(ids.missedBookingId),

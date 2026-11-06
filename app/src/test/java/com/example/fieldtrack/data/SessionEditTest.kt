@@ -244,4 +244,70 @@ class SessionEditTest {
         )
         assertFalse(Capability.EditBusiness in driver)
     }
+
+    // ------------------------------------------------------------------ money
+
+    @Test
+    fun `a business starts in the currency it was set up in and keeps its rounding`() = runTest {
+        store.completeOnboarding(
+            displayName = "Wanjiru", businessName = "Wanjiru Farm Hire", landUnit = MeasureUnit.Acre,
+            isBusiness = true, currencyCode = "KES", moneyStepMinor = 1,
+        )
+        store.activate()
+        val session = store.current()!!
+        assertEquals("KES", session.currencyCode)
+        assertEquals("KES", session.money.currencyCode)
+        assertEquals("what is on screen follows the business", "KES", com.example.fieldtrack.designsystem.format.Money.style.currencyCode)
+        val org = h.db.orgDao().observeOrg(session.orgId).first()!!
+        assertEquals("KES", org.currencyCode)
+        assertEquals(1L, org.moneyStepMinor)
+    }
+
+    @Test
+    fun `the currency can change until the books have an amount in them`() = runTest {
+        onboard(isBusiness = true)
+        assertEquals(SessionStore.MoneyChange.Saved, store.updateMoney("USD", 1))
+        assertEquals("USD", store.current()!!.currencyCode)
+        assertEquals("USD", h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!.currencyCode)
+        assertTrue("and it is queued to reach the other phones", "organisations" in outboxTables())
+
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(
+                id = "c1", orgId = store.current()!!.orgId, name = "Ramesh", createdAt = 1, updatedAt = 1,
+            )
+        )
+        h.db.ledgerDao().insert(
+            com.example.fieldtrack.data.db.entity.LedgerEntryEntity(
+                id = "l1", orgId = store.current()!!.orgId, customerId = "c1",
+                kind = com.example.fieldtrack.data.db.LedgerKind.Charge, amountMinor = 5_000,
+                atMillis = 1, createdAt = 1,
+            )
+        )
+        assertEquals(
+            "a rupee could not be read as a dollar",
+            SessionStore.MoneyChange.CurrencyLocked, store.updateMoney("EUR", 1),
+        )
+        assertEquals("USD", store.current()!!.currencyCode)
+    }
+
+    @Test
+    fun `how bills are rounded can change whenever, and the currency stays`() = runTest {
+        onboard(isBusiness = true)
+        val orgId = store.current()!!.orgId
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(
+                id = "c1", orgId = orgId, name = "Ramesh", createdAt = 1, updatedAt = 1,
+            )
+        )
+        h.db.ledgerDao().insert(
+            com.example.fieldtrack.data.db.entity.LedgerEntryEntity(
+                id = "l1", orgId = orgId, customerId = "c1",
+                kind = com.example.fieldtrack.data.db.LedgerKind.Charge, amountMinor = 5_000,
+                atMillis = 1, createdAt = 1,
+            )
+        )
+        assertEquals(SessionStore.MoneyChange.Saved, store.updateMoney("INR", 1))
+        assertEquals(1L, store.current()!!.moneyStepMinor)
+        assertEquals("INR", store.current()!!.currencyCode)
+    }
 }

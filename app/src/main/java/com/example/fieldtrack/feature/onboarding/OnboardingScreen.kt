@@ -22,6 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +34,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.region.Region
+import com.example.fieldtrack.designsystem.component.FtListRow
+import com.example.fieldtrack.designsystem.format.MoneyStyle
+import com.example.fieldtrack.feature.region.CurrencyPickerSheet
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.designsystem.component.FtButton
@@ -54,6 +62,7 @@ fun OnboardingScreen(
     onOwnerKind: (OwnerKind) -> Unit,
     onName: (String) -> Unit,
     onBusinessName: (String) -> Unit,
+    onCurrency: (String) -> Unit,
     onLandUnit: (MeasureUnit) -> Unit,
     onMachineKind: (MachineKind) -> Unit,
     onMachineName: (String) -> Unit,
@@ -80,6 +89,7 @@ fun OnboardingScreen(
                 OnboardingStep.Role -> stringResource(R.string.onboard_role_title)
                 OnboardingStep.You -> stringResource(R.string.onboard_you_title)
                 OnboardingStep.Business -> stringResource(R.string.onboard_business_title)
+                OnboardingStep.Region -> stringResource(R.string.onboard_region_title)
                 OnboardingStep.Machine -> stringResource(R.string.onboard_machine_title)
                 else -> stringResource(R.string.onboard_done_title)
             },
@@ -97,7 +107,8 @@ fun OnboardingScreen(
             when (state.step) {
                 OnboardingStep.Role -> RoleStep(state, onOwnerKind)
                 OnboardingStep.You -> YouStep(state, onName)
-                OnboardingStep.Business -> BusinessStep(state, onBusinessName, onLandUnit)
+                OnboardingStep.Business -> BusinessStep(state, onBusinessName)
+                OnboardingStep.Region -> RegionStep(state, onCurrency, onLandUnit)
                 OnboardingStep.Machine -> MachineStep(state, onMachineKind, onMachineName)
                 else -> DoneStep(state)
             }
@@ -156,7 +167,7 @@ private fun WelcomeStep(onNext: () -> Unit, modifier: Modifier = Modifier) {
             )
 
             Point(FieldTrackIcons.Play, R.string.onboard_point_start, R.string.onboard_point_start_body, colors.primaryWash, colors.primary)
-            Point(FieldTrackIcons.Rupee, R.string.onboard_point_owed, R.string.onboard_point_owed_body, colors.dueWash, colors.due)
+            Point(FieldTrackIcons.money(), R.string.onboard_point_owed, R.string.onboard_point_owed_body, colors.dueWash, colors.due)
             Point(FieldTrackIcons.WhatsApp, R.string.onboard_point_bill, R.string.onboard_point_bill_body, colors.primaryWash, colors.send)
         }
 
@@ -280,7 +291,6 @@ private fun ColumnScope.YouStep(state: OnboardingState, onName: (String) -> Unit
 private fun ColumnScope.BusinessStep(
     state: OnboardingState,
     onBusinessName: (String) -> Unit,
-    onLandUnit: (MeasureUnit) -> Unit,
 ) {
     Text(
         text = stringResource(R.string.onboard_business_caption),
@@ -294,7 +304,45 @@ private fun ColumnScope.BusinessStep(
         placeholder = stringResource(R.string.onboard_business_name_hint),
         focused = true,
     )
+}
+
+/**
+ * The two things that are costly to get wrong, shown already filled in from the phone.
+ *
+ * A wrong currency would write every amount in the wrong money, and a wrong land
+ * unit would quote every field in a measure the farmer does not use. Everything else
+ * the phone told us is used without asking.
+ */
+@Composable
+private fun ColumnScope.RegionStep(
+    state: OnboardingState,
+    onCurrency: (String) -> Unit,
+    onLandUnit: (MeasureUnit) -> Unit,
+) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    Text(
+        text = stringResource(R.string.onboard_region_caption),
+        style = FieldTrackTheme.type.bodySmall,
+        color = FieldTrackTheme.colors.inkSecondary,
+    )
+    FtSectionLabel(stringResource(R.string.onboard_money_in))
+    FtCard(padding = 0.dp) {
+        FtListRow(
+            title = Region.nameOf(state.currencyCode),
+            subtitle = "${MoneyStyle.symbolOf(state.currencyCode)} · ${state.currencyCode}",
+            showChevron = true,
+            onClick = { picking = true },
+        )
+    }
     LandUnitPicker(state, onLandUnit)
+    if (picking) {
+        CurrencyPickerSheet(
+            current = state.currencyCode,
+            guessed = state.guessedCurrency,
+            onPick = { onCurrency(it); picking = false },
+            onDismiss = { picking = false },
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
