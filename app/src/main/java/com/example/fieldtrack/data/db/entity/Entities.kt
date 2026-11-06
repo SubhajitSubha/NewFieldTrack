@@ -622,6 +622,16 @@ data class JobEntity(
     /** Bumped on every local write, so a stale server copy is recognisable. */
     val revision: Long = 1,
 ) {
+    /**
+     * Whether the hours on the clock are what this job is billed for.
+     *
+     * Hourly work that ran on the phone bills from the clock. Hourly work entered
+     * afterwards bills the hours that were typed: the screen showed that figure and
+     * the times beside it are only a note of when, and may not match.
+     */
+    val billsFromClock: Boolean
+        get() = billingMode == BillingMode.PerHour && entryMethod != EntryMethod.Manual
+
     /** What this job is worth, rounded to the rupee the way a contractor would. */
     val amountRupees: Long
         get() = when (billingMode) {

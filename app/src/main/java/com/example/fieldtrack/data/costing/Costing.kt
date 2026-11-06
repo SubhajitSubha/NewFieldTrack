@@ -128,8 +128,8 @@ object Costing {
     fun perUnit(cost: RunningCost, kind: WorkKindFacts): UnitCost? {
         if (!cost.enough) return null
         val hours = kind.seconds / 3600.0
-        if (hours < MIN_KIND_HOURS || kind.quantity <= 0.0) return null
-        val unitsPerHour = kind.quantity / hours
+        if (hours < MIN_KIND_HOURS || kind.timedQuantity <= 0.0 || kind.quantity <= 0.0) return null
+        val unitsPerHour = kind.timedQuantity / hours
         val billed = (kind.earnedRupees / kind.quantity).roundToLong()
         return UnitCost(
             workType = kind.workType,

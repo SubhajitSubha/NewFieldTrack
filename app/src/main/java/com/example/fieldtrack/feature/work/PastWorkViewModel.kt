@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.billing.Billing
+import com.example.fieldtrack.feature.calculator.cleanQuantity
+import com.example.fieldtrack.feature.calculator.countsWhole
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.CustomerEntity
@@ -131,17 +133,31 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setBillingMode(mode: BillingMode) {
         if (mode !in _state.value.workType.billingModes) return
-        _state.update { it.copy(billingMode = mode, unit = resolveUnit(mode, landUnit)) }
+        _state.update {
+            val unit = resolveUnit(mode, landUnit)
+            it.copy(
+                billingMode = mode,
+                unit = unit,
+                // Trips are counted whole. "2.5" typed under acres and then switched to
+                // trips would otherwise be priced as two and a half loads.
+                quantityText = if (unit.countsWhole) {
+                    it.quantityText.substringBefore('.')
+                } else it.quantityText,
+                // A rate typed for one way of charging is not the rate for another:
+                // 1,200 an acre must not become 1,200 an hour without anybody saying so.
+                rateText = if (mode != it.billingMode) "" else it.rateText,
+            )
+        }
         suggestRate()
     }
 
     fun setUnit(unit: MeasureUnit) = _state.update { it.copy(unit = unit) }
 
     fun setQuantity(value: String) =
-        _state.update { it.copy(quantityText = value.filter { c -> c.isDigit() || c == '.' }) }
+        _state.update { it.copy(quantityText = cleanQuantity(value, whole = it.unit.countsWhole)) }
 
     fun setRate(value: String) =
-        _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }) }
+        _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
 
     fun setFrom(minutes: Int?) {
         _state.update { it.copy(fromMinutes = minutes) }
@@ -194,6 +210,8 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             orgId,
             current.workType.key,
             current.customer?.id.takeIf { app.sessionStore.rememberPerCustomer.value },
+            billingMode = current.billingMode,
+            unit = current.unit,
         ) ?: return@launch
         _state.update {
             if (it.rateText.isBlank()) it.copy(rateText = remembered.amountRupees.toString())
@@ -255,3 +273,6 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
 private const val MINUTE_MILLIS = 60_000L
 private const val DAY_MILLIS = 24 * 60 * MINUTE_MILLIS
 private const val MIDDAY_MILLIS = 12 * 60 * MINUTE_MILLIS
+
+/** Eight digits is a rate of ten crore a unit; more is a slip of the thumb. */
+private const val MAX_RATE_DIGITS = 8

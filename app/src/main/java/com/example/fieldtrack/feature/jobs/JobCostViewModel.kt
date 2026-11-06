@@ -148,12 +148,15 @@ class JobCostViewModel(
                             note = note,
                         )
                     }
-                    if (current.paid) {
+                    // Only what is still owed. Paying the whole figure again on a cost
+                    // already part paid recorded money going out twice.
+                    val owed = app.ledgerRepository.owedOnJobCost(s.orgId, existingId)
+                    if (current.paid && owed > 0) {
                         app.ledgerRepository.settleJobCost(
                             orgId = s.orgId,
                             can = s.can,
                             costId = existingId,
-                            amountRupees = current.amountRupees,
+                            amountRupees = owed,
                             atMillis = at,
                             byPersonId = s.personId,
                         )

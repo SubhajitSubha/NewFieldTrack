@@ -16,6 +16,7 @@ import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.feature.calculator.PriceInput
 import com.example.fieldtrack.feature.calculator.PriceState
 import com.example.fieldtrack.feature.calculator.PriceViewModel
+import com.example.fieldtrack.feature.calculator.recleaned
 import com.example.fieldtrack.feature.calculator.cleanQuantity
 import com.example.fieldtrack.feature.calculator.exactQuantity
 import com.google.firebase.FirebaseApp
@@ -150,6 +151,23 @@ class PriceCalculatorTest {
     }
 
     // ------------------------------------------------------------- what is typed
+
+    @Test
+    fun `switching to trips drops the half a trip that was typed under acres`() {
+        // 2.5 acres, then "per trip": nobody carries two and a half loads.
+        val acres = state(mode = BillingMode.PerAcre, unit = MeasureUnit.Acre, rate = "800", quantity = "2.5")
+        val trips = acres.input.copy(billingMode = BillingMode.PerTrip, unit = MeasureUnit.Trip).recleaned()
+
+        assertEquals("2", trips.quantityText)
+        assertEquals(1_600L, acres.copy(input = trips).amountRupees)
+    }
+
+    @Test
+    fun `going between units that take fractions keeps what was typed`() {
+        val bigha = state(unit = MeasureUnit.Bigha, rate = "1000", quantity = "2.5").input
+
+        assertEquals("2.5", bigha.copy(unit = MeasureUnit.Acre).recleaned().quantityText)
+    }
 
     @Test
     fun `a quantity keeps digits, one point and two decimals`() {

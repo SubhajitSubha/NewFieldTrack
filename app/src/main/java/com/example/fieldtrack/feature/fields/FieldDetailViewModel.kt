@@ -92,9 +92,9 @@ class FieldDetailViewModel(
                             id = job.id,
                             workType = job.workType,
                             workedAtMillis = job.workedAt,
-                            quantity = job.quantity,
+                            quantity = app.workRepository.billableQuantity(job),
                             unit = job.unit,
-                            amountRupees = job.amountRupees,
+                            amountRupees = app.workRepository.billableRupees(job),
                         )
                     },
                     canSeeMoney = s.canSeeMoney,

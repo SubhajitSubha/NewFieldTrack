@@ -2,6 +2,10 @@ package com.example.fieldtrack.feature
 
 import com.example.fieldtrack.data.TestHarness
 import com.example.fieldtrack.data.db.BreakdownCategory
+import com.example.fieldtrack.feature.home.landWorked
+import com.example.fieldtrack.data.db.entity.JobEntity
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MemberRole
@@ -120,6 +124,31 @@ class HomeTest {
     // ------------------------------------------------------------------ debt age
 
     private var seq = 0
+    private fun landJob(unit: MeasureUnit, quantity: Double) = JobEntity(
+        id = "j-$unit-$quantity", orgId = "o1", customerId = "c1", workType = "Rotavator",
+        billingMode = BillingMode.PerAcre, unit = unit, rateRupees = 1_000, quantity = quantity,
+        workedAt = 0, recordedAt = 0, createdAt = 0, updatedAt = 0,
+    )
+
+    @Test
+    fun `land worked is not a sum of acres and bigha`() {
+        val jobs = listOf(landJob(MeasureUnit.Bigha, 4.0), landJob(MeasureUnit.Acre, 2.0), landJob(MeasureUnit.Bigha, 1.5))
+
+        val (area, unit) = landWorked(jobs, own = MeasureUnit.Bigha)
+
+        assertEquals("only the business's own unit is counted", 5.5, area, 0.001)
+        assertEquals(MeasureUnit.Bigha, unit)
+    }
+
+    @Test
+    fun `with none in the business's own unit it says the unit that was worked`() {
+        val (area, unit) = landWorked(listOf(landJob(MeasureUnit.Acre, 3.0)), own = MeasureUnit.Bigha)
+
+        assertEquals(3.0, area, 0.001)
+        assertEquals(MeasureUnit.Acre, unit)
+        assertEquals(0.0, landWorked(emptyList(), own = MeasureUnit.Bigha).first, 0.0)
+    }
+
     private fun entry(kind: LedgerKind, rupees: Long, at: Long, customer: String = "c1") =
         LedgerEntryEntity(
             id = "e${++seq}", orgId = "o1", customerId = customer, kind = kind,

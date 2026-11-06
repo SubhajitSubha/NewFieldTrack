@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.billing.Billing
+import com.example.fieldtrack.feature.calculator.cleanQuantity
+import com.example.fieldtrack.feature.calculator.countsWhole
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.session.Capability
@@ -52,8 +54,17 @@ data class AmendJobState(
      * what gets read out when the two of them disagree later.
      */
     val canSave: Boolean
-        get() = loaded && allowed && !saving &&
+        get() = loaded && allowed && !saving && figuresMakeSense &&
             (deltaRupees == 0L || reason.isNotBlank())
+
+    /**
+     * Whether what is typed is a number at all. "4.5.2" read as nought and posted an
+     * adjustment taking the whole bill off, so an entry that is not a quantity is
+     * refused rather than priced as none.
+     */
+    val figuresMakeSense: Boolean
+        get() = (billingMode == BillingMode.Fixed || quantityText.toDoubleOrNull() != null) &&
+            rateText.isNotBlank()
 }
 
 /**
@@ -95,10 +106,10 @@ class AmendJobViewModel(
     }
 
     fun setQuantity(v: String) =
-        _state.update { it.copy(quantityText = v.filter { c -> c.isDigit() || c == '.' }) }
+        _state.update { it.copy(quantityText = cleanQuantity(v, whole = it.unit.countsWhole)) }
 
     fun setRate(v: String) =
-        _state.update { it.copy(rateText = v.filter { c -> c.isDigit() }) }
+        _state.update { it.copy(rateText = v.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
 
     fun setReason(v: String) = _state.update { it.copy(reason = v) }
 
@@ -125,6 +136,9 @@ class AmendJobViewModel(
         onSaved()
     }
 }
+
+/** Eight digits is a rate of ten crore a unit; more is a slip of the thumb. */
+private const val MAX_RATE_DIGITS = 8
 
 /** "3.5" stays, "4.0" becomes "4" — nobody writes the trailing zero by hand. */
 private fun trimZero(value: Double): String =

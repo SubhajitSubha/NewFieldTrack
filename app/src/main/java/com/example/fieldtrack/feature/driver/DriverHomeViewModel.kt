@@ -15,6 +15,7 @@ import com.example.fieldtrack.feature.home.HomeAlert
 import com.example.fieldtrack.feature.home.OpenJob
 import com.example.fieldtrack.feature.home.dealsWithCustomers
 import com.example.fieldtrack.feature.home.lastSevenDays
+import com.example.fieldtrack.feature.home.landWorked
 import com.example.fieldtrack.feature.home.machineAlerts
 import com.example.fieldtrack.feature.home.uploadAlert
 import com.example.fieldtrack.data.sync.SyncStage
@@ -161,8 +162,8 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 jobsToday = rows.count { !it.live },
                 // Only area work is added up. Totalling acres with trips and
                 // quintals would produce a number that means nothing.
-                areaToday = todays.filter { it.unit.isLand }.sumOf { it.quantity },
-                areaUnit = todays.firstOrNull { it.unit.isLand }?.unit ?: s.landUnit,
+                areaToday = landWorked(todays, s.landUnit).first,
+                areaUnit = landWorked(todays, s.landUnit).second,
                 weekHours = lastSevenDays(b.jobs, now, { it.workedAt }) {
                     app.workRepository.elapsedSeconds(it) / 3600.0
                 },

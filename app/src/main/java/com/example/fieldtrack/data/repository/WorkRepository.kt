@@ -121,7 +121,7 @@ class WorkRepository(
      * priced at nearly ten thousand.
      */
     fun billableQuantity(job: JobEntity, now: Long = clock.now()): Double =
-        if (job.billingMode == BillingMode.PerHour) elapsedSeconds(job, now) / 3600.0
+        if (job.billsFromClock) elapsedSeconds(job, now) / 3600.0
         else job.quantity
 
     /**
@@ -130,7 +130,7 @@ class WorkRepository(
      * per-trip pricing.
      */
     fun billableRupees(job: JobEntity, now: Long = clock.now()): Long =
-        if (job.billingMode == BillingMode.PerHour) {
+        if (job.billsFromClock) {
             Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateRupees)
         } else {
             job.amountRupees
@@ -248,7 +248,15 @@ class WorkRepository(
      * not the current rate if the price has moved since.
      */
     suspend fun removeLastTrip(orgId: String, jobId: String) {
-        val lastTripRupees = jobs.lastTripRupees(jobId)?.let { Math.round(it) }
+        // The newest trip not already taken back. Reading only the newest trip made
+        // a second undo take the same price off again, and the job drifted from what
+        // its own trips added up to.
+        val standing = ArrayDeque<Double?>()
+        jobs.tripEvents(jobId).forEach { event ->
+            if (event.type == JobEventType.TripAdded) standing.addLast(event.numericValue)
+            else standing.removeLastOrNull()
+        }
+        val lastTripRupees = standing.lastOrNull()?.let { Math.round(it) }
         mutate(orgId, jobId) { job ->
             val removed = lastTripRupees ?: job.rateRupees
             job.copy(
@@ -488,7 +496,7 @@ class WorkRepository(
             // For hourly work the billable figure is the clock, so derive it here
             // rather than asking the driver to copy a number they can already see.
             val billable =
-                if (finished.billingMode == BillingMode.PerHour) {
+                if (finished.billsFromClock) {
                     finished.copy(quantity = finished.elapsedSeconds / 3600.0)
                 } else finished
 
@@ -917,6 +925,12 @@ class WorkRepository(
             unit = unit,
             rateRupees = rateRupees,
             quantity = quantity,
+            // A trip job's bill is its trip total, not quantity times rate, so a
+            // job entered afterwards has to be given one. Left at nought it billed
+            // nothing, under a screen that had just said "Save ₹4,000".
+            tripTotalRupees = if (billingMode == BillingMode.PerTrip) {
+                Billing.amount(billingMode, quantity, rateRupees)
+            } else 0L,
             elapsedSeconds = elapsed,
             status = JobStatus.Paused,
             workedAt = workedAt,

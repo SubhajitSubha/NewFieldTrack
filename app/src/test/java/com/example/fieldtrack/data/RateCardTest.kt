@@ -276,6 +276,52 @@ class RateCardTest {
     }
 
     @Test
+    fun `an hourly job does not overwrite what the same farmer pays per acre`() = runTest {
+        directory.rememberRate(
+            TestHarness.ORG_A, "Ploughing", BillingMode.PerAcre, MeasureUnit.Acre, 1_200,
+            customerId = TestHarness.CUSTOMER_A,
+        )
+        h.advanceMinutes(10)
+        // This farmer's own rate moves off the card's: the card keeps 1,200.
+        directory.rememberRate(
+            TestHarness.ORG_A, "Ploughing", BillingMode.PerAcre, MeasureUnit.Acre, 1_500,
+            customerId = TestHarness.CUSTOMER_A,
+        )
+        h.advanceMinutes(10)
+        directory.rememberRate(
+            TestHarness.ORG_A, "Ploughing", BillingMode.PerHour, MeasureUnit.Hour, 800,
+            customerId = TestHarness.CUSTOMER_A,
+        )
+
+        val perAcre = directory.suggestedRate(
+            TestHarness.ORG_A, "Ploughing", TestHarness.CUSTOMER_A, BillingMode.PerAcre, MeasureUnit.Acre,
+        )
+        val perHour = directory.suggestedRate(
+            TestHarness.ORG_A, "Ploughing", TestHarness.CUSTOMER_A, BillingMode.PerHour, MeasureUnit.Hour,
+        )
+
+        assertEquals("his acre rate survived the hourly job", 1_500L, perAcre?.amountRupees)
+        assertEquals(800L, perHour?.amountRupees)
+        assertNull(
+            "nothing is offered for a way of charging never used",
+            directory.suggestedRate(
+                TestHarness.ORG_A, "Ploughing", TestHarness.CUSTOMER_A, BillingMode.PerTrip, MeasureUnit.Trip,
+            ),
+        )
+    }
+
+    @Test
+    fun `a lump sum is not remembered as a rate`() = runTest {
+        directory.rememberRate(
+            TestHarness.ORG_A, "Ploughing", BillingMode.Fixed, MeasureUnit.Acre, 15_000,
+            customerId = TestHarness.CUSTOMER_A,
+        )
+
+        assertTrue(directory.observeRateCard(TestHarness.ORG_A).first().isEmpty())
+        assertNull(directory.suggestedRate(TestHarness.ORG_A, "Ploughing", TestHarness.CUSTOMER_A))
+    }
+
+    @Test
     fun `seeding the card does not overwrite a rate the user set`() = runTest {
         directory.setRate(
             TestHarness.ORG_A, "Rotavator", BillingMode.PerAcre, MeasureUnit.Acre, 1_200,

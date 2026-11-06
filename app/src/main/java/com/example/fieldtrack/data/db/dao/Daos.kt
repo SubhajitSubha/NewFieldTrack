@@ -18,6 +18,7 @@ import com.example.fieldtrack.data.db.entity.JobEventEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
@@ -117,7 +118,7 @@ interface OrgDao {
         """
         SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
-        WHERE c.orgId = :orgId AND j.machineId = :machineId
+        WHERE c.orgId = :orgId AND j.machineId = :machineId AND j.deletedAt IS NULL
         """
     )
     fun observeJobCostOnMachine(orgId: String, machineId: String): Flow<Long>
@@ -319,17 +320,20 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM job_costs
-        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        JOIN jobs j ON j.id = c.jobId
+        WHERE c.orgId = :orgId AND j.deletedAt IS NULL
+          AND c.atMillis BETWEEN :from AND :to
         """
     )
     fun observeJobCostBetween(orgId: String, from: Long, to: Long): Flow<Long>
 
     @Query(
         """
-        SELECT COUNT(*) FROM job_costs
-        WHERE orgId = :orgId AND amountRupees IS NULL
-          AND atMillis BETWEEN :from AND :to
+        SELECT COUNT(*) FROM job_costs c
+        JOIN jobs j ON j.id = c.jobId
+        WHERE c.orgId = :orgId AND c.amountRupees IS NULL AND j.deletedAt IS NULL
+          AND c.atMillis BETWEEN :from AND :to
         """
     )
     fun observeUnpricedBetween(orgId: String, from: Long, to: Long): Flow<Int>
@@ -680,6 +684,7 @@ interface MachineDao {
         """
         SELECT j.workType AS workType, j.unit AS unit,
             COALESCE(SUM(j.quantity), 0.0) AS quantity,
+            COALESCE(SUM(CASE WHEN j.elapsedSeconds > 0 THEN j.quantity ELSE 0.0 END), 0.0) AS timedQuantity,
             COALESCE(SUM(j.elapsedSeconds), 0) AS seconds,
             COALESCE(SUM(CASE j.billingMode
                 WHEN 'Fixed' THEN j.rateRupees
@@ -927,6 +932,21 @@ interface JobDao {
     )
     suspend fun lastTripRupees(jobId: String): Double?
 
+    /**
+     * Every trip made and every trip taken back, oldest first.
+     *
+     * Insertion order breaks a tie in the clock, so two taps in one millisecond still
+     * come back in the order they were made.
+     */
+    @Query(
+        """
+        SELECT * FROM job_events
+        WHERE jobId = :jobId AND type IN ('TripAdded', 'TripRemoved')
+        ORDER BY atMillis ASC, rowid ASC
+        """
+    )
+    suspend fun tripEvents(jobId: String): List<JobEventEntity>
+
     @Query("SELECT * FROM jobs WHERE id = :id AND orgId = :orgId")
     fun observe(orgId: String, id: String): Flow<JobEntity?>
 
@@ -1077,11 +1097,19 @@ interface JobDao {
         SELECT * FROM rates
         WHERE orgId = :orgId AND workType = :workType
           AND (customerId = :customerId OR customerId IS NULL)
+          AND (:billingMode IS NULL OR billingMode = :billingMode)
+          AND (:unit IS NULL OR unit = :unit)
         ORDER BY customerId IS NULL, updatedAt DESC, id ASC
         LIMIT 1
         """
     )
-    suspend fun rateFor(orgId: String, workType: String, customerId: String?): RateEntity?
+    suspend fun rateFor(
+        orgId: String,
+        workType: String,
+        customerId: String?,
+        billingMode: BillingMode?,
+        unit: MeasureUnit?,
+    ): RateEntity?
 
     /**
      * Every rate that could apply to this work, best first.
@@ -1094,10 +1122,18 @@ interface JobDao {
         SELECT * FROM rates
         WHERE orgId = :orgId AND workType = :workType
           AND (customerId = :customerId OR customerId IS NULL)
+          AND (:billingMode IS NULL OR billingMode = :billingMode)
+          AND (:unit IS NULL OR unit = :unit)
         ORDER BY customerId IS NULL, updatedAt DESC, id ASC
         """
     )
-    suspend fun ratesFor(orgId: String, workType: String, customerId: String?): List<RateEntity>
+    suspend fun ratesFor(
+        orgId: String,
+        workType: String,
+        customerId: String?,
+        billingMode: BillingMode?,
+        unit: MeasureUnit?,
+    ): List<RateEntity>
 
     /** The general rate card: what this business charges, before any customer deal. */
     @Query(
@@ -1272,6 +1308,12 @@ data class WorkKindFacts(
     val seconds: Long,
     val earnedRupees: Long,
     val jobs: Int,
+    /**
+     * The part of [quantity] that came with a clock reading. Work entered afterwards
+     * with no times adds its acres and none of its hours, so dividing all the acres
+     * by the hours there are makes the machine look faster than it is.
+     */
+    val timedQuantity: Double = quantity,
 )
 
 /** A finished job's money, as far as it is known. */

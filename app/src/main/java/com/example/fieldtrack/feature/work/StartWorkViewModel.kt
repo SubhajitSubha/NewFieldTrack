@@ -339,13 +339,21 @@ class StartWorkViewModel(
         // The picker already hides them; this is what keeps a stale recomposition or
         // a future caller from writing a job measured in bags at a per-acre rate.
         if (mode !in _state.value.workType.billingModes) return
-        _state.update { it.copy(billingMode = mode, unit = resolveUnit(mode, orgLandUnit)) }
+        _state.update {
+            it.copy(
+                billingMode = mode,
+                unit = resolveUnit(mode, orgLandUnit),
+                // A rate typed for one way of charging is not the rate for another.
+                rateText = if (mode != it.billingMode) "" else it.rateText,
+            )
+        }
         refreshSuggestedRate()
     }
 
     fun setUnit(unit: MeasureUnit) = _state.update { it.copy(unit = unit) }
 
-    fun setRate(value: String) = _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }) }
+    fun setRate(value: String) =
+        _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
 
     fun next() = _state.update { it.copy(step = (it.step + 1).coerceAtMost(LAST_STEP)) }
 
@@ -421,8 +429,15 @@ class StartWorkViewModel(
             customerId = current.customer?.id.takeIf {
                 app.sessionStore.rememberPerCustomer.value
             },
+            // Only rates for how this work is being charged, in the unit it is
+            // counted in: a per-hour rate is no answer to "per acre".
+            billingMode = current.billingMode,
+            unit = current.unit,
         )
-        if (candidates.isEmpty()) return@launch
+        if (candidates.isEmpty()) {
+            _state.update { it.copy(suggestedRates = emptyList()) }
+            return@launch
+        }
 
         _state.update {
             it.copy(
@@ -441,3 +456,6 @@ class StartWorkViewModel(
         const val LAST_STEP = 2
     }
 }
+
+/** Eight digits is a rate of ten crore a unit; more is a slip of the thumb. */
+private const val MAX_RATE_DIGITS = 8

@@ -11,6 +11,7 @@ import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.dao.CustomerBalance
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import com.example.fieldtrack.data.db.PayoutCovers
 import com.example.fieldtrack.data.db.entity.PayoutEntity
@@ -403,6 +404,19 @@ class LedgerRepository(
             enqueueJobCost(cost)
         }
         return cost
+    }
+
+    /**
+     * What is still unpaid on one cost, after whatever instalments have gone against it.
+     *
+     * Asked before settling, because the screen opens with "paid" chosen and the
+     * full figure in the box: saving it again on a cost half paid already paid the
+     * whole of it a second time.
+     */
+    suspend fun owedOnJobCost(orgId: String, costId: String): Long {
+        val cost = db.orgDao().findJobCost(orgId, costId) ?: return 0L
+        return db.orgDao().observeJobCosts(orgId, cost.jobId).first()
+            .firstOrNull { it.cost.id == costId }?.owedRupees ?: 0L
     }
 
     /** Puts a figure on a cost somebody else recorded, or corrects one. */

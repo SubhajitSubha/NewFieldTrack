@@ -158,8 +158,8 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 earnedTodayRupees = if (s.canSeeMoney) today.sumOf { it.amountRupees } else 0,
                 collectedTodayRupees = collectedToday,
                 jobsToday = today.size,
-                areaToday = today.filter { it.unit.isLand }.sumOf { it.quantity },
-                areaUnit = today.firstOrNull { it.unit.isLand }?.unit ?: s.landUnit,
+                areaToday = landWorked(today, s.landUnit).first,
+                areaUnit = landWorked(today, s.landUnit).second,
                 week = if (s.canSeeMoney) {
                     lastSevenDays(w.week, now, { it.workedAt }) { it.amountRupees.toDouble() }
                 } else {

@@ -115,6 +115,11 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 SeasonWindow.Now -> now
                 SeasonWindow.Last -> thisSeason.startMillis(zone) - 1
             }
+            // The season running now has no end yet, so what is asked for has none.
+            // Ending it at the moment the screen opened left out everything that
+            // arrived after — a pull bringing a driver's day in, say — while the home
+            // screen, which does not stop at a moment, counted it.
+            val asked = if (chosen == SeasonWindow.Now) Long.MAX_VALUE else to
             val seesPeople = Capability.SeePeopleCost in s.can
             val dao = app.db.orgDao()
 
@@ -123,7 +128,7 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val extras = if (seesPeople) {
                 combine(
                     app.db.machineDao().observeMonthlyLoans(s.orgId),
-                    dao.observeJobMargins(s.orgId, from, to),
+                    dao.observeJobMargins(s.orgId, from, asked),
                 ) { monthly, margins ->
                     val lost = margins.mapNotNull { it.lostRupees }
                     Triple(
@@ -138,13 +143,13 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
             combine(
                 combine(
-                dao.observeEarnedBetween(s.orgId, from, to),
-                dao.observeFuelSpendBetween(s.orgId, from, to),
-                dao.observeServiceSpendBetween(s.orgId, from, to),
+                dao.observeEarnedBetween(s.orgId, from, asked),
+                dao.observeFuelSpendBetween(s.orgId, from, asked),
+                dao.observeServiceSpendBetween(s.orgId, from, asked),
                 combine(
-                    dao.observeJobCostBetween(s.orgId, from, to),
-                    dao.observeLooseWagesBetween(s.orgId, from, to),
-                    dao.observeUnpricedBetween(s.orgId, from, to),
+                    dao.observeJobCostBetween(s.orgId, from, asked),
+                    dao.observeLooseWagesBetween(s.orgId, from, asked),
+                    dao.observeUnpricedBetween(s.orgId, from, asked),
                 ) { onJobs, loose, unpriced -> Triple(onJobs, loose, unpriced) },
                 app.ledgerRepository.observeBalances(s.orgId),
             ) { earned, fuel, service, people, balances ->

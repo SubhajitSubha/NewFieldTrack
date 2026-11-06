@@ -331,8 +331,14 @@ class DirectoryRepository(
      * customer last time over the general rate. Returns null when there is no
      * history — the screen then asks rather than guessing.
      */
-    suspend fun suggestedRate(orgId: String, workType: String, customerId: String?): RateEntity? =
-        jobs.rateFor(orgId, workType, customerId)
+    suspend fun suggestedRate(
+        orgId: String,
+        workType: String,
+        customerId: String?,
+        /** Only a rate for this way of charging, when given: a per-hour rate is no answer to "per acre". */
+        billingMode: BillingMode? = null,
+        unit: MeasureUnit? = null,
+    ): RateEntity? = jobs.rateFor(orgId, workType, customerId, billingMode, unit)
 
     /**
      * Remembers a rate so it is offered next time.
@@ -348,7 +354,13 @@ class DirectoryRepository(
         amountRupees: Long,
         customerId: String? = null,
     ) {
-        val existing = jobs.rateFor(orgId, workType, customerId)
+        // A lump sum agreed for one job is not a price per anything, and offering it
+        // next time as a rate per bigha would put ₹15,000 in the box.
+        if (billingMode == BillingMode.Fixed) return
+        // Matched on how the work is charged as well as what it is. Without that, an
+        // hourly job overwrote the same farmer's per-acre rate, and the next acre job
+        // was offered the hourly figure.
+        val existing = jobs.rateFor(orgId, workType, customerId, billingMode, unit)
         save(
             RateEntity(
                 id = existing?.takeIf { it.customerId == customerId }?.id ?: ids.newId(),
@@ -375,7 +387,7 @@ class DirectoryRepository(
         //
         // Only when there is nothing there yet. After that the card is his — a cheap
         // rate given to one farmer must never quietly become the price everybody sees.
-        if (customerId != null && jobs.rateFor(orgId, workType, null) == null) {
+        if (customerId != null && jobs.rateFor(orgId, workType, null, billingMode, unit) == null) {
             save(
                 RateEntity(
                     id = ids.newId(),
@@ -392,8 +404,13 @@ class DirectoryRepository(
     }
 
     /** Every rate that could apply, best first, for a screen that offers a choice. */
-    suspend fun ratesFor(orgId: String, workType: String, customerId: String?): List<RateEntity> =
-        jobs.ratesFor(orgId, workType, customerId)
+    suspend fun ratesFor(
+        orgId: String,
+        workType: String,
+        customerId: String?,
+        billingMode: BillingMode? = null,
+        unit: MeasureUnit? = null,
+    ): List<RateEntity> = jobs.ratesFor(orgId, workType, customerId, billingMode, unit)
 
     suspend fun rateById(rateId: String): RateEntity? = jobs.rateById(rateId)
 

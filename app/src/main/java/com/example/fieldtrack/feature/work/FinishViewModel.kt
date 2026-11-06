@@ -125,9 +125,19 @@ class FinishViewModel(
     private val _finalBalance = MutableStateFlow<Long?>(null)
     val finalBalance: StateFlow<Long?> = _finalBalance.asStateFlow()
 
+    private val tick = kotlinx.coroutines.flow.flow {
+        while (true) {
+            emit(Unit)
+            kotlinx.coroutines.delay(30_000L)
+        }
+    }
+
     val state: StateFlow<FinishState> = app.sessionStore.session.flatMapLatest { s ->
         combine(
-            app.workRepository.observeJob(s.orgId, jobId),
+            // Looked at again every half minute: an hourly job's clock keeps running
+            // while somebody reads the bill and chooses how to pay, and a figure
+            // frozen at the moment the screen opened drifts from what is charged.
+            combine(app.workRepository.observeJob(s.orgId, jobId), tick) { job, _ -> job },
             app.directoryRepository.observeCustomers(s.orgId),
             app.db.orgDao().observeOrg(s.orgId),
             app.directoryRepository.observeMachines(s.orgId),
@@ -251,7 +261,11 @@ class FinishViewModel(
         if (pay.saving) return@launch
         _payment.value = pay.copy(saving = true)
 
-        app.workRepository.complete(s.orgId, jobId, byPersonId = s.personId)
+        // What the job really came to, read when it was billed. The figure on screen
+        // is from the last time the clock was looked at, and an hourly job goes on
+        // running while somebody is choosing how to pay.
+        val charged = app.workRepository.complete(s.orgId, jobId, byPersonId = s.personId)
+        val due = current.previousBalanceRupees + charged
 
         // Written with no figure on it whoever is saving, so one flow serves
         // the driver and the owner alike. A failure here must not cost the
@@ -272,7 +286,10 @@ class FinishViewModel(
             }
         }
 
-        val paid = pay.amountRupees.coerceAtMost(current.totalDueRupees)
+        val paid = when (pay.choice) {
+            PaymentChoice.All -> due
+            else -> pay.amountRupees.coerceAtMost(due)
+        }
         val customerId = app.workRepository.observeJob(s.orgId, jobId).first()?.customerId
         if (pay.choice != PaymentChoice.Nothing && paid > 0 && customerId != null) {
             app.ledgerRepository.recordPayment(

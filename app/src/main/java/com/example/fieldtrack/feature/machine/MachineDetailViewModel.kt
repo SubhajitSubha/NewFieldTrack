@@ -188,8 +188,11 @@ class MachineDetailViewModel(
         id = id,
         customerName = customerName,
         workType = workType,
-        quantityLabel = quantity.toString(),
-        amountRupees = amountRupees,
+        // Asked of the repository, which reads the clock for hourly work still running:
+        // its stored quantity is nought until it is finished, and a row that says
+        // ₹0 for a job the clock has priced at thousands is a row that is wrong.
+        quantityLabel = app.workRepository.billableQuantity(this).toString(),
+        amountRupees = app.workRepository.billableRupees(this),
         workedAtMillis = workedAt,
         live = status.name == "Running" || status.name == "Paused",
     )

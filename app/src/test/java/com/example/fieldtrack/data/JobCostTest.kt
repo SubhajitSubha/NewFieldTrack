@@ -92,6 +92,57 @@ class JobCostTest {
     }
 
     @Test
+    fun `the crew on a job that was thrown away is not a cost of the season or the machine`() = runTest {
+        val jobId = aJob()
+        h.ledger.recordJobCost(
+            orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
+            kind = JobCostKind.Labour, headcount = 3, amountRupees = 1_500,
+            byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
+        )
+        h.ledger.recordJobCost(
+            orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
+            kind = JobCostKind.Labour, headcount = 1, amountRupees = null,
+            byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
+        )
+        val dao = h.db.orgDao()
+        val window = h.nowMillis - 1 to h.nowMillis + 1
+        assertEquals(1_500L, dao.observeJobCostBetween(TestHarness.ORG_A, window.first, window.second).first())
+
+        h.work.discard(TestHarness.ORG_A, jobId)
+
+        assertEquals(0L, dao.observeJobCostBetween(TestHarness.ORG_A, window.first, window.second).first())
+        assertEquals("nor an unpriced one waiting to be priced", 0,
+            dao.observeUnpricedBetween(TestHarness.ORG_A, window.first, window.second).first())
+        assertEquals(0L, dao.observeJobCostOnMachine(TestHarness.ORG_A, "machine-1").first())
+    }
+
+    @Test
+    fun `what is owed on a cost is what is left after the instalments`() = runTest {
+        val jobId = aJob()
+        val cost = h.ledger.recordJobCost(
+            orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
+            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
+        )
+        assertEquals(2_000L, h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
+
+        h.ledger.settleJobCost(
+            orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
+            amountRupees = 800, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+        )
+        assertEquals("the screen would pay this, not the whole 2,000 again", 1_200L,
+            h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
+
+        h.ledger.settleJobCost(
+            orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
+            amountRupees = 1_200, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+        )
+        assertEquals(0L, h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
+        assertEquals("a cost that is not there owes nothing", 0L,
+            h.ledger.owedOnJobCost(TestHarness.ORG_A, "no-such-cost"))
+    }
+
+    @Test
     fun `a cost paid in two halves is owed the difference, then nothing`() = runTest {
         val jobId = aJob()
         val cost = h.ledger.recordJobCost(

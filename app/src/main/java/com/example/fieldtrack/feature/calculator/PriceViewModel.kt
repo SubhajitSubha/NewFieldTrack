@@ -161,18 +161,18 @@ class PriceViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = option,
             billingMode = option.defaultMode,
             unit = resolveUnit(option.defaultMode, landUnit),
-        ).withRateFrom(card)
+        ).withRateFrom(card).recleaned()
     }
 
     fun setBillingMode(mode: BillingMode) = input.update {
         // Refuse a mode this work is not sold by, as the job flow does: the picker
         // already hides them, and this is what holds if something else calls.
         if (mode !in it.workType.billingModes) it
-        else it.copy(billingMode = mode, unit = resolveUnit(mode, landUnit)).withRateFrom(card)
+        else it.copy(billingMode = mode, unit = resolveUnit(mode, landUnit)).withRateFrom(card).recleaned()
     }
 
     fun setUnit(unit: MeasureUnit) = input.update {
-        if (unit !in unitsFor(it.billingMode)) it else it.copy(unit = unit).withRateFrom(card)
+        if (unit !in unitsFor(it.billingMode)) it else it.copy(unit = unit).withRateFrom(card).recleaned()
     }
 
     fun setRate(text: String) = input.update {
@@ -195,6 +195,17 @@ class PriceViewModel(private val app: FieldFlowApplication) : ViewModel() {
         const val MAX_HOURS_DIGITS = 4
         const val MAX_MINUTES_DIGITS = 4
     }
+}
+
+/**
+ * Cleans the amount typed against the unit now chosen. "2.5" typed under acres and
+ * then switched to trips would otherwise stay, and be priced as two and a half loads.
+ */
+internal fun PriceInput.recleaned(): PriceInput {
+    if (!unit.countsWhole) return this
+    // Cut at the point rather than letting the cleaner drop it: "2.5" is two loads, not 25.
+    val whole = quantityText.substringBefore('.').substringBefore(',')
+    return copy(quantityText = cleanQuantity(whole, whole = true))
 }
 
 /**

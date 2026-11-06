@@ -3,6 +3,8 @@ package com.example.fieldtrack.feature.home
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
+import com.example.fieldtrack.data.db.entity.JobEntity
+import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.feature.customer.outstandingCharges
 import com.example.fieldtrack.feature.startOfToday
@@ -141,6 +143,20 @@ fun machineAlerts(
         }
     }
     return down + service
+}
+
+/**
+ * Land worked, said in one unit.
+ *
+ * Acres, bigha and kanal are different sizes, and adding their counts together made
+ * a number that was none of them. The business's own unit is used when any of the
+ * work was in it; otherwise the unit of what was done. Work in another unit is left
+ * out of the total, which is the honest figure, rather than summed into a wrong one.
+ */
+internal fun landWorked(jobs: List<JobEntity>, own: MeasureUnit): Pair<Double, MeasureUnit> {
+    val land = jobs.filter { it.unit.isLand }
+    val unit = own.takeIf { u -> land.any { it.unit == u } } ?: land.firstOrNull()?.unit ?: own
+    return land.filter { it.unit == unit }.sumOf { it.quantity } to unit
 }
 
 /** A customer owing money, and since when the oldest of it has been owed. */

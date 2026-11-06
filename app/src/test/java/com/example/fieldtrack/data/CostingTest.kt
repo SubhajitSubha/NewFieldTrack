@@ -104,6 +104,22 @@ class CostingTest {
     )
 
     @Test
+    fun `work entered afterwards with no times does not make the machine look faster`() {
+        val cost = Costing.running(facts(100, 30_000, 12_000), finance(10_000, 800))
+        // 18 bigha in 18 timed hours, and a 20 bigha job typed in later with no times:
+        // 38 bigha over 18 hours is two an hour; the truth the clock knows is one.
+        val withUntimed = WorkKindFacts(
+            workType = "Rotavator", unit = MeasureUnit.Bigha,
+            quantity = 38.0, timedQuantity = 18.0, seconds = 18 * hour, earnedRupees = 38_000, jobs = 3,
+        )
+
+        val unit = Costing.perUnit(cost, withUntimed)!!
+
+        assertEquals(1.0, unit.unitsPerHour, 0.001)
+        assertEquals("what it billed per bigha still counts every job", 1_000L, unit.billedRupees)
+    }
+
+    @Test
     fun `a bigha costs the hour's cost over the bigha an hour gets through`() {
         val cost = Costing.running(facts(100, 30_000, 12_000), finance(10_000, 800))  // ₹570 an hour
         // 40 bigha in 20 hours: 2 an hour. Billed ₹40,000 over 40: ₹1,000 each.
