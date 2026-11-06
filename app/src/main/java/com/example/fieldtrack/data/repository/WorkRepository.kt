@@ -122,6 +122,13 @@ class WorkRepository(
      * for themselves is how one of them came to show ₹0 for a job the clock had
      * priced at nearly ten thousand.
      */
+    /**
+     * The rounding a new job's bill uses: this business's setting now, kept on the job
+     * so that changing it later cannot move a bill that already exists.
+     */
+    private suspend fun stepFor(orgId: String): Long =
+        db.orgDao().findOrg(orgId)?.moneyStepMinor ?: 100L
+
     fun billableQuantity(job: JobEntity, now: Long = clock.now()): Double =
         if (job.billsFromClock) elapsedSeconds(job, now) / 3600.0
         else job.quantity
@@ -131,11 +138,11 @@ class WorkRepository(
      * else asks the job itself, because recomputing quantity × rate would undo
      * per-trip pricing.
      */
-    fun billableRupees(job: JobEntity, now: Long = clock.now()): Long =
+    fun billableMinor(job: JobEntity, now: Long = clock.now()): Long =
         if (job.billsFromClock) {
-            Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateRupees)
+            Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateMinor, job.stepMinor)
         } else {
-            job.amountRupees
+            job.amountMinor
         }
 
     suspend fun startJob(
@@ -144,7 +151,7 @@ class WorkRepository(
         workType: String,
         billingMode: BillingMode,
         unit: MeasureUnit,
-        rateRupees: Long,
+        rateMinor: Long,
         machineId: String? = null,
         fieldId: String? = null,
         operatorPersonId: String? = null,
@@ -173,7 +180,8 @@ class WorkRepository(
             workType = workType,
             billingMode = billingMode,
             unit = unit,
-            rateRupees = rateRupees,
+            rateMinor = rateMinor,
+            stepMinor = stepFor(orgId),
             status = JobStatus.Running,
             workedAt = now,
             recordedAt = now,
@@ -206,9 +214,9 @@ class WorkRepository(
             val next = quantity.coerceAtLeast(0.0)
             job.copy(
                 quantity = next,
-                tripTotalRupees = if (job.billingMode == BillingMode.PerTrip) {
-                    Math.round(next * job.rateRupees)
-                } else job.tripTotalRupees,
+                tripTotalMinor = if (job.billingMode == BillingMode.PerTrip) {
+                    Billing.amount(BillingMode.PerTrip, next, job.rateMinor, job.stepMinor)
+                } else job.tripTotalMinor,
             ) to Event(JobEventType.QuantitySet, numericValue = next)
         }
 
@@ -229,9 +237,9 @@ class WorkRepository(
             val next = (job.quantity + if (up) step else -step).coerceAtLeast(0.0)
             job.copy(
                 quantity = next,
-                tripTotalRupees = if (job.billingMode == BillingMode.PerTrip) {
-                    Math.round(next * job.rateRupees)
-                } else job.tripTotalRupees,
+                tripTotalMinor = if (job.billingMode == BillingMode.PerTrip) {
+                    Billing.amount(BillingMode.PerTrip, next, job.rateMinor, job.stepMinor)
+                } else job.tripTotalMinor,
             ) to Event(JobEventType.QuantitySet, numericValue = next)
         }
 
@@ -247,10 +255,10 @@ class WorkRepository(
         mutate(orgId, jobId) { job ->
             job.copy(
                 quantity = job.quantity + 1,
-                tripTotalRupees = job.tripTotalRupees + job.rateRupees,
+                tripTotalMinor = job.tripTotalMinor + job.rateMinor,
                 distanceMetres = distanceMetres?.let { (job.distanceMetres ?: 0L) + it }
                     ?: job.distanceMetres,
-            ) to Event(JobEventType.TripAdded, numericValue = job.rateRupees.toDouble())
+            ) to Event(JobEventType.TripAdded, numericValue = job.rateMinor.toDouble())
         }
 
     /**
@@ -268,12 +276,12 @@ class WorkRepository(
             if (event.type == JobEventType.TripAdded) standing.addLast(event.numericValue)
             else standing.removeLastOrNull()
         }
-        val lastTripRupees = standing.lastOrNull()?.let { Math.round(it) }
+        val lastTripMinor = standing.lastOrNull()?.let { Math.round(it) }
         mutate(orgId, jobId) { job ->
-            val removed = lastTripRupees ?: job.rateRupees
+            val removed = lastTripMinor ?: job.rateMinor
             job.copy(
                 quantity = (job.quantity - 1).coerceAtLeast(0.0),
-                tripTotalRupees = (job.tripTotalRupees - removed).coerceAtLeast(0L),
+                tripTotalMinor = (job.tripTotalMinor - removed).coerceAtLeast(0L),
             ) to Event(JobEventType.TripRemoved, numericValue = removed.toDouble())
         }
     }
@@ -364,12 +372,12 @@ class WorkRepository(
      * goes through [amendCompletedJob] instead, which moves the khata and records a
      * reason.
      */
-    suspend fun setRate(orgId: String, jobId: String, rateRupees: Long) {
+    suspend fun setRate(orgId: String, jobId: String, rateMinor: Long) {
         val job = jobs.find(orgId, jobId) ?: throw WorkError.NoSuchJob(jobId)
         if (job.status == JobStatus.Completed) throw WorkError.AlreadyFinished(jobId)
         mutate(orgId, jobId) { current ->
-            current.copy(rateRupees = rateRupees.coerceAtLeast(0L)) to
-                Event(JobEventType.RateChanged, numericValue = rateRupees.toDouble())
+            current.copy(rateMinor = rateMinor.coerceAtLeast(0L)) to
+                Event(JobEventType.RateChanged, numericValue = rateMinor.toDouble())
         }
     }
 
@@ -384,7 +392,7 @@ class WorkRepository(
         orgId: String,
         jobId: String,
         litres: Double,
-        costRupees: Long,
+        costMinor: Long,
         byPersonId: String? = null,
     ) {
         db.withTransaction {
@@ -396,7 +404,7 @@ class WorkRepository(
                 machineId = machineId,
                 jobId = jobId,
                 litres = litres,
-                costRupees = costRupees,
+                costMinor = costMinor,
                 atMillis = clock.now(),
                 byPersonId = byPersonId ?: job.operatorPersonId,
             )
@@ -512,7 +520,7 @@ class WorkRepository(
                     finished.copy(quantity = finished.elapsedSeconds / 3600.0)
                 } else finished
 
-            charged = billable.amountRupees
+            charged = billable.amountMinor
 
             jobs.upsert(billable)
             addEvent(billable, JobEventType.Completed, byPersonId, at = now)
@@ -525,7 +533,7 @@ class WorkRepository(
                     orgId = orgId,
                     customerId = billable.customerId,
                     kind = LedgerKind.Charge,
-                    amountRupees = charged,
+                    amountMinor = charged,
                     jobId = billable.id,
                     note = billable.workType,
                     atMillis = now,
@@ -558,7 +566,7 @@ class WorkRepository(
         jobId: String,
         can: Capabilities,
         quantity: Double? = null,
-        rateRupees: Long? = null,
+        rateMinor: Long? = null,
         note: String? = null,
         byPersonId: String? = null,
         reason: String,
@@ -569,26 +577,26 @@ class WorkRepository(
             val job = jobs.find(orgId, jobId) ?: throw WorkError.NoSuchJob(jobId)
             if (job.status != JobStatus.Completed) throw WorkError.NotFinished(jobId)
 
-            val before = job.amountRupees
+            val before = job.amountMinor
             val now = clock.now()
             val correctedQuantity = quantity?.coerceAtLeast(0.0) ?: job.quantity
-            val correctedRate = rateRupees?.coerceAtLeast(0L) ?: job.rateRupees
+            val correctedRate = rateMinor?.coerceAtLeast(0L) ?: job.rateMinor
             val amended = job.copy(
                 quantity = correctedQuantity,
-                rateRupees = correctedRate,
+                rateMinor = correctedRate,
                 // Correcting a billed trip job reprices every trip at the corrected
                 // rate. The alternative — editing one trip of six after the fact —
                 // is not something anybody asks for, and the reason recorded with
                 // the correction says what happened.
-                tripTotalRupees = if (job.billingMode == BillingMode.PerTrip) {
-                    Math.round(correctedQuantity * correctedRate)
-                } else job.tripTotalRupees,
+                tripTotalMinor = if (job.billingMode == BillingMode.PerTrip) {
+                    Billing.amount(BillingMode.PerTrip, correctedQuantity, correctedRate, job.stepMinor)
+                } else job.tripTotalMinor,
                 note = note ?: job.note,
                 updatedAt = now,
                 revision = job.revision + 1,
                 lastWriterDeviceId = deviceId,
             )
-            delta = amended.amountRupees - before
+            delta = amended.amountMinor - before
 
             jobs.upsert(amended)
             addEvent(
@@ -610,7 +618,7 @@ class WorkRepository(
                     // new lines, because a ledger that can be edited is one nobody
                     // can argue from.
                     kind = if (delta > 0) LedgerKind.Charge else LedgerKind.Adjustment,
-                    amountRupees = kotlin.math.abs(delta),
+                    amountMinor = kotlin.math.abs(delta),
                     jobId = amended.id,
                     note = reason,
                     atMillis = now,
@@ -721,7 +729,7 @@ class WorkRepository(
         orgId: String,
         machineId: String,
         description: String,
-        costRupees: Long? = null,
+        costMinor: Long? = null,
         vendor: String? = null,
         closesBreakdownId: String? = null,
         /** What was changed — filters, oil, a belt. Optional. */
@@ -740,7 +748,7 @@ class WorkRepository(
                 orgId = orgId,
                 machineId = machineId,
                 description = description.trim(),
-                costRupees = costRupees,
+                costMinor = costMinor,
                 atMachineHours = hoursNow,
                 atMillis = clock.now(),
                 vendor = vendor?.trim()?.ifBlank { null },
@@ -788,7 +796,7 @@ class WorkRepository(
         orgId: String,
         machineId: String,
         litres: Double,
-        costRupees: Long,
+        costMinor: Long,
         byPersonId: String? = null,
     ) {
         db.withTransaction {
@@ -798,7 +806,7 @@ class WorkRepository(
                 machineId = machineId,
                 jobId = null,
                 litres = litres,
-                costRupees = costRupees,
+                costMinor = costMinor,
                 atMillis = clock.now(),
                 byPersonId = byPersonId,
             )
@@ -910,7 +918,7 @@ class WorkRepository(
         workType: String,
         billingMode: BillingMode,
         unit: MeasureUnit,
-        rateRupees: Long,
+        rateMinor: Long,
         quantity: Double,
         workedAt: Long,
         startedAt: Long?,
@@ -925,6 +933,7 @@ class WorkRepository(
             ((completedAt - startedAt).coerceAtLeast(0L)) / 1000
         } else 0L
 
+        val step = stepFor(orgId)
         val job = JobEntity(
             id = ids.newId(),
             orgId = orgId,
@@ -935,13 +944,14 @@ class WorkRepository(
             workType = workType,
             billingMode = billingMode,
             unit = unit,
-            rateRupees = rateRupees,
+            rateMinor = rateMinor,
+            stepMinor = step,
             quantity = quantity,
             // A trip job's bill is its trip total, not quantity times rate, so a
             // job entered afterwards has to be given one. Left at nought it billed
             // nothing, under a screen that had just said "Save ₹4,000".
-            tripTotalRupees = if (billingMode == BillingMode.PerTrip) {
-                Billing.amount(billingMode, quantity, rateRupees)
+            tripTotalMinor = if (billingMode == BillingMode.PerTrip) {
+                Billing.amount(billingMode, quantity, rateMinor, step)
             } else 0L,
             elapsedSeconds = elapsed,
             status = JobStatus.Paused,

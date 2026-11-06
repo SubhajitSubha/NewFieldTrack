@@ -153,7 +153,7 @@ class HomeTest {
 
     private fun landJob(unit: MeasureUnit, quantity: Double) = JobEntity(
         id = "j-$unit-$quantity", orgId = "o1", customerId = "c1", workType = "Rotavator",
-        billingMode = BillingMode.PerAcre, unit = unit, rateRupees = 1_000, quantity = quantity,
+        billingMode = BillingMode.PerAcre, unit = unit, rateMinor = 1_000, quantity = quantity,
         workedAt = 0, recordedAt = 0, createdAt = 0, updatedAt = 0,
     )
 
@@ -176,10 +176,10 @@ class HomeTest {
         assertEquals(0.0, landWorked(emptyList(), own = MeasureUnit.Bigha).first, 0.0)
     }
 
-    private fun entry(kind: LedgerKind, rupees: Long, at: Long, customer: String = "c1") =
+    private fun entry(kind: LedgerKind, amountMinor: Long, at: Long, customer: String = "c1") =
         LedgerEntryEntity(
             id = "e${++seq}", orgId = "o1", customerId = customer, kind = kind,
-            amountRupees = rupees, atMillis = at, createdAt = at,
+            amountMinor = amountMinor, atMillis = at, createdAt = at,
         )
 
     @Test
@@ -194,13 +194,13 @@ class HomeTest {
             )
         )
         val debt = debts.single()
-        assertEquals(6_000, debt.rupees)
+        assertEquals(6_000, debt.amountMinor)
         assertEquals("still owed since the first job", now - 60 * day, debt.oldestMillis)
 
         val alert = overdueAlert(debts, mapOf("c1" to "Ramesh"), now)!!
         assertEquals("c1", alert.customerId)
         assertEquals("Ramesh", alert.customerName)
-        assertEquals(6_000, alert.rupees)
+        assertEquals(6_000, alert.amountMinor)
     }
 
     @Test
@@ -231,7 +231,7 @@ class HomeTest {
         )
         val alert = overdueAlert(debts, emptyMap(), now)!!
         assertEquals(2, alert.customers)
-        assertEquals(5_500, alert.rupees)
+        assertEquals(5_500, alert.amountMinor)
         assertNull(alert.customerId)
         assertEquals(now - 45 * day, alert.sinceMillis)
     }
@@ -312,10 +312,10 @@ class HomeTest {
         h.seed()
         try {
             val start = startOfToday(h.nowMillis)
-            suspend fun pay(rupees: Long, method: PaymentMethod, by: String, at: Long = h.nowMillis) {
+            suspend fun pay(amountMinor: Long, method: PaymentMethod, by: String, at: Long = h.nowMillis) {
                 h.ledger.recordPayment(
                     orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
-                    amountRupees = rupees, method = method, byPersonId = by, atMillis = at,
+                    amountMinor = amountMinor, method = method, byPersonId = by, atMillis = at,
                 )
             }
             pay(1_500, PaymentMethod.Cash, TestHarness.DRIVER)

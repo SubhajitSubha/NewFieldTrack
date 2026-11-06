@@ -153,6 +153,9 @@ class FirestoreTransport(
             put(FIELD_SEQ, seq)
             put(FIELD_DEVICE, deviceId)
             put(FIELD_RECORDED_AT, recordedAt)
+            // Says the amounts in this document are minor units. A document without
+            // it was written by an older build, in whole rupees, and is read as such.
+            put(FIELD_MONEY, MONEY_FORMAT)
             // Stamped by the server, not by us, and the distinction is the whole
             // point: this is what a pull pages on. `_recordedAt` is this handset's
             // clock, and handsets in a village disagree by minutes — one running
@@ -229,6 +232,7 @@ class FirestoreTransport(
         const val FIELD_SEQ = "_seq"
         const val FIELD_DEVICE = "_device"
         const val FIELD_RECORDED_AT = "_recordedAt"
+        const val MONEY_FORMAT = 2
         const val NO_ANSWER = "No answer from the server"
 
         /**

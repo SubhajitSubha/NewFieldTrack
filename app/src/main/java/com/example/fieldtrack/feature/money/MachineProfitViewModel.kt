@@ -16,15 +16,15 @@ import kotlinx.coroutines.flow.stateIn
 data class MachineProfitState(
     val loaded: Boolean = false,
     val machineName: String = "",
-    val earnedRupees: Long = 0,
-    val fuelRupees: Long = 0,
-    val serviceRupees: Long = 0,
+    val earnedMinor: Long = 0,
+    val fuelMinor: Long = 0,
+    val serviceMinor: Long = 0,
     /** What this machine's jobs cost in people, whether or not the cash has gone. */
-    val peopleRupees: Long = 0,
+    val peopleMinor: Long = 0,
     /** Of that, what is still owed. Shown, never taken off the figure. */
-    val owedRupees: Long = 0,
+    val owedMinor: Long = 0,
     /** Paid out for a stretch of time, so no machine can carry it. */
-    val leftOutRupees: Long = 0,
+    val leftOutMinor: Long = 0,
     /** False when this person may not see what people were paid. */
     val seesPeopleCost: Boolean = false,
     /**
@@ -38,8 +38,8 @@ data class MachineProfitState(
     /** Whether this person may fill in the loan, for the link that offers to. */
     val canEditMachine: Boolean = false,
 ) {
-    val costsRupees: Long get() = fuelRupees + serviceRupees + peopleRupees
-    val leftRupees: Long get() = earnedRupees - costsRupees
+    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor
+    val leftMinor: Long get() = earnedMinor - costsMinor
 }
 
 /**
@@ -101,12 +101,12 @@ class MachineProfitViewModel(
             MachineProfitState(
                 loaded = true,
                 machineName = name,
-                earnedRupees = earned,
-                fuelRupees = fuel,
-                serviceRupees = service,
-                peopleRupees = if (seesPeople) people.first else 0,
-                owedRupees = if (seesPeople) people.second else 0,
-                leftOutRupees = if (seesPeople) people.third else 0,
+                earnedMinor = earned,
+                fuelMinor = fuel,
+                serviceMinor = service,
+                peopleMinor = if (seesPeople) people.first else 0,
+                owedMinor = if (seesPeople) people.second else 0,
+                leftOutMinor = if (seesPeople) people.third else 0,
                 seesPeopleCost = seesPeople,
             )
         }, costs) { base, (running, kinds) ->

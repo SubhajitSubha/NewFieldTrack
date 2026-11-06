@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.jobs
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.billing.Billing
@@ -24,8 +25,10 @@ data class AmendJobState(
     val billingMode: BillingMode = BillingMode.PerAcre,
     /** What the job was billed at before this correction. */
     val originalQuantity: Double = 0.0,
-    val originalRateRupees: Long = 0,
-    val originalAmountRupees: Long = 0,
+    val originalRateMinor: Long = 0,
+    /** The rounding this job was billed with, kept so a correction rounds the same way. */
+    val stepMinor: Long = 100,
+    val originalAmountMinor: Long = 0,
     val quantityText: String = "",
     val rateText: String = "",
     val reason: String = "",
@@ -33,7 +36,7 @@ data class AmendJobState(
     val saving: Boolean = false,
 ) {
     val quantity: Double get() = quantityText.toDoubleOrNull() ?: 0.0
-    val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
 
     /**
      * A fixed-price job is not re-multiplied; its rate is the whole bill.
@@ -42,11 +45,11 @@ data class AmendJobState(
      * job reprices every trip at the corrected rate, so the preview and the result
      * are the same figure.
      */
-    val newAmountRupees: Long
-        get() = Billing.amount(billingMode, quantity, rateRupees)
+    val newAmountMinor: Long
+        get() = Billing.amount(billingMode, quantity, rateMinor, stepMinor)
 
     /** Positive when the customer ends up owing more. */
-    val deltaRupees: Long get() = newAmountRupees - originalAmountRupees
+    val deltaMinor: Long get() = newAmountMinor - originalAmountMinor
 
     /**
      * A reason is required only when money moves. Fixing a typo in a note should not
@@ -55,7 +58,7 @@ data class AmendJobState(
      */
     val canSave: Boolean
         get() = loaded && allowed && !saving && figuresMakeSense &&
-            (deltaRupees == 0L || reason.isNotBlank())
+            (deltaMinor == 0L || reason.isNotBlank())
 
     /**
      * Whether what is typed is a number at all. "4.5.2" read as nought and posted an
@@ -95,10 +98,11 @@ class AmendJobViewModel(
                     unit = job.unit,
                     billingMode = job.billingMode,
                     originalQuantity = job.quantity,
-                    originalRateRupees = job.rateRupees,
-                    originalAmountRupees = job.amountRupees,
+                    originalRateMinor = job.rateMinor,
+                    stepMinor = job.stepMinor,
+                    originalAmountMinor = job.amountMinor,
                     quantityText = trimZero(job.quantity),
-                    rateText = job.rateRupees.toString(),
+                    rateText = MoneyInput.text(job.rateMinor),
                     allowed = Capability.AmendBilledWork in s.can,
                 )
             }
@@ -109,7 +113,7 @@ class AmendJobViewModel(
         _state.update { it.copy(quantityText = cleanQuantity(v, whole = it.unit.countsWhole)) }
 
     fun setRate(v: String) =
-        _state.update { it.copy(rateText = v.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
+        _state.update { it.copy(rateText = MoneyInput.clean(v)) }
 
     fun setReason(v: String) = _state.update { it.copy(reason = v) }
 
@@ -127,7 +131,7 @@ class AmendJobViewModel(
                 jobId = jobId,
                 can = s.can,
                 quantity = current.quantity,
-                rateRupees = current.rateRupees,
+                rateMinor = current.rateMinor,
                 byPersonId = s.personId,
                 reason = current.reason.ifBlank { current.workType },
             )

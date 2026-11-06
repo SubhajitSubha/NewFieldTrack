@@ -39,7 +39,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupeesCompact
+import com.example.fieldtrack.designsystem.format.moneyCompact
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.initialsOf
@@ -167,7 +167,7 @@ fun MemberScreen(
                 // what the business earned off their work is the owner's figure.
                 if (state.canSeeTheirEarnings) {
                     StatCard(
-                        value = rupeesCompact(state.broughtInRupees),
+                        value = moneyCompact(state.broughtInMinor),
                         label = stringResource(R.string.team_stat_brought_in),
                         valueColor = colors.primaryPressed,
                         modifier = Modifier.weight(1f),

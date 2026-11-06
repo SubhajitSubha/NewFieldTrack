@@ -26,7 +26,7 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.season.seasonStartsSummary
@@ -145,7 +145,7 @@ fun SeasonScreen(
                 return@Column
             }
 
-            if (state.loaded && state.earnedRupees == 0L && state.costsRupees == 0L) {
+            if (state.loaded && state.earnedMinor == 0L && state.costsMinor == 0L) {
                 FtCard {
                     Text(
                         text = stringResource(R.string.season_nothing),
@@ -159,7 +159,7 @@ fun SeasonScreen(
             FtCard {
                 SeasonLine(
                     label = stringResource(R.string.season_earned),
-                    amount = rupees(state.earnedRupees),
+                    amount = money(state.earnedMinor),
                     strong = true,
                 )
                 Spacer(Modifier.height(11.dp))
@@ -167,20 +167,20 @@ fun SeasonScreen(
                 Spacer(Modifier.height(11.dp))
                 SeasonLine(
                     label = stringResource(R.string.season_diesel),
-                    amount = "−" + rupees(state.fuelRupees),
+                    amount = "−" + money(state.fuelMinor),
                     cost = true,
                 )
                 Spacer(Modifier.height(9.dp))
                 SeasonLine(
                     label = stringResource(R.string.season_service),
-                    amount = "−" + rupees(state.serviceRupees),
+                    amount = "−" + money(state.serviceMinor),
                     cost = true,
                 )
                 if (state.seesPeopleCost) {
                     Spacer(Modifier.height(9.dp))
                     SeasonLine(
                         label = stringResource(R.string.season_people),
-                        amount = "−" + rupees(state.peopleRupees),
+                        amount = "−" + money(state.peopleMinor),
                         cost = true,
                     )
                     Text(
@@ -189,11 +189,11 @@ fun SeasonScreen(
                         color = colors.inkTertiary,
                         modifier = Modifier.padding(top = 3.dp),
                     )
-                    if (state.loanRupees > 0) {
+                    if (state.loanMinor > 0) {
                         Spacer(Modifier.height(9.dp))
                         SeasonLine(
                             label = stringResource(R.string.season_loan),
-                            amount = "−" + rupees(state.loanRupees),
+                            amount = "−" + money(state.loanMinor),
                             cost = true,
                         )
                         Text(
@@ -211,9 +211,9 @@ fun SeasonScreen(
                     Spacer(Modifier.height(13.dp))
                     SeasonLine(
                         label = stringResource(R.string.season_left),
-                        amount = rupees(state.leftRupees),
+                        amount = money(state.leftMinor),
                         strong = true,
-                        good = state.leftRupees >= 0,
+                        good = state.leftMinor >= 0,
                     )
                 } else {
                     Spacer(Modifier.height(12.dp))
@@ -236,7 +236,7 @@ fun SeasonScreen(
                 FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
                     Text(
                         text = pluralStringResource(
-                            R.plurals.season_lost, state.lostJobs, state.lostJobs, rupees(state.lostRupees),
+                            R.plurals.season_lost, state.lostJobs, state.lostJobs, money(state.lostMinor),
                         ),
                         style = FieldTrackTheme.type.sectionTitle,
                         color = colors.dueInk,
@@ -263,11 +263,11 @@ fun SeasonScreen(
             // Said whenever there is money owed, total or no total. A good
             // season on paper with half of it still out in the villages is
             // the misreading this screen could most easily cause.
-            if (state.owedByCustomersRupees > 0) {
+            if (state.owedByCustomersMinor > 0) {
                 FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
                     Text(
                         text = stringResource(
-                            R.string.season_on_paper, rupees(state.owedByCustomersRupees),
+                            R.string.season_on_paper, money(state.owedByCustomersMinor),
                         ),
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.dueInk,

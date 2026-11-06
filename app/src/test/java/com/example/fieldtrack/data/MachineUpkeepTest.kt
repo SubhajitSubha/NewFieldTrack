@@ -60,7 +60,7 @@ class MachineUpkeepTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = MACHINE,
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -248,7 +248,7 @@ class MachineUpkeepTest {
             orgId = TestHarness.ORG_A,
             machineId = MACHINE,
             description = "Oil & filter change",
-            costRupees = 2_100,
+            costMinor = 2_100,
             vendor = "Gill Motors",
         )
 
@@ -256,7 +256,7 @@ class MachineUpkeepTest {
         assertEquals(1_000.0, machine?.lastServiceAtHours!!, 0.01)
         val records = h.work.observeService(TestHarness.ORG_A, MACHINE).first()
         assertEquals(1, records.size)
-        assertEquals(2_100L, records.first().costRupees)
+        assertEquals(2_100L, records.first().costMinor)
         assertEquals("Gill Motors", records.first().vendor)
     }
 
@@ -270,7 +270,7 @@ class MachineUpkeepTest {
             orgId = TestHarness.ORG_A,
             machineId = MACHINE,
             description = "New hydraulic pump",
-            costRupees = 8_400,
+            costMinor = 8_400,
             closesBreakdownId = breakdownId,
         )
 
@@ -291,7 +291,7 @@ class MachineUpkeepTest {
 
     @Test
     fun `every upkeep record is queued for the server`() = runTest {
-        h.work.addFuelForMachine(TestHarness.ORG_A, MACHINE, litres = 40.0, costRupees = 3_800)
+        h.work.addFuelForMachine(TestHarness.ORG_A, MACHINE, litres = 40.0, costMinor = 3_800)
         h.work.reportBreakdownForMachine(
             TestHarness.ORG_A, MACHINE, BreakdownCategory.Engine, "overheating",
         )
@@ -307,12 +307,12 @@ class MachineUpkeepTest {
 
     @Test
     fun `diesel can be put in with no job running`() = runTest {
-        h.work.addFuelForMachine(TestHarness.ORG_A, MACHINE, litres = 40.0, costRupees = 3_800)
+        h.work.addFuelForMachine(TestHarness.ORG_A, MACHINE, litres = 40.0, costMinor = 3_800)
 
         val entries = h.work.observeFuel(TestHarness.ORG_A, MACHINE).first()
         assertEquals(1, entries.size)
         assertNull("filled in the yard, not on a job", entries.first().jobId)
-        assertEquals(3_800L, entries.first().costRupees)
+        assertEquals(3_800L, entries.first().costMinor)
     }
 
     private companion object {

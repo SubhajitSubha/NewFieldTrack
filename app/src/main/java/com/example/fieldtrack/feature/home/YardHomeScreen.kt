@@ -29,7 +29,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtStatus
 import com.example.fieldtrack.designsystem.component.FtStatusPill
 import com.example.fieldtrack.designsystem.format.duration
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.measure
@@ -96,9 +96,9 @@ fun YardHomeScreen(
             add(HomeBlock(Pane.Side) {
                 MoneyFigures(
                     loaded = state.loaded,
-                    owed = state.owedRupees,
+                    owed = state.owedMinor,
                     owing = state.owingCustomers,
-                    season = state.seasonEarnedRupees,
+                    season = state.seasonEarnedMinor,
                     seasonFrom = state.seasonFromMillis,
                     seasonName = state.seasonName,
                     onOpenCustomers = onOpenCustomers,
@@ -202,7 +202,7 @@ private fun YardHero(state: YardHomeState, onOpenFleet: () -> Unit) {
                 Text(
                     text = when {
                         !state.loaded -> NOT_YET
-                        state.canSeeMoney -> rupees(state.earnedTodayRupees)
+                        state.canSeeMoney -> money(state.earnedTodayMinor)
                         else -> state.jobsToday.toString()
                     },
                     style = FieldTrackTheme.type.moneyLarge,
@@ -220,10 +220,10 @@ private fun YardHero(state: YardHomeState, onOpenFleet: () -> Unit) {
                     style = FieldTrackTheme.type.caption,
                     color = colors.onDarkMuted,
                 )
-                if (state.canSeeMoney && state.collectedTodayRupees > 0) {
+                if (state.canSeeMoney && state.collectedTodayMinor > 0) {
                     Text(
                         text = stringResource(
-                            R.string.home_collected_today, rupees(state.collectedTodayRupees),
+                            R.string.home_collected_today, money(state.collectedTodayMinor),
                         ),
                         style = FieldTrackTheme.type.caption,
                         color = colors.onDark,
@@ -244,7 +244,7 @@ private fun YardHero(state: YardHomeState, onOpenFleet: () -> Unit) {
             )
             Text(
                 text = if (state.canSeeMoney) {
-                    rupees(state.week.sum().toLong())
+                    money(state.week.sum().toLong())
                 } else {
                     duration((state.week.sum() * 3600).toLong())
                 },

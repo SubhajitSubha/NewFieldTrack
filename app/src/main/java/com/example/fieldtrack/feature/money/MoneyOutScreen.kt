@@ -27,7 +27,7 @@ import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.money.MoneyOutRow as Row_
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 
 /**
  * What the business has paid out.
@@ -82,16 +82,16 @@ fun MoneyOutScreen(
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
-                        text = rupees(state.totalRupees),
+                        text = money(state.totalMinor),
                         style = FieldTrackTheme.type.moneyHero,
                         color = colors.onDark,
                     )
-                    if (state.unattributableRupees > 0) {
+                    if (state.unattributableMinor > 0) {
                         Spacer(Modifier.height(7.dp))
                         Text(
                             text = stringResource(
                                 R.string.money_out_unattributable,
-                                rupees(state.unattributableRupees),
+                                money(state.unattributableMinor),
                             ),
                             style = FieldTrackTheme.type.caption,
                             color = colors.onDarkMuted,
@@ -104,12 +104,12 @@ fun MoneyOutScreen(
             // till: the hero figure above is what has actually left it, and
             // folding in work that has not been paid for would make the one
             // number somebody reconciles against their cash box wrong.
-            if (state.owedRupees > 0) {
+            if (state.owedMinor > 0) {
                 item(key = "owed") {
                     FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
                         Text(
                             text = stringResource(
-                                R.string.money_out_owed, rupees(state.owedRupees),
+                                R.string.money_out_owed, money(state.owedMinor),
                             ),
                             style = FieldTrackTheme.type.sectionTitle,
                             color = colors.dueInk,
@@ -204,7 +204,7 @@ private fun PaidRow(row: Row_) {
                 )
             }
             Text(
-                text = rupees(row.amountRupees),
+                text = money(row.amountMinor),
                 style = FieldTrackTheme.type.sectionTitle,
                 color = colors.ink,
             )

@@ -83,7 +83,7 @@ sealed interface HomeAlert {
     /** Money owed for longer than [OVERDUE_DAYS]. One customer is named; several are counted. */
     data class Overdue(
         val customers: Int,
-        val rupees: Long,
+        val amountMinor: Long,
         /** Set when exactly one customer is late, so the row can open their khata. */
         val customerId: String?,
         val customerName: String?,
@@ -162,7 +162,7 @@ internal fun landWorked(jobs: List<JobEntity>, own: MeasureUnit): Pair<Double, M
 /** A customer owing money, and since when the oldest of it has been owed. */
 data class Debt(
     val customerId: String,
-    val rupees: Long,
+    val amountMinor: Long,
     val oldestMillis: Long,
 )
 
@@ -179,7 +179,7 @@ fun debtsByAge(entries: List<LedgerEntryEntity>): List<Debt> =
         if (dues.isEmpty()) return@mapNotNull null
         Debt(
             customerId = customerId,
-            rupees = dues.sumOf { it.outstandingRupees },
+            amountMinor = dues.sumOf { it.outstandingMinor },
             oldestMillis = dues.minOf { it.entry.atMillis },
         )
     }
@@ -196,7 +196,7 @@ fun overdueAlert(
     val single = late.singleOrNull()
     return HomeAlert.Overdue(
         customers = late.size,
-        rupees = late.sumOf { it.rupees },
+        amountMinor = late.sumOf { it.amountMinor },
         customerId = single?.customerId,
         customerName = single?.let { namesById[it.customerId] },
         sinceMillis = late.minOf { it.oldestMillis },

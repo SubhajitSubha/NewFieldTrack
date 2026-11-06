@@ -60,7 +60,7 @@ import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.clockTime
@@ -892,7 +892,7 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
             icon = FieldTrackIcons.Rupee
             if (alert.customerId != null) {
                 title = stringResource(
-                    R.string.home_alert_owes, alert.customerName.orEmpty(), rupees(alert.rupees),
+                    R.string.home_alert_owes, alert.customerName.orEmpty(), money(alert.amountMinor),
                 )
                 note = stringResource(R.string.home_alert_owes_note, daysAgo(alert.sinceMillis))
                 onClick = { actions.customer(alert.customerId) }
@@ -901,7 +901,7 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
                     R.plurals.home_alert_late, alert.customers, alert.customers,
                 )
                 note = stringResource(
-                    R.string.home_alert_late_note, rupees(alert.rupees), OVERDUE_DAYS,
+                    R.string.home_alert_late_note, money(alert.amountMinor), OVERDUE_DAYS,
                 )
                 onClick = actions::customers
             }
@@ -1045,9 +1045,9 @@ fun NotSentMark() {
  * that cost more than it brought in is the one that stands out.
  */
 @Composable
-fun LostMark(rupees: Long) {
+fun LostMark(amountMinor: Long) {
     Text(
-        text = stringResource(R.string.job_lost_short, com.example.fieldtrack.designsystem.format.rupees(rupees)),
+        text = stringResource(R.string.job_lost_short, com.example.fieldtrack.designsystem.format.money(amountMinor)),
         style = FieldTrackTheme.type.caption,
         color = FieldTrackTheme.colors.dueInk,
         maxLines = 1,

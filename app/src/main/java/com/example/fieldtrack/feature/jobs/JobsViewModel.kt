@@ -37,13 +37,13 @@ data class JobCard(
     val quantity: Double,
     val unit: MeasureUnit,
     val elapsedSeconds: Long,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val machineKind: MachineKind,
     val status: FtStatus,
     /** True while the job is still open, which changes what the row leads with. */
     val live: Boolean,
     /** How much this job lost, when it did and every cost is priced. */
-    val lostRupees: Long? = null,
+    val lostMinor: Long? = null,
 )
 
 data class JobsState(
@@ -94,7 +94,7 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 val customerNames = customers.associate { it.id to it.name }
                 val machineKinds = machines.associate { it.id to it.kind }
                 val memberNames = team.associate { it.personId to it.displayName }
-                val lost = jobMargins.mapNotNull { m -> m.lostRupees?.let { m.jobId to it } }.toMap()
+                val lost = jobMargins.mapNotNull { m -> m.lostMinor?.let { m.jobId to it } }.toMap()
 
                 JobsState(
                     loaded = true,
@@ -111,7 +111,7 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                             quantity = job.quantity,
                             unit = job.unit,
                             elapsedSeconds = app.workRepository.elapsedSeconds(job),
-                            amountRupees = job.amountRupees,
+                            amountMinor = job.amountMinor,
                             machineKind = job.machineId?.let { machineKinds[it] }
                                 ?: MachineKind.Other,
                             status = when (job.status) {
@@ -120,7 +120,7 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                                 else -> FtStatus.Completed
                             },
                             live = live,
-                            lostRupees = lost[job.id],
+                            lostMinor = lost[job.id],
                         )
                     },
                 )

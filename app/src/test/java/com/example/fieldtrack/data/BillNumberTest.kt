@@ -96,7 +96,7 @@ class BillNumberTest {
             workType = "Harvesting",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_800,
+            rateMinor = 1_800,
         )
         h.work.setQuantity(TestHarness.ORG_B, otherOrg, 1.0)
         h.work.complete(TestHarness.ORG_B, otherOrg)
@@ -115,7 +115,7 @@ class BillNumberTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
     )
 
     /** Finishes a job and returns its (financial year, number). */

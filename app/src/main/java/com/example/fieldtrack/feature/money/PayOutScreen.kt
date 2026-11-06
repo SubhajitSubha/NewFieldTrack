@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.money
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,7 +35,7 @@ import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.workLabel
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import androidx.compose.foundation.layout.imePadding
 
 /**
@@ -152,8 +153,8 @@ fun PayOutScreen(
                 label = stringResource(R.string.payout_amount),
                 value = state.amountText,
                 onValueChange = onAmount,
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
             if (state.payingLabourers && state.headcount > 1) {
                 Text(
@@ -221,8 +222,8 @@ fun PayOutScreen(
 
         Column(Modifier.padding(dimens.screenPadding).fillMaxWidth()) {
             FtButton(
-                text = if (state.amountRupees > 0) {
-                    stringResource(R.string.payout_save_amount, rupees(state.amountRupees))
+                text = if (state.amountMinor > 0) {
+                    stringResource(R.string.payout_save_amount, money(state.amountMinor))
                 } else {
                     stringResource(R.string.payout_save)
                 },

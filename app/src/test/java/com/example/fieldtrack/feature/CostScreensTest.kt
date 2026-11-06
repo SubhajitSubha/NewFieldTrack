@@ -99,32 +99,32 @@ class CostScreensTest {
     // ------------------------------------------------------------------ a job's page
 
     private fun job(left: Long = 600, share: Long? = null, canTotal: Boolean = true) = JobDetailState(
-        loaded = true, exists = true, amountRupees = 1_000 + left - 0,
+        loaded = true, exists = true, amountMinor = 1_000 + left - 0,
         canSeeMoney = true, seesPeopleCost = canTotal,
         status = com.example.fieldtrack.data.db.JobStatus.Completed,
-        fuelRupees = 1_000, machineShareRupees = share,
+        fuelMinor = 1_000, machineShareMinor = share,
     )
 
     @Test
     fun `a job that cost more than it was billed says so, and by how much`() {
         val lost = job(left = -250)
-        assertEquals(-250L, lost.leftRupees)
-        assertEquals(250L, lost.lostRupees)
-        assertNull(job(left = 0).lostRupees)
-        assertNull(job(left = 400).lostRupees)
+        assertEquals(-250L, lost.leftMinor)
+        assertEquals(250L, lost.lostMinor)
+        assertNull(job(left = 0).lostMinor)
+        assertNull(job(left = 400).lostMinor)
     }
 
     @Test
     fun `a loss is not claimed where a total cannot honestly be shown`() {
-        assertNull("a reader who may not see wages", job(left = -250, canTotal = false).lostRupees)
+        assertNull("a reader who may not see wages", job(left = -250, canTotal = false).lostMinor)
     }
 
     @Test
     fun `the machine's share is taken off separately and the figure above it does not move`() {
         val j = job(left = 600, share = 810)
-        assertEquals(600L, j.leftRupees)
-        assertEquals(-210L, j.leftAfterMachineRupees)
-        assertNull(job(left = 600, share = null).leftAfterMachineRupees)
+        assertEquals(600L, j.leftMinor)
+        assertEquals(-210L, j.leftAfterMachineMinor)
+        assertNull(job(left = 600, share = null).leftAfterMachineMinor)
     }
 
     // ----------------------------------------------------------------- the season
@@ -133,21 +133,21 @@ class CostScreensTest {
     fun `loan instalments are a cost of the season and are in what it left`() {
         val season = SeasonState(
             loaded = true, canSeeMoney = true, seesPeopleCost = true,
-            earnedRupees = 100_000, fuelRupees = 20_000, serviceRupees = 10_000,
-            jobPeopleRupees = 15_000, loanRupees = 30_000,
+            earnedMinor = 100_000, fuelMinor = 20_000, serviceMinor = 10_000,
+            jobPeopleMinor = 15_000, loanMinor = 30_000,
         )
-        assertEquals(75_000L, season.costsRupees)
-        assertEquals(25_000L, season.leftRupees)
+        assertEquals(75_000L, season.costsMinor)
+        assertEquals(25_000L, season.leftMinor)
     }
 
     @Test
     fun `no loan entered changes nothing about the season`() {
         val without = SeasonState(
             loaded = true, canSeeMoney = true, seesPeopleCost = true,
-            earnedRupees = 100_000, fuelRupees = 20_000, serviceRupees = 10_000,
+            earnedMinor = 100_000, fuelMinor = 20_000, serviceMinor = 10_000,
         )
-        assertEquals(30_000L, without.costsRupees)
-        assertEquals(70_000L, without.leftRupees)
+        assertEquals(30_000L, without.costsMinor)
+        assertEquals(70_000L, without.leftMinor)
         assertTrue(without.canTotal)
     }
 

@@ -89,7 +89,7 @@ class DirectoryRepository(
         name: String,
         phone: String?,
         village: String?,
-        openingBalanceRupees: Long = 0,
+        openingBalanceMinor: Long = 0,
         byPersonId: String? = null,
     ): String {
         val now = clock.now()
@@ -108,8 +108,8 @@ class DirectoryRepository(
                 orgId, SyncQueue.TABLE_CUSTOMERS, customer.id, OutboxJson.encodeToString(customer)
             )
         }
-        if (openingBalanceRupees > 0) {
-            ledger.recordOpeningBalance(orgId, customer.id, openingBalanceRupees, byPersonId)
+        if (openingBalanceMinor > 0) {
+            ledger.recordOpeningBalance(orgId, customer.id, openingBalanceMinor, byPersonId)
         }
         return customer.id
     }
@@ -269,12 +269,12 @@ class DirectoryRepository(
         orgId: String,
         can: Capabilities,
         machineId: String,
-        monthlyRupees: Long?,
+        monthlyMinor: Long?,
         hoursPerYear: Int?,
     ) {
         can.require(Capability.EditMachines)
         can.require(Capability.SeePeopleCost)
-        require(monthlyRupees == null || monthlyRupees >= 0) { "A loan instalment is not negative" }
+        require(monthlyMinor == null || monthlyMinor >= 0) { "A loan instalment is not negative" }
         require(hoursPerYear == null || hoursPerYear in 0..MAX_HOURS_PER_YEAR) {
             "A machine cannot work more hours than there are in a year"
         }
@@ -283,7 +283,7 @@ class DirectoryRepository(
             val finance = MachineFinanceEntity(
                 id = machineId,
                 orgId = orgId,
-                monthlyRupees = monthlyRupees?.takeIf { it > 0 },
+                monthlyMinor = monthlyMinor?.takeIf { it > 0 },
                 hoursPerYear = hoursPerYear?.takeIf { it > 0 },
                 updatedAt = clock.now(),
             )
@@ -308,9 +308,11 @@ class DirectoryRepository(
         return combine(
             machines.observeRunningFacts(orgId, yearAgo),
             machines.observeFinance(orgId),
-        ) { facts, finance ->
+            db.orgDao().observeOrg(orgId),
+        ) { facts, finance, org ->
+            val step = org?.moneyStepMinor ?: 1L
             val financeById = finance.associateBy { it.id }
-            facts.associate { it.machineId to Costing.running(it, financeById[it.machineId]) }
+            facts.associate { it.machineId to Costing.running(it, financeById[it.machineId], step) }
         }
     }
 
@@ -351,7 +353,7 @@ class DirectoryRepository(
         workType: String,
         billingMode: BillingMode,
         unit: MeasureUnit,
-        amountRupees: Long,
+        amountMinor: Long,
         customerId: String? = null,
     ) {
         // A lump sum agreed for one job is not a price per anything, and offering it
@@ -368,7 +370,7 @@ class DirectoryRepository(
                 workType = workType,
                 billingMode = billingMode,
                 unit = unit,
-                amountRupees = amountRupees,
+                amountMinor = amountMinor,
                 customerId = customerId,
                 // Implicit learning never invents a label. It is overwriting whatever
                 // row it matched, and renaming a contractor's "paddy" rate because a
@@ -395,7 +397,7 @@ class DirectoryRepository(
                     workType = workType,
                     billingMode = billingMode,
                     unit = unit,
-                    amountRupees = amountRupees,
+                    amountMinor = amountMinor,
                     customerId = null,
                     updatedAt = clock.now(),
                 )
@@ -430,7 +432,7 @@ class DirectoryRepository(
         workType: String,
         billingMode: BillingMode,
         unit: MeasureUnit,
-        amountRupees: Long,
+        amountMinor: Long,
         label: String? = null,
         customerId: String? = null,
         rateId: String? = null,
@@ -441,7 +443,7 @@ class DirectoryRepository(
             workType = workType,
             billingMode = billingMode,
             unit = unit,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             customerId = customerId,
             label = label?.trim()?.takeIf { it.isNotEmpty() },
             updatedAt = clock.now(),

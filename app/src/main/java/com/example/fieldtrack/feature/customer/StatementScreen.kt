@@ -185,7 +185,7 @@ private fun PeriodChip(
 @Composable
 private fun SummaryCard(state: StatementState) {
     val colors = FieldTrackTheme.colors
-    val owes = state.showsDebt && state.totalRupees > 0
+    val owes = state.showsDebt && state.totalMinor > 0
 
     Box(
         Modifier
@@ -224,7 +224,7 @@ private fun SummaryCard(state: StatementState) {
                     )
                 }
                 FtMoney(
-                    amount = state.totalRupees,
+                    amount = state.totalMinor,
                     size = FtMoneySize.Medium,
                     tone = if (owes) FtMoneyTone.Due else FtMoneyTone.Received,
                 )

@@ -47,7 +47,7 @@ class SeasonTest {
         workType = "Harvesting",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -85,7 +85,7 @@ class SeasonTest {
 
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 2_000, atMillis = h.nowMillis,
+            amountMinor = 2_000, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 4,
         )
         // A month's wages belong to no job and no machine. The machine screen
@@ -93,7 +93,7 @@ class SeasonTest {
         // time it was for, so here it belongs in the total.
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 12_000, covers = PayoutCovers.Period,
+            amountMinor = 12_000, covers = PayoutCovers.Period,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toPersonId = TestHarness.DRIVER,
         )
@@ -118,7 +118,7 @@ class SeasonTest {
         val jobId = aJob()
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 2_000, atMillis = h.nowMillis,
+            amountMinor = 2_000, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 4,
         )
 

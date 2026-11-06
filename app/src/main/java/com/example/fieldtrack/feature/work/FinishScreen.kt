@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.work
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -44,7 +45,7 @@ import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.designsystem.theme.OnPaper
@@ -59,8 +60,8 @@ fun FinishScreen(
     step: Int,
     state: FinishState,
     payment: PaymentState,
-    receivedRupees: Long,
-    finalBalanceRupees: Long,
+    receivedMinor: Long,
+    finalBalanceMinor: Long,
     onBack: () -> Unit,
     onToBill: () -> Unit,
     onChooseAll: () -> Unit,
@@ -120,7 +121,7 @@ fun FinishScreen(
                     onCounted = onLabourCounted,
                 )
                 1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod)
-                else -> SavedStep(state, receivedRupees, finalBalanceRupees)
+                else -> SavedStep(state, receivedMinor, finalBalanceMinor)
             }
             Box(Modifier.height(dimens.space4))
         }
@@ -249,11 +250,11 @@ private fun ReviewStep(
                 // Naming one rate for trips that were charged three different ways
                 // is the sort of line a customer notices and stops trusting.
                 state.ratesVaried -> stringResource(R.string.finish_rate_varies)
-                state.billingMode == BillingMode.Fixed -> rupees(state.rateRupees)
+                state.billingMode == BillingMode.Fixed -> money(state.rateMinor)
                 else -> stringResource(
                     R.string.start_rate_per,
                     stringResource(state.unit.labelRes)
-                ).let { per -> "${rupees(state.rateRupees)} $per" }
+                ).let { per -> "${money(state.rateMinor)} $per" }
             },
         )
     }
@@ -344,7 +345,7 @@ private fun ReviewStep(
                     color = FieldTrackTheme.colors.onDarkMuted,
                 )
                 FtMoney(
-                    state.jobAmountRupees,
+                    state.jobAmountMinor,
                     size = FtMoneySize.Hero,
                     onDark = true,
                     modifier = Modifier.padding(top = 3.dp),
@@ -373,11 +374,11 @@ private fun BillStep(
             color = FieldTrackTheme.colors.ink,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
         )
-        AmountLine(stringResource(R.string.finish_this_job), state.jobAmountRupees)
-        if (state.previousBalanceRupees != 0L) {
+        AmountLine(stringResource(R.string.finish_this_job), state.jobAmountMinor)
+        if (state.previousBalanceMinor != 0L) {
             AmountLine(
                 stringResource(R.string.money_old_balance),
-                state.previousBalanceRupees,
+                state.previousBalanceMinor,
                 tone = FtMoneyTone.Due,
             )
         }
@@ -395,7 +396,7 @@ private fun BillStep(
                 color = FieldTrackTheme.colors.ink,
                 modifier = Modifier.weight(1f),
             )
-            FtMoney(state.totalDueRupees, size = FtMoneySize.Medium)
+            FtMoney(state.totalDueMinor, size = FtMoneySize.Medium)
         }
     }
 
@@ -411,8 +412,8 @@ private fun BillStep(
             label = stringResource(R.string.money_how_much_given),
             value = payment.amountText,
             onValueChange = onAmount,
-            prefix = "₹",
-            keyboardType = KeyboardType.Number,
+            prefix = Money.style.symbol,
+            keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             focused = true,
         )
         FlowRow(
@@ -442,7 +443,7 @@ private fun BillStep(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = rupees((state.totalDueRupees - payment.amountRupees).coerceAtLeast(0)),
+                text = money((state.totalDueMinor - payment.amountMinor).coerceAtLeast(0)),
                 style = FieldTrackTheme.type.moneyMedium,
                 color = FieldTrackTheme.colors.primaryPressed,
             )
@@ -451,14 +452,14 @@ private fun BillStep(
 }
 
 @Composable
-private fun SavedStep(state: FinishState, receivedRupees: Long, finalBalanceRupees: Long) {
-    val remaining = finalBalanceRupees.coerceAtLeast(0)
+private fun SavedStep(state: FinishState, receivedMinor: Long, finalBalanceMinor: Long) {
+    val remaining = finalBalanceMinor.coerceAtLeast(0)
     FtCard {
         Text(
-            text = if (receivedRupees > 0) {
-                stringResource(R.string.finish_saved_detail, rupees(receivedRupees), rupees(remaining))
+            text = if (receivedMinor > 0) {
+                stringResource(R.string.finish_saved_detail, money(receivedMinor), money(remaining))
             } else {
-                stringResource(R.string.finish_saved_nothing, rupees(remaining))
+                stringResource(R.string.finish_saved_nothing, money(remaining))
             },
             style = FieldTrackTheme.type.body,
             color = FieldTrackTheme.colors.inkSecondary,
@@ -512,12 +513,12 @@ private fun SavedStep(state: FinishState, receivedRupees: Long, finalBalanceRupe
                 color = FieldTrackTheme.colors.ink,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )
-            AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountRupees)
-            if (state.previousBalanceRupees != 0L) {
-                AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceRupees)
+            AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountMinor)
+            if (state.previousBalanceMinor != 0L) {
+                AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceMinor)
             }
-            if (receivedRupees > 0) {
-                AmountLine(stringResource(R.string.money_paid_today), -receivedRupees, tone = FtMoneyTone.Received)
+            if (receivedMinor > 0) {
+                AmountLine(stringResource(R.string.money_paid_today), -receivedMinor, tone = FtMoneyTone.Received)
             }
             Box(
                 Modifier

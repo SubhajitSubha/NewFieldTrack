@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.work
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
@@ -34,7 +35,7 @@ import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.duration
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.billingLabel
 import com.example.fieldtrack.feature.captionRes
@@ -241,10 +242,10 @@ fun PastWorkScreen(
                 label = stringResource(R.string.start_your_rate),
                 value = state.rateText,
                 onValueChange = onRate,
-                prefix = "₹",
+                prefix = Money.style.symbol,
                 suffix = if (state.billingMode == BillingMode.Fixed) null
                 else stringResource(R.string.start_rate_per, unitLabel),
-                keyboardType = KeyboardType.Number,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
 
             TimesSection(state, onPickFrom, onPickTo, onForgetTimes)
@@ -288,8 +289,8 @@ fun PastWorkScreen(
                 )
             }
             FtButton(
-                text = if (state.amountRupees > 0) {
-                    stringResource(R.string.past_save_amount, rupees(state.amountRupees))
+                text = if (state.amountMinor > 0) {
+                    stringResource(R.string.past_save_amount, money(state.amountMinor))
                 } else {
                     stringResource(R.string.past_save)
                 },

@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.billing.Billing
@@ -44,10 +46,10 @@ data class PastWorkState(
     val saving: Boolean = false,
 ) {
     val quantity: Double get() = quantityText.toDoubleOrNull() ?: 0.0
-    val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
 
-    val amountRupees: Long
-        get() = Billing.amount(billingMode, quantity, rateRupees)
+    val amountMinor: Long
+        get() = Billing.amount(billingMode, quantity, rateMinor, Money.style.stepMinor)
 
     /** Minutes between the two times, when both are given and make sense. */
     val workedMinutes: Int?
@@ -75,7 +77,7 @@ data class PastWorkState(
         get() = fromMinutes != null && toMinutes != null && workedMinutes == null
 
     val canSave: Boolean
-        get() = !saving && customer != null && rateRupees > 0 && !timesBackwards &&
+        get() = !saving && customer != null && rateMinor > 0 && !timesBackwards &&
             (billingMode == BillingMode.Fixed || quantity > 0)
 }
 
@@ -168,7 +170,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
         _state.update { it.copy(quantityText = cleanQuantity(value, whole = it.unit.countsWhole)) }
 
     fun setRate(value: String) =
-        _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
+        _state.update { it.copy(rateText = MoneyInput.clean(value)) }
 
     fun setFrom(minutes: Int?) {
         _state.update { it.copy(fromMinutes = minutes) }
@@ -225,7 +227,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             unit = current.unit,
         ) ?: return@launch
         _state.update {
-            if (it.rateText.isBlank()) it.copy(rateText = remembered.amountRupees.toString())
+            if (it.rateText.isBlank()) it.copy(rateText = MoneyInput.text(remembered.amountMinor))
             else it
         }
     }
@@ -248,7 +250,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = current.workType.key,
             billingMode = current.billingMode,
             unit = current.unit,
-            rateRupees = current.rateRupees,
+            rateMinor = current.rateMinor,
             quantity = if (current.billingMode == BillingMode.Fixed) 1.0 else current.quantity,
             // Noon rather than midnight, so the day it belongs to survives a device
             // whose clock sits in a different zone from the one it was typed in.
@@ -263,7 +265,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = current.workType.key,
             billingMode = current.billingMode,
             unit = current.unit,
-            amountRupees = current.rateRupees,
+            amountMinor = current.rateMinor,
             customerId = current.customer.id.takeIf {
                 app.sessionStore.rememberPerCustomer.value
             },

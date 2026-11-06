@@ -39,7 +39,7 @@ import com.example.fieldtrack.designsystem.component.FtStatus
 import com.example.fieldtrack.designsystem.component.FtStatusPill
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.clockTime
@@ -370,7 +370,7 @@ private fun HoursHero(state: LiveWorkState) {
 private fun FixedHero(state: LiveWorkState) {
     HeroLabel(stringResource(R.string.finish_total))
     Text(
-        text = rupees(state.amountRupees),
+        text = money(state.amountMinor),
         style = FieldTrackTheme.type.moneyHero.copy(fontSize = 64.sp, lineHeight = 70.sp),
         color = FieldTrackTheme.colors.moneyOnDark,
         textAlign = TextAlign.Center,
@@ -405,18 +405,18 @@ private fun MoneyLine(state: LiveWorkState) {
             text = if (state.billingMode == BillingMode.PerHour) {
                 stringResource(
                     R.string.statement_rate_note,
-                    rupees(state.rateRupees),
+                    money(state.rateMinor),
                     stringResource(state.unit.labelRes),
                 )
             } else if (state.billingMode == BillingMode.PerTrip) {
                 // Trips are priced one at a time, so "3 × ₹400" would be a lie the
                 // moment the rate moves. The rate shown is what the NEXT one costs.
-                stringResource(R.string.work_next_trip_rate, rupees(state.rateRupees))
+                stringResource(R.string.work_next_trip_rate, money(state.rateMinor))
             } else {
                 stringResource(
                     R.string.live_rate_line,
                     quantity(state.quantity),
-                    rupees(state.rateRupees),
+                    money(state.rateMinor),
                 )
             },
             style = FieldTrackTheme.type.bodySmall,
@@ -424,7 +424,7 @@ private fun MoneyLine(state: LiveWorkState) {
             modifier = Modifier.alignByBaseline(),
         )
         Text(
-            text = rupees(state.amountRupees),
+            text = money(state.amountMinor),
             style = FieldTrackTheme.type.moneyLarge,
             color = FieldTrackTheme.colors.moneyOnDark,
             modifier = Modifier.alignByBaseline(),

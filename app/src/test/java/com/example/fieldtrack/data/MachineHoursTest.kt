@@ -45,7 +45,7 @@ class MachineHoursTest {
         val id = h.work.startJob(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Ploughing", billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour,
-            rateRupees = 900, machineId = machineId, operatorPersonId = TestHarness.DRIVER,
+            rateMinor = 900, machineId = machineId, operatorPersonId = TestHarness.DRIVER,
         )
         h.nowMillis += hours * hour
         h.work.complete(TestHarness.ORG_A, id, TestHarness.DRIVER)

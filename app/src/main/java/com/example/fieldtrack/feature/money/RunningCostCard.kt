@@ -23,7 +23,7 @@ import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.unitInPhrase
 import com.example.fieldtrack.feature.workLabel
@@ -69,13 +69,13 @@ fun RunningCostCard(
         }
 
         val r = running.rounded()
-        CostLine(stringResource(R.string.cost_hour_diesel), rupees(r.diesel))
+        CostLine(stringResource(R.string.cost_hour_diesel), money(r.diesel))
         Spacer(Modifier.height(9.dp))
-        CostLine(stringResource(R.string.cost_hour_repairs), rupees(r.upkeep))
+        CostLine(stringResource(R.string.cost_hour_repairs), money(r.upkeep))
         Spacer(Modifier.height(9.dp))
         when (val loan = running.loan) {
             is Costing.Loan.Counted ->
-                CostLine(stringResource(R.string.cost_hour_loan), rupees(r.loan ?: 0))
+                CostLine(stringResource(R.string.cost_hour_loan), money(r.loan ?: 0))
             Costing.Loan.NotEntered -> {
                 CostLine(
                     stringResource(R.string.cost_hour_loan_none),
@@ -99,7 +99,7 @@ fun RunningCostCard(
         // The sum of the parts above it as rounded, so it adds up on paper.
         CostLine(
             stringResource(R.string.cost_hour_total),
-            stringResource(R.string.cost_about, rupees(r.total)),
+            stringResource(R.string.cost_about, money(r.total)),
             strong = true,
         )
         Text(
@@ -120,7 +120,7 @@ fun UnitCostCard(kinds: List<Costing.UnitCost>) {
     FtCard(padding = 0.dp) {
         kinds.forEachIndexed { index, kind ->
             if (index > 0) FtRowDivider()
-            val keeps = kind.leftRupees >= 0
+            val keeps = kind.leftMinor >= 0
             FtListRow(
                 title = stringResource(
                     R.string.cost_kind_title,
@@ -129,14 +129,14 @@ fun UnitCostCard(kinds: List<Costing.UnitCost>) {
                 ),
                 subtitle = stringResource(
                     R.string.cost_kind_line,
-                    rupees(kind.costRupees),
-                    rupees(kind.billedRupees),
+                    money(kind.costMinor),
+                    money(kind.billedMinor),
                 ),
                 trailing = {
                     Text(
                         text = stringResource(
                             if (keeps) R.string.cost_kind_keeps else R.string.cost_kind_loses,
-                            rupees(kotlin.math.abs(kind.leftRupees)),
+                            money(kotlin.math.abs(kind.leftMinor)),
                         ),
                         style = FieldTrackTheme.type.label,
                         color = if (keeps) colors.primary else colors.due,

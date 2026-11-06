@@ -47,7 +47,7 @@ class AmendmentTest {
             workType = "Rotavator",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = rate,
+            rateMinor = rate,
             operatorPersonId = TestHarness.DRIVER,
         )
         h.work.setQuantity(TestHarness.ORG_A, id, acres)
@@ -73,8 +73,8 @@ class AmendmentTest {
 
         val lines = h.ledger.observeLedger(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first()
         assertEquals("the original charge survives alongside the correction", 2, lines.size)
-        assertTrue(lines.any { it.kind == LedgerKind.Charge && it.amountRupees == 3_500L })
-        assertTrue(lines.any { it.kind == LedgerKind.Adjustment && it.amountRupees == 500L })
+        assertTrue(lines.any { it.kind == LedgerKind.Charge && it.amountMinor == 3_500L })
+        assertTrue(lines.any { it.kind == LedgerKind.Adjustment && it.amountMinor == 500L })
     }
 
     @Test
@@ -104,7 +104,7 @@ class AmendmentTest {
             orgId = TestHarness.ORG_A,
             jobId = jobId,
             can = owner,
-            rateRupees = 1_200,
+            rateMinor = 1_200,
             reason = "Agreed rate was higher",
         )
         assertEquals(4_800L, balance())
@@ -180,7 +180,7 @@ class AmendmentTest {
             workType = "Rotavator",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_000,
+            rateMinor = 1_000,
         )
         val failure = runCatching {
             h.work.amendCompletedJob(

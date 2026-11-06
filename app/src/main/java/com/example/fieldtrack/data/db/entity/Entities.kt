@@ -1,5 +1,6 @@
 package com.example.fieldtrack.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -67,6 +68,21 @@ data class OrgEntity(
     val upiId: String? = null,
     /** What this business measures land in by default. Overridable per job. */
     val defaultLandUnit: MeasureUnit = MeasureUnit.Acre,
+    /**
+     * The currency this business keeps its books in, an ISO 4217 code. Every amount in
+     * every table is a whole number of that currency's minor unit.
+     *
+     * Rows from before currencies existed were all in rupees, which is why that is the
+     * default and not a guess from where the phone is.
+     */
+    @ColumnInfo(defaultValue = "INR")
+    val currencyCode: String = "INR",
+    /**
+     * The smallest amount a bill is rounded to, in minor units. 100 in a rupee business
+     * that never deals in paise; 1 where cents count.
+     */
+    @ColumnInfo(defaultValue = "100")
+    val moneyStepMinor: Long = 100,
     /**
      * When this business's seasons begin, as [com.example.fieldtrack.data.season.SeasonCalendar]
      * writes them. Null until somebody sets them, which reads as the usual June and
@@ -285,7 +301,7 @@ data class FuelEntryEntity(
     val machineId: String,
     val jobId: String? = null,
     val litres: Double,
-    val costRupees: Long,
+    val costMinor: Long,
     val atMillis: Long,
     val byPersonId: String? = null,
     val syncState: SyncState = SyncState.Pending,
@@ -298,7 +314,7 @@ data class ServiceRecordEntity(
     val orgId: String,
     val machineId: String,
     val description: String,
-    val costRupees: Long? = null,
+    val costMinor: Long? = null,
     val atMachineHours: Double? = null,
     val atMillis: Long,
     val vendor: String? = null,
@@ -325,7 +341,7 @@ data class MachineFinanceEntity(
     @PrimaryKey val id: String,
     val orgId: String,
     /** Loan instalment, insurance and the like, per month. Null when none was entered. */
-    val monthlyRupees: Long? = null,
+    val monthlyMinor: Long? = null,
     /**
      * How many hours a year this machine works, when the owner knows.
      *
@@ -355,7 +371,7 @@ data class PayoutEntity(
     @PrimaryKey val id: String,
     val orgId: String,
     /** Always positive. Money out is the whole point of the table. */
-    val amountRupees: Long,
+    val amountMinor: Long,
     val atMillis: Long,
     /** What this can be laid against, which decides what it can total into. */
     val covers: PayoutCovers,
@@ -421,7 +437,7 @@ data class JobCostDoc(
 data class JobCostAmountDoc(
     val id: String,
     val orgId: String,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val updatedAt: Long,
 )
 
@@ -459,7 +475,7 @@ data class JobCostEntity(
      */
     val headcount: Int? = null,
     /** Null until somebody who may pay has put a figure on it. */
-    val amountRupees: Long? = null,
+    val amountMinor: Long? = null,
     val note: String? = null,
     val byPersonId: String? = null,
     val atMillis: Long,
@@ -532,7 +548,7 @@ data class RateEntity(
     val workType: String,
     val billingMode: BillingMode,
     val unit: MeasureUnit,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val customerId: String? = null,
     val label: String? = null,
     val updatedAt: Long,
@@ -576,7 +592,14 @@ data class JobEntity(
     val workType: String,
     val billingMode: BillingMode,
     val unit: MeasureUnit,
-    val rateRupees: Long,
+    val rateMinor: Long,
+    /**
+     * The amount this job's bill is rounded to, in minor units, taken from the business
+     * when the job was made. Kept on the job so that changing the business's setting
+     * later never moves a bill that already exists.
+     */
+    @ColumnInfo(defaultValue = "100")
+    val stepMinor: Long = 100,
     val quantity: Double = 0.0,
     /**
      * What the trips on this job come to, added up as each one was made.
@@ -587,7 +610,7 @@ data class JobEntity(
      * is therefore priced when it happens and banked here; the rate on the job is
      * only what the NEXT trip will cost.
      */
-    val tripTotalRupees: Long = 0,
+    val tripTotalMinor: Long = 0,
     val elapsedSeconds: Long = 0,
     val distanceMetres: Long? = null,
 
@@ -633,11 +656,11 @@ data class JobEntity(
         get() = billingMode == BillingMode.PerHour && entryMethod != EntryMethod.Manual
 
     /** What this job is worth, rounded to the rupee the way a contractor would. */
-    val amountRupees: Long
+    val amountMinor: Long
         get() = when (billingMode) {
             // Trips carry their own prices; multiplying loses every rate change.
-            BillingMode.PerTrip -> tripTotalRupees
-            else -> Billing.amount(billingMode, quantity, rateRupees)
+            BillingMode.PerTrip -> tripTotalMinor
+            else -> Billing.amount(billingMode, quantity, rateMinor, stepMinor)
         }
 }
 
@@ -686,7 +709,7 @@ data class LedgerEntryEntity(
     val customerId: String,
     val kind: LedgerKind,
     /** Always positive. [kind] decides which way it moves the balance. */
-    val amountRupees: Long,
+    val amountMinor: Long,
     val jobId: String? = null,
     val method: PaymentMethod? = null,
     val note: String? = null,

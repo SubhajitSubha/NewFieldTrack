@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.machine
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,8 +55,8 @@ import com.example.fieldtrack.designsystem.component.FtStatus
 import com.example.fieldtrack.designsystem.component.FtStatusPill
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
-import com.example.fieldtrack.designsystem.format.rupeesCompact
+import com.example.fieldtrack.designsystem.format.money
+import com.example.fieldtrack.designsystem.format.moneyCompact
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -169,13 +170,13 @@ fun MachineDetailScreen(
                 if (state.canSeeMoney) {
                     StatTile(
                         label = stringResource(R.string.machine_earned),
-                        value = rupeesCompact(state.earnedRupees),
+                        value = moneyCompact(state.earnedMinor),
                         valueColor = colors.money,
                         modifier = Modifier.weight(1f),
                     )
                     StatTile(
                         label = stringResource(R.string.machine_diesel),
-                        value = rupeesCompact(state.dieselRupees),
+                        value = moneyCompact(state.dieselMinor),
                         valueColor = colors.due,
                         modifier = Modifier.weight(1f),
                     )
@@ -253,7 +254,7 @@ fun MachineDetailScreen(
                             trailing = if (state.canSeeMoney) {
                                 {
                                     Text(
-                                        text = rupees(job.amountRupees),
+                                        text = money(job.amountMinor),
                                         style = FieldTrackTheme.type.moneyMedium,
                                         color = colors.ink,
                                     )
@@ -335,8 +336,8 @@ private fun ServiceSheet(
                 value = draft.costText,
                 onValueChange = onCost,
                 label = stringResource(R.string.upkeep_cost),
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
             FtTextField(
                 value = draft.parts,

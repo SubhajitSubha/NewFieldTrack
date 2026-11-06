@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.jobs
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
 /**
@@ -179,15 +180,15 @@ fun JobCostScreen(
                     label = stringResource(R.string.jobcost_amount),
                     value = state.amountText,
                     onValueChange = onAmount,
-                    prefix = "₹",
-                    keyboardType = KeyboardType.Number,
+                    prefix = Money.style.symbol,
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                 )
-                state.eachRupees?.let { each ->
+                state.eachMinor?.let { each ->
                     Text(
                         text = stringResource(
                             if (state.eachExact) R.string.jobcost_each
                             else R.string.jobcost_each_about,
-                            rupees(each),
+                            money(each),
                         ),
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.inkSecondary,

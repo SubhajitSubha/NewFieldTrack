@@ -1,5 +1,7 @@
 package com.example.fieldtrack.document
 
+import com.example.fieldtrack.designsystem.format.MoneyStyle
+
 /**
  * What a printed document says, with nothing about how it is drawn.
  *
@@ -30,16 +32,16 @@ data class WorkLine(
     val detail: String? = null,
     val measure: String? = null,
     val rate: String? = null,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 /** One line of the running khata: what happened and where the balance stood after. */
 data class StatementLine(
     val date: String,
     val detail: String,
-    val chargedRupees: Long?,
-    val paidRupees: Long?,
-    val balanceAfterRupees: Long,
+    val chargedMinor: Long?,
+    val paidMinor: Long?,
+    val balanceAfterMinor: Long,
     val isBroughtForward: Boolean = false,
 )
 
@@ -49,14 +51,14 @@ data class DueLine(
     val title: String,
     val detail: String?,
     val age: String,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 /** Money received against a bill. */
 data class PaymentLine(
     val date: String,
     val method: String,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 /**
@@ -68,6 +70,8 @@ data class PaymentLine(
  */
 sealed interface Document {
     val letterhead: Letterhead
+    /** The business's currency and rounding, so a bill never takes another's. */
+    val style: MoneyStyle
     val customer: Party
     /** The file name offered when this is saved or shared. */
     val fileName: String
@@ -75,19 +79,20 @@ sealed interface Document {
     /** One job, priced, with what was paid and what is left. */
     data class Bill(
         override val letterhead: Letterhead,
+        override val style: MoneyStyle,
         override val customer: Party,
         val billNumber: String?,
         val dateLabel: String,
         val workedOnLabel: String?,
         val machineLabel: String?,
         val lines: List<WorkLine>,
-        val previousBalanceRupees: Long,
+        val previousBalanceMinor: Long,
         val payments: List<PaymentLine>,
-        val balanceRupees: Long,
-        val balanceInWords: String,
+        val balanceMinor: Long,
+        val balanceInWords: String?,
     ) : Document {
-        val thisBillRupees: Long get() = lines.sumOf { it.amountRupees }
-        val totalRupees: Long get() = thisBillRupees + previousBalanceRupees
+        val thisBillMinor: Long get() = lines.sumOf { it.amountMinor }
+        val totalMinor: Long get() = thisBillMinor + previousBalanceMinor
         override val fileName: String
             get() = "Bill-${billNumber?.replace('/', '-') ?: dateLabel}-${customer.name}"
                 .sanitisedFileName()
@@ -96,14 +101,15 @@ sealed interface Document {
     /** Everything that happened on an account over a period, with a running balance. */
     data class Statement(
         override val letterhead: Letterhead,
+        override val style: MoneyStyle,
         override val customer: Party,
         val periodLabel: String,
         val printedLabel: String,
-        val openingRupees: Long,
-        val billedRupees: Long,
-        val receivedRupees: Long,
-        val closingRupees: Long,
-        val closingInWords: String,
+        val openingMinor: Long,
+        val billedMinor: Long,
+        val receivedMinor: Long,
+        val closingMinor: Long,
+        val closingInWords: String?,
         val lines: List<StatementLine>,
         /**
          * True when this lists only money received.
@@ -123,11 +129,12 @@ sealed interface Document {
     /** Only what has not been paid for, which is what gets sent when chasing money. */
     data class Dues(
         override val letterhead: Letterhead,
+        override val style: MoneyStyle,
         override val customer: Party,
         val asOnLabel: String,
         val lines: List<DueLine>,
-        val totalRupees: Long,
-        val totalInWords: String,
+        val totalMinor: Long,
+        val totalInWords: String?,
         /** Credit where it is due, so the demand does not look like it ignores them. */
         val receivedNote: String?,
     ) : Document {

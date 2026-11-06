@@ -4,8 +4,9 @@ import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
+import com.example.fieldtrack.data.db.entity.moneyStyle
 import com.example.fieldtrack.data.db.formatBillNumber
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.data.auth.formatIndianPhone
 
 /**
@@ -35,7 +36,7 @@ object Documents {
     /**
      * One job's bill.
      *
-     * [previousBalanceRupees] is what was owed before this job was billed, which is
+     * [previousBalanceMinor] is what was owed before this job was billed, which is
      * only meaningful as a snapshot — read it before completing the job, never after.
      */
     fun bill(
@@ -50,12 +51,13 @@ object Documents {
         workDetail: String?,
         measureLabel: String?,
         rateLabel: String?,
-        jobAmountRupees: Long,
-        previousBalanceRupees: Long,
+        jobAmountMinor: Long,
+        previousBalanceMinor: Long,
         payments: List<PaymentLine>,
-        balanceRupees: Long,
+        balanceMinor: Long,
     ): Document.Bill = Document.Bill(
         letterhead = letterheadOf(org),
+        style = org.moneyStyle(),
         customer = partyOf(customer),
         billNumber = billFy?.let { fy -> billSeq?.let { formatBillNumber(fy, it) } },
         dateLabel = dateLabel,
@@ -67,13 +69,13 @@ object Documents {
                 detail = workDetail,
                 measure = measureLabel,
                 rate = rateLabel,
-                amountRupees = jobAmountRupees,
+                amountMinor = jobAmountMinor,
             )
         ),
-        previousBalanceRupees = previousBalanceRupees,
+        previousBalanceMinor = previousBalanceMinor,
         payments = payments,
-        balanceRupees = balanceRupees,
-        balanceInWords = rupeesInWords(balanceRupees),
+        balanceMinor = balanceMinor,
+        balanceInWords = amountInWords(balanceMinor, org.moneyStyle()),
     )
 
     /**
@@ -88,24 +90,24 @@ object Documents {
         customer: CustomerEntity?,
         periodLabel: String,
         printedLabel: String,
-        openingRupees: Long,
+        openingMinor: Long,
         entries: List<LedgerEntryEntity>,
         describe: (LedgerEntryEntity) -> String,
         dateOf: (Long) -> String,
         openingLabel: String = "Balance brought forward",
         paymentsOnly: Boolean = false,
     ): Document.Statement {
-        var running = if (paymentsOnly) 0L else openingRupees
+        var running = if (paymentsOnly) 0L else openingMinor
         var runningReceived = 0L
         val lines = mutableListOf<StatementLine>()
 
-        if (!paymentsOnly && (openingRupees != 0L || entries.isNotEmpty())) {
+        if (!paymentsOnly && (openingMinor != 0L || entries.isNotEmpty())) {
             lines += StatementLine(
                 date = entries.firstOrNull()?.let { dateOf(it.atMillis) }.orEmpty(),
                 detail = openingLabel,
-                chargedRupees = null,
-                paidRupees = null,
-                balanceAfterRupees = if (paymentsOnly) 0L else openingRupees,
+                chargedMinor = null,
+                paidMinor = null,
+                balanceAfterMinor = if (paymentsOnly) 0L else openingMinor,
                 isBroughtForward = true,
             )
         }
@@ -115,32 +117,33 @@ object Documents {
         entries.forEach { entry ->
             val isDebit = entry.kind == LedgerKind.Charge || entry.kind == LedgerKind.Opening
             if (isDebit) {
-                running += entry.amountRupees
-                billed += entry.amountRupees
+                running += entry.amountMinor
+                billed += entry.amountMinor
             } else {
-                running -= entry.amountRupees
-                received += entry.amountRupees
-                runningReceived += entry.amountRupees
+                running -= entry.amountMinor
+                received += entry.amountMinor
+                runningReceived += entry.amountMinor
             }
             lines += StatementLine(
                 date = dateOf(entry.atMillis),
                 detail = describe(entry),
-                chargedRupees = entry.amountRupees.takeIf { isDebit },
-                paidRupees = entry.amountRupees.takeIf { !isDebit },
-                balanceAfterRupees = if (paymentsOnly) runningReceived else running,
+                chargedMinor = entry.amountMinor.takeIf { isDebit },
+                paidMinor = entry.amountMinor.takeIf { !isDebit },
+                balanceAfterMinor = if (paymentsOnly) runningReceived else running,
             )
         }
 
         return Document.Statement(
             letterhead = letterheadOf(org),
+        style = org.moneyStyle(),
             customer = partyOf(customer),
             periodLabel = periodLabel,
             printedLabel = printedLabel,
-            openingRupees = openingRupees,
-            billedRupees = billed,
-            receivedRupees = received,
-            closingRupees = if (paymentsOnly) received else running,
-            closingInWords = rupeesInWords(if (paymentsOnly) received else running),
+            openingMinor = openingMinor,
+            billedMinor = billed,
+            receivedMinor = received,
+            closingMinor = if (paymentsOnly) received else running,
+            closingInWords = amountInWords(if (paymentsOnly) received else running, org.moneyStyle()),
             lines = lines,
             paymentsOnly = paymentsOnly,
         )
@@ -158,18 +161,18 @@ object Documents {
         customer: CustomerEntity?,
         asOnLabel: String,
         lines: List<DueLine>,
-        receivedRupees: Long,
-        billedRupees: Long,
+        receivedMinor: Long,
+        billedMinor: Long,
         sinceLabel: String?,
         settledBeforeLabel: String?,
     ): Document.Dues {
-        val total = lines.sumOf { it.amountRupees }
+        val total = lines.sumOf { it.amountMinor }
         val note = when {
-            receivedRupees <= 0L -> null
-            sinceLabel == null -> "${rupees(receivedRupees)} received so far."
+            receivedMinor <= 0L -> null
+            sinceLabel == null -> "${money(receivedMinor)} received so far."
             else -> buildString {
-                append("${rupees(receivedRupees)} received since $sinceLabel")
-                if (billedRupees > 0) append(", against ${rupees(billedRupees)} of work")
+                append("${money(receivedMinor)} received since $sinceLabel")
+                if (billedMinor > 0) append(", against ${money(billedMinor)} of work")
                 append(".")
                 if (settledBeforeLabel != null) {
                     append(" Everything billed before $settledBeforeLabel is paid in full — thank you.")
@@ -178,11 +181,12 @@ object Documents {
         }
         return Document.Dues(
             letterhead = letterheadOf(org),
+        style = org.moneyStyle(),
             customer = partyOf(customer),
             asOnLabel = asOnLabel,
             lines = lines,
-            totalRupees = total,
-            totalInWords = rupeesInWords(total),
+            totalMinor = total,
+            totalInWords = amountInWords(total, org.moneyStyle()),
             receivedNote = note,
         )
     }

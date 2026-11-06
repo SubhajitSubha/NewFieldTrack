@@ -70,10 +70,10 @@ class MachineCostTest {
     @Test
     fun `an owner records what a machine costs to own, and it is queued for the server`() = runTest {
         val id = machine()
-        h.directory.setMachineFinance(org, owner, id, monthlyRupees = 12_000, hoursPerYear = 700)
+        h.directory.setMachineFinance(org, owner, id, monthlyMinor = 12_000, hoursPerYear = 700)
 
         val saved = h.directory.findMachineFinance(org, id)!!
-        assertEquals(12_000L, saved.monthlyRupees)
+        assertEquals(12_000L, saved.monthlyMinor)
         assertEquals(700, saved.hoursPerYear)
 
         val queued = h.db.outboxDao().nextBatch(100).filter { it.tableName == SyncQueue.TABLE_MACHINE_FINANCE }
@@ -98,17 +98,17 @@ class MachineCostTest {
             }
         }
         assertEquals("the refused writes changed nothing", 8_000L,
-            h.directory.findMachineFinance(org, id)!!.monthlyRupees)
+            h.directory.findMachineFinance(org, id)!!.monthlyMinor)
     }
 
     @Test
     fun `blank or zero means none, so a paid-off loan stops counting`() = runTest {
         val id = machine()
         h.directory.setMachineFinance(org, owner, id, 9_000, 600)
-        h.directory.setMachineFinance(org, owner, id, monthlyRupees = 0, hoursPerYear = null)
+        h.directory.setMachineFinance(org, owner, id, monthlyMinor = 0, hoursPerYear = null)
 
         val saved = h.directory.findMachineFinance(org, id)!!
-        assertNull(saved.monthlyRupees)
+        assertNull(saved.monthlyMinor)
         assertNull(saved.hoursPerYear)
         assertEquals(Costing.Loan.NotEntered, Costing.loanShare(saved, 900.0))
     }
@@ -177,14 +177,14 @@ class MachineCostTest {
                 RemoteRow(
                     SyncQueue.TABLE_MACHINE_FINANCE, id,
                     mapOf(
-                        "id" to id, "orgId" to org, "monthlyRupees" to 7_500L,
+                        "id" to id, "orgId" to org, "monthlyMinor" to 7_500L,
                         "hoursPerYear" to 500L, "updatedAt" to h.nowMillis, "syncState" to "Pending",
                     ),
                 )
             )
         )
         val saved = h.directory.findMachineFinance(org, id)!!
-        assertEquals(7_500L, saved.monthlyRupees)
+        assertEquals(7_500L, saved.monthlyMinor)
         assertEquals(500, saved.hoursPerYear)
         assertEquals(SyncState.Synced, saved.syncState)
     }
@@ -196,17 +196,18 @@ class MachineCostTest {
         val id = machine()
         job(id, hours = 12)
         job(id, hours = 8)                                 // 20 hours worked
-        h.work.addFuelForMachine(org, id, 100.0, 9_000)    // yard fill: counts, it was spent
-        h.work.recordService(org, id, "Oil", 3_000, null)
-        h.directory.setMachineFinance(org, owner, id, 10_000, 600)
+        // Amounts are in paise; the business rounds to the rupee.
+        h.work.addFuelForMachine(org, id, 100.0, 900_000)    // yard fill: counts, it was spent
+        h.work.recordService(org, id, "Oil", 300_000, null)
+        h.directory.setMachineFinance(org, owner, id, 1_000_000, 600)
 
         val cost = h.directory.observeRunningCosts(org).first().getValue(id)
         assertEquals(20.0, cost.hours, 0.001)
         val r = cost.rounded()
-        assertEquals(450L, r.diesel)
-        assertEquals(150L, r.upkeep)
-        assertEquals("120,000 over 600 hours", 200L, r.loan)
-        assertEquals(800L, r.total)
+        assertEquals(45_000L, r.diesel)
+        assertEquals(15_000L, r.upkeep)
+        assertEquals("120,000 over 600 hours", 20_000L, r.loan)
+        assertEquals(80_000L, r.total)
     }
 
     @Test
@@ -233,7 +234,7 @@ class MachineCostTest {
         val rotavator = kinds.getValue("Rotavator" to MeasureUnit.Bigha)
         assertEquals(22.0, rotavator.quantity, 0.001)
         assertEquals(10 * 3600L, rotavator.seconds)
-        assertEquals(22_000L, rotavator.earnedRupees)
+        assertEquals(22_000L, rotavator.earnedMinor)
         assertEquals(2, rotavator.jobs)
         assertEquals(4.0, kinds.getValue("Ploughing" to MeasureUnit.Hour).quantity, 0.001)
         assertTrue("fixed-price work has no per-unit cost", kinds.keys.none { it.second == MeasureUnit.Piece })
@@ -249,9 +250,9 @@ class MachineCostTest {
         val fine = job(id, hours = 2, rate = 500)
 
         val margins = h.db.orgDao().observeJobMargins(org, 0, Long.MAX_VALUE).first().associateBy { it.jobId }
-        assertEquals(1_400L, margins.getValue(loser).fuelRupees)
-        assertEquals(400L, margins.getValue(loser).lostRupees)
-        assertNull(margins.getValue(fine).lostRupees)
+        assertEquals(1_400L, margins.getValue(loser).fuelMinor)
+        assertEquals(400L, margins.getValue(loser).lostMinor)
+        assertNull(margins.getValue(fine).lostMinor)
     }
 
     @Test
@@ -260,12 +261,12 @@ class MachineCostTest {
         val jobId = job(id, hours = 2, rate = 500)
         h.ledger.recordJobCost(org, owner, jobId, JobCostKind.Labour, headcount = 4,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis)
-        h.ledger.recordJobCost(org, owner, jobId, JobCostKind.Other, amountRupees = 5_000,
+        h.ledger.recordJobCost(org, owner, jobId, JobCostKind.Other, amountMinor = 5_000,
             note = "Tractor hire", byPersonId = TestHarness.OWNER, atMillis = h.nowMillis)
 
         val margin = h.db.orgDao().observeJobMargins(org, 0, Long.MAX_VALUE).first().single()
         assertEquals(1, margin.unpriced)
-        assertNull("the 5,000 is real but the crew is not yet counted", margin.lostRupees)
+        assertNull("the 5,000 is real but the crew is not yet counted", margin.lostMinor)
     }
 
     @Test
@@ -278,7 +279,7 @@ class MachineCostTest {
 
         val margin = h.db.orgDao().observeJobMargins(org, 0, Long.MAX_VALUE).first().single()
         assertEquals(0, margin.unpriced)
-        assertEquals(500L, margin.lostRupees)
+        assertEquals(500L, margin.lostMinor)
     }
 
     // ------------------------------------------------------------------ diesel

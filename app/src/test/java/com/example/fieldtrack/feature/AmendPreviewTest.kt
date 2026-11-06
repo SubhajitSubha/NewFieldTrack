@@ -18,7 +18,7 @@ class AmendPreviewTest {
 
     private fun measured(
         originalQuantity: Double = 3.5,
-        originalRate: Long = 1_000,
+        originalRate: Long = 100_000,
         quantityText: String = "3.5",
         rateText: String = "1000",
         reason: String = "",
@@ -27,8 +27,8 @@ class AmendPreviewTest {
         unit = MeasureUnit.Acre,
         billingMode = BillingMode.PerAcre,
         originalQuantity = originalQuantity,
-        originalRateRupees = originalRate,
-        originalAmountRupees = Math.round(originalQuantity * originalRate),
+        originalRateMinor = originalRate,
+        originalAmountMinor = Math.round(originalQuantity * originalRate),
         quantityText = quantityText,
         rateText = rateText,
         reason = reason,
@@ -37,15 +37,15 @@ class AmendPreviewTest {
     @Test
     fun `cutting the area owes less`() {
         val s = measured(quantityText = "3")
-        assertEquals(3_000L, s.newAmountRupees)
-        assertEquals(-500L, s.deltaRupees)
+        assertEquals(300_000L, s.newAmountMinor)
+        assertEquals(-50_000L, s.deltaMinor)
     }
 
     @Test
     fun `raising the rate owes more`() {
         val s = measured(rateText = "1200")
-        assertEquals(4_200L, s.newAmountRupees)
-        assertEquals(700L, s.deltaRupees)
+        assertEquals(420_000L, s.newAmountMinor)
+        assertEquals(70_000L, s.deltaMinor)
     }
 
     @Test
@@ -54,14 +54,14 @@ class AmendPreviewTest {
             loaded = true,
             billingMode = BillingMode.Fixed,
             originalQuantity = 1.0,
-            originalRateRupees = 5_000,
-            originalAmountRupees = 5_000,
+            originalRateMinor = 500_000,
+            originalAmountMinor = 500_000,
             quantityText = "1",
             rateText = "6000",
             reason = "Agreed a higher price",
         )
-        assertEquals(6_000L, s.newAmountRupees)
-        assertEquals(1_000L, s.deltaRupees)
+        assertEquals(600_000L, s.newAmountMinor)
+        assertEquals(100_000L, s.deltaMinor)
     }
 
     @Test
@@ -73,7 +73,7 @@ class AmendPreviewTest {
     @Test
     fun `a correction that changes nothing needs no reason`() {
         val s = measured()
-        assertEquals(0L, s.deltaRupees)
+        assertEquals(0L, s.deltaMinor)
         assertTrue(s.canSave)
     }
 
@@ -87,6 +87,6 @@ class AmendPreviewTest {
     fun `a half typed decimal does not crash the preview`() {
         // Someone typing "4." mid-keystroke must not blank the screen.
         val s = measured(quantityText = "4.")
-        assertEquals(4_000L, s.newAmountRupees)
+        assertEquals(400_000L, s.newAmountMinor)
     }
 }

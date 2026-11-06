@@ -31,7 +31,7 @@ class SettlementTest {
         orgId = "org",
         customerId = "cust",
         kind = kind,
-        amountRupees = amount,
+        amountMinor = amount,
         jobId = jobId,
         atMillis = day * 86_400_000L,
         createdAt = day * 86_400_000L,
@@ -60,7 +60,7 @@ class SettlementTest {
 
         assertEquals(1, due.size)
         assertEquals("job-b", due.first().entry.jobId)
-        assertEquals(5_000L, due.first().outstandingRupees)
+        assertEquals(5_000L, due.first().outstandingMinor)
     }
 
     @Test
@@ -69,7 +69,7 @@ class SettlementTest {
         val due = outstandingCharges(entries)
 
         assertEquals(1, due.size)
-        assertEquals(3_000L, due.first().outstandingRupees)
+        assertEquals(3_000L, due.first().outstandingMinor)
     }
 
     @Test
@@ -99,7 +99,7 @@ class SettlementTest {
         // 6,000 clears the 2,400 opening and 3,600 of the job.
         assertEquals(1, due.size)
         assertEquals("job-a", due.first().entry.jobId)
-        assertEquals(3_600L, due.first().outstandingRupees)
+        assertEquals(3_600L, due.first().outstandingMinor)
     }
 
     @Test
@@ -112,8 +112,8 @@ class SettlementTest {
         val due = outstandingCharges(entries)
 
         assertEquals(2, due.size)
-        assertEquals(3_000L, due.first { it.entry.jobId == "job-a" }.outstandingRupees)
-        assertEquals(4_000L, due.first { it.entry.jobId == "job-b" }.outstandingRupees)
+        assertEquals(3_000L, due.first { it.entry.jobId == "job-a" }.outstandingMinor)
+        assertEquals(4_000L, due.first { it.entry.jobId == "job-b" }.outstandingMinor)
     }
 
     @Test
@@ -155,7 +155,7 @@ class SettlementTest {
 
         assertEquals(2, due.size)
         assertEquals(listOf("levelling", "rotavator-oct"), due.map { it.entry.jobId })
-        assertEquals(7_400L, due.sumOf { it.outstandingRupees })
+        assertEquals(7_400L, due.sumOf { it.outstandingMinor })
         assertEquals(188 * 86_400_000L, oldestUnpaidAt(entries))
     }
 
@@ -172,11 +172,11 @@ class SettlementTest {
 
         assertEquals(2, cleared.size)
         assertEquals("harvest", cleared[0].entry.jobId)
-        assertEquals(7_200L, cleared[0].clearedRupees)
+        assertEquals(7_200L, cleared[0].clearedMinor)
         assertTrue(cleared[0].fully)
 
         assertEquals("rotavator", cleared[1].entry.jobId)
-        assertEquals("the rest goes against the next one", 1_800L, cleared[1].clearedRupees)
+        assertEquals("the rest goes against the next one", 1_800L, cleared[1].clearedMinor)
         assertFalse("and does not finish it", cleared[1].fully)
     }
 
@@ -192,7 +192,7 @@ class SettlementTest {
         val cleared = com.example.fieldtrack.feature.customer.clearedBy(entries, 5_000)
 
         assertEquals(1, cleared.size)
-        assertEquals("the job takes what it is owed and no more", 3_000L, cleared[0].clearedRupees)
+        assertEquals("the job takes what it is owed and no more", 3_000L, cleared[0].clearedMinor)
     }
 
     @Test

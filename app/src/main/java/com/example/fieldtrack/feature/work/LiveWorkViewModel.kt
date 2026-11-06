@@ -33,8 +33,8 @@ data class LiveWorkState(
     val billingMode: BillingMode = BillingMode.PerAcre,
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantity: Double = 0.0,
-    val rateRupees: Long = 0,
-    val amountRupees: Long = 0,
+    val rateMinor: Long = 0,
+    val amountMinor: Long = 0,
     val elapsedSeconds: Long = 0,
     val running: Boolean = true,
     val startedAt: Long? = null,
@@ -110,7 +110,7 @@ class LiveWorkViewModel(
             // Hourly work bills from the clock, so the hero figure and the money
             // shown here must track the timer rather than a stored quantity.
             val quantity = app.workRepository.billableQuantity(job, now)
-            val amount = app.workRepository.billableRupees(job, now)
+            val amount = app.workRepository.billableMinor(job, now)
 
             LiveWorkState(
                 loaded = true,
@@ -120,8 +120,8 @@ class LiveWorkViewModel(
                 billingMode = job.billingMode,
                 unit = job.unit,
                 quantity = quantity,
-                rateRupees = job.rateRupees,
-                amountRupees = amount,
+                rateMinor = job.rateMinor,
+                amountMinor = amount,
                 elapsedSeconds = elapsed,
                 running = job.status == JobStatus.Running,
                 startedAt = job.startedAt,
@@ -170,14 +170,14 @@ class LiveWorkViewModel(
         app.workRepository.setQuantity(it.orgId, jobId, value)
     }
 
-    fun setRate(rupees: Long) = withSession { app.workRepository.setRate(it.orgId, jobId, rupees) }
+    fun setRate(amountMinor: Long) = withSession { app.workRepository.setRate(it.orgId, jobId, amountMinor) }
 
     fun addNote(note: String) = withSession {
         if (note.isNotBlank()) app.workRepository.addNote(it.orgId, jobId, note.trim())
     }
 
-    fun addFuel(litres: Double, costRupees: Long) = withSession {
-        app.workRepository.addFuel(it.orgId, jobId, litres, costRupees, it.personId)
+    fun addFuel(litres: Double, costMinor: Long) = withSession {
+        app.workRepository.addFuel(it.orgId, jobId, litres, costMinor, it.personId)
     }
 
     fun reportBreakdown(category: BreakdownCategory, note: String?) = withSession {

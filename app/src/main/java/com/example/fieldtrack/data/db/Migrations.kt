@@ -2,6 +2,8 @@ package com.example.fieldtrack.data.db
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Schema changes, written out rather than fallen back from.
@@ -369,8 +371,179 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
 }
 
 /** Every migration, in order. Add to this list and the builder picks it up. */
+/**
+ * Money moves from whole rupees to minor units, and a business gets a currency.
+ *
+ * Every amount is multiplied by 100 (a rupee is 100 paise) and the columns drop
+ * their `Rupees` names for `Minor`. SQLite on the oldest supported phones cannot
+ * rename a column, so each table that holds money is rebuilt: made again under its
+ * new shape, filled from the old one with the amounts scaled, then swapped in.
+ *
+ * Three more things travel with it:
+ *  - every business so far kept its books in rupees, so existing rows get `INR` and a
+ *    whole-rupee rounding step, and each job is stamped with that step;
+ *  - the price of each trip, and of a rate change, lives in a job event's decimal
+ *    `numericValue` among litres and seconds, and only those three kinds of event are
+ *    scaled;
+ *  - changes queued on this phone and not yet sent carry the old field names, and are
+ *    rewritten, or they would reach the server in the shape it no longer reads.
+ */
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE organisations ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'INR'")
+        db.execSQL("ALTER TABLE organisations ADD COLUMN moneyStepMinor INTEGER NOT NULL DEFAULT 100")
+
+        rebuild(
+            db,
+            table = "payouts",
+            create = "CREATE TABLE IF NOT EXISTS `payouts_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `atMillis` INTEGER NOT NULL, `covers` TEXT NOT NULL, `toPersonId` TEXT, `toName` TEXT, `headcount` INTEGER NOT NULL, `jobId` TEXT, `jobCostId` TEXT, `method` TEXT, `note` TEXT, `byPersonId` TEXT, `createdAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, `deviceId` TEXT, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_payouts_orgId` ON `payouts` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_payouts_jobId` ON `payouts` (`jobId`)"
+            ),
+            fromOld = mapOf("amountMinor" to "amountRupees"),
+        )
+        rebuild(
+            db,
+            table = "job_costs",
+            create = "CREATE TABLE IF NOT EXISTS `job_costs_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `jobId` TEXT NOT NULL, `kind` TEXT NOT NULL, `headcount` INTEGER, `amountMinor` INTEGER, `note` TEXT, `byPersonId` TEXT, `atMillis` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, `deviceId` TEXT, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_job_costs_orgId` ON `job_costs` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_job_costs_jobId` ON `job_costs` (`jobId`)"
+            ),
+            fromOld = mapOf("amountMinor" to "amountRupees"),
+        )
+        rebuild(
+            db,
+            table = "machine_finance",
+            create = "CREATE TABLE IF NOT EXISTS `machine_finance_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `monthlyMinor` INTEGER, `hoursPerYear` INTEGER, `updatedAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_machine_finance_orgId` ON `machine_finance` (`orgId`)"
+            ),
+            fromOld = mapOf("monthlyMinor" to "monthlyRupees"),
+        )
+        rebuild(
+            db,
+            table = "fuel_entries",
+            create = "CREATE TABLE IF NOT EXISTS `fuel_entries_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `machineId` TEXT NOT NULL, `jobId` TEXT, `litres` REAL NOT NULL, `costMinor` INTEGER NOT NULL, `atMillis` INTEGER NOT NULL, `byPersonId` TEXT, `syncState` TEXT NOT NULL, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_fuel_entries_orgId` ON `fuel_entries` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_fuel_entries_machineId` ON `fuel_entries` (`machineId`)",
+            "CREATE INDEX IF NOT EXISTS `index_fuel_entries_jobId` ON `fuel_entries` (`jobId`)"
+            ),
+            fromOld = mapOf("costMinor" to "costRupees"),
+        )
+        rebuild(
+            db,
+            table = "service_records",
+            create = "CREATE TABLE IF NOT EXISTS `service_records_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `machineId` TEXT NOT NULL, `description` TEXT NOT NULL, `costMinor` INTEGER, `atMachineHours` REAL, `atMillis` INTEGER NOT NULL, `vendor` TEXT, `partsNote` TEXT, `syncState` TEXT NOT NULL, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_service_records_orgId` ON `service_records` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_service_records_machineId` ON `service_records` (`machineId`)"
+            ),
+            fromOld = mapOf("costMinor" to "costRupees"),
+        )
+        rebuild(
+            db,
+            table = "rates",
+            create = "CREATE TABLE IF NOT EXISTS `rates_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `workType` TEXT NOT NULL, `billingMode` TEXT NOT NULL, `unit` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `customerId` TEXT, `label` TEXT, `updatedAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_rates_orgId` ON `rates` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_rates_orgId_workType` ON `rates` (`orgId`, `workType`)"
+            ),
+            fromOld = mapOf("amountMinor" to "amountRupees"),
+        )
+        rebuild(
+            db,
+            table = "jobs",
+            create = "CREATE TABLE IF NOT EXISTS `jobs_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `customerId` TEXT NOT NULL, `fieldId` TEXT, `machineId` TEXT, `operatorPersonId` TEXT, `bookingId` TEXT, `workType` TEXT NOT NULL, `billingMode` TEXT NOT NULL, `unit` TEXT NOT NULL, `rateMinor` INTEGER NOT NULL, `stepMinor` INTEGER NOT NULL DEFAULT 100, `quantity` REAL NOT NULL, `tripTotalMinor` INTEGER NOT NULL, `elapsedSeconds` INTEGER NOT NULL, `distanceMetres` INTEGER, `status` TEXT NOT NULL, `workedAt` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, `entryMethod` TEXT NOT NULL, `startedAt` INTEGER, `completedAt` INTEGER, `runningSince` INTEGER, `note` TEXT, `billFy` TEXT, `billSeq` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, `syncState` TEXT NOT NULL, `lastWriterDeviceId` TEXT, `revision` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_jobs_orgId` ON `jobs` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_customerId` ON `jobs` (`customerId`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_machineId` ON `jobs` (`machineId`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_operatorPersonId` ON `jobs` (`operatorPersonId`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_orgId_status` ON `jobs` (`orgId`, `status`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_orgId_workedAt` ON `jobs` (`orgId`, `workedAt`)",
+            "CREATE INDEX IF NOT EXISTS `index_jobs_bookingId` ON `jobs` (`bookingId`)"
+            ),
+            fromOld = mapOf("rateMinor" to "rateRupees", "tripTotalMinor" to "tripTotalRupees", "stepMinor" to "100"),
+        )
+        rebuild(
+            db,
+            table = "ledger_entries",
+            create = "CREATE TABLE IF NOT EXISTS `ledger_entries_new` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, `customerId` TEXT NOT NULL, `kind` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `jobId` TEXT, `method` TEXT, `note` TEXT, `atMillis` INTEGER NOT NULL, `byPersonId` TEXT, `reversesEntryId` TEXT, `createdAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, `deviceId` TEXT, PRIMARY KEY(`id`))",
+            indices = listOf(
+            "CREATE INDEX IF NOT EXISTS `index_ledger_entries_orgId` ON `ledger_entries` (`orgId`)",
+            "CREATE INDEX IF NOT EXISTS `index_ledger_entries_customerId` ON `ledger_entries` (`customerId`)",
+            "CREATE INDEX IF NOT EXISTS `index_ledger_entries_jobId` ON `ledger_entries` (`jobId`)",
+            "CREATE INDEX IF NOT EXISTS `index_ledger_entries_orgId_atMillis` ON `ledger_entries` (`orgId`, `atMillis`)"
+            ),
+            fromOld = mapOf("amountMinor" to "amountRupees"),
+        )
+
+        db.execSQL(
+            "UPDATE job_events SET numericValue = numericValue * 100 " +
+                "WHERE numericValue IS NOT NULL AND type IN ('TripAdded', 'TripRemoved', 'RateChanged')"
+        )
+
+        rewriteQueuedChanges(db)
+    }
+
+    /**
+     * Makes [table] again in its new shape. [fromOld] names, for each new column that
+     * is not a straight copy, the old column to scale by 100 (or, for a value that did
+     * not exist before, the constant to start with).
+     */
+    private fun rebuild(
+        db: SupportSQLiteDatabase,
+        table: String,
+        create: String,
+        indices: List<String>,
+        fromOld: Map<String, String>,
+    ) {
+        db.execSQL(create)
+        val columns = mutableListOf<String>()
+        db.query("PRAGMA table_info(`${table}_new`)").use { c ->
+            while (c.moveToNext()) columns += c.getString(c.getColumnIndexOrThrow("name"))
+        }
+        val select = columns.joinToString(", ") { column ->
+            val old = fromOld[column]
+            when {
+                old == null -> "`$column`"
+                old.all { it.isDigit() } -> old
+                else -> "`$old` * 100"
+            }
+        }
+        db.execSQL(
+            "INSERT INTO `${table}_new` (${columns.joinToString(", ") { "`$it`" }}) " +
+                "SELECT $select FROM `$table`"
+        )
+        db.execSQL("DROP TABLE `$table`")
+        db.execSQL("ALTER TABLE `${table}_new` RENAME TO `$table`")
+        indices.forEach { db.execSQL(it) }
+    }
+
+    private fun rewriteQueuedChanges(db: SupportSQLiteDatabase) {
+        val rows = mutableListOf<Triple<Long, String, String>>()
+        db.query("SELECT seq, tableName, payloadJson FROM outbox").use { c ->
+            while (c.moveToNext()) rows += Triple(c.getLong(0), c.getString(1), c.getString(2))
+        }
+        for ((seq, table, payload) in rows) {
+            val parsed = runCatching { Json.parseToJsonElement(payload) }.getOrNull() as? JsonObject
+                ?: continue
+            val upgraded = LegacyMoney.upgrade(table, parsed, formatted = false)
+            if (upgraded != parsed) {
+                db.execSQL(
+                    "UPDATE outbox SET payloadJson = ? WHERE seq = ?",
+                    arrayOf(upgraded.toString(), seq),
+                )
+            }
+        }
+    }
+}
+
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
 )

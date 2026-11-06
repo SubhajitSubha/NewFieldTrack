@@ -45,8 +45,8 @@ data class JobDetailState(
     val billingMode: BillingMode = BillingMode.PerAcre,
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantity: Double = 0.0,
-    val rateRupees: Long = 0,
-    val amountRupees: Long = 0,
+    val rateMinor: Long = 0,
+    val amountMinor: Long = 0,
     val elapsedSeconds: Long = 0,
     val machineName: String? = null,
     val operatorName: String? = null,
@@ -60,7 +60,7 @@ data class JobDetailState(
     val canSeeMoney: Boolean = true,
     /** What this job took beyond the machine, each with what has been paid. */
     val costs: List<JobCostWithPaid> = emptyList(),
-    val fuelRupees: Long = 0,
+    val fuelMinor: Long = 0,
     val fuelLitres: Double = 0.0,
     /** False when this person may not see what people are paid. */
     val seesPeopleCost: Boolean = false,
@@ -71,7 +71,7 @@ data class JobDetailState(
      * Null where there is nothing honest to share yet, or this reader may not see
      * what the business pays. An estimate, kept apart from the figures above it.
      */
-    val machineShareRupees: Long? = null,
+    val machineShareMinor: Long? = null,
 ) {
     val live: Boolean get() = status == JobStatus.Running || status == JobStatus.Paused
     val finished: Boolean get() = status == JobStatus.Completed
@@ -88,19 +88,19 @@ data class JobDetailState(
     val labourUncounted: Boolean
         get() = costs.any { it.cost.kind == JobCostKind.Labour && it.cost.headcount == null }
 
-    val labourRupees: Long
+    val labourMinor: Long
         get() = costs.filter { it.cost.kind == JobCostKind.Labour }
-            .sumOf { it.cost.amountRupees ?: 0 }
+            .sumOf { it.cost.amountMinor ?: 0 }
 
-    val otherRupees: Long
+    val otherMinor: Long
         get() = costs.filter { it.cost.kind == JobCostKind.Other }
-            .sumOf { it.cost.amountRupees ?: 0 }
+            .sumOf { it.cost.amountMinor ?: 0 }
 
     /** What is still owed on this job. Shown beside the total, never taken off it. */
-    val owedRupees: Long get() = costs.sumOf { it.owedRupees ?: 0 }
+    val owedMinor: Long get() = costs.sumOf { it.owedMinor ?: 0 }
 
     /** Recorded by somebody who could not put a figure on it. */
-    val unpricedCount: Int get() = costs.count { it.cost.amountRupees == null }
+    val unpricedCount: Int get() = costs.count { it.cost.amountMinor == null }
 
     /**
      * Whether a total can honestly be shown.
@@ -113,14 +113,14 @@ data class JobDetailState(
     val canTotal: Boolean
         get() = canSeeMoney && seesPeopleCost && unpricedCount == 0
 
-    val costsRupees: Long get() = fuelRupees + labourRupees + otherRupees
-    val leftRupees: Long get() = amountRupees - costsRupees
+    val costsMinor: Long get() = fuelMinor + labourMinor + otherMinor
+    val leftMinor: Long get() = amountMinor - costsMinor
 
     /** What was left once the machine's share is counted too. */
-    val leftAfterMachineRupees: Long? get() = machineShareRupees?.let { leftRupees - it }
+    val leftAfterMachineMinor: Long? get() = machineShareMinor?.let { leftMinor - it }
 
     /** How much this job lost, when it did and every cost is priced. */
-    val lostRupees: Long? get() = if (canTotal && leftRupees < 0) -leftRupees else null
+    val lostMinor: Long? get() = if (canTotal && leftMinor < 0) -leftMinor else null
 }
 
 /**
@@ -135,7 +135,7 @@ data class JobDetailState(
 private data class Extras(
     val machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
     val costs: List<JobCostWithPaid>,
-    val fuelRupees: Long,
+    val fuelMinor: Long,
     val fuelLitres: Double,
     val running: Map<String, com.example.fieldtrack.data.costing.Costing.RunningCost>,
 )
@@ -159,8 +159,8 @@ class JobDetailViewModel(
                 app.db.machineDao().observeFuelSpendOnJob(s.orgId, jobId),
                 app.db.machineDao().observeFuelLitresOnJob(s.orgId, jobId),
                 app.directoryRepository.observeRunningCosts(s.orgId),
-            ) { machines, costs, fuelRupees, fuelLitres, running ->
-                Extras(machines, costs, fuelRupees, fuelLitres, running)
+            ) { machines, costs, fuelMinor, fuelLitres, running ->
+                Extras(machines, costs, fuelMinor, fuelLitres, running)
             },
         ) { job, events, customers, team, extra ->
             val machines = extra.machines
@@ -180,8 +180,8 @@ class JobDetailViewModel(
                 billingMode = job.billingMode,
                 unit = job.unit,
                 quantity = app.workRepository.billableQuantity(job),
-                rateRupees = job.rateRupees,
-                amountRupees = app.workRepository.billableRupees(job),
+                rateMinor = job.rateMinor,
+                amountMinor = app.workRepository.billableMinor(job),
                 elapsedSeconds = app.workRepository.elapsedSeconds(job),
                 machineName = machines.firstOrNull { it.id == job.machineId }?.name,
                 operatorName = operator?.displayName,
@@ -191,7 +191,7 @@ class JobDetailViewModel(
                 },
                 workedAtMillis = job.workedAt,
                 ratesVaried = job.billingMode == BillingMode.PerTrip &&
-                    job.amountRupees != Math.round(job.quantity * job.rateRupees),
+                    job.amountMinor != Math.round(job.quantity * job.rateMinor),
                 events = timelineOf(events, names),
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,
@@ -199,14 +199,14 @@ class JobDetailViewModel(
                 // in the view, so a figure this reader may not see never
                 // reaches the screen at all.
                 costs = if (seesPeople) extra.costs else extra.costs.map { row ->
-                    row.copy(cost = row.cost.copy(amountRupees = null), paidRupees = 0)
+                    row.copy(cost = row.cost.copy(amountMinor = null), paidMinor = 0)
                 },
-                machineShareRupees = if (seesPeople && s.canSeeMoney && job.status == JobStatus.Completed) {
+                machineShareMinor = if (seesPeople && s.canSeeMoney && job.status == JobStatus.Completed) {
                     job.machineId?.let { id ->
                         extra.running[id]?.let { Costing.machineShare(it, job.elapsedSeconds) }
                     }
                 } else null,
-                fuelRupees = if (s.canSeeMoney) extra.fuelRupees else 0,
+                fuelMinor = if (s.canSeeMoney) extra.fuelMinor else 0,
                 fuelLitres = extra.fuelLitres,
                 seesPeopleCost = seesPeople,
                 canRecordCost = Capability.RecordWork in s.can,

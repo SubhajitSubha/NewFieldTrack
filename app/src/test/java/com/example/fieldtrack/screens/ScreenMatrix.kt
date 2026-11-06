@@ -599,7 +599,7 @@ abstract class ScreenMatrix(
         val now = System.currentTimeMillis()
 
         val ramesh = dir.addCustomer(ORG, "Ramesh Singh", "9876543210", "Dosimana")
-        val harjit = dir.addCustomer(ORG, "Harjit Kaur", "9812345678", "Rampur", openingBalanceRupees = 2_500)
+        val harjit = dir.addCustomer(ORG, "Harjit Kaur", "9812345678", "Rampur", openingBalanceMinor = 2_500)
         dir.addCustomer(ORG, "Balbir Sandhu", null, "Kheri")
         val field = dir.addField(ORG, owner, ramesh, "Canal-side plot", 5.0, MeasureUnit.Bigha, crop = "Wheat")
 
@@ -624,7 +624,7 @@ abstract class ScreenMatrix(
         work.setQuantity(ORG, done, 4.0)
         work.complete(ORG, done, OWNER)
         val cost = ledger.recordJobCost(ORG, owner, done, JobCostKind.Labour, headcount = 4, byPersonId = OWNER, atMillis = now)
-        ledger.recordJobCost(ORG, owner, done, JobCostKind.Other, amountRupees = 120, note = "Tea", byPersonId = OWNER, atMillis = now)
+        ledger.recordJobCost(ORG, owner, done, JobCostKind.Other, amountMinor = 120, note = "Tea", byPersonId = OWNER, atMillis = now)
         ledger.recordPayment(ORG, ramesh, 2_000, PaymentMethod.Cash, byPersonId = OWNER, jobId = done)
 
         // Finished earlier in the week, by the driver.

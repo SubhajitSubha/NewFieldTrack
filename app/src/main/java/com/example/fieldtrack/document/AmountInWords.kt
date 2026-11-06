@@ -1,5 +1,8 @@
 package com.example.fieldtrack.document
 
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyStyle
+
 private val ONES = arrayOf(
     "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
@@ -25,18 +28,31 @@ private fun underThousand(value: Int): String = when {
 }
 
 /**
- * A rupee amount written out, the way it goes on the bottom of an Indian bill.
+ * A bill's total written out, the way it goes on the bottom of an Indian bill.
  *
  * Grouped in lakh and crore rather than millions, because that is how the figure is
  * read aloud here and the written line exists to be read aloud — it is what stops a
  * digit being argued over later.
  *
+ * Only rupee bills have this line. Written out in another currency or another
+ * language it would be worded wrongly, so for those it is left off (null) rather
+ * than guessed at; it returns per language as wordings are added.
+ *
  * Returns "Rupees seven thousand four hundred only".
  */
-fun rupeesInWords(amountRupees: Long): String {
-    if (amountRupees == 0L) return "Rupees zero only"
-    if (amountRupees < 0) return "Rupees ${words(-amountRupees)} in credit"
-    return "Rupees ${words(amountRupees)} only"
+fun amountInWords(amountMinor: Long, style: MoneyStyle = Money.style): String? {
+    if (style.currencyCode != "INR") return null
+    val negative = amountMinor < 0
+    val a = kotlin.math.abs(amountMinor)
+    val rupees = a / 100
+    val paise = (a % 100).toInt()
+    if (rupees == 0L && paise == 0) return "Rupees zero only"
+    val body = buildString {
+        append("Rupees ")
+        append(if (rupees == 0L) "zero" else words(rupees))
+        if (paise != 0) append(" and ${underHundred(paise)} paise")
+    }
+    return if (negative) "$body in credit" else "$body only"
 }
 
 private fun words(amount: Long): String {

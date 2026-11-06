@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.jobs
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.JobCostKind
@@ -25,8 +26,8 @@ data class JobCostState(
     val canPrice: Boolean = false,
     val saving: Boolean = false,
 ) {
-    val amountRupees: Long
-        get() = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0
+    val amountMinor: Long
+        get() = MoneyInput.parse(amountText) ?: 0
 
     /**
      * What one pair of hands came to.
@@ -36,25 +37,25 @@ data class JobCostState(
      * "about" when it does not divide evenly rather than printing a figure
      * that cannot be multiplied back.
      */
-    val eachRupees: Long?
+    val eachMinor: Long?
         get() = headcount
             // Only wages divide by heads. A tea bill split four ways is a
             // number nobody asked for, and the headcount it uses is the one
             // left over from the Labourers option this entry is not.
-            ?.takeIf { kind == JobCostKind.Labour && it > 1 && amountRupees > 0 }
-            ?.let { amountRupees / it }
+            ?.takeIf { kind == JobCostKind.Labour && it > 1 && amountMinor > 0 }
+            ?.let { amountMinor / it }
 
     val eachExact: Boolean
-        get() = headcount?.let { amountRupees % it == 0L } ?: true
+        get() = headcount?.let { amountMinor % it == 0L } ?: true
 
     val canSave: Boolean
         get() = !saving && when {
             // Nothing to say but a figure, once the cost itself is recorded.
-            existingId != null -> amountRupees > 0
+            existingId != null -> amountMinor > 0
             // Other spending with no word on what it was for is a mystery in
             // the accounts a month later, so the note is not optional.
-            canPrice && kind == JobCostKind.Other -> amountRupees > 0 && note.isNotBlank()
-            canPrice -> amountRupees > 0
+            canPrice && kind == JobCostKind.Other -> amountMinor > 0 && note.isNotBlank()
+            canPrice -> amountMinor > 0
             // A driver is only ever saying how many worked.
             else -> true
         }
@@ -94,7 +95,7 @@ class JobCostViewModel(
                     existingId = existing?.id,
                     kind = existing?.kind ?: JobCostKind.Labour,
                     headcount = existing?.headcount ?: JobCostState.DEFAULT_HEADS,
-                    amountText = existing?.amountRupees?.toString().orEmpty(),
+                    amountText = existing?.amountMinor?.let { MoneyInput.text(it) }.orEmpty(),
                     note = existing?.note.orEmpty(),
                 )
             }
@@ -113,7 +114,7 @@ class JobCostViewModel(
     fun setCounted() = _state.update { it.copy(headcount = JobCostState.DEFAULT_HEADS) }
 
     fun setAmount(value: String) = _state.update {
-        it.copy(amountText = value.filter { c -> c.isDigit() })
+        it.copy(amountText = MoneyInput.clean(value))
     }
 
     fun setNote(value: String) = _state.update { it.copy(note = value) }
@@ -139,12 +140,12 @@ class JobCostViewModel(
                 // second instalment does not re-state what the job cost.
                 existingId != null -> {
                     val before = app.db.orgDao().findJobCost(s.orgId, existingId)
-                    if (before?.amountRupees != current.amountRupees) {
+                    if (before?.amountMinor != current.amountMinor) {
                         app.ledgerRepository.priceJobCost(
                             orgId = s.orgId,
                             can = s.can,
                             costId = existingId,
-                            amountRupees = current.amountRupees,
+                            amountMinor = current.amountMinor,
                             note = note,
                         )
                     }
@@ -156,7 +157,7 @@ class JobCostViewModel(
                             orgId = s.orgId,
                             can = s.can,
                             costId = existingId,
-                            amountRupees = owed,
+                            amountMinor = owed,
                             atMillis = at,
                             byPersonId = s.personId,
                         )
@@ -167,7 +168,7 @@ class JobCostViewModel(
                     orgId = s.orgId,
                     can = s.can,
                     jobId = jobId,
-                    amountRupees = current.amountRupees,
+                    amountMinor = current.amountMinor,
                     atMillis = at,
                     byPersonId = s.personId,
                     kind = current.kind,
@@ -182,7 +183,7 @@ class JobCostViewModel(
                     kind = current.kind,
                     headcount = current.headcount.takeIf { current.kind == JobCostKind.Labour },
                     // Null, not nought, when this person may not price it.
-                    amountRupees = current.amountRupees.takeIf { current.canPrice && it > 0 },
+                    amountMinor = current.amountMinor.takeIf { current.canPrice && it > 0 },
                     note = note,
                     byPersonId = s.personId,
                     atMillis = at,

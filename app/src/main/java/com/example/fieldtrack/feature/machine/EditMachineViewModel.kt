@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.machine
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.MachineKind
@@ -42,7 +43,7 @@ class EditMachineViewModel(
             // Today's hours, which is what the meter should read if nobody has
             // touched it — shown whole, and saved only if it is changed.
             val hours = machine.hoursUsed.toLong().toString()
-            val monthly = finance?.monthlyRupees?.toString().orEmpty()
+            val monthly = finance?.monthlyMinor?.let { MoneyInput.text(it) }.orEmpty()
             val perYear = finance?.hoursPerYear?.toString().orEmpty()
             _state.update {
                 it.copy(
@@ -69,7 +70,7 @@ class EditMachineViewModel(
     fun setServiceEvery(v: String) =
         _state.update { it.copy(serviceEveryText = v.filter { c -> c.isDigit() }) }
     fun setMonthly(v: String) =
-        _state.update { it.copy(monthlyText = v.filter { c -> c.isDigit() }.take(7)) }
+        _state.update { it.copy(monthlyText = MoneyInput.clean(v)) }
     fun setHoursPerYear(v: String) =
         _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
 
@@ -101,7 +102,7 @@ class EditMachineViewModel(
                     orgId = s.orgId,
                     can = s.can,
                     machineId = machineId,
-                    monthlyRupees = current.monthlyText.toLongOrNull(),
+                    monthlyMinor = MoneyInput.parse(current.monthlyText),
                     hoursPerYear = current.hoursPerYearText.toIntOrNull(),
                 )
             }

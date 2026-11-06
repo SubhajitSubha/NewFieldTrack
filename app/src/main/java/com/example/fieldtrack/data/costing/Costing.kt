@@ -55,15 +55,21 @@ object Costing {
         val dieselPerHour: Double,
         val upkeepPerHour: Double,
         val loan: Loan,
+        /**
+         * The business's rounding step, in minor units. Every figure worked out here is
+         * rounded to it, so a rupee business sees whole rupees that add up on paper and
+         * a business that deals in cents sees cents.
+         */
+        val stepMinor: Long = 1,
     ) {
         /** Enough hours behind it to be worth saying. */
         val enough: Boolean get() = hours >= MIN_HOURS
 
-        /** Whole rupees, each rounded alone; [Rounded.total] is their sum. */
+        /** Each rounded to the step alone; [Rounded.total] is their sum. */
         fun rounded() = Rounded(
-            diesel = dieselPerHour.roundToLong(),
-            upkeep = upkeepPerHour.roundToLong(),
-            loan = (loan as? Loan.Counted)?.perHour?.roundToLong(),
+            diesel = dieselPerHour.toStep(stepMinor),
+            upkeep = upkeepPerHour.toStep(stepMinor),
+            loan = (loan as? Loan.Counted)?.perHour?.toStep(stepMinor),
         )
     }
 
@@ -77,14 +83,15 @@ object Costing {
      * [facts] null means the machine is unknown here; the result then has no hours
      * and says nothing.
      */
-    fun running(facts: RunningFacts?, finance: MachineFinanceEntity?): RunningCost {
+    fun running(facts: RunningFacts?, finance: MachineFinanceEntity?, stepMinor: Long = 1): RunningCost {
         val hours = (facts?.seconds ?: 0L) / 3600.0
         val enough = hours >= MIN_HOURS
         return RunningCost(
             hours = hours,
-            dieselPerHour = if (enough) facts!!.fuelRupees / hours else 0.0,
-            upkeepPerHour = if (enough) facts!!.serviceRupees / hours else 0.0,
+            dieselPerHour = if (enough) facts!!.fuelMinor / hours else 0.0,
+            upkeepPerHour = if (enough) facts!!.serviceMinor / hours else 0.0,
             loan = loanShare(finance, (facts?.yearSeconds ?: 0L) / 3600.0),
+            stepMinor = stepMinor,
         )
     }
 
@@ -97,7 +104,7 @@ object Costing {
      * guessing at one would put an invented figure into every cost after it.
      */
     fun loanShare(finance: MachineFinanceEntity?, hoursLastYear: Double): Loan {
-        val monthly = finance?.monthlyRupees?.takeIf { it > 0 } ?: return Loan.NotEntered
+        val monthly = finance?.monthlyMinor?.takeIf { it > 0 } ?: return Loan.NotEntered
         val yearly = finance.hoursPerYear?.takeIf { it > 0 }?.toDouble()
             ?: hoursLastYear.takeIf { it >= MIN_YEAR_HOURS }
             ?: return Loan.CannotSpreadYet
@@ -109,13 +116,13 @@ object Costing {
         val workType: String,
         val unit: com.example.fieldtrack.data.db.MeasureUnit,
         val unitsPerHour: Double,
-        val costRupees: Long,
+        val costMinor: Long,
         /** What this kind of work has billed per unit, on average. */
-        val billedRupees: Long,
+        val billedMinor: Long,
         val jobs: Int,
     ) {
         /** Billed less cost, from the two rounded figures so they subtract on paper. */
-        val leftRupees: Long get() = billedRupees - costRupees
+        val leftMinor: Long get() = billedMinor - costMinor
     }
 
     /**
@@ -130,13 +137,13 @@ object Costing {
         val hours = kind.seconds / 3600.0
         if (hours < MIN_KIND_HOURS || kind.timedQuantity <= 0.0 || kind.quantity <= 0.0) return null
         val unitsPerHour = kind.timedQuantity / hours
-        val billed = (kind.earnedRupees / kind.quantity).roundToLong()
+        val billed = (kind.earnedMinor / kind.quantity).toStep(cost.stepMinor)
         return UnitCost(
             workType = kind.workType,
             unit = kind.unit,
             unitsPerHour = unitsPerHour,
-            costRupees = (cost.rounded().total / unitsPerHour).roundToLong(),
-            billedRupees = billed,
+            costMinor = (cost.rounded().total / unitsPerHour).toStep(cost.stepMinor),
+            billedMinor = billed,
             jobs = kind.jobs,
         )
     }
@@ -153,13 +160,19 @@ object Costing {
         if (!cost.enough || jobSeconds <= 0) return null
         val parts = cost.rounded()
         val perHour = parts.upkeep + (parts.loan ?: 0)
-        return (perHour * jobSeconds / 3600.0).roundToLong()
+        return (perHour * jobSeconds / 3600.0).toStep(cost.stepMinor)
     }
 
     /** Loan instalments falling in a stretch of time, for a season's total. */
-    fun instalmentsBetween(monthlyTotal: Long, fromMillis: Long, toMillis: Long): Long {
+    fun instalmentsBetween(monthlyTotal: Long, fromMillis: Long, toMillis: Long, stepMinor: Long = 1): Long {
         if (monthlyTotal <= 0 || toMillis <= fromMillis) return 0
-        return (monthlyTotal * (toMillis - fromMillis) / MONTH_MILLIS).roundToLong()
+        return (monthlyTotal * (toMillis - fromMillis) / MONTH_MILLIS).toStep(stepMinor)
+    }
+
+    /** To the nearest [step], which is how a business that never deals in paise counts. */
+    private fun Double.toStep(step: Long): Long {
+        val s = step.coerceAtLeast(1)
+        return (this / s).roundToLong() * s
     }
 
     /** A machine drinking more than it used to. */

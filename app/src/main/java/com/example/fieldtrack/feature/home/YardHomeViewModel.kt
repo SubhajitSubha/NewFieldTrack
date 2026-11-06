@@ -53,16 +53,16 @@ data class YardHomeState(
     val machinesTotal: Int = 0,
     val machinesWorking: Int = 0,
     val machinesDown: Int = 0,
-    val earnedTodayRupees: Long = 0,
-    val collectedTodayRupees: Long = 0,
+    val earnedTodayMinor: Long = 0,
+    val collectedTodayMinor: Long = 0,
     val jobsToday: Int = 0,
     val areaToday: Double = 0.0,
     val areaUnit: MeasureUnit = MeasureUnit.Acre,
     /** Rupees earned per day when money may be seen; machine hours per day when not. */
     val week: List<Double> = List(7) { 0.0 },
-    val owedRupees: Long = 0,
+    val owedMinor: Long = 0,
     val owingCustomers: Int = 0,
-    val seasonEarnedRupees: Long = 0,
+    val seasonEarnedMinor: Long = 0,
     val seasonFromMillis: Long = 0,
     /** What the business calls this season, if it has named them. */
     val seasonName: String? = null,
@@ -121,7 +121,7 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val people = w.team.associate { it.personId to it.displayName }
             val machines = yard.machines.associateBy { it.id }
             val today = w.week.filter { it.workedAt >= dayStart }
-            val owed = books.balances.filter { it.balanceRupees > 0 }
+            val owed = books.balances.filter { it.balanceMinor > 0 }
             val mine = w.live.firstOrNull { it.operatorPersonId == s.personId }
 
             YardHomeState(
@@ -155,19 +155,19 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 machinesTotal = yard.machines.size,
                 machinesWorking = yard.machines.count { it.status == MachineStatus.Working },
                 machinesDown = yard.machines.count { it.status == MachineStatus.Down },
-                earnedTodayRupees = if (s.canSeeMoney) today.sumOf { it.amountRupees } else 0,
-                collectedTodayRupees = collectedToday,
+                earnedTodayMinor = if (s.canSeeMoney) today.sumOf { it.amountMinor } else 0,
+                collectedTodayMinor = collectedToday,
                 jobsToday = today.size,
                 areaToday = landWorked(today, s.landUnit).first,
                 areaUnit = landWorked(today, s.landUnit).second,
                 week = if (s.canSeeMoney) {
-                    lastSevenDays(w.week, now, { it.workedAt }) { it.amountRupees.toDouble() }
+                    lastSevenDays(w.week, now, { it.workedAt }) { it.amountMinor.toDouble() }
                 } else {
                     lastSevenDays(w.week, now, { it.workedAt }) { it.elapsedSeconds / 3600.0 }
                 },
-                owedRupees = owed.sumOf { it.balanceRupees },
+                owedMinor = owed.sumOf { it.balanceMinor },
                 owingCustomers = owed.size,
-                seasonEarnedRupees = books.seasonEarned,
+                seasonEarnedMinor = books.seasonEarned,
                 seasonFromMillis = seasonFrom,
                 seasonName = season.name,
                 doneToday = today.map { job ->
@@ -178,11 +178,11 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         amountDone = job.quantity,
                         unit = job.unit,
                         elapsedSeconds = job.elapsedSeconds,
-                        amountRupees = job.amountRupees,
+                        amountMinor = job.amountMinor,
                         machineKind = machines[job.machineId]?.kind ?: MachineKind.Other,
                         byName = people[job.operatorPersonId],
                         sent = job.syncState == com.example.fieldtrack.data.db.SyncState.Synced,
-                        lostRupees = books.lostByJob[job.id],
+                        lostMinor = books.lostByJob[job.id],
                     )
                 },
                 ownJob = mine?.toOpenJob(

@@ -21,7 +21,7 @@ data class FieldJobRow(
     val workedAtMillis: Long,
     val quantity: Double,
     val unit: MeasureUnit,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 data class FieldDetailState(
@@ -36,7 +36,7 @@ data class FieldDetailState(
     val crop: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val earnedRupees: Long = 0,
+    val earnedMinor: Long = 0,
     val jobs: List<FieldJobRow> = emptyList(),
     val canSeeMoney: Boolean = false,
     val canEdit: Boolean = false,
@@ -86,7 +86,7 @@ class FieldDetailViewModel(
                     // Completed only. A job still running has earned nothing
                     // yet, and counting it would show a field as having paid
                     // for work that is still happening.
-                    earnedRupees = billed.sumOf { it.amountRupees },
+                    earnedMinor = billed.sumOf { it.amountMinor },
                     jobs = here.sortedByDescending { it.workedAt }.map { job ->
                         FieldJobRow(
                             id = job.id,
@@ -94,7 +94,7 @@ class FieldDetailViewModel(
                             workedAtMillis = job.workedAt,
                             quantity = app.workRepository.billableQuantity(job),
                             unit = job.unit,
-                            amountRupees = app.workRepository.billableRupees(job),
+                            amountMinor = app.workRepository.billableMinor(job),
                         )
                     },
                     canSeeMoney = s.canSeeMoney,

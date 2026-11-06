@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.money
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.JobCostKind
@@ -38,10 +39,10 @@ data class PayOutState(
     val mayPay: Boolean = false,
     val busy: Boolean = false,
 ) {
-    val amountRupees: Long get() = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
     val payingLabourers: Boolean get() = toPersonId == null
     val canSave: Boolean
-        get() = mayPay && !busy && amountRupees > 0 &&
+        get() = mayPay && !busy && amountMinor > 0 &&
             (covers != PayoutCovers.Job || jobId != null)
 }
 
@@ -77,7 +78,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setPerson(personId: String?) = form.update { it.copy(toPersonId = personId) }
     fun setHeadcount(n: Int) = form.update { it.copy(headcount = n.coerceIn(1, 99)) }
-    fun setAmount(text: String) = form.update { it.copy(amountText = text.filter { c -> c.isDigit() }) }
+    fun setAmount(text: String) = form.update { it.copy(amountText = MoneyInput.clean(text)) }
     fun setCovers(covers: PayoutCovers) = form.update { it.copy(covers = covers) }
     fun setJob(jobId: String?) = form.update { it.copy(jobId = jobId) }
     fun setMethod(method: PaymentMethod) = form.update { it.copy(method = method) }
@@ -102,7 +103,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     orgId = s.orgId,
                     can = s.can,
                     jobId = jobId,
-                    amountRupees = now.amountRupees,
+                    amountMinor = now.amountMinor,
                     atMillis = at,
                     byPersonId = s.personId,
                     kind = JobCostKind.Labour,
@@ -114,7 +115,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 app.ledgerRepository.recordPayout(
                     orgId = s.orgId,
                     can = s.can,
-                    amountRupees = now.amountRupees,
+                    amountMinor = now.amountMinor,
                     covers = now.covers,
                     atMillis = at,
                     byPersonId = s.personId,

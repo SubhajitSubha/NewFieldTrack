@@ -1,5 +1,7 @@
 package com.example.fieldtrack.data.session
 
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyStyle
 import android.content.Context
 import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.FieldTrackDatabase
@@ -48,8 +50,14 @@ data class Session(
     val landUnit: MeasureUnit,
     /** What this person may change here. Computed from their membership on load. */
     val can: Capabilities,
+    /** The business's currency, and how its bills are rounded. */
+    val currencyCode: String = "INR",
+    val moneyStepMinor: Long = 100,
 ) {
     val canSeeMoney: Boolean get() = Capability.SeeMoney in can
+
+    /** The business's money, written the way this person reads it. */
+    val money: MoneyStyle get() = MoneyStyle.of(currencyCode, moneyStepMinor, Money.grouping)
 }
 
 /** What the app should show on launch. */
@@ -73,7 +81,14 @@ sealed interface Startup {
      * way they go next: one types a code, the other sets up their own business.
      */
     data object NeedsOnboarding : Startup
-    data class Ready(val session: Session) : Startup
+    data class Ready(val session: Session) : Startup {
+        init {
+            // Whoever the app is ready for is whose money the screens write: a
+            // business with its own currency shows in it from the first frame, and
+            // switching business changes every figure at once.
+            Money.style = session.money
+        }
+    }
 }
 
 class SessionStore(
@@ -170,6 +185,8 @@ class SessionStore(
             role = membership.role,
             landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
             can = Capabilities.of(membership),
+            currencyCode = org?.currencyCode ?: "INR",
+            moneyStepMinor = org?.moneyStepMinor ?: 100L,
         )
         _startup.value = Startup.Ready(session)
         return session
@@ -839,6 +856,8 @@ class SessionStore(
             role = membership.role,
             landUnit = org?.defaultLandUnit ?: session.landUnit,
             can = Capabilities.of(membership),
+            currencyCode = org?.currencyCode ?: session.currencyCode,
+            moneyStepMinor = org?.moneyStepMinor ?: session.moneyStepMinor,
         )
         if (fresh == session) return
         // Only if nothing moved while the rows were being read: a switch of business

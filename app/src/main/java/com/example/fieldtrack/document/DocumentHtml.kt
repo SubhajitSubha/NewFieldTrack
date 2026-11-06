@@ -1,6 +1,8 @@
 package com.example.fieldtrack.document
 
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyStyle
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.data.auth.formatIndianPhone
 
 /**
@@ -30,13 +32,27 @@ object DocumentHtml {
     private const val DUE_WASH = "#FBE9E7"
     private const val DUE_LINE = "#F0CFC9"
 
-    fun render(document: Document): String = page(
-        when (document) {
-            is Document.Bill -> bill(document)
-            is Document.Statement -> statement(document)
-            is Document.Dues -> dues(document)
+    /**
+     * The style of the document being written on this thread. A bill is always in its
+     * own business's currency, so it is carried here for the length of one render and
+     * never read from whatever business happens to be on screen.
+     */
+    private val styleInUse = ThreadLocal<MoneyStyle>()
+
+    fun render(document: Document): String {
+        styleInUse.set(document.style)
+        try {
+            return page(
+                when (document) {
+                    is Document.Bill -> bill(document)
+                    is Document.Statement -> statement(document)
+                    is Document.Dues -> dues(document)
+                }
+            )
+        } finally {
+            styleInUse.remove()
         }
-    )
+    }
 
     // ----------------------------------------------------------------- documents
 
@@ -69,17 +85,17 @@ object DocumentHtml {
             append("</td>")
             append("<td class='r num'>${esc(line.measure.orEmpty())}</td>")
             append("<td class='r num'>${esc(line.rate.orEmpty())}</td>")
-            append("<td class='r num strong'>${money(line.amountRupees)}</td>")
+            append("<td class='r num strong'>${money(line.amountMinor)}</td>")
             append("</tr>")
         }
         append("</tbody></table>")
 
         append("<div class='gap'></div><div class='totals'>")
-        append(totalRow("This bill", d.thisBillRupees))
-        if (d.previousBalanceRupees != 0L) {
-            append(totalRow("Balance before this bill", d.previousBalanceRupees))
+        append(totalRow("This bill", d.thisBillMinor))
+        if (d.previousBalanceMinor != 0L) {
+            append(totalRow("Balance before this bill", d.previousBalanceMinor))
             append("<div class='hr'></div>")
-            append(totalRow("Total", d.totalRupees, strong = true))
+            append(totalRow("Total", d.totalMinor, strong = true))
         }
         append("</div>")
 
@@ -91,14 +107,14 @@ object DocumentHtml {
                 append(
                     "<tr><td class='num w150' style='color:$INK_2'>${esc(it.date)}</td>" +
                         "<td>${esc(it.method)}</td>" +
-                        "<td class='r num strong' style='color:$GREEN_DARK'>&minus; ${money(it.amountRupees)}</td></tr>"
+                        "<td class='r num strong' style='color:$GREEN_DARK'>&minus; ${money(it.amountMinor)}</td></tr>"
                 )
             }
             append("</tbody></table>")
         }
 
         append("<div class='gap'></div>")
-        append(dueBand("BALANCE DUE", d.balanceInWords, d.balanceRupees))
+        append(dueBand("BALANCE DUE", d.balanceInWords, d.balanceMinor))
         append(payBlock(d.letterhead))
         append("<div class='spacer'></div>")
         append(signature(d.letterhead.businessName))
@@ -123,10 +139,10 @@ object DocumentHtml {
         if (!d.paymentsOnly) {
             append("<div class='gap'></div>")
             append("<div class='summary'>")
-            append(summaryCell("OPENING", d.openingRupees))
-            append(summaryCell("WORK BILLED", d.billedRupees))
-            append(summaryCell("RECEIVED", d.receivedRupees, color = GREEN_DARK))
-            append(summaryCell("STILL DUE", d.closingRupees, color = DUE, wash = true, last = true))
+            append(summaryCell("OPENING", d.openingMinor))
+            append(summaryCell("WORK BILLED", d.billedMinor))
+            append(summaryCell("RECEIVED", d.receivedMinor, color = GREEN_DARK))
+            append(summaryCell("STILL DUE", d.closingMinor, color = DUE, wash = true, last = true))
             append("</div>")
         }
 
@@ -142,10 +158,10 @@ object DocumentHtml {
             append("<td class='nowrap' style='color:$INK_2'>${esc(line.date)}</td>")
             append("<td${if (line.isBroughtForward) " class='italic'" else ""}>${esc(line.detail)}</td>")
             if (!d.paymentsOnly) {
-                append("<td class='r'>${line.chargedRupees?.let { money(it) }.orEmpty()}</td>")
+                append("<td class='r'>${line.chargedMinor?.let { money(it) }.orEmpty()}</td>")
             }
-            append("<td class='r strong' style='color:$GREEN_DARK'>${line.paidRupees?.let { money(it) }.orEmpty()}</td>")
-            append("<td class='r strong'>${money(line.balanceAfterRupees)}</td>")
+            append("<td class='r strong' style='color:$GREEN_DARK'>${line.paidMinor?.let { money(it) }.orEmpty()}</td>")
+            append("<td class='r strong'>${money(line.balanceAfterMinor)}</td>")
             append("</tr>")
         }
         append("</tbody></table>")
@@ -153,9 +169,9 @@ object DocumentHtml {
         append("<div class='gap'></div>")
         append(
             if (d.paymentsOnly) {
-                paidBand("TOTAL RECEIVED", d.closingInWords, d.closingRupees)
+                paidBand("TOTAL RECEIVED", d.closingInWords, d.closingMinor)
             } else {
-                dueBand("BALANCE ON ${d.printedLabel.uppercase()}", d.closingInWords, d.closingRupees)
+                dueBand("BALANCE ON ${d.printedLabel.uppercase()}", d.closingInWords, d.closingMinor)
             }
         )
         append("<div class='spacer'></div>")
@@ -178,7 +194,7 @@ object DocumentHtml {
         )
         append(
             "<div class='col r'>${label("STILL TO PAY", DUE_DARK)}" +
-                "<div class='hero-due'>${money(d.totalRupees)}</div></div>"
+                "<div class='hero-due'>${money(d.totalMinor)}</div></div>"
         )
         append("</div>")
 
@@ -194,7 +210,7 @@ object DocumentHtml {
             line.detail?.let { append("<div class='cell-sub'>${esc(it)}</div>") }
             append("</td>")
             append("<td class='r'>${esc(line.age)}</td>")
-            append("<td class='r strong'>${money(line.amountRupees)}</td>")
+            append("<td class='r strong'>${money(line.amountMinor)}</td>")
             append("</tr>")
         }
         append("</tbody></table>")
@@ -209,7 +225,7 @@ object DocumentHtml {
         }
 
         append("<div class='gap'></div>")
-        append(dueBand("TOTAL STILL TO PAY", d.totalInWords, d.totalRupees))
+        append(dueBand("TOTAL STILL TO PAY", d.totalInWords, d.totalMinor))
         append(payBlock(d.letterhead))
         append("<div class='spacer'></div>")
         append(
@@ -259,15 +275,19 @@ object DocumentHtml {
         "<div class='sum-value' style='color:$color'>${money(amount)}</div></div>"
 
     /** The same band in green, for a page that is good news. */
-    private fun paidBand(title: String, words: String, amount: Long) =
+    private fun paidBand(title: String, words: String?, amount: Long) =
         "<div class='paid-band'><div><div class='paid-title'>${esc(title)}</div>" +
-            "<div class='due-words'>${esc(words)}</div></div>" +
+            wordsLine(words) +
             "<div class='paid-amount'>${money(amount)}</div></div>"
 
-    private fun dueBand(title: String, words: String, amount: Long) =
+    private fun dueBand(title: String, words: String?, amount: Long) =
         "<div class='due-band'><div><div class='due-title'>${esc(title)}</div>" +
-            "<div class='due-words'>${esc(words)}</div></div>" +
+            wordsLine(words) +
             "<div class='due-amount'>${money(amount)}</div></div>"
+
+    /** The amount in words, left off where there is no wording for the currency. */
+    private fun wordsLine(words: String?) =
+        if (words == null) "</div>" else "<div class='due-words'>${esc(words)}</div></div>"
 
     private fun payBlock(l: Letterhead): String {
         val upi = l.upiId ?: return ""
@@ -294,7 +314,7 @@ object DocumentHtml {
             "stroke-linecap='round' stroke-linejoin='round'><circle cx='22' cy='21' r='8'/>" +
             "<circle cx='7' cy='25' r='4'/><path d='M3 21v-6h6V8h7v7'/><path d='M16 15h7'/></svg>"
 
-    private fun money(amount: Long) = esc(rupees(amount))
+    private fun money(amount: Long) = esc(money(amount, styleInUse.get() ?: Money.style))
 
     /** The customer's name goes on a page unescaped at your peril. */
     private fun esc(text: String): String = text

@@ -27,7 +27,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -99,7 +99,7 @@ fun FieldDetailScreen(
                     )
                     Spacer(Modifier.height(3.dp))
                     Text(
-                        text = rupees(state.earnedRupees),
+                        text = money(state.earnedMinor),
                         style = FieldTrackTheme.type.moneyHero,
                         color = colors.onDark,
                     )
@@ -173,7 +173,7 @@ fun FieldDetailScreen(
                         }
                         if (state.canSeeMoney) {
                             Text(
-                                text = rupees(job.amountRupees),
+                                text = money(job.amountMinor),
                                 style = FieldTrackTheme.type.sectionTitle,
                                 color = colors.ink,
                             )

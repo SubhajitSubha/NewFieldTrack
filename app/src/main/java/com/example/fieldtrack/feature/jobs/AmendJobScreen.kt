@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.jobs
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +30,7 @@ import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.labelRes
 
@@ -108,14 +109,14 @@ fun AmendJobScreen(
                 label = stringResource(R.string.amend_rate),
                 value = state.rateText,
                 onValueChange = onRate,
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
-                helper = stringResource(R.string.amend_was, rupees(state.originalRateRupees)),
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+                helper = stringResource(R.string.amend_was, money(state.originalRateMinor)),
                 focused = state.billingMode == BillingMode.Fixed,
             )
 
             // Only asked for when money actually moves — see AmendJobState.canSave.
-            if (state.deltaRupees != 0L) {
+            if (state.deltaMinor != 0L) {
                 FtTextField(
                     label = stringResource(R.string.amend_reason),
                     value = state.reason,
@@ -142,7 +143,7 @@ fun AmendJobScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             ChangeSummary(state)
-            if (state.deltaRupees != 0L && state.reason.isBlank()) {
+            if (state.deltaMinor != 0L && state.reason.isBlank()) {
                 Text(
                     text = stringResource(R.string.amend_reason_required),
                     style = FieldTrackTheme.type.caption,
@@ -162,7 +163,7 @@ fun AmendJobScreen(
 @Composable
 private fun ChangeSummary(state: AmendJobState) {
     val colors = FieldTrackTheme.colors
-    val delta = state.deltaRupees
+    val delta = state.deltaMinor
     val unchanged = delta == 0L
 
     FtCard(
@@ -190,12 +191,12 @@ private fun ChangeSummary(state: AmendJobState) {
                         stringResource(
                             if (delta > 0) R.string.amend_now_owes_more
                             else R.string.amend_now_owes_less,
-                            rupees(kotlin.math.abs(delta)),
+                            money(kotlin.math.abs(delta)),
                         ),
                         color = if (delta > 0) colors.dueInk else colors.primaryPressed,
                     )
                     FtMoney(
-                        amount = state.newAmountRupees,
+                        amount = state.newAmountMinor,
                         size = FtMoneySize.Large,
                         tone = if (delta > 0) FtMoneyTone.Due else FtMoneyTone.Received,
                         modifier = Modifier.padding(top = 3.dp),
@@ -204,7 +205,7 @@ private fun ChangeSummary(state: AmendJobState) {
                 Text(
                     text = stringResource(
                         R.string.amend_was,
-                        rupees(state.originalAmountRupees),
+                        money(state.originalAmountMinor),
                     ),
                     style = FieldTrackTheme.type.caption,
                     color = colors.inkTertiary,

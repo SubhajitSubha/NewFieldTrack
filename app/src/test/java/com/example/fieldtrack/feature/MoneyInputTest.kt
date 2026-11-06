@@ -14,7 +14,7 @@ class MoneyInputTest {
     private fun amend(quantity: String, rate: String = "1000", mode: BillingMode = BillingMode.PerAcre) =
         AmendJobState(
             loaded = true, billingMode = mode, unit = MeasureUnit.Acre,
-            originalQuantity = 4.0, originalRateRupees = 1_000, originalAmountRupees = 4_000,
+            originalQuantity = 4.0, originalRateMinor = 1_000, originalAmountMinor = 4_000,
             quantityText = quantity, rateText = rate, reason = "Corrected",
         )
 

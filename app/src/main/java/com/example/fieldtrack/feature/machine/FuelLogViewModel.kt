@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.machine
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.session.Capability
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 data class FuelRow(
     val id: String,
     val litres: Double,
-    val costRupees: Long,
+    val costMinor: Long,
     val atMillis: Long,
     val byName: String?,
     val onJob: Boolean,
@@ -28,7 +29,7 @@ data class FuelRow(
 data class FuelLogState(
     val loaded: Boolean = false,
     val machineName: String = "",
-    val totalRupees: Long = 0,
+    val totalMinor: Long = 0,
     val totalLitres: Double = 0.0,
     /**
      * Litres logged against jobs, and the time those same jobs took.
@@ -63,8 +64,8 @@ data class FuelLogState(
 
 data class FuelDraft(val litresText: String = "", val costText: String = "") {
     val litres: Double get() = litresText.toDoubleOrNull() ?: 0.0
-    val costRupees: Long get() = costText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val canSave: Boolean get() = litres > 0 && costRupees > 0
+    val costMinor: Long get() = MoneyInput.parse(costText) ?: 0L
+    val canSave: Boolean get() = litres > 0 && costMinor > 0
 }
 
 /** What a machine has drunk, and what that cost. */
@@ -89,7 +90,7 @@ class FuelLogViewModel(
             FuelLogState(
                 loaded = true,
                 machineName = machine?.name.orEmpty(),
-                totalRupees = entries.sumOf { it.costRupees },
+                totalMinor = entries.sumOf { it.costMinor },
                 totalLitres = entries.sumOf { it.litres },
                 jobLitres = burnt?.litres ?: 0.0,
                 jobHours = (burnt?.seconds ?: 0L) / 3600.0,
@@ -97,7 +98,7 @@ class FuelLogViewModel(
                     FuelRow(
                         id = entry.id,
                         litres = entry.litres,
-                        costRupees = entry.costRupees,
+                        costMinor = entry.costMinor,
                         atMillis = entry.atMillis,
                         byName = entry.byPersonId?.let { names[it] },
                         onJob = entry.jobId != null,
@@ -119,7 +120,7 @@ class FuelLogViewModel(
         it?.copy(litresText = v.filter { c -> c.isDigit() || c == '.' })
     }
     fun setCost(v: String) = _draft.update {
-        it?.copy(costText = v.filter { c -> c.isDigit() })
+        it?.copy(costText = MoneyInput.clean(v))
     }
 
     fun save() = viewModelScope.launch {
@@ -130,7 +131,7 @@ class FuelLogViewModel(
             orgId = s.orgId,
             machineId = machineId,
             litres = draft.litres,
-            costRupees = draft.costRupees,
+            costMinor = draft.costMinor,
             byPersonId = s.personId,
         )
         _draft.value = null

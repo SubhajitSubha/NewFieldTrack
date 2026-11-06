@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.money
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
@@ -30,17 +31,17 @@ data class SeasonState(
     val seasonStarts: List<SeasonStart> = emptyList(),
     /** Whether this reader may change when the seasons begin: the owner. */
     val canChangeSeasons: Boolean = false,
-    val earnedRupees: Long = 0,
-    val fuelRupees: Long = 0,
-    val serviceRupees: Long = 0,
+    val earnedMinor: Long = 0,
+    val fuelMinor: Long = 0,
+    val serviceMinor: Long = 0,
     /** Wages laid against jobs, paid or not. */
-    val jobPeopleRupees: Long = 0,
+    val jobPeopleMinor: Long = 0,
     /** Wages that belong to no job — a month's pay, a day's hire, an advance. */
-    val loosePeopleRupees: Long = 0,
+    val loosePeopleMinor: Long = 0,
     /** Costs somebody recorded and nobody has priced. */
     val unpricedCount: Int = 0,
     /** What customers still owe, across all time, not only this season. */
-    val owedByCustomersRupees: Long = 0,
+    val owedByCustomersMinor: Long = 0,
     val canSeeMoney: Boolean = false,
     val seesPeopleCost: Boolean = false,
     /**
@@ -52,16 +53,16 @@ data class SeasonState(
      * who have one. Said to be approximate because it is a monthly sum spread
      * over a stretch of days, not a record of payments made.
      */
-    val loanRupees: Long = 0,
+    val loanMinor: Long = 0,
     /** Jobs that cost more than they were billed for, and how much between them. */
     val lostJobs: Int = 0,
-    val lostRupees: Long = 0,
+    val lostMinor: Long = 0,
 ) {
-    val peopleRupees: Long get() = jobPeopleRupees + loosePeopleRupees
+    val peopleMinor: Long get() = jobPeopleMinor + loosePeopleMinor
 
-    val costsRupees: Long get() = fuelRupees + serviceRupees + peopleRupees + loanRupees
+    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor + loanMinor
 
-    val leftRupees: Long get() = earnedRupees - costsRupees
+    val leftMinor: Long get() = earnedMinor - costsMinor
 
     /**
      * Whether a total can honestly be shown.
@@ -130,9 +131,9 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     app.db.machineDao().observeMonthlyLoans(s.orgId),
                     dao.observeJobMargins(s.orgId, from, asked),
                 ) { monthly, margins ->
-                    val lost = margins.mapNotNull { it.lostRupees }
+                    val lost = margins.mapNotNull { it.lostMinor }
                     Triple(
-                        Costing.instalmentsBetween(monthly, from, to),
+                        Costing.instalmentsBetween(monthly, from, to, Money.style.stepMinor),
                         lost.size,
                         lost.sum(),
                     )
@@ -161,22 +162,22 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     seasonName = shown.name,
                     seasonStarts = seasons.starts,
                     canChangeSeasons = Capability.EditBusiness in s.can,
-                    earnedRupees = if (s.canSeeMoney) earned else 0,
-                    fuelRupees = if (s.canSeeMoney) fuel else 0,
-                    serviceRupees = if (s.canSeeMoney) service else 0,
+                    earnedMinor = if (s.canSeeMoney) earned else 0,
+                    fuelMinor = if (s.canSeeMoney) fuel else 0,
+                    serviceMinor = if (s.canSeeMoney) service else 0,
                     // Stripped here rather than hidden in the view, so a figure
                     // this reader may not see never reaches the screen at all.
-                    jobPeopleRupees = if (seesPeople) people.first else 0,
-                    loosePeopleRupees = if (seesPeople) people.second else 0,
+                    jobPeopleMinor = if (seesPeople) people.first else 0,
+                    loosePeopleMinor = if (seesPeople) people.second else 0,
                     unpricedCount = if (seesPeople) people.third else 0,
-                    owedByCustomersRupees = if (s.canSeeMoney) {
-                        balances.filter { it.balanceRupees > 0 }.sumOf { it.balanceRupees }
+                    owedByCustomersMinor = if (s.canSeeMoney) {
+                        balances.filter { it.balanceMinor > 0 }.sumOf { it.balanceMinor }
                     } else 0,
                     canSeeMoney = s.canSeeMoney,
                     seesPeopleCost = seesPeople,
                 )
-            }, extras) { base, (loan, lostJobs, lostRupees) ->
-                base.copy(loanRupees = loan, lostJobs = lostJobs, lostRupees = lostRupees)
+            }, extras) { base, (loan, lostJobs, lostMinor) ->
+                base.copy(loanMinor = loan, lostJobs = lostJobs, lostMinor = lostMinor)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeasonState())

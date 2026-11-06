@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.machine
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,7 @@ import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -90,7 +91,7 @@ fun FuelLogScreen(
                         )
                         Text(
                             text = if (state.canSeeMoney) {
-                                rupees(state.totalRupees)
+                                money(state.totalMinor)
                             } else {
                                 stringResource(
                                     R.string.fuel_litres_total, quantity(state.totalLitres),
@@ -180,7 +181,7 @@ fun FuelLogScreen(
                             trailing = if (state.canSeeMoney) {
                                 {
                                     Text(
-                                        text = rupees(entry.costRupees),
+                                        text = money(entry.costMinor),
                                         style = FieldTrackTheme.type.moneyMedium,
                                         color = colors.ink,
                                     )
@@ -256,8 +257,8 @@ private fun FuelSheet(
                 value = draft.costText,
                 onValueChange = onCost,
                 label = stringResource(R.string.fuel_cost),
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
             FtButton(
                 text = stringResource(R.string.fuel_save),

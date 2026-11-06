@@ -58,7 +58,7 @@ class SentStateTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         operatorPersonId = TestHarness.DRIVER,
     )
 
@@ -181,14 +181,14 @@ class SentStateTest {
         h.db.orgDao().upsertJobCost(
             JobCostEntity(
                 id = "jc_pay-1", orgId = TestHarness.ORG_A, jobId = "job-x",
-                kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+                kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
                 byPersonId = TestHarness.OWNER, atMillis = h.nowMillis, createdAt = h.nowMillis,
                 deviceId = TestHarness.DEVICE,
             )
         )
         h.db.orgDao().upsertPayout(
             PayoutEntity(
-                id = "pay-1", orgId = TestHarness.ORG_A, amountRupees = 2_000,
+                id = "pay-1", orgId = TestHarness.ORG_A, amountMinor = 2_000,
                 atMillis = h.nowMillis, covers = PayoutCovers.Job, headcount = 4,
                 jobId = "job-x", jobCostId = "jc_pay-1", createdAt = h.nowMillis,
                 deviceId = TestHarness.DEVICE,

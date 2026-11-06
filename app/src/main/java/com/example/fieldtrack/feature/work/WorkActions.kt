@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.work
 
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
@@ -37,7 +39,7 @@ import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.labelRes
@@ -129,7 +131,7 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
             title = stringResource(R.string.work_rate_title),
             subtitle = stringResource(
                 R.string.work_rate_caption,
-                "${rupees(state.rateRupees)} ${stringResource(R.string.start_rate_per, stringResource(state.unit.labelRes))}",
+                "${money(state.rateMinor)} ${stringResource(R.string.start_rate_per, stringResource(state.unit.labelRes))}",
             ),
             onClick = { onOpen(WorkSheet.Rate) },
         )
@@ -188,9 +190,9 @@ private fun FuelPanel(state: LiveWorkState, onSave: (Double, Long) -> Unit) {
             FtTextField(
                 label = stringResource(R.string.work_fuel_cost),
                 value = cost,
-                onValueChange = { v -> cost = v.filter { it.isDigit() } },
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                onValueChange = { v -> cost = MoneyInput.clean(v) },
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
         }
     }
@@ -199,7 +201,7 @@ private fun FuelPanel(state: LiveWorkState, onSave: (Double, Long) -> Unit) {
     val parsedLitres = litres.toDoubleOrNull() ?: 0.0
     FtButton(
         text = stringResource(R.string.work_fuel_save),
-        onClick = { onSave(parsedLitres, cost.toLongOrNull() ?: 0L) },
+        onClick = { onSave(parsedLitres, MoneyInput.parse(cost) ?: 0L) },
         enabled = parsedLitres > 0 && state.hasMachine,
     )
 }
@@ -253,21 +255,21 @@ private fun NotePanel(onSave: (String) -> Unit) {
 @Composable
 private fun RatePanel(state: LiveWorkState, onSave: (Long) -> Unit) {
     SheetTitle(stringResource(R.string.work_rate_title))
-    var rate by rememberSaveable { mutableStateOf(state.rateRupees.toString()) }
+    var rate by rememberSaveable { mutableStateOf(MoneyInput.text(state.rateMinor)) }
 
     FtTextField(
         label = stringResource(R.string.start_your_rate),
         value = rate,
-        onValueChange = { v -> rate = v.filter { it.isDigit() } },
-        prefix = "₹",
+        onValueChange = { v -> rate = MoneyInput.clean(v) },
+        prefix = Money.style.symbol,
         suffix = stringResource(R.string.start_rate_per, stringResource(state.unit.labelRes)),
-        keyboardType = KeyboardType.Number,
+        keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
         focused = true,
     )
     FtButton(
         text = stringResource(R.string.work_rate_save),
-        onClick = { onSave(rate.toLongOrNull() ?: 0L) },
-        enabled = (rate.toLongOrNull() ?: 0L) > 0,
+        onClick = { onSave(MoneyInput.parse(rate) ?: 0L) },
+        enabled = (MoneyInput.parse(rate) ?: 0L) > 0,
     )
 }
 

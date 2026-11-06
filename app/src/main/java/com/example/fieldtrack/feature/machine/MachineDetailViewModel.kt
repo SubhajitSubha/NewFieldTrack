@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.machine
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BreakdownCategory
@@ -26,7 +27,7 @@ data class MachineServiceDraft(
     val vendor: String = "",
     val parts: String = "",
 ) {
-    val costRupees: Long? get() = costText.filter { it.isDigit() }.toLongOrNull()
+    val costMinor: Long? get() = MoneyInput.parse(costText)
     val canSave: Boolean get() = description.isNotBlank()
 }
 
@@ -36,7 +37,7 @@ data class MachineJobRow(
     val customerName: String,
     val workType: String,
     val quantityLabel: String,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val workedAtMillis: Long,
     val live: Boolean,
 )
@@ -49,8 +50,8 @@ data class MachineDetailState(
     val plate: String? = null,
     val status: MachineStatus = MachineStatus.Idle,
     val hoursUsed: Double = 0.0,
-    val earnedRupees: Long = 0,
-    val dieselRupees: Long = 0,
+    val earnedMinor: Long = 0,
+    val dieselMinor: Long = 0,
     /** Who is on it right now, when anybody is. */
     val driverName: String? = null,
     /** Hours until the next service; null when this machine is not on a schedule. */
@@ -102,8 +103,8 @@ class MachineDetailViewModel(
                 plate = machine.plate,
                 status = machine.status,
                 hoursUsed = machine.hoursUsed,
-                earnedRupees = earned,
-                dieselRupees = diesel,
+                earnedMinor = earned,
+                dieselMinor = diesel,
                 driverName = live?.operatorPersonId
                     ?.let { id -> team.firstOrNull { it.personId == id }?.displayName },
                 serviceInHours = machine.serviceIntervalHours?.let { interval ->
@@ -137,7 +138,7 @@ class MachineDetailViewModel(
     fun dismissService() { _service.value = null }
     fun setServiceDescription(v: String) = _service.update { it?.copy(description = v) }
     fun setServiceCost(v: String) = _service.update {
-        it?.copy(costText = v.filter { c -> c.isDigit() })
+        it?.copy(costText = MoneyInput.clean(v))
     }
     fun setServiceVendor(v: String) = _service.update { it?.copy(vendor = v) }
     fun setServiceParts(v: String) = _service.update { it?.copy(parts = v) }
@@ -158,7 +159,7 @@ class MachineDetailViewModel(
             orgId = s.orgId,
             machineId = machineId,
             description = draft.description,
-            costRupees = draft.costRupees,
+            costMinor = draft.costMinor,
             vendor = draft.vendor,
             partsNote = draft.parts,
         )
@@ -192,7 +193,7 @@ class MachineDetailViewModel(
         // its stored quantity is nought until it is finished, and a row that says
         // ₹0 for a job the clock has priced at thousands is a row that is wrong.
         quantityLabel = app.workRepository.billableQuantity(this).toString(),
-        amountRupees = app.workRepository.billableRupees(this),
+        amountMinor = app.workRepository.billableMinor(this),
         workedAtMillis = workedAt,
         live = status.name == "Running" || status.name == "Paused",
     )

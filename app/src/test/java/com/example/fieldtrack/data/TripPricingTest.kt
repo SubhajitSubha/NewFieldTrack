@@ -38,7 +38,7 @@ class TripPricingTest {
         workType = "Hauling",
         billingMode = BillingMode.PerTrip,
         unit = MeasureUnit.Trip,
-        rateRupees = rate,
+        rateMinor = rate,
     )
 
     private suspend fun job(id: String) = h.db.jobDao().find(TestHarness.ORG_A, id)!!
@@ -49,7 +49,7 @@ class TripPricingTest {
         repeat(3) { h.work.addTrip(TestHarness.ORG_A, id) }
 
         assertEquals(3.0, job(id).quantity, 0.001)
-        assertEquals(1_200L, job(id).amountRupees)
+        assertEquals(1_200L, job(id).amountMinor)
     }
 
     @Test
@@ -63,7 +63,7 @@ class TripPricingTest {
         h.work.addTrip(TestHarness.ORG_A, id)
 
         assertEquals(3.0, job(id).quantity, 0.001)
-        assertEquals("400 + 400 + 600", 1_400L, job(id).amountRupees)
+        assertEquals("400 + 400 + 600", 1_400L, job(id).amountMinor)
     }
 
     @Test
@@ -76,7 +76,7 @@ class TripPricingTest {
         h.work.addTrip(TestHarness.ORG_A, id)
         h.work.addTrip(TestHarness.ORG_A, id)
 
-        assertEquals("300 + 450 + 500 + 500", 1_750L, job(id).amountRupees)
+        assertEquals("300 + 450 + 500 + 500", 1_750L, job(id).amountMinor)
     }
 
     @Test
@@ -85,11 +85,11 @@ class TripPricingTest {
         h.work.addTrip(TestHarness.ORG_A, id)
         h.work.setRate(TestHarness.ORG_A, id, 900)
         h.work.addTrip(TestHarness.ORG_A, id)
-        assertEquals(1_300L, job(id).amountRupees)
+        assertEquals(1_300L, job(id).amountMinor)
 
         h.work.removeLastTrip(TestHarness.ORG_A, id)
 
-        assertEquals("the 900 trip comes off, leaving the 400 one", 400L, job(id).amountRupees)
+        assertEquals("the 900 trip comes off, leaving the 400 one", 400L, job(id).amountMinor)
         assertEquals(1.0, job(id).quantity, 0.001)
     }
 
@@ -100,7 +100,7 @@ class TripPricingTest {
         h.work.removeLastTrip(TestHarness.ORG_A, id)
         h.work.removeLastTrip(TestHarness.ORG_A, id)
 
-        assertEquals(0L, job(id).amountRupees)
+        assertEquals(0L, job(id).amountMinor)
         assertEquals(0.0, job(id).quantity, 0.001)
     }
 
@@ -125,7 +125,7 @@ class TripPricingTest {
         val id = tripJob(rate = 400)
         h.work.setQuantity(TestHarness.ORG_A, id, 6.0)
 
-        assertEquals(2_400L, job(id).amountRupees)
+        assertEquals(2_400L, job(id).amountMinor)
     }
 
     @Test
@@ -135,7 +135,7 @@ class TripPricingTest {
         h.work.adjustQuantity(TestHarness.ORG_A, id, up = true)
 
         assertEquals(2.0, job(id).quantity, 0.001)
-        assertEquals(800L, job(id).amountRupees)
+        assertEquals(800L, job(id).amountMinor)
     }
 
     @Test
@@ -150,11 +150,11 @@ class TripPricingTest {
         h.work.amendCompletedJob(
             orgId = TestHarness.ORG_A, jobId = id,
             can = com.example.fieldtrack.data.session.Capabilities.ofOwner(),
-            quantity = 2.0, rateRupees = 500,
+            quantity = 2.0, rateMinor = 500,
             reason = "Agreed one price for the day",
         )
 
-        assertEquals(1_000L, job(id).amountRupees)
+        assertEquals(1_000L, job(id).amountMinor)
         assertEquals(1_000L, h.ledger.observeBalance(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first())
     }
 
@@ -163,12 +163,12 @@ class TripPricingTest {
         val id = h.work.startJob(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Rotavator", billingMode = BillingMode.PerAcre,
-            unit = MeasureUnit.Acre, rateRupees = 1_000,
+            unit = MeasureUnit.Acre, rateMinor = 1_000,
         )
         h.work.setQuantity(TestHarness.ORG_A, id, 3.5)
 
-        assertEquals(3_500L, job(id).amountRupees)
-        assertEquals("and no trip total is invented", 0L, job(id).tripTotalRupees)
+        assertEquals(3_500L, job(id).amountMinor)
+        assertEquals("and no trip total is invented", 0L, job(id).tripTotalMinor)
     }
 
     @Test
@@ -181,13 +181,13 @@ class TripPricingTest {
         h.work.addTrip(TestHarness.ORG_A, id)
         h.work.setRate(TestHarness.ORG_A, id, 1_000)
         h.work.addTrip(TestHarness.ORG_A, id)
-        assertEquals(2_600L, job(id).amountRupees)
+        assertEquals(2_600L, job(id).amountMinor)
 
         h.work.removeLastTrip(TestHarness.ORG_A, id)
-        assertEquals(1_600L, job(id).amountRupees)
+        assertEquals(1_600L, job(id).amountMinor)
 
         h.work.removeLastTrip(TestHarness.ORG_A, id)
-        assertEquals("the second trip went, at its own price", 800L, job(id).amountRupees)
+        assertEquals("the second trip went, at its own price", 800L, job(id).amountMinor)
         assertEquals(1.0, job(id).quantity, 0.001)
     }
 
@@ -198,11 +198,11 @@ class TripPricingTest {
         h.work.removeLastTrip(TestHarness.ORG_A, id)
         h.work.setRate(TestHarness.ORG_A, id, 900)
         h.work.addTrip(TestHarness.ORG_A, id)
-        assertEquals(900L, job(id).amountRupees)
+        assertEquals(900L, job(id).amountMinor)
 
         h.work.removeLastTrip(TestHarness.ORG_A, id)
 
-        assertEquals(0L, job(id).amountRupees)
+        assertEquals(0L, job(id).amountMinor)
     }
 
     @Test
@@ -210,11 +210,11 @@ class TripPricingTest {
         val id = h.work.recordPastWork(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Hauling", billingMode = BillingMode.PerTrip, unit = MeasureUnit.Trip,
-            rateRupees = 800, quantity = 5.0,
+            rateMinor = 800, quantity = 5.0,
             workedAt = h.nowMillis, startedAt = null, completedAt = null,
         )
 
-        assertEquals("five trips at 800", 4_000L, job(id).amountRupees)
+        assertEquals("five trips at 800", 4_000L, job(id).amountMinor)
         assertEquals(4_000L, h.work.complete(TestHarness.ORG_A, id))
         assertEquals(4_000L, h.ledger.observeBalance(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first())
     }
@@ -227,13 +227,13 @@ class TripPricingTest {
         val noTimes = h.work.recordPastWork(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Ploughing", billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour,
-            rateRupees = 500, quantity = 6.0,
+            rateMinor = 500, quantity = 6.0,
             workedAt = h.nowMillis, startedAt = null, completedAt = null,
         )
         val twoHours = h.work.recordPastWork(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Ploughing", billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour,
-            rateRupees = 500, quantity = 6.0,
+            rateMinor = 500, quantity = 6.0,
             workedAt = h.nowMillis, startedAt = h.nowMillis, completedAt = h.nowMillis + 2 * 3_600_000L,
         )
 
@@ -246,7 +246,7 @@ class TripPricingTest {
         val id = h.work.startJob(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Ploughing", billingMode = BillingMode.PerHour,
-            unit = MeasureUnit.Hour, rateRupees = 600,
+            unit = MeasureUnit.Hour, rateMinor = 600,
         )
         h.advanceMinutes(120)
 

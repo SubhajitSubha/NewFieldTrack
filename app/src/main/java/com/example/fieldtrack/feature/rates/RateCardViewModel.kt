@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.rates
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
@@ -27,7 +28,7 @@ data class RateRow(
     val workType: WorkTypeOption,
     val billingMode: BillingMode,
     val unit: MeasureUnit,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val label: String?,
 )
 
@@ -52,8 +53,8 @@ data class RateDraft(
     val amountText: String = "",
     val label: String = "",
 ) {
-    val amountRupees: Long get() = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val canSave: Boolean get() = amountRupees > 0
+    val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
+    val canSave: Boolean get() = amountMinor > 0
     val editing: Boolean get() = id != null
 }
 
@@ -113,7 +114,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = row.workType,
             billingMode = row.billingMode,
             unit = row.unit,
-            amountText = row.amountRupees.toString(),
+            amountText = MoneyInput.text(row.amountMinor),
             label = row.label.orEmpty(),
         )
     }
@@ -142,7 +143,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setUnit(unit: MeasureUnit) = _draft.update { it?.copy(unit = unit) }
 
     fun setAmount(value: String) = _draft.update {
-        it?.copy(amountText = value.filter { c -> c.isDigit() })
+        it?.copy(amountText = MoneyInput.clean(value))
     }
 
     fun setLabel(value: String) = _draft.update { it?.copy(label = value) }
@@ -156,7 +157,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = draft.workType.key,
             billingMode = draft.billingMode,
             unit = draft.unit,
-            amountRupees = draft.amountRupees,
+            amountMinor = draft.amountMinor,
             label = draft.label,
             rateId = draft.id,
         )
@@ -195,7 +196,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workType = option,
             billingMode = billingMode,
             unit = unit,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             label = label,
         )
     }

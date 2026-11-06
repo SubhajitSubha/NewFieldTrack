@@ -45,7 +45,7 @@ class WorkClockNotifierTest {
 
     private fun job(status: JobStatus, runningSince: Long?, elapsed: Long = 0) = JobEntity(
         id = "job-1", orgId = "org-a", customerId = "c1", workType = "Rotavator",
-        billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour, rateRupees = 1_000,
+        billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour, rateMinor = 1_000,
         status = status, runningSince = runningSince, elapsedSeconds = elapsed,
         workedAt = now - 10 * hour, recordedAt = now - 10 * hour,
         createdAt = now - 10 * hour, updatedAt = now - 10 * hour,

@@ -22,10 +22,10 @@ data class PickableJob(
     val jobId: String?,
     val title: String,
     val atMillis: Long,
-    val amountRupees: Long,
-    val outstandingRupees: Long,
+    val amountMinor: Long,
+    val outstandingMinor: Long,
 ) {
-    val settled: Boolean get() = outstandingRupees <= 0L
+    val settled: Boolean get() = outstandingMinor <= 0L
 }
 
 data class StatementState(
@@ -44,7 +44,7 @@ data class StatementState(
     val pickedEntryIds: Set<String> = emptySet(),
     /** What the chosen options add up to, shown before anything is sent. */
     val lineCount: Int = 0,
-    val totalRupees: Long = 0,
+    val totalMinor: Long = 0,
     val oldestUnpaidMillis: Long? = null,
     val working: Boolean = false,
 ) {
@@ -181,24 +181,24 @@ class StatementViewModel(
 
         val (count, total) = when (current.content) {
             StatementContent.UnpaidOnly ->
-                outstanding.size to outstanding.sumOf { it.outstandingRupees }
+                outstanding.size to outstanding.sumOf { it.outstandingMinor }
 
             StatementContent.PickedJobs -> {
                 val picked = jobs.filter { it.entryId in current.pickedEntryIds }
-                picked.size to picked.sumOf { it.amountRupees }
+                picked.size to picked.sumOf { it.amountMinor }
             }
 
             StatementContent.PaymentsOnly -> {
                 val payments = entriesFor(entries, StatementContent.PaymentsOnly, start, end)
-                payments.size to payments.sumOf { it.amountRupees }
+                payments.size to payments.sumOf { it.amountMinor }
             }
 
             StatementContent.Everything -> {
                 val shown = entriesFor(entries, StatementContent.Everything, start, end)
                 shown.size to (balanceBefore(entries, start) + shown.sumOf {
                     when (it.kind) {
-                        LedgerKind.Charge, LedgerKind.Opening -> it.amountRupees
-                        else -> -it.amountRupees
+                        LedgerKind.Charge, LedgerKind.Opening -> it.amountMinor
+                        else -> -it.amountMinor
                     }
                 })
             }
@@ -210,7 +210,7 @@ class StatementViewModel(
                 endMillis = end,
                 jobs = jobs,
                 lineCount = count,
-                totalRupees = total,
+                totalMinor = total,
                 oldestUnpaidMillis = outstanding.firstOrNull()?.entry?.atMillis,
             )
         }
@@ -218,7 +218,7 @@ class StatementViewModel(
 
     /** Every charge on the account, with how much of it is still owed. */
     private fun outstandingByEntry(): List<PickableJob> {
-        val stillOwed = outstandingCharges(entries).associate { it.entry.id to it.outstandingRupees }
+        val stillOwed = outstandingCharges(entries).associate { it.entry.id to it.outstandingMinor }
         return entries
             .filter { it.kind == LedgerKind.Charge || it.kind == LedgerKind.Opening }
             .sortedByDescending { it.atMillis }
@@ -228,8 +228,8 @@ class StatementViewModel(
                     jobId = entry.jobId,
                     title = entry.note.orEmpty(),
                     atMillis = entry.atMillis,
-                    amountRupees = entry.amountRupees,
-                    outstandingRupees = stillOwed[entry.id] ?: 0L,
+                    amountMinor = entry.amountMinor,
+                    outstandingMinor = stillOwed[entry.id] ?: 0L,
                 )
             }
     }

@@ -312,7 +312,7 @@ class TeamRepositoryTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -501,7 +501,7 @@ class TeamRepositoryTest {
             workType = "Rotavator",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_000,
+            rateMinor = 1_000,
             machineId = "machine-1",
             operatorPersonId = placeholder.personId,
         )
@@ -547,7 +547,7 @@ class TeamRepositoryTest {
             workType = "Rotavator",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_000,
+            rateMinor = 1_000,
             machineId = "machine-1",
             operatorPersonId = placeholder.personId,
         )

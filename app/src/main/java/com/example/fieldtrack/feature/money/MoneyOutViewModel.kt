@@ -20,7 +20,7 @@ data class MoneyOutRow(
     val name: String,
     val headcount: Int,
     val covers: PayoutCovers,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 data class MoneyOutState(
@@ -29,9 +29,9 @@ data class MoneyOutState(
     val mayLook: Boolean = false,
     val mayPay: Boolean = false,
     val rows: List<MoneyOutRow> = emptyList(),
-    val totalRupees: Long = 0,
+    val totalMinor: Long = 0,
     /** Of the total, what no machine or job can carry. */
-    val unattributableRupees: Long = 0,
+    val unattributableMinor: Long = 0,
     /**
      * Priced work that has not been paid for.
      *
@@ -39,7 +39,7 @@ data class MoneyOutState(
      * is not money out — but a wage ledger that cannot say what is owed sends
      * somebody to the wrong figure at the end of the month.
      */
-    val owedRupees: Long = 0,
+    val owedMinor: Long = 0,
     /** Costs recorded in the field that nobody has put a figure on. */
     val unpricedCount: Int = 0,
 )
@@ -81,19 +81,19 @@ class MoneyOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         name = it.toName.orEmpty(),
                         headcount = it.headcount,
                         covers = it.covers,
-                        amountRupees = it.amountRupees,
+                        amountMinor = it.amountMinor,
                     )
                 },
-                totalRupees = payouts.sumOf { it.amountRupees },
+                totalMinor = payouts.sumOf { it.amountMinor },
                 // Anything with no job behind it, not only the month-long
                 // ones: a day's pay cannot be laid against a machine either.
                 // Keyed on settling no job cost, to match what the machine
                 // profit screen leaves out. Keying on the job id instead would
                 // disagree with it the moment a payment named a job.
-                unattributableRupees = payouts
+                unattributableMinor = payouts
                     .filter { it.jobCostId == null }
-                    .sumOf { it.amountRupees },
-                owedRupees = owed,
+                    .sumOf { it.amountMinor },
+                owedMinor = owed,
                 unpricedCount = unpriced,
             )
         }

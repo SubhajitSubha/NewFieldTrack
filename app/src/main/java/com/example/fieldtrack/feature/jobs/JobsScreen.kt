@@ -119,8 +119,8 @@ fun JobsScreen(
                                     // The amount only for somebody who may see money; the
                                     // time worked is theirs to see either way.
                                     if (state.canSeeMoney) {
-                                        FtMoney(job.amountRupees, size = FtMoneySize.Row)
-                                        job.lostRupees?.let { LostMark(it) }
+                                        FtMoney(job.amountMinor, size = FtMoneySize.Row)
+                                        job.lostMinor?.let { LostMark(it) }
                                     }
                                     Text(
                                         text = duration(job.elapsedSeconds),

@@ -40,11 +40,11 @@ import androidx.room.Embedded
  */
 data class JobCostWithPaid(
     @Embedded val cost: JobCostEntity,
-    val paidRupees: Long,
+    val paidMinor: Long,
 ) {
     /** Null while nobody has priced it. Clamped, so an overpayment is not a credit. */
-    val owedRupees: Long?
-        get() = cost.amountRupees?.let { (it - paidRupees).coerceAtLeast(0) }
+    val owedMinor: Long?
+        get() = cost.amountMinor?.let { (it - paidMinor).coerceAtLeast(0) }
 }
 
 /*
@@ -97,7 +97,7 @@ interface OrgDao {
 
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
         WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
         """
     )
@@ -116,7 +116,7 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        SELECT COALESCE(SUM(c.amountMinor), 0) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
         WHERE c.orgId = :orgId AND j.machineId = :machineId AND j.deletedAt IS NULL
         """
@@ -126,7 +126,7 @@ interface OrgDao {
     /** The same, asked once, for a report over a stretch of time. */
     @Query(
         """
-        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        SELECT COALESCE(SUM(c.amountMinor), 0) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
         WHERE c.orgId = :orgId AND j.machineId = :machineId
           AND c.atMillis BETWEEN :from AND :to
@@ -146,7 +146,7 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
         WHERE orgId = :orgId AND jobCostId IS NULL
         """
     )
@@ -155,7 +155,7 @@ interface OrgDao {
     /** What could not be laid against anything, so a total can admit to it. */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
         WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
         """
     )
@@ -189,7 +189,7 @@ interface OrgDao {
         atMillis: Long,
     ): Int
 
-    @Query("UPDATE job_costs SET amountRupees = :amount WHERE orgId = :orgId AND id = :id")
+    @Query("UPDATE job_costs SET amountMinor = :amount WHERE orgId = :orgId AND id = :id")
     suspend fun setJobCostAmount(orgId: String, id: String, amount: Long): Int
 
     @Query("SELECT * FROM job_costs WHERE orgId = :orgId AND id = :id")
@@ -205,8 +205,8 @@ interface OrgDao {
     @Query(
         """
         SELECT c.*, COALESCE(
-            (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
-        ) AS paidRupees
+            (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+        ) AS paidMinor
         FROM job_costs c
         WHERE c.orgId = :orgId AND c.jobId = :jobId
         ORDER BY c.atMillis
@@ -217,7 +217,7 @@ interface OrgDao {
     /** What this job cost in all, paid or not. Null amounts are not yet priced. */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM job_costs
+        SELECT COALESCE(SUM(amountMinor), 0) FROM job_costs
         WHERE orgId = :orgId AND jobId = :jobId
         """
     )
@@ -232,16 +232,16 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            CASE WHEN c.amountRupees - COALESCE(
-                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            CASE WHEN c.amountMinor - COALESCE(
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
             ) > 0
-            THEN c.amountRupees - COALESCE(
-                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            THEN c.amountMinor - COALESCE(
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
             )
             ELSE 0 END
         ), 0)
         FROM job_costs c
-        WHERE c.orgId = :orgId AND c.amountRupees IS NOT NULL
+        WHERE c.orgId = :orgId AND c.amountMinor IS NOT NULL
         """
     )
     fun observeOwedOnJobs(orgId: String): Flow<Long>
@@ -250,17 +250,17 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(
-            CASE WHEN c.amountRupees - COALESCE(
-                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            CASE WHEN c.amountMinor - COALESCE(
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
             ) > 0
-            THEN c.amountRupees - COALESCE(
-                (SELECT SUM(p.amountRupees) FROM payouts p WHERE p.jobCostId = c.id), 0
+            THEN c.amountMinor - COALESCE(
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
             )
             ELSE 0 END
         ), 0)
         FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
-        WHERE c.orgId = :orgId AND j.machineId = :machineId AND c.amountRupees IS NOT NULL
+        WHERE c.orgId = :orgId AND j.machineId = :machineId AND c.amountMinor IS NOT NULL
         """
     )
     fun observeOwedOnMachine(orgId: String, machineId: String): Flow<Long>
@@ -269,7 +269,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COUNT(*) FROM job_costs
-        WHERE orgId = :orgId AND amountRupees IS NULL
+        WHERE orgId = :orgId AND amountMinor IS NULL
         """
     )
     fun observeUnpricedJobCostCount(orgId: String): Flow<Int>
@@ -284,9 +284,9 @@ interface OrgDao {
         """
         SELECT COALESCE(SUM(
             CASE billingMode
-                WHEN 'Fixed' THEN rateRupees
-                WHEN 'PerTrip' THEN tripTotalRupees
-                ELSE CAST(ROUND(quantity * rateRupees) AS INTEGER)
+                WHEN 'Fixed' THEN rateMinor
+                WHEN 'PerTrip' THEN tripTotalMinor
+                ELSE CAST(ROUND(quantity * rateMinor / stepMinor) * stepMinor AS INTEGER)
             END
         ), 0)
         FROM jobs
@@ -298,7 +298,7 @@ interface OrgDao {
 
     @Query(
         """
-        SELECT COALESCE(SUM(f.costRupees), 0) FROM fuel_entries f
+        SELECT COALESCE(SUM(f.costMinor), 0) FROM fuel_entries f
         LEFT JOIN jobs j ON j.id = f.jobId
         WHERE f.orgId = :orgId AND COALESCE(j.workedAt, f.atMillis) BETWEEN :from AND :to
         """
@@ -307,7 +307,7 @@ interface OrgDao {
 
     @Query(
         """
-        SELECT COALESCE(SUM(costRupees), 0) FROM service_records
+        SELECT COALESCE(SUM(costMinor), 0) FROM service_records
         WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
         """
     )
@@ -326,7 +326,7 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
+        SELECT COALESCE(SUM(c.amountMinor), 0) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
         WHERE c.orgId = :orgId AND j.deletedAt IS NULL
           AND j.workedAt BETWEEN :from AND :to
@@ -338,7 +338,7 @@ interface OrgDao {
         """
         SELECT COUNT(*) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
-        WHERE c.orgId = :orgId AND c.amountRupees IS NULL AND j.deletedAt IS NULL
+        WHERE c.orgId = :orgId AND c.amountMinor IS NULL AND j.deletedAt IS NULL
           AND j.workedAt BETWEEN :from AND :to
         """
     )
@@ -353,7 +353,7 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM payouts
+        SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
         WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
         """
     )
@@ -372,13 +372,13 @@ interface OrgDao {
         """
         SELECT j.id AS jobId,
             CASE j.billingMode
-                WHEN 'Fixed' THEN j.rateRupees
-                WHEN 'PerTrip' THEN j.tripTotalRupees
-                ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
-            END AS earnedRupees,
-            COALESCE((SELECT SUM(f.costRupees) FROM fuel_entries f WHERE f.jobId = j.id), 0) AS fuelRupees,
-            COALESCE((SELECT SUM(c.amountRupees) FROM job_costs c WHERE c.jobId = j.id), 0) AS peopleRupees,
-            (SELECT COUNT(*) FROM job_costs c WHERE c.jobId = j.id AND c.amountRupees IS NULL) AS unpriced
+                WHEN 'Fixed' THEN j.rateMinor
+                WHEN 'PerTrip' THEN j.tripTotalMinor
+                ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
+            END AS earnedMinor,
+            COALESCE((SELECT SUM(f.costMinor) FROM fuel_entries f WHERE f.jobId = j.id), 0) AS fuelMinor,
+            COALESCE((SELECT SUM(c.amountMinor) FROM job_costs c WHERE c.jobId = j.id), 0) AS peopleMinor,
+            (SELECT COUNT(*) FROM job_costs c WHERE c.jobId = j.id AND c.amountMinor IS NULL) AS unpriced
         FROM jobs j
         WHERE j.orgId = :orgId AND j.deletedAt IS NULL AND j.status = 'Completed'
           AND j.workedAt BETWEEN :from AND :to
@@ -568,11 +568,11 @@ interface CustomerDao {
                COUNT(*) AS jobCount,
                COALESCE(SUM(
                    CASE j.billingMode
-                       WHEN 'Fixed' THEN j.rateRupees
-                       WHEN 'PerTrip' THEN j.tripTotalRupees
-                       ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
+                       WHEN 'Fixed' THEN j.rateMinor
+                       WHEN 'PerTrip' THEN j.tripTotalMinor
+                       ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
                    END
-               ), 0) AS earnedRupees,
+               ), 0) AS earnedMinor,
                MAX(j.workedAt) AS lastWorkedAt
         FROM jobs j
         WHERE j.orgId = :orgId AND j.customerId = :customerId
@@ -588,7 +588,7 @@ interface CustomerDao {
 data class FieldWorkTotals(
     val fieldId: String,
     val jobCount: Int,
-    val earnedRupees: Long,
+    val earnedMinor: Long,
     val lastWorkedAt: Long?,
 )
 
@@ -651,7 +651,7 @@ interface MachineDao {
     /** Loan instalments a month, across the machines still in the yard. */
     @Query(
         """
-        SELECT COALESCE(SUM(f.monthlyRupees), 0) FROM machine_finance f
+        SELECT COALESCE(SUM(f.monthlyMinor), 0) FROM machine_finance f
         JOIN machines m ON m.id = f.id AND m.orgId = f.orgId
         WHERE f.orgId = :orgId AND m.deletedAt IS NULL
         """
@@ -671,10 +671,10 @@ interface MachineDao {
             COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
                 WHERE j.machineId = m.id AND j.orgId = m.orgId
                   AND j.status = 'Completed' AND j.deletedAt IS NULL), 0) AS seconds,
-            COALESCE((SELECT SUM(f.costRupees) FROM fuel_entries f
-                WHERE f.machineId = m.id AND f.orgId = m.orgId), 0) AS fuelRupees,
-            COALESCE((SELECT SUM(s.costRupees) FROM service_records s
-                WHERE s.machineId = m.id AND s.orgId = m.orgId), 0) AS serviceRupees,
+            COALESCE((SELECT SUM(f.costMinor) FROM fuel_entries f
+                WHERE f.machineId = m.id AND f.orgId = m.orgId), 0) AS fuelMinor,
+            COALESCE((SELECT SUM(s.costMinor) FROM service_records s
+                WHERE s.machineId = m.id AND s.orgId = m.orgId), 0) AS serviceMinor,
             COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
                 WHERE j.machineId = m.id AND j.orgId = m.orgId
                   AND j.status = 'Completed' AND j.deletedAt IS NULL
@@ -693,10 +693,10 @@ interface MachineDao {
             COALESCE(SUM(CASE WHEN j.elapsedSeconds > 0 THEN j.quantity ELSE 0.0 END), 0.0) AS timedQuantity,
             COALESCE(SUM(j.elapsedSeconds), 0) AS seconds,
             COALESCE(SUM(CASE j.billingMode
-                WHEN 'Fixed' THEN j.rateRupees
-                WHEN 'PerTrip' THEN j.tripTotalRupees
-                ELSE CAST(ROUND(j.quantity * j.rateRupees) AS INTEGER)
-            END), 0) AS earnedRupees,
+                WHEN 'Fixed' THEN j.rateMinor
+                WHEN 'PerTrip' THEN j.tripTotalMinor
+                ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
+            END), 0) AS earnedMinor,
             COUNT(*) AS jobs
         FROM jobs j
         WHERE j.orgId = :orgId AND j.machineId = :machineId AND j.deletedAt IS NULL
@@ -745,12 +745,12 @@ interface MachineDao {
     @Query("SELECT * FROM fuel_entries WHERE orgId = :orgId AND machineId = :machineId ORDER BY atMillis DESC")
     fun observeFuel(orgId: String, machineId: String): Flow<List<FuelEntryEntity>>
 
-    @Query("SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries WHERE orgId = :orgId AND atMillis >= :since")
+    @Query("SELECT COALESCE(SUM(costMinor), 0) FROM fuel_entries WHERE orgId = :orgId AND atMillis >= :since")
     fun observeFuelSpendSince(orgId: String, since: Long): Flow<Long>
 
     @Query(
         """
-        SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries
+        SELECT COALESCE(SUM(costMinor), 0) FROM fuel_entries
         WHERE orgId = :orgId AND machineId = :machineId
         """
     )
@@ -759,7 +759,7 @@ interface MachineDao {
     /** Diesel put in while this job was running, when it was logged against it. */
     @Query(
         """
-        SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries
+        SELECT COALESCE(SUM(costMinor), 0) FROM fuel_entries
         WHERE orgId = :orgId AND jobId = :jobId
         """
     )
@@ -776,7 +776,7 @@ interface MachineDao {
 
     @Query(
         """
-        SELECT COALESCE(SUM(costRupees), 0) FROM service_records
+        SELECT COALESCE(SUM(costMinor), 0) FROM service_records
         WHERE orgId = :orgId AND machineId = :machineId
         """
     )
@@ -898,9 +898,9 @@ interface JobDao {
         """
         SELECT COALESCE(SUM(
             CASE billingMode
-                WHEN 'Fixed' THEN rateRupees
-                WHEN 'PerTrip' THEN tripTotalRupees
-                ELSE CAST(ROUND(quantity * rateRupees) AS INTEGER)
+                WHEN 'Fixed' THEN rateMinor
+                WHEN 'PerTrip' THEN tripTotalMinor
+                ELSE CAST(ROUND(quantity * rateMinor / stepMinor) * stepMinor AS INTEGER)
             END
         ), 0)
         FROM jobs
@@ -936,7 +936,7 @@ interface JobDao {
         ORDER BY atMillis DESC, id DESC LIMIT 1
         """
     )
-    suspend fun lastTripRupees(jobId: String): Double?
+    suspend fun lastTripMinor(jobId: String): Double?
 
     /**
      * Every trip made and every trip taken back, oldest first.
@@ -1202,7 +1202,7 @@ interface LedgerDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM ledger_entries
+        SELECT COALESCE(SUM(amountMinor), 0) FROM ledger_entries
         WHERE orgId = :orgId AND kind = 'Payment' AND method = 'Cash'
           AND byPersonId = :personId AND atMillis BETWEEN :from AND :to
         """
@@ -1214,10 +1214,10 @@ interface LedgerDao {
         """
         SELECT COALESCE(SUM(
             CASE kind
-                WHEN 'Charge' THEN amountRupees
-                WHEN 'Opening' THEN amountRupees
-                WHEN 'Payment' THEN -amountRupees
-                WHEN 'Adjustment' THEN -amountRupees
+                WHEN 'Charge' THEN amountMinor
+                WHEN 'Opening' THEN amountMinor
+                WHEN 'Payment' THEN -amountMinor
+                WHEN 'Adjustment' THEN -amountMinor
                 ELSE 0
             END), 0)
         FROM ledger_entries WHERE orgId = :orgId AND customerId = :customerId
@@ -1229,10 +1229,10 @@ interface LedgerDao {
         """
         SELECT COALESCE(SUM(
             CASE kind
-                WHEN 'Charge' THEN amountRupees
-                WHEN 'Opening' THEN amountRupees
-                WHEN 'Payment' THEN -amountRupees
-                WHEN 'Adjustment' THEN -amountRupees
+                WHEN 'Charge' THEN amountMinor
+                WHEN 'Opening' THEN amountMinor
+                WHEN 'Payment' THEN -amountMinor
+                WHEN 'Adjustment' THEN -amountMinor
                 ELSE 0
             END), 0)
         FROM ledger_entries WHERE orgId = :orgId
@@ -1245,22 +1245,22 @@ interface LedgerDao {
         """
         SELECT customerId, SUM(
             CASE kind
-                WHEN 'Charge' THEN amountRupees
-                WHEN 'Opening' THEN amountRupees
-                WHEN 'Payment' THEN -amountRupees
-                WHEN 'Adjustment' THEN -amountRupees
+                WHEN 'Charge' THEN amountMinor
+                WHEN 'Opening' THEN amountMinor
+                WHEN 'Payment' THEN -amountMinor
+                WHEN 'Adjustment' THEN -amountMinor
                 ELSE 0
-            END) AS balanceRupees
+            END) AS balanceMinor
         FROM ledger_entries WHERE orgId = :orgId
-        GROUP BY customerId HAVING balanceRupees != 0
-        ORDER BY balanceRupees DESC
+        GROUP BY customerId HAVING balanceMinor != 0
+        ORDER BY balanceMinor DESC
         """
     )
     fun observeBalances(orgId: String): Flow<List<CustomerBalance>>
 
     @Query(
         """
-        SELECT COALESCE(SUM(amountRupees), 0) FROM ledger_entries
+        SELECT COALESCE(SUM(amountMinor), 0) FROM ledger_entries
         WHERE orgId = :orgId AND kind = 'Payment' AND atMillis BETWEEN :from AND :to
         """
     )
@@ -1300,8 +1300,8 @@ data class RunningFacts(
     val machineId: String,
     /** Time on every finished job on this machine, since the app first heard of it. */
     val seconds: Long,
-    val fuelRupees: Long,
-    val serviceRupees: Long,
+    val fuelMinor: Long,
+    val serviceMinor: Long,
     /** The last year's share of [seconds], for spreading a loan over a year. */
     val yearSeconds: Long,
 )
@@ -1312,7 +1312,7 @@ data class WorkKindFacts(
     val unit: MeasureUnit,
     val quantity: Double,
     val seconds: Long,
-    val earnedRupees: Long,
+    val earnedMinor: Long,
     val jobs: Int,
     /**
      * The part of [quantity] that came with a clock reading. Work entered afterwards
@@ -1325,9 +1325,9 @@ data class WorkKindFacts(
 /** A finished job's money, as far as it is known. */
 data class JobMargin(
     val jobId: String,
-    val earnedRupees: Long,
-    val fuelRupees: Long,
-    val peopleRupees: Long,
+    val earnedMinor: Long,
+    val fuelMinor: Long,
+    val peopleMinor: Long,
     /** Costs somebody recorded and nobody has put a figure on. */
     val unpriced: Int,
 ) {
@@ -1338,9 +1338,9 @@ data class JobMargin(
      * not made money or lost it yet; calling it a loss would be as wrong as
      * calling it a profit.
      */
-    val lostRupees: Long?
-        get() = if (unpriced == 0 && earnedRupees < fuelRupees + peopleRupees) {
-            fuelRupees + peopleRupees - earnedRupees
+    val lostMinor: Long?
+        get() = if (unpriced == 0 && earnedMinor < fuelMinor + peopleMinor) {
+            fuelMinor + peopleMinor - earnedMinor
         } else null
 }
 
@@ -1354,7 +1354,7 @@ data class FuelOnJobs(
 
 data class CustomerBalance(
     val customerId: String,
-    val balanceRupees: Long,
+    val balanceMinor: Long,
 )
 
 /** How many changes of one kind are waiting. */

@@ -44,7 +44,7 @@ class ClockCorrectionTest {
         workType = "Ploughing",
         billingMode = BillingMode.PerHour,
         unit = MeasureUnit.Hour,
-        rateRupees = rate,
+        rateMinor = rate,
         operatorPersonId = TestHarness.DRIVER,
     )
 
@@ -71,7 +71,7 @@ class ClockCorrectionTest {
         assertEquals(10_000L, charged)
         val charge = h.db.ledgerDao().observeFor(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first()
             .single { it.kind == LedgerKind.Charge }
-        assertEquals(10_000L, charge.amountRupees)
+        assertEquals(10_000L, charge.amountMinor)
     }
 
     @Test

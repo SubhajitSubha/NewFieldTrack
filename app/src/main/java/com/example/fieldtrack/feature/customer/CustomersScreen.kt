@@ -88,7 +88,7 @@ fun CustomersScreen(
                                 color = colors.onDarkMuted,
                             )
                             FtMoney(
-                                state.totalOwedRupees,
+                                state.totalOwedMinor,
                                 size = FtMoneySize.Hero,
                                 onDark = true,
                                 modifier = Modifier.padding(top = 3.dp),
@@ -163,7 +163,7 @@ fun CustomersScreen(
                         },
                         trailing = {
                             if (row.owes) {
-                                FtMoney(row.balanceRupees, size = FtMoneySize.Row, tone = FtMoneyTone.Due)
+                                FtMoney(row.balanceMinor, size = FtMoneySize.Row, tone = FtMoneyTone.Due)
                             } else {
                                 Text(
                                     text = stringResource(R.string.status_settled),

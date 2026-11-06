@@ -42,7 +42,7 @@ class JobCostTest {
         workType = "Harvesting",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 2_000,
+        rateMinor = 2_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -56,7 +56,7 @@ class JobCostTest {
         val jobId = aJob()
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 2_000, atMillis = h.nowMillis,
+            amountMinor = 2_000, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 4,
         )
 
@@ -78,7 +78,7 @@ class JobCostTest {
         val jobId = aJob()
         h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
 
@@ -96,12 +96,12 @@ class JobCostTest {
         val jobId = aJob()
         h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 3, amountRupees = 1_500,
+            kind = JobCostKind.Labour, headcount = 3, amountMinor = 1_500,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
         h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 1, amountRupees = null,
+            kind = JobCostKind.Labour, headcount = 1, amountMinor = null,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
         val dao = h.db.orgDao()
@@ -125,11 +125,11 @@ class JobCostTest {
         h.advanceMinutes(2 * 24 * 60)
         h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 3, amountRupees = 1_500,
+            kind = JobCostKind.Labour, headcount = 3, amountMinor = 1_500,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
-        h.work.addFuel(TestHarness.ORG_A, jobId, litres = 20.0, costRupees = 2_000)
-        h.work.addFuelForMachine(TestHarness.ORG_A, "machine-1", litres = 10.0, costRupees = 900)
+        h.work.addFuel(TestHarness.ORG_A, jobId, litres = 20.0, costMinor = 2_000)
+        h.work.addFuelForMachine(TestHarness.ORG_A, "machine-1", litres = 10.0, costMinor = 900)
         val dao = h.db.orgDao()
         val machine = h.db.machineDao()
         val thisSeason = worked - 1_000 to worked + 3_600_000L
@@ -152,21 +152,21 @@ class JobCostTest {
         val jobId = aJob()
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
         assertEquals(2_000L, h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
 
         h.ledger.settleJobCost(
             orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
-            amountRupees = 800, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+            amountMinor = 800, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
         )
         assertEquals("the screen would pay this, not the whole 2,000 again", 1_200L,
             h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
 
         h.ledger.settleJobCost(
             orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
-            amountRupees = 1_200, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+            amountMinor = 1_200, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
         )
         assertEquals(0L, h.ledger.owedOnJobCost(TestHarness.ORG_A, cost.id))
         assertEquals("a cost that is not there owes nothing", 0L,
@@ -178,19 +178,19 @@ class JobCostTest {
         val jobId = aJob()
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
 
         h.ledger.settleJobCost(
             orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
-            amountRupees = 800, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+            amountMinor = 800, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
         )
         assertEquals(1_200, h.db.orgDao().observeOwedOnJobs(TestHarness.ORG_A).first())
 
         h.ledger.settleJobCost(
             orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
-            amountRupees = 1_200, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+            amountMinor = 1_200, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
         )
         assertEquals(0, h.db.orgDao().observeOwedOnJobs(TestHarness.ORG_A).first())
 
@@ -205,16 +205,16 @@ class JobCostTest {
     fun `overpaying one job is not a credit against another`() = runTest {
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            kind = JobCostKind.Labour, headcount = 2, amountRupees = 1_000,
+            kind = JobCostKind.Labour, headcount = 2, amountMinor = 1_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
         h.ledger.settleJobCost(
             orgId = TestHarness.ORG_A, can = owner, costId = cost.id,
-            amountRupees = 1_500, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
+            amountMinor = 1_500, atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
         )
         h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            kind = JobCostKind.Labour, headcount = 2, amountRupees = 900,
+            kind = JobCostKind.Labour, headcount = 2, amountMinor = 900,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
 
@@ -233,7 +233,7 @@ class JobCostTest {
         )
 
         assertEquals(4, cost.headcount)
-        assertNull(cost.amountRupees)
+        assertNull(cost.amountMinor)
         assertEquals(1, h.db.orgDao().observeUnpricedJobCostCount(TestHarness.ORG_A).first())
         // Nothing to owe, because nobody has said what it is worth.
         assertEquals(0, h.db.orgDao().observeOwedOnJobs(TestHarness.ORG_A).first())
@@ -244,7 +244,7 @@ class JobCostTest {
         val failed = runCatching {
             h.ledger.recordJobCost(
                 orgId = TestHarness.ORG_A, can = driverCan(), jobId = aJob(),
-                kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+                kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
                 byPersonId = TestHarness.DRIVER, atMillis = h.nowMillis,
             )
         }
@@ -255,14 +255,14 @@ class JobCostTest {
     fun `nobody counted is a real answer, not a missing one`() = runTest {
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            kind = JobCostKind.Labour, headcount = null, amountRupees = 6_000,
+            kind = JobCostKind.Labour, headcount = null, amountMinor = 6_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
 
         // A gang the jamadar brought, paid by the acre. The money is known and
         // counted; the heads were never counted and are not invented here.
         assertNull(cost.headcount)
-        assertEquals(6_000L, cost.amountRupees)
+        assertEquals(6_000L, cost.amountMinor)
     }
 
     @Test
@@ -281,12 +281,12 @@ class JobCostTest {
     fun `a day's pay is still left out, and a job's cost is not`() = runTest {
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            amountRupees = 2_000, atMillis = h.nowMillis,
+            amountMinor = 2_000, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 4,
         )
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 600, covers = PayoutCovers.Day,
+            amountMinor = 600, covers = PayoutCovers.Day,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             headcount = 2,
         )
@@ -302,12 +302,12 @@ class JobCostTest {
         val jobId = aJob()
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 2_000, atMillis = h.nowMillis,
+            amountMinor = 2_000, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 4,
         )
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 300, atMillis = h.nowMillis,
+            amountMinor = 300, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, kind = JobCostKind.Other,
             note = "Tea and food",
         )
@@ -316,7 +316,7 @@ class JobCostTest {
         assertEquals(2, costs.size)
         assertEquals(
             300L,
-            costs.first { it.cost.kind == JobCostKind.Other }.cost.amountRupees,
+            costs.first { it.cost.kind == JobCostKind.Other }.cost.amountMinor,
         )
         // Both are real costs of the job, whatever permission guards them.
         assertEquals(
@@ -337,10 +337,10 @@ class JobCostTest {
     }
 
     @Test
-    fun `the rupees travel apart from the headcount`() = runTest {
+    fun `the amountMinor travel apart from the headcount`() = runTest {
         val cost = h.ledger.recordJobCost(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            kind = JobCostKind.Labour, headcount = 4, amountRupees = 2_000,
+            kind = JobCostKind.Labour, headcount = 4, amountMinor = 2_000,
             byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
         )
         val queued = h.db.outboxDao().nextBatch(100).filter { it.entityId == cost.id }
@@ -356,7 +356,7 @@ class JobCostTest {
         val facts = queued.first { it.tableName == "job_costs" }.payloadJson
         assertFalse(
             "the wage must not ride along in the row every member can read",
-            facts.contains("amountRupees"),
+            facts.contains("amountMinor"),
         )
         assertTrue(facts.contains("headcount"))
         assertTrue(

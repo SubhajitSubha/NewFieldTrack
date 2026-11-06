@@ -66,10 +66,10 @@ import com.example.fieldtrack.document.Letterhead
 import com.example.fieldtrack.document.Party
 import com.example.fieldtrack.document.PaymentLine
 import com.example.fieldtrack.document.WorkLine
-import com.example.fieldtrack.document.rupeesInWords
+import com.example.fieldtrack.document.amountInWords
 import com.example.fieldtrack.designsystem.component.FtNavDestination
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.customer.AddCustomerScreen
@@ -1101,7 +1101,7 @@ private fun MainNavHost(navController: NavHostController) {
                 val reminder = stringResource(
                     R.string.ledger_reminder_text,
                     state.businessName.ifBlank { stringResource(R.string.app_name) },
-                    rupees(state.balanceRupees),
+                    money(state.balanceMinor),
                 )
 
                 LedgerScreen(
@@ -1264,7 +1264,7 @@ private fun MainNavHost(navController: NavHostController) {
                             val text = context.getString(
                                 R.string.ledger_reminder_text,
                                 business,
-                                rupees((state.owedRupees - paid).coerceAtLeast(0)),
+                                money((state.owedMinor - paid).coerceAtLeast(0)),
                             )
                             val send = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
@@ -2031,7 +2031,7 @@ private fun MainNavHost(navController: NavHostController) {
                 val state by vm.state.collectAsStateWithLifecycle()
                 val payment by vm.payment.collectAsStateWithLifecycle()
                 val step by vm.step.collectAsStateWithLifecycle()
-                val received by vm.receivedRupees.collectAsStateWithLifecycle()
+                val received by vm.receivedMinor.collectAsStateWithLifecycle()
                 val finalBalance by vm.finalBalance.collectAsStateWithLifecycle()
                 val context = LocalContext.current
 
@@ -2044,8 +2044,8 @@ private fun MainNavHost(navController: NavHostController) {
                 val receiptText = receiptFor(state, received, finalBalance ?: 0L)
                 val billDocument = billDocumentFor(
                     state = state,
-                    receivedRupees = received,
-                    finalBalanceRupees = finalBalance ?: 0L,
+                    receivedMinor = received,
+                    finalBalanceMinor = finalBalance ?: 0L,
                     method = payment.method,
                 )
                 val scope = rememberCoroutineScope()
@@ -2058,8 +2058,8 @@ private fun MainNavHost(navController: NavHostController) {
                     step = step,
                     state = state,
                     payment = payment,
-                    receivedRupees = received,
-                    finalBalanceRupees = finalBalance ?: 0L,
+                    receivedMinor = received,
+                    finalBalanceMinor = finalBalance ?: 0L,
                     onBack = { if (vm.back()) navController.popBackStack() },
                     onToBill = vm::toBill,
                     onChooseAll = vm::chooseAll,
@@ -2143,8 +2143,8 @@ private fun MainNavHost(navController: NavHostController) {
 @Composable
 private fun billDocumentFor(
     state: com.example.fieldtrack.feature.work.FinishState,
-    receivedRupees: Long,
-    finalBalanceRupees: Long,
+    receivedMinor: Long,
+    finalBalanceMinor: Long,
     method: com.example.fieldtrack.data.db.PaymentMethod?,
 ): Document.Bill {
     val unit = stringResource(state.unit.labelRes)
@@ -2158,6 +2158,7 @@ private fun billDocumentFor(
         }
     )
     return Document.Bill(
+        style = com.example.fieldtrack.designsystem.format.Money.style,
         letterhead = Letterhead(
             businessName = state.businessName,
             addressLine = state.businessAddress?.ifBlank { null },
@@ -2184,19 +2185,19 @@ private fun billDocumentFor(
                 } else {
                     stringResource(
                         R.string.start_rate_per_amount,
-                        rupees(state.rateRupees),
+                        money(state.rateMinor),
                         unit,
                     )
                 },
-                amountRupees = state.jobAmountRupees,
+                amountMinor = state.jobAmountMinor,
             )
         ),
-        previousBalanceRupees = state.previousBalanceRupees,
-        payments = if (receivedRupees > 0) {
-            listOf(PaymentLine(dateLabel, methodLabel, receivedRupees))
+        previousBalanceMinor = state.previousBalanceMinor,
+        payments = if (receivedMinor > 0) {
+            listOf(PaymentLine(dateLabel, methodLabel, receivedMinor))
         } else emptyList(),
-        balanceRupees = finalBalanceRupees.coerceAtLeast(0),
-        balanceInWords = rupeesInWords(finalBalanceRupees.coerceAtLeast(0)),
+        balanceMinor = finalBalanceMinor.coerceAtLeast(0),
+        balanceInWords = amountInWords(finalBalanceMinor.coerceAtLeast(0), com.example.fieldtrack.designsystem.format.Money.style),
     )
 }
 
@@ -2204,11 +2205,11 @@ private fun billDocumentFor(
 @Composable
 private fun receiptFor(
     state: com.example.fieldtrack.feature.work.FinishState,
-    receivedRupees: Long,
-    finalBalanceRupees: Long,
+    receivedMinor: Long,
+    finalBalanceMinor: Long,
 ): String {
     val unit = stringResource(state.unit.labelRes)
-    val remaining = finalBalanceRupees.coerceAtLeast(0)
+    val remaining = finalBalanceMinor.coerceAtLeast(0)
     return buildString {
         appendLine(state.businessName.ifBlank { stringResource(R.string.app_name) })
         // The letterhead, each line only when the business has filled it in.
@@ -2218,14 +2219,14 @@ private fun receiptFor(
         ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
         appendLine()
         appendLine("${state.customerName}")
-        appendLine("${state.workType} ${measure(state.quantity, state.unit)} — ${rupees(state.jobAmountRupees)}")
-        if (state.previousBalanceRupees != 0L) {
-            appendLine("${stringResource(R.string.money_old_balance)} — ${rupees(state.previousBalanceRupees)}")
+        appendLine("${state.workType} ${measure(state.quantity, state.unit)} — ${money(state.jobAmountMinor)}")
+        if (state.previousBalanceMinor != 0L) {
+            appendLine("${stringResource(R.string.money_old_balance)} — ${money(state.previousBalanceMinor)}")
         }
-        if (receivedRupees > 0) {
-            appendLine("${stringResource(R.string.money_paid_today)} — ${rupees(receivedRupees)}")
+        if (receivedMinor > 0) {
+            appendLine("${stringResource(R.string.money_paid_today)} — ${money(receivedMinor)}")
         }
-        appendLine("${stringResource(R.string.money_balance)} — ${rupees(remaining)}")
+        appendLine("${stringResource(R.string.money_balance)} — ${money(remaining)}")
         state.businessUpiId?.takeIf { it.isNotBlank() }?.let {
             appendLine()
             appendLine(stringResource(R.string.finish_pay_upi, it))

@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.work
 
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
@@ -40,7 +42,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.billingLabel
@@ -429,9 +431,9 @@ private fun RateStep(
             label = stringResource(R.string.start_your_rate),
             value = state.rateText,
             onValueChange = onRate,
-            prefix = "₹",
+            prefix = Money.style.symbol,
             suffix = stringResource(R.string.start_rate_per, unitInPhrase(state.unit)),
-            keyboardType = KeyboardType.Number,
+            keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             focused = true,
         )
 
@@ -452,12 +454,12 @@ private fun RateStep(
                         label = suggestion.label?.let {
                             stringResource(
                                 R.string.start_usual_rate_labelled,
-                                rupees(suggestion.amountRupees),
+                                money(suggestion.amountMinor),
                                 it,
                             )
-                        } ?: rupees(suggestion.amountRupees),
-                        selected = state.rateRupees == suggestion.amountRupees,
-                        onClick = { onRate(suggestion.amountRupees.toString()) },
+                        } ?: money(suggestion.amountMinor),
+                        selected = state.rateMinor == suggestion.amountMinor,
+                        onClick = { onRate(MoneyInput.text(suggestion.amountMinor)) },
                     )
                 }
             }
@@ -507,7 +509,7 @@ private fun CostHintCard(state: StartWorkState) {
         when (hint) {
             is CostHint.OnlyHourly -> {
                 Text(
-                    text = stringResource(R.string.start_cost_hour, machine, rupees(hint.perHourRupees)),
+                    text = stringResource(R.string.start_cost_hour, machine, money(hint.perHourMinor)),
                     style = FieldTrackTheme.type.rowTitle,
                     color = colors.ink,
                 )
@@ -520,17 +522,17 @@ private fun CostHintCard(state: StartWorkState) {
             }
             is CostHint.PerUnit -> {
                 Text(
-                    text = stringResource(R.string.start_cost_unit, machine, rupees(hint.costRupees), unit),
+                    text = stringResource(R.string.start_cost_unit, machine, money(hint.costMinor), unit),
                     style = FieldTrackTheme.type.rowTitle,
                     color = colors.ink,
                 )
-                if (state.rateRupees > 0) {
-                    val left = state.rateRupees - hint.costRupees
+                if (state.rateMinor > 0) {
+                    val left = state.rateMinor - hint.costMinor
                     Text(
                         text = if (left >= 0) {
-                            stringResource(R.string.start_cost_keep, rupees(state.rateRupees), rupees(left), unit)
+                            stringResource(R.string.start_cost_keep, money(state.rateMinor), money(left), unit)
                         } else {
-                            stringResource(R.string.start_cost_lose, rupees(state.rateRupees), rupees(-left), unit)
+                            stringResource(R.string.start_cost_lose, money(state.rateMinor), money(-left), unit)
                         },
                         style = FieldTrackTheme.type.bodySmall,
                         color = if (left >= 0) colors.primaryPressed else colors.dueInk,

@@ -40,7 +40,7 @@ class PayoutTest {
         workType = "Harvesting",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 2_000,
+        rateMinor = 2_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -49,7 +49,7 @@ class PayoutTest {
     fun `labourers are a count and an amount, not people with records`() = runTest {
         val payout = h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            amountRupees = 900, atMillis = h.nowMillis,
+            amountMinor = 900, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 3,
             note = "Labourers", method = PaymentMethod.Cash,
         )
@@ -66,7 +66,7 @@ class PayoutTest {
         val failed = runCatching {
             h.ledger.recordPayout(
                 orgId = TestHarness.ORG_A, can = owner,
-                amountRupees = 900, covers = PayoutCovers.Job,
+                amountMinor = 900, covers = PayoutCovers.Job,
                 atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
                 jobId = aJob(),
             )
@@ -78,7 +78,7 @@ class PayoutTest {
     fun `a driver and a labourer go through the same door`() = runTest {
         val wage = h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 12_000, covers = PayoutCovers.Period,
+            amountMinor = 12_000, covers = PayoutCovers.Period,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toPersonId = TestHarness.DRIVER, toName = "Jaswant Kumar",
             note = "September",
@@ -94,12 +94,12 @@ class PayoutTest {
         val jobId = aJob()
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
-            amountRupees = 900, atMillis = h.nowMillis,
+            amountMinor = 900, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 3,
         )
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 12_000, covers = PayoutCovers.Period,
+            amountMinor = 12_000, covers = PayoutCovers.Period,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toPersonId = TestHarness.DRIVER, toName = "Jaswant Kumar",
         )
@@ -118,7 +118,7 @@ class PayoutTest {
     fun `what no machine can carry is still counted, so a total can admit to it`() = runTest {
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 12_000, covers = PayoutCovers.Period,
+            amountMinor = 12_000, covers = PayoutCovers.Period,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toPersonId = TestHarness.DRIVER, toName = "Jaswant Kumar",
         )
@@ -127,7 +127,7 @@ class PayoutTest {
         // being left out, which is the one thing this figure exists to prevent.
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 600, covers = PayoutCovers.Day,
+            amountMinor = 600, covers = PayoutCovers.Day,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toName = "Labourers", headcount = 2,
         )
@@ -142,7 +142,7 @@ class PayoutTest {
     fun `what is laid against a job is not double counted as left out`() = runTest {
         h.ledger.payForJob(
             orgId = TestHarness.ORG_A, can = owner, jobId = aJob(),
-            amountRupees = 900, atMillis = h.nowMillis,
+            amountMinor = 900, atMillis = h.nowMillis,
             byPersonId = TestHarness.OWNER, headcount = 3,
         )
 
@@ -162,7 +162,7 @@ class PayoutTest {
         val failure = runCatching {
             h.ledger.recordPayout(
                 orgId = TestHarness.ORG_A, can = driver,
-                amountRupees = 500, covers = PayoutCovers.Day,
+                amountMinor = 500, covers = PayoutCovers.Day,
                 atMillis = h.nowMillis, byPersonId = TestHarness.DRIVER,
                 toName = "Labourers", headcount = 2,
             )
@@ -176,7 +176,7 @@ class PayoutTest {
 
         h.ledger.recordPayout(
             orgId = TestHarness.ORG_A, can = owner,
-            amountRupees = 600, covers = PayoutCovers.Day,
+            amountMinor = 600, covers = PayoutCovers.Day,
             atMillis = h.nowMillis, byPersonId = TestHarness.OWNER,
             toPersonId = TestHarness.DRIVER, toName = "Jaswant Kumar",
         )

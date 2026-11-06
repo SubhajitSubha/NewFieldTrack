@@ -83,7 +83,7 @@ class PlanTest {
 
     private suspend fun startFrom(bookingId: String): String = h.work.startJob(
         orgId = org, customerId = customer, workType = "Rotavator", billingMode = BillingMode.PerAcre,
-        unit = MeasureUnit.Acre, rateRupees = 800, operatorPersonId = TestHarness.DRIVER, bookingId = bookingId,
+        unit = MeasureUnit.Acre, rateMinor = 800, operatorPersonId = TestHarness.DRIVER, bookingId = bookingId,
     )
 
     // ------------------------------------------------------------ the day turns over
@@ -392,7 +392,7 @@ class PlanTest {
         val id = book()
         val job = h.work.startJob(
             orgId = org, customerId = TestHarness.CUSTOMER_B, workType = "Rotavator",
-            billingMode = BillingMode.PerAcre, unit = MeasureUnit.Acre, rateRupees = 800, bookingId = id,
+            billingMode = BillingMode.PerAcre, unit = MeasureUnit.Acre, rateMinor = 800, bookingId = id,
         )
 
         assertNull(h.work.observeJob(org, job).first()!!.bookingId)

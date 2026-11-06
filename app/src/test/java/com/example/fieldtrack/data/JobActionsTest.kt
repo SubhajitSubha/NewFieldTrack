@@ -56,7 +56,7 @@ class JobActionsTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = machineId,
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -72,7 +72,7 @@ class JobActionsTest {
         val id = runningJob()
         h.work.setRate(TestHarness.ORG_A, id, 1_200)
 
-        assertEquals(1_200L, job(id).rateRupees)
+        assertEquals(1_200L, job(id).rateMinor)
         assertTrue(JobEventType.RateChanged in events(id))
     }
 
@@ -105,7 +105,7 @@ class JobActionsTest {
     fun `fuel is logged against the job and never billed to the customer`() = runTest {
         val id = runningJob()
         h.work.setQuantity(TestHarness.ORG_A, id, 2.0)
-        h.work.addFuel(TestHarness.ORG_A, id, litres = 18.0, costRupees = 1_700)
+        h.work.addFuel(TestHarness.ORG_A, id, litres = 18.0, costMinor = 1_700)
 
         val fuel = h.db.machineDao().observeFuel(TestHarness.ORG_A, machineId).first()
         assertEquals(1, fuel.size)
@@ -166,7 +166,7 @@ class JobActionsTest {
     @Test
     fun `everything done in the field is queued for upload`() = runTest {
         val id = runningJob()
-        h.work.addFuel(TestHarness.ORG_A, id, litres = 10.0, costRupees = 950)
+        h.work.addFuel(TestHarness.ORG_A, id, litres = 10.0, costMinor = 950)
         h.work.reportBreakdown(TestHarness.ORG_A, id, BreakdownCategory.Electrical)
 
         val tables = h.db.outboxDao().nextBatch(200).map { it.tableName }

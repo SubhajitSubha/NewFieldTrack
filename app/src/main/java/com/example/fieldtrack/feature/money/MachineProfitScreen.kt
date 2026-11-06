@@ -21,7 +21,7 @@ import com.example.fieldtrack.R
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
 /**
@@ -65,7 +65,7 @@ fun MachineProfitScreen(
             FtCard {
                 MoneyLine(
                     label = stringResource(R.string.profit_earned),
-                    amount = rupees(state.earnedRupees),
+                    amount = money(state.earnedMinor),
                     strong = true,
                 )
                 Spacer(Modifier.height(11.dp))
@@ -73,20 +73,20 @@ fun MachineProfitScreen(
                 Spacer(Modifier.height(11.dp))
                 MoneyLine(
                     label = stringResource(R.string.profit_fuel),
-                    amount = "−" + rupees(state.fuelRupees),
+                    amount = "−" + money(state.fuelMinor),
                     cost = true,
                 )
                 Spacer(Modifier.height(9.dp))
                 MoneyLine(
                     label = stringResource(R.string.profit_service),
-                    amount = "−" + rupees(state.serviceRupees),
+                    amount = "−" + money(state.serviceMinor),
                     cost = true,
                 )
                 if (state.seesPeopleCost) {
                     Spacer(Modifier.height(9.dp))
                     MoneyLine(
                         label = stringResource(R.string.profit_people),
-                        amount = "−" + rupees(state.peopleRupees),
+                        amount = "−" + money(state.peopleMinor),
                         cost = true,
                     )
                 }
@@ -96,9 +96,9 @@ fun MachineProfitScreen(
                 if (state.seesPeopleCost) {
                     MoneyLine(
                         label = stringResource(R.string.profit_left),
-                        amount = rupees(state.leftRupees),
+                        amount = money(state.leftMinor),
                         strong = true,
-                        good = state.leftRupees >= 0,
+                        good = state.leftMinor >= 0,
                     )
                 } else {
                     // No total at all rather than one missing its people costs.
@@ -112,24 +112,24 @@ fun MachineProfitScreen(
                 }
             }
 
-            if (state.seesPeopleCost && state.owedRupees > 0) {
+            if (state.seesPeopleCost && state.owedMinor > 0) {
                 FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
                     // Inside the figure above, not beside it: what the work
                     // cost does not change on the day the cash moves. Said
                     // here so nobody reads the total as money already spent.
                     Text(
-                        text = stringResource(R.string.profit_owed, rupees(state.owedRupees)),
+                        text = stringResource(R.string.profit_owed, money(state.owedMinor)),
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.dueInk,
                     )
                 }
             }
 
-            if (state.seesPeopleCost && state.leftOutRupees > 0) {
+            if (state.seesPeopleCost && state.leftOutMinor > 0) {
                 FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
                     Text(
                         text = stringResource(
-                            R.string.profit_left_out, rupees(state.leftOutRupees),
+                            R.string.profit_left_out, money(state.leftOutMinor),
                         ),
                         style = FieldTrackTheme.type.bodySmall,
                         color = colors.dueInk,

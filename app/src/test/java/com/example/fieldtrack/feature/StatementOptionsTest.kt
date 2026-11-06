@@ -33,7 +33,7 @@ class StatementOptionsTest {
     private fun line(kind: LedgerKind, amount: Long, millis: Long, id: String = "e$millis") =
         LedgerEntryEntity(
             id = id, orgId = "org", customerId = "cust", kind = kind,
-            amountRupees = amount, atMillis = millis, createdAt = millis,
+            amountMinor = amount, atMillis = millis, createdAt = millis,
         )
 
     private fun charge(amount: Long, millis: Long, id: String = "c$millis") =
@@ -146,7 +146,7 @@ class StatementOptionsTest {
         val shown = entriesFor(entries, StatementContent.PaymentsOnly, null, null)
 
         assertEquals(2, shown.size)
-        assertEquals(listOf(1_000L, 500L), shown.map { it.amountRupees })
+        assertEquals(listOf(1_000L, 500L), shown.map { it.amountMinor })
     }
 
     @Test
@@ -163,7 +163,7 @@ class StatementOptionsTest {
             at(2026, 10, 1),
         )
         assertEquals(1, shown.size)
-        assertEquals(2_000L, shown.first().amountRupees)
+        assertEquals(2_000L, shown.first().amountMinor)
     }
 
     @Test

@@ -39,7 +39,7 @@ import com.example.fieldtrack.designsystem.component.FtMoneySize
 import com.example.fieldtrack.designsystem.component.FtMoneyTone
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -67,7 +67,7 @@ fun LedgerScreen(
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
-    val owes = state.balanceRupees > 0
+    val owes = state.balanceMinor > 0
 
     AdaptiveScreen(modifier) {
         FtTopBar(
@@ -145,7 +145,7 @@ fun LedgerScreen(
                                 color = if (owes) colors.onDarkMuted else colors.primaryPressed,
                             )
                             FtMoney(
-                                amount = if (owes) state.balanceRupees else 0,
+                                amount = if (owes) state.balanceMinor else 0,
                                 size = FtMoneySize.Hero,
                                 onDark = owes,
                                 tone = if (owes) FtMoneyTone.Neutral else FtMoneyTone.Received,
@@ -210,7 +210,7 @@ fun LedgerScreen(
                 monthSections(
                     rows = state.jobs,
                     atMillis = { it.atMillis },
-                    amount = { it.amountRupees },
+                    amount = { it.amountMinor },
                     totalColor = { FieldTrackTheme.colors.inkSecondary },
                     key = { it.id },
                 ) { job ->
@@ -230,7 +230,7 @@ fun LedgerScreen(
                 monthSections(
                     rows = state.payments,
                     atMillis = { it.atMillis },
-                    amount = { it.amountRupees },
+                    amount = { it.amountMinor },
                     totalColor = { FieldTrackTheme.colors.primaryPressed },
                     key = { it.id },
                 ) { payment ->
@@ -271,14 +271,14 @@ fun LedgerScreen(
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     text = (if (row.isDebit) "+" else "−") +
-                                        rupees(row.amountRupees),
+                                        money(row.amountMinor),
                                     style = FieldTrackTheme.type.numeric,
                                     color = if (row.isDebit) colors.due else colors.primaryPressed,
                                 )
                                 // The running balance as of this line, so the column
                                 // can be read straight down during an argument.
                                 Text(
-                                    text = rupees(row.balanceAfterRupees),
+                                    text = money(row.balanceAfterMinor),
                                     style = FieldTrackTheme.type.caption,
                                     color = colors.inkTertiary,
                                 )
@@ -369,16 +369,16 @@ private fun CustomerStatsFor(tab: CustomerTab, state: LedgerState) {
     when (tab) {
         CustomerTab.Khata -> CustomerStats(
             state.rows.size.toString() to stringResource(R.string.customer_stat_lines),
-            rupees(state.billedRupees) to stringResource(R.string.customer_stat_billed),
-            rupees(state.receivedRupees) to stringResource(R.string.customer_stat_received),
+            money(state.billedMinor) to stringResource(R.string.customer_stat_billed),
+            money(state.receivedMinor) to stringResource(R.string.customer_stat_received),
         )
         CustomerTab.Jobs -> CustomerStats(
             state.jobs.size.toString() to stringResource(R.string.customer_stat_jobs),
-            rupees(state.billedRupees) to stringResource(R.string.customer_stat_billed),
+            money(state.billedMinor) to stringResource(R.string.customer_stat_billed),
             state.unpaidJobCount.toString() to stringResource(R.string.customer_stat_unpaid),
         )
         CustomerTab.Payments -> CustomerStats(
-            rupees(state.receivedRupees) to stringResource(R.string.customer_stat_received),
+            money(state.receivedMinor) to stringResource(R.string.customer_stat_received),
             state.payments.size.toString() to stringResource(R.string.customer_stat_payments),
             (state.lastPaymentMillis?.let { dayMonth(it) }
                 ?: stringResource(R.string.customer_none)) to

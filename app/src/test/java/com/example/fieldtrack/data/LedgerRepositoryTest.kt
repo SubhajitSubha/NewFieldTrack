@@ -116,7 +116,7 @@ class LedgerRepositoryTest {
         val older = h.work.startJob(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Harvesting", billingMode = BillingMode.PerAcre,
-            unit = MeasureUnit.Acre, rateRupees = 1_000,
+            unit = MeasureUnit.Acre, rateMinor = 1_000,
         )
         h.work.setQuantity(TestHarness.ORG_A, older, 3.0)
         h.work.complete(TestHarness.ORG_A, older)
@@ -125,14 +125,14 @@ class LedgerRepositoryTest {
         val newer = h.work.startJob(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
             workType = "Rotavator", billingMode = BillingMode.PerAcre,
-            unit = MeasureUnit.Acre, rateRupees = 1_000,
+            unit = MeasureUnit.Acre, rateMinor = 1_000,
         )
         h.work.setQuantity(TestHarness.ORG_A, newer, 2.0)
         h.work.complete(TestHarness.ORG_A, newer)
 
         h.ledger.recordPayment(
             orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A,
-            amountRupees = 2_000, method = PaymentMethod.Cash, jobId = newer,
+            amountMinor = 2_000, method = PaymentMethod.Cash, jobId = newer,
         )
 
         val entries = h.ledger.observeLedger(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first()
@@ -143,7 +143,7 @@ class LedgerRepositoryTest {
         val due = outstandingCharges(entries)
         assertEquals(2, due.size)
         assertEquals(older, due.first().entry.jobId)
-        assertEquals(1_000L, due.first().outstandingRupees)
+        assertEquals(1_000L, due.first().outstandingMinor)
     }
 
 }

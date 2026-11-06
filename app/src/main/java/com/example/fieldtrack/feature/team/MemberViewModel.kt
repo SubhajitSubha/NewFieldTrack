@@ -45,7 +45,7 @@ data class MemberState(
     /** What they have done here. Only ever their work for this business. */
     val jobCount: Int = 0,
     val totalSeconds: Long = 0,
-    val broughtInRupees: Long = 0,
+    val broughtInMinor: Long = 0,
     /** False for anyone who may not manage the team, and for your own record. */
     val editable: Boolean = false,
     val isYou: Boolean = false,
@@ -153,7 +153,7 @@ class MemberViewModel(
                     canCloseBills = member.canCloseBills,
                     jobCount = billed.size,
                     totalSeconds = jobs.sumOf { job -> job.elapsedSeconds },
-                    broughtInRupees = billed.sumOf { job -> job.amountRupees },
+                    broughtInMinor = billed.sumOf { job -> job.amountMinor },
                     isYou = member.personId == s.personId,
                     // Your own access is not editable from here: an owner who could
                     // switch off their own permissions would lock themselves out.

@@ -22,7 +22,7 @@ import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.home.AlertActions
@@ -126,11 +126,11 @@ fun DriverHomeScreen(
             )
         })
 
-        state.cashWithYouRupees?.takeIf { it > 0 }?.let { cash ->
+        state.cashWithYouMinor?.takeIf { it > 0 }?.let { cash ->
             add(HomeBlock(Pane.Main) {
                 FigureCard(
                     label = stringResource(R.string.home_cash_with_you),
-                    value = rupees(cash),
+                    value = money(cash),
                     note = stringResource(R.string.home_cash_with_you_note),
                     onClick = null,
                 )

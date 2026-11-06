@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.calculator
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.billing.Billing
@@ -62,7 +64,7 @@ data class PriceState(
     /** Rates from the rate card that fit exactly what is chosen, offered as one tap each. */
     val usualRates: List<RateSuggestion> = emptyList(),
 ) {
-    val rateRupees: Long get() = input.rateText.toLongOrNull() ?: 0L
+    val rateMinor: Long get() = MoneyInput.parse(input.rateText) ?: 0L
 
     /** True when the figure is a count of whole things — trips, bags, pieces. */
     val countsWhole: Boolean get() = input.unit.countsWhole
@@ -89,11 +91,11 @@ data class PriceState(
      * Null rather than zero: "₹0" reads as an answer, and a screen that has been
      * given half a question has not got one.
      */
-    val amountRupees: Long?
+    val amountMinor: Long?
         get() {
-            if (rateRupees <= 0) return null
+            if (rateMinor <= 0) return null
             if (!fixedPrice && quantity <= 0.0) return null
-            return Billing.amount(input.billingMode, quantity, rateRupees)
+            return Billing.amount(input.billingMode, quantity, rateMinor, Money.style.stepMinor)
         }
 }
 
@@ -176,11 +178,11 @@ class PriceViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 
     fun setRate(text: String) = input.update {
-        it.copy(rateText = text.filter(Char::isDigit).take(MAX_RATE_DIGITS), rateFromCard = false)
+        it.copy(rateText = MoneyInput.clean(text), rateFromCard = false)
     }
 
     /** One of the card's rates, tapped. */
-    fun pickRate(rupees: Long) = input.update { it.copy(rateText = rupees.toString(), rateFromCard = true) }
+    fun pickRate(amountMinor: Long) = input.update { it.copy(rateText = MoneyInput.text(amountMinor), rateFromCard = true) }
 
     fun setQuantity(text: String) = input.update {
         it.copy(quantityText = cleanQuantity(text, whole = it.unit.countsWhole))
@@ -216,7 +218,7 @@ internal fun PriceInput.recleaned(): PriceInput {
 internal fun PriceInput.fittingRates(card: List<RateEntity>): List<RateSuggestion> =
     card.filter {
         it.workType == workType.key && it.billingMode == billingMode && it.unit == unit
-    }.map { RateSuggestion(it.amountRupees, it.label) }
+    }.map { RateSuggestion(it.amountMinor, it.label) }
 
 /**
  * Fills the rate from the card when it has one for what is chosen. Where it has
@@ -226,7 +228,7 @@ internal fun PriceInput.fittingRates(card: List<RateEntity>): List<RateSuggestio
 internal fun PriceInput.withRateFrom(card: List<RateEntity>): PriceInput {
     val best = fittingRates(card).firstOrNull()
         ?: return if (rateFromCard) copy(rateText = "", rateFromCard = false) else this
-    return copy(rateText = best.amountRupees.toString(), rateFromCard = true)
+    return copy(rateText = MoneyInput.text(best.amountMinor), rateFromCard = true)
 }
 
 /**

@@ -37,7 +37,7 @@ class WorkRepositoryTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -95,7 +95,7 @@ class WorkRepositoryTest {
             workType = "Ploughing",
             billingMode = BillingMode.PerHour,
             unit = MeasureUnit.Hour,
-            rateRupees = 1_100,
+            rateMinor = 1_100,
             operatorPersonId = TestHarness.DRIVER,
         )
         h.advanceMinutes(120)
@@ -111,7 +111,7 @@ class WorkRepositoryTest {
             workType = "Hauling",
             billingMode = BillingMode.PerTrip,
             unit = MeasureUnit.Trip,
-            rateRupees = 400,
+            rateMinor = 400,
             operatorPersonId = TestHarness.DRIVER,
         )
         repeat(6) { h.work.addTrip(TestHarness.ORG_A, jobId, distanceMetres = 8_000) }
@@ -120,7 +120,7 @@ class WorkRepositoryTest {
         val job = h.work.observeJob(TestHarness.ORG_A, jobId).first()!!
         assertEquals(5.0, job.quantity, 0.0)
         assertEquals(48_000L, job.distanceMetres)
-        assertEquals(2_000L, job.amountRupees)
+        assertEquals(2_000L, job.amountMinor)
 
         repeat(10) { h.work.removeLastTrip(TestHarness.ORG_A, jobId) }
         assertEquals(0.0, h.work.observeJob(TestHarness.ORG_A, jobId).first()!!.quantity, 0.0)
@@ -135,7 +135,7 @@ class WorkRepositoryTest {
             workType = "Harvesting",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_700,
+            rateMinor = 1_700,
             quantity = 5.0,
             workedAt = yesterday,
             startedAt = yesterday,
@@ -162,7 +162,7 @@ class WorkRepositoryTest {
             workType = "Harvesting",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_700,
+            rateMinor = 1_700,
             quantity = 5.0,
             workedAt = yesterday,
             startedAt = yesterday,

@@ -65,7 +65,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         BookingEntity::class,
         OutboxEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

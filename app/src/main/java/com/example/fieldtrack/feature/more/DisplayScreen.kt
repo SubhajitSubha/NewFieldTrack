@@ -27,7 +27,7 @@ import com.example.fieldtrack.designsystem.component.FtChoiceCard
 import com.example.fieldtrack.designsystem.component.FtEmphasisCard
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
 /**
@@ -135,7 +135,7 @@ fun DisplayScreen(
                     color = colors.onDarkMuted,
                 )
                 Text(
-                    text = rupees(4_000),
+                    text = money(4_000),
                     style = FieldTrackTheme.type.moneyHero,
                     color = colors.onDark,
                     modifier = Modifier.padding(top = 6.dp),

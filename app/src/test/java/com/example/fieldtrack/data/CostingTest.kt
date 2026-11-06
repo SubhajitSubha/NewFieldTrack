@@ -100,7 +100,7 @@ class CostingTest {
 
     private fun kind(quantity: Double, hours: Int, earned: Long, jobs: Int = 4) = WorkKindFacts(
         workType = "Rotavator", unit = MeasureUnit.Bigha,
-        quantity = quantity, seconds = hours * hour, earnedRupees = earned, jobs = jobs,
+        quantity = quantity, seconds = hours * hour, earnedMinor = earned, jobs = jobs,
     )
 
     @Test
@@ -110,13 +110,13 @@ class CostingTest {
         // 38 bigha over 18 hours is two an hour; the truth the clock knows is one.
         val withUntimed = WorkKindFacts(
             workType = "Rotavator", unit = MeasureUnit.Bigha,
-            quantity = 38.0, timedQuantity = 18.0, seconds = 18 * hour, earnedRupees = 38_000, jobs = 3,
+            quantity = 38.0, timedQuantity = 18.0, seconds = 18 * hour, earnedMinor = 38_000, jobs = 3,
         )
 
         val unit = Costing.perUnit(cost, withUntimed)!!
 
         assertEquals(1.0, unit.unitsPerHour, 0.001)
-        assertEquals("what it billed per bigha still counts every job", 1_000L, unit.billedRupees)
+        assertEquals("what it billed per bigha still counts every job", 1_000L, unit.billedMinor)
     }
 
     @Test
@@ -125,18 +125,18 @@ class CostingTest {
         // 40 bigha in 20 hours: 2 an hour. Billed ₹40,000 over 40: ₹1,000 each.
         val unit = Costing.perUnit(cost, kind(quantity = 40.0, hours = 20, earned = 40_000))!!
         assertEquals(2.0, unit.unitsPerHour, 0.001)
-        assertEquals(285L, unit.costRupees)
-        assertEquals(1_000L, unit.billedRupees)
-        assertEquals("billed less cost, from the two figures shown", 715L, unit.leftRupees)
+        assertEquals(285L, unit.costMinor)
+        assertEquals(1_000L, unit.billedMinor)
+        assertEquals("billed less cost, from the two figures shown", 715L, unit.leftMinor)
     }
 
     @Test
     fun `work that loses money shows a negative margin`() {
         val cost = Costing.running(facts(100, 30_000, 12_000), finance(10_000, 800))
         val unit = Costing.perUnit(cost, kind(quantity = 10.0, hours = 20, earned = 3_000))!!
-        assertEquals(300L, unit.billedRupees)
-        assertEquals(1_140L, unit.costRupees)
-        assertEquals(-840L, unit.leftRupees)
+        assertEquals(300L, unit.billedMinor)
+        assertEquals(1_140L, unit.costMinor)
+        assertEquals(-840L, unit.leftMinor)
     }
 
     @Test
@@ -217,14 +217,14 @@ class CostingTest {
 
     @Test
     fun `a job that cost more than it brought in lost the difference`() {
-        val margin = JobMargin("j", earnedRupees = 3_000, fuelRupees = 1_800, peopleRupees = 1_700, unpriced = 0)
-        assertEquals(500L, margin.lostRupees)
+        val margin = JobMargin("j", earnedMinor = 3_000, fuelMinor = 1_800, peopleMinor = 1_700, unpriced = 0)
+        assertEquals(500L, margin.lostMinor)
     }
 
     @Test
     fun `a job that broke even or made money lost nothing`() {
-        assertNull(JobMargin("j", 3_000, 1_500, 1_500, 0).lostRupees)
-        assertNull(JobMargin("j", 3_000, 500, 500, 0).lostRupees)
+        assertNull(JobMargin("j", 3_000, 1_500, 1_500, 0).lostMinor)
+        assertNull(JobMargin("j", 3_000, 500, 500, 0).lostMinor)
     }
 
     @Test
@@ -232,7 +232,7 @@ class CostingTest {
         // Earned 3,000, diesel 2,000: it looks like a loss only because the crew's
         // wages are missing from the other side, and unpriced wages are not nought.
         val margin = JobMargin("j", 3_000, 2_000, 0, unpriced = 1)
-        assertNull(margin.lostRupees)
-        assertNotNull(JobMargin("j", 3_000, 2_000, 2_000, unpriced = 0).lostRupees)
+        assertNull(margin.lostMinor)
+        assertNotNull(JobMargin("j", 3_000, 2_000, 2_000, unpriced = 0).lostMinor)
     }
 }

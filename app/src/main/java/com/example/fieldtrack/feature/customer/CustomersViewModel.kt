@@ -20,15 +20,15 @@ data class CustomerRow(
     val id: String,
     val name: String,
     val village: String?,
-    val balanceRupees: Long,
+    val balanceMinor: Long,
 ) {
-    val owes: Boolean get() = balanceRupees > 0
+    val owes: Boolean get() = balanceMinor > 0
 }
 
 data class CustomersState(
     val query: String = "",
     val onlyOwing: Boolean = false,
-    val totalOwedRupees: Long = 0,
+    val totalOwedMinor: Long = 0,
     val owingCount: Int = 0,
     val rows: List<CustomerRow> = emptyList(),
     val loaded: Boolean = false,
@@ -47,26 +47,26 @@ class CustomersViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.ledgerRepository.observeBalances(s.orgId),
             _filters,
         ) { customers, balances, filters ->
-            val balanceById = balances.associate { it.customerId to it.balanceRupees }
+            val balanceById = balances.associate { it.customerId to it.balanceMinor }
             val rows = customers
                 .map { c ->
                     CustomerRow(
                         id = c.id,
                         name = c.name,
                         village = c.village,
-                        balanceRupees = balanceById[c.id] ?: 0L,
+                        balanceMinor = balanceById[c.id] ?: 0L,
                     )
                 }
                 // Whoever owes the most, first. A contractor opening this screen is
                 // almost always deciding who to chase, not browsing an address book.
-                .sortedWith(compareByDescending<CustomerRow> { it.balanceRupees }.thenBy { it.name })
+                .sortedWith(compareByDescending<CustomerRow> { it.balanceMinor }.thenBy { it.name })
                 .filter { !filters.onlyOwing || it.owes }
 
             val owing = balanceById.values.filter { it > 0 }
             CustomersState(
                 query = filters.query,
                 onlyOwing = filters.onlyOwing,
-                totalOwedRupees = owing.sum(),
+                totalOwedMinor = owing.sum(),
                 owingCount = owing.size,
                 rows = rows,
                 loaded = true,

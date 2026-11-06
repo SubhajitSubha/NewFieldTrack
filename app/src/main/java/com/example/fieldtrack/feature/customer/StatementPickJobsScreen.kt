@@ -29,7 +29,7 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -58,7 +58,7 @@ fun StatementPickJobsScreen(
     val settled = state.jobs.filter { it.settled }
     val pickedTotal = state.jobs
         .filter { it.entryId in state.pickedEntryIds }
-        .sumOf { it.amountRupees }
+        .sumOf { it.amountMinor }
 
     Column(
         modifier
@@ -146,7 +146,7 @@ fun StatementPickJobsScreen(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = rupees(pickedTotal),
+                    text = money(pickedTotal),
                     style = FieldTrackTheme.type.sectionTitle,
                     color = colors.ink,
                 )
@@ -181,7 +181,7 @@ private fun JobRow(job: PickableJob, picked: Boolean, onToggle: (String) -> Unit
             leading = { Tick(picked) },
             trailing = {
                 Text(
-                    text = rupees(job.amountRupees),
+                    text = money(job.amountMinor),
                     style = FieldTrackTheme.type.numeric,
                     color = if (job.settled) colors.inkSecondary else colors.ink,
                 )

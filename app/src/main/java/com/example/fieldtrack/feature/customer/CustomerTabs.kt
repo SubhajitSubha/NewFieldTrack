@@ -28,7 +28,7 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -153,7 +153,7 @@ fun <T> LazyListScope.monthSections(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = rupees(inMonth.sumOf(amount)),
+                    text = money(inMonth.sumOf(amount)),
                     style = FieldTrackTheme.type.label,
                     color = totalColor(),
                 )
@@ -176,7 +176,7 @@ fun CustomerJobCard(row: CustomerJobRow, onClick: (() -> Unit)?) {
             trailing = {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = rupees(row.amountRupees),
+                        text = money(row.amountMinor),
                         style = FieldTrackTheme.type.numeric,
                         color = colors.ink,
                     )
@@ -205,8 +205,8 @@ private fun CustomerJobRow.title(): String {
 @Composable
 private fun CustomerJobRow.statusLabel(): String = when {
     settled -> stringResource(R.string.customer_job_settled)
-    outstandingRupees < amountRupees ->
-        stringResource(R.string.customer_job_part_paid, rupees(outstandingRupees))
+    outstandingMinor < amountMinor ->
+        stringResource(R.string.customer_job_part_paid, money(outstandingMinor))
     else -> stringResource(R.string.customer_job_unpaid)
 }
 
@@ -234,7 +234,7 @@ fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?) {
                 Text(
                     text = stringResource(
                         R.string.customer_payment_amount,
-                        rupees(row.amountRupees),
+                        money(row.amountMinor),
                     ),
                     style = FieldTrackTheme.type.numeric,
                     color = colors.primaryPressed,

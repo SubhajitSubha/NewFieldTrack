@@ -114,10 +114,10 @@ class MigrationTest {
     fun `existing service records survive and gain an empty parts note`() {
         create(13) { it.seedV13() }
         val db = open().openHelper.writableDatabase
-        db.query("SELECT description, costRupees, atMachineHours, partsNote FROM service_records").use { c ->
+        db.query("SELECT description, costMinor, atMachineHours, partsNote FROM service_records").use { c ->
             assertTrue(c.moveToFirst())
             assertEquals("Oil change", c.getString(0))
-            assertEquals(2_100L, c.getLong(1))
+            assertEquals("rupees became paise", 210_000L, c.getLong(1))
             assertEquals(1_240.0, c.getDouble(2), 0.0)
             assertTrue(c.isNull(3))
         }
@@ -133,8 +133,8 @@ class MigrationTest {
         db.query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'index_machine_finance_orgId'").use { c ->
             assertTrue(c.moveToFirst())
         }
-        db.execSQL("INSERT INTO machine_finance (id, orgId, monthlyRupees, hoursPerYear, updatedAt, syncState) VALUES ('m1','o1',12000,700,1,'Pending')")
-        db.query("SELECT monthlyRupees FROM machine_finance").use { c ->
+        db.execSQL("INSERT INTO machine_finance (id, orgId, monthlyMinor, hoursPerYear, updatedAt, syncState) VALUES ('m1','o1',12000,700,1,'Pending')")
+        db.query("SELECT monthlyMinor FROM machine_finance").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(12_000L, c.getLong(0))
         }
     }
@@ -237,7 +237,140 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(16, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(17, c.getInt(0))
+        }
+    }
+
+    // ----------------------------------------------------------- 16 to 17: minor units
+
+    private fun SQLiteDatabase.seedV16Money() {
+        execSQL(
+            "INSERT INTO organisations (id, name, defaultLandUnit, driversSeeAll, createdAt, updatedAt, syncState) " +
+                "VALUES ('o1', 'Singh Agro', 'Acre', 0, 1, 1, 'Synced')"
+        )
+        execSQL(
+            "INSERT INTO jobs (id, orgId, customerId, workType, billingMode, unit, rateRupees, quantity, " +
+                "tripTotalRupees, elapsedSeconds, status, workedAt, recordedAt, entryMethod, createdAt, updatedAt, " +
+                "syncState, revision) VALUES " +
+                "('j1', 'o1', 'c1', 'Rotavator', 'PerAcre', 'Acre', 800, 2.5, 0, 0, 'Completed', 1, 1, 'Timed', 1, 1, 'Synced', 1), " +
+                "('j2', 'o1', 'c1', 'Hauling', 'PerTrip', 'Trip', 900, 5.0, 4000, 0, 'Completed', 1, 1, 'Timed', 1, 1, 'Synced', 1)"
+        )
+        execSQL(
+            "INSERT INTO ledger_entries (id, orgId, customerId, kind, amountRupees, atMillis, createdAt, syncState) " +
+                "VALUES ('l1', 'o1', 'c1', 'Charge', 3000, 1, 1, 'Synced')"
+        )
+        execSQL(
+            "INSERT INTO rates (id, orgId, workType, billingMode, unit, amountRupees, updatedAt, syncState) " +
+                "VALUES ('r1', 'o1', 'Rotavator', 'PerAcre', 'Acre', 800, 1, 'Synced')"
+        )
+        execSQL(
+            "INSERT INTO fuel_entries (id, orgId, machineId, litres, costRupees, atMillis, syncState) " +
+                "VALUES ('f1', 'o1', 'm1', 20.0, 1900, 1, 'Synced')"
+        )
+        execSQL(
+            "INSERT INTO payouts (id, orgId, amountRupees, atMillis, covers, headcount, createdAt, syncState) " +
+                "VALUES ('p1', 'o1', 500, 1, 'Day', 1, 1, 'Synced')"
+        )
+        // Litres, seconds and acres share the column that holds a trip's price.
+        execSQL(
+            "INSERT INTO job_events (id, jobId, orgId, type, atMillis, numericValue, syncState) VALUES " +
+                "('e1', 'j2', 'o1', 'TripAdded', 1, 900.0, 'Synced'), " +
+                "('e2', 'j2', 'o1', 'QuantitySet', 2, 5.0, 'Synced'), " +
+                "('e3', 'j2', 'o1', 'RateChanged', 3, 950.0, 'Synced'), " +
+                "('e4', 'j2', 'o1', 'FuelAdded', 4, 20.0, 'Synced'), " +
+                "('e5', 'j2', 'o1', 'ClockCorrected', 5, 3600.0, 'Synced')"
+        )
+        // A change queued on this phone and never sent, still in the old shape.
+        execSQL(
+            "INSERT INTO outbox (orgId, tableName, entityId, operation, payloadJson, createdAt, attempts) VALUES " +
+                "('o1', 'ledger_entries', 'l2', 'Upsert', " +
+                "'{\"id\":\"l2\",\"orgId\":\"o1\",\"amountRupees\":1500,\"kind\":\"Payment\"}', 1, 0), " +
+                "('o1', 'job_events', 'e9', 'Upsert', " +
+                "'{\"id\":\"e9\",\"type\":\"TripAdded\",\"numericValue\":900.0}', 2, 0), " +
+                "('o1', 'job_events', 'e8', 'Upsert', " +
+                "'{\"id\":\"e8\",\"type\":\"FuelAdded\",\"numericValue\":20.0}', 3, 0)"
+        )
+    }
+
+    @Test
+    fun `every amount is scaled to minor units and every business keeps its rupees`() {
+        create(16) { it.seedV16Money() }
+        val db = open().openHelper.writableDatabase
+
+        db.query("SELECT currencyCode, moneyStepMinor FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("every business so far kept rupees", "INR", c.getString(0))
+            assertEquals("and never dealt in paise", 100L, c.getLong(1))
+        }
+        db.query("SELECT id, rateMinor, tripTotalMinor, stepMinor, quantity FROM jobs ORDER BY id").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(80_000L, c.getLong(1)); assertEquals(0L, c.getLong(2))
+            assertEquals("each job is stamped with a rupee business's rounding", 100L, c.getLong(3))
+            assertEquals("measurements are not money", 2.5, c.getDouble(4), 0.0)
+            assertTrue(c.moveToNext())
+            assertEquals(90_000L, c.getLong(1)); assertEquals(400_000L, c.getLong(2))
+        }
+        db.query("SELECT amountMinor FROM ledger_entries").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(300_000L, c.getLong(0))
+        }
+        db.query("SELECT amountMinor FROM rates").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(80_000L, c.getLong(0))
+        }
+        db.query("SELECT costMinor FROM fuel_entries").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(190_000L, c.getLong(0))
+        }
+        db.query("SELECT amountMinor FROM payouts").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0))
+        }
+    }
+
+    @Test
+    fun `a trip price and a rate change are scaled and litres, quantities and seconds are not`() {
+        create(16) { it.seedV16Money() }
+        val db = open().openHelper.writableDatabase
+        val values = buildMap {
+            db.query("SELECT id, numericValue FROM job_events").use { c ->
+                while (c.moveToNext()) put(c.getString(0), c.getDouble(1))
+            }
+        }
+        assertEquals("trip price", 90_000.0, values.getValue("e1"), 0.0)
+        assertEquals("trips counted", 5.0, values.getValue("e2"), 0.0)
+        assertEquals("rate change", 95_000.0, values.getValue("e3"), 0.0)
+        assertEquals("litres", 20.0, values.getValue("e4"), 0.0)
+        assertEquals("seconds taken off a clock", 3_600.0, values.getValue("e5"), 0.0)
+    }
+
+    @Test
+    fun `changes queued before the update leave in the new shape`() {
+        create(16) { it.seedV16Money() }
+        val db = open().openHelper.writableDatabase
+        val payloads = buildMap {
+            db.query("SELECT entityId, payloadJson FROM outbox").use { c ->
+                while (c.moveToNext()) put(c.getString(0), JSONObject(c.getString(1)))
+            }
+        }
+        val payment = payloads.getValue("l2")
+        assertEquals(150_000L, payment.getLong("amountMinor"))
+        assertTrue("the old name must not reach the server", !payment.has("amountRupees"))
+        assertEquals(90_000.0, payloads.getValue("e9").getDouble("numericValue"), 0.0)
+        assertEquals("a litres event is left alone", 20.0, payloads.getValue("e8").getDouble("numericValue"), 0.0)
+    }
+
+    @Test
+    fun `the rebuilt tables keep their indexes and take new rows`() {
+        create(16) { it.seedV16Money() }
+        val db = open().openHelper.writableDatabase
+        for (index in listOf("index_jobs_orgId_status", "index_jobs_orgId_workedAt", "index_ledger_entries_orgId_atMillis", "index_rates_orgId_workType", "index_payouts_jobId")) {
+            db.query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = '$index'").use { c ->
+                assertTrue("$index survived", c.moveToFirst())
+            }
+        }
+        db.execSQL(
+            "INSERT INTO ledger_entries (id, orgId, customerId, kind, amountMinor, atMillis, createdAt, syncState) " +
+                "VALUES ('l9', 'o1', 'c1', 'Payment', 12345, 1, 1, 'Pending')"
+        )
+        db.query("SELECT amountMinor FROM ledger_entries WHERE id = 'l9'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(12_345L, c.getLong(0))
         }
     }
 }

@@ -41,7 +41,7 @@ import com.example.fieldtrack.designsystem.component.FtStatusPill
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.duration
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.clockTime
@@ -261,14 +261,14 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                                 R.string.live_rate_line,
                                 if (state.unit == MeasureUnit.Hour) measure(state.quantity, state.unit)
                                 else quantity(state.quantity),
-                                rupees(state.rateRupees),
+                                money(state.rateMinor),
                             )
                         },
                         style = FieldTrackTheme.type.caption,
                         color = colors.onDarkMuted,
                     )
                     Text(
-                        text = rupees(state.amountRupees),
+                        text = money(state.amountMinor),
                         style = FieldTrackTheme.type.moneyLarge,
                         color = colors.onDark,
                         modifier = Modifier.padding(top = 2.dp),
@@ -364,7 +364,7 @@ private fun JobEventRow.title(state: JobDetailState): String {
         )
         // The trip happened either way; what it was charged at is the owner's.
         JobEventType.TripAdded -> if (state.canSeeMoney) {
-            stringResource(R.string.event_trip_added, rupees((numericValue ?: 0.0).toLong()))
+            stringResource(R.string.event_trip_added, money((numericValue ?: 0.0).toLong()))
         } else {
             stringResource(R.string.event_trip_added_plain)
         }
@@ -401,7 +401,7 @@ private fun JobEventRow.title(state: JobDetailState): String {
             )
         }
         JobEventType.RateChanged -> if (state.canSeeMoney) {
-            stringResource(R.string.event_rate_changed, rupees((numericValue ?: 0.0).toLong()))
+            stringResource(R.string.event_rate_changed, money((numericValue ?: 0.0).toLong()))
         } else {
             stringResource(R.string.event_rate_changed_plain)
         }
@@ -469,7 +469,7 @@ private fun CostCard(
         if (state.canSeeMoney) {
             CostLine(
                 label = stringResource(R.string.cost_earned),
-                amount = rupees(state.amountRupees),
+                amount = money(state.amountMinor),
                 strong = true,
             )
             Spacer(Modifier.height(11.dp))
@@ -477,7 +477,7 @@ private fun CostCard(
             Spacer(Modifier.height(11.dp))
             CostLine(
                 label = stringResource(R.string.cost_diesel),
-                amount = "−" + rupees(state.fuelRupees),
+                amount = "−" + money(state.fuelMinor),
                 cost = true,
             )
         } else {
@@ -502,18 +502,18 @@ private fun CostCard(
                 // unreadable; what it means is said in its own card below.
                 amount = when {
                     !state.seesPeopleCost -> ""
-                    state.labourRupees > 0 -> "−" + rupees(state.labourRupees)
+                    state.labourMinor > 0 -> "−" + money(state.labourMinor)
                     else -> stringResource(R.string.cost_not_priced_yet)
                 },
-                cost = state.seesPeopleCost && state.labourRupees > 0,
+                cost = state.seesPeopleCost && state.labourMinor > 0,
             )
         }
 
-        if (state.seesPeopleCost && state.otherRupees > 0) {
+        if (state.seesPeopleCost && state.otherMinor > 0) {
             Spacer(Modifier.height(9.dp))
             CostLine(
                 label = stringResource(R.string.cost_other),
-                amount = "−" + rupees(state.otherRupees),
+                amount = "−" + money(state.otherMinor),
                 cost = true,
             )
         }
@@ -524,13 +524,13 @@ private fun CostCard(
             Spacer(Modifier.height(13.dp))
             CostLine(
                 label = stringResource(R.string.cost_left),
-                amount = rupees(state.leftRupees),
+                amount = money(state.leftMinor),
                 strong = true,
-                good = state.leftRupees >= 0,
+                good = state.leftMinor >= 0,
             )
             Spacer(Modifier.height(9.dp))
             Text(
-                text = stringResource(R.string.cost_yours_note, rupees(state.amountRupees)),
+                text = stringResource(R.string.cost_yours_note, money(state.amountMinor)),
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
             )
@@ -549,11 +549,11 @@ private fun CostCard(
 
     // Said in words as well as in red: a negative figure is easy to read past, and
     // a job that cost more than it brought in is the thing this card exists to show.
-    state.lostRupees?.let { lost ->
+    state.lostMinor?.let { lost ->
         Spacer(Modifier.height(9.dp))
         FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
             Text(
-                text = stringResource(R.string.cost_lost, rupees(lost)),
+                text = stringResource(R.string.cost_lost, money(lost)),
                 style = FieldTrackTheme.type.sectionTitle,
                 color = colors.dueInk,
             )
@@ -568,16 +568,16 @@ private fun CostCard(
 
     // The machine's own wear and loan, for the hours this job ran. An estimate, so
     // it sits apart and says so; the figures above it are not changed by it.
-    val share = state.machineShareRupees
-    val afterMachine = state.leftAfterMachineRupees
+    val share = state.machineShareMinor
+    val afterMachine = state.leftAfterMachineMinor
     if (state.canTotal && share != null && afterMachine != null) {
         Spacer(Modifier.height(9.dp))
         FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
             Text(
                 text = stringResource(
                     if (afterMachine >= 0) R.string.cost_share_keeps else R.string.cost_share_loses,
-                    rupees(share),
-                    rupees(kotlin.math.abs(afterMachine)),
+                    money(share),
+                    money(kotlin.math.abs(afterMachine)),
                 ),
                 style = FieldTrackTheme.type.bodySmall,
                 color = if (afterMachine >= 0) colors.inkSecondary else colors.dueInk,
@@ -594,7 +594,7 @@ private fun CostCard(
     // A cost somebody recorded in the field and nobody has priced. Without a
     // way in to that row, the only button on this screen adds a second entry
     // beside it and the same crew is counted twice.
-    val unpriced = state.costs.firstOrNull { it.cost.amountRupees == null }
+    val unpriced = state.costs.firstOrNull { it.cost.amountMinor == null }
     if (state.seesPeopleCost && unpriced != null) {
         Spacer(Modifier.height(9.dp))
         FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
@@ -621,11 +621,11 @@ private fun CostCard(
         }
     }
 
-    if (state.seesPeopleCost && state.owedRupees > 0) {
+    if (state.seesPeopleCost && state.owedMinor > 0) {
         Spacer(Modifier.height(9.dp))
         FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
             Text(
-                text = stringResource(R.string.cost_owed, rupees(state.owedRupees)),
+                text = stringResource(R.string.cost_owed, money(state.owedMinor)),
                 style = FieldTrackTheme.type.sectionTitle,
                 color = colors.dueInk,
             )
@@ -635,7 +635,7 @@ private fun CostCard(
                 style = FieldTrackTheme.type.bodySmall,
                 color = colors.dueInk,
             )
-            val owing = state.costs.firstOrNull { (it.owedRupees ?: 0) > 0 }
+            val owing = state.costs.firstOrNull { (it.owedMinor ?: 0) > 0 }
             if (owing != null && onPayCost != null) {
                 Spacer(Modifier.height(9.dp))
                 FtButton(

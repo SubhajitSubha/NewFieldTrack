@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.calculator
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,7 @@ import com.example.fieldtrack.designsystem.component.FtFitText
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import com.example.fieldtrack.designsystem.layout.LocalWidthClass
 import com.example.fieldtrack.designsystem.layout.WidthClass
@@ -136,7 +137,7 @@ fun PriceScreen(
 @Composable
 private fun Answer(state: PriceState) {
     val colors = FieldTrackTheme.colors
-    val amount = state.amountRupees
+    val amount = state.amountMinor
     FtEmphasisCard(
         // One spoken unit, announced as it changes: a figure that updates under a
         // typing thumb is invisible to somebody using a screen reader unless it says so.
@@ -147,7 +148,7 @@ private fun Answer(state: PriceState) {
             color = colors.onDarkMuted,
         )
         FtFitText(
-            text = amount?.let { rupees(it) } ?: stringResource(R.string.price_result_blank),
+            text = amount?.let { money(it) } ?: stringResource(R.string.price_result_blank),
             style = FieldTrackTheme.type.moneyHero,
             color = colors.onDark,
             modifier = Modifier.padding(top = 6.dp),
@@ -166,7 +167,7 @@ private fun Answer(state: PriceState) {
 private fun sumLine(state: PriceState): String {
     if (state.fixedPrice) return stringResource(R.string.billing_fixed_caption)
     val unit = state.input.unit
-    val rate = stringResource(R.string.start_rate_per_amount, rupees(state.rateRupees), unitInPhrase(unit))
+    val rate = stringResource(R.string.start_rate_per_amount, money(state.rateMinor), unitInPhrase(unit))
     val much = when {
         state.byTheHour -> spokenDuration(state.seconds)
         unit == MeasureUnit.Trip -> {
@@ -183,8 +184,8 @@ private fun sumLine(state: PriceState): String {
 private fun missingLine(state: PriceState): String = stringResource(
     when {
         state.fixedPrice -> R.string.price_need_agreed
-        state.rateRupees <= 0 && state.quantity <= 0.0 -> R.string.price_need_both
-        state.rateRupees <= 0 -> R.string.price_need_rate
+        state.rateMinor <= 0 && state.quantity <= 0.0 -> R.string.price_need_both
+        state.rateMinor <= 0 -> R.string.price_need_rate
         else -> R.string.price_need_quantity
     }
 )
@@ -260,10 +261,10 @@ private fun Questions(
             label = stringResource(if (state.fixedPrice) R.string.price_agreed else R.string.start_your_rate),
             value = input.rateText,
             onValueChange = onRate,
-            prefix = "₹",
+            prefix = Money.style.symbol,
             suffix = if (state.fixedPrice) null
             else stringResource(R.string.start_rate_per, unitInPhrase(input.unit)),
-            keyboardType = KeyboardType.Number,
+            keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
         )
         if (state.usualRates.isNotEmpty()) {
             FlowRow(
@@ -278,10 +279,10 @@ private fun Questions(
                 state.usualRates.forEach { suggestion ->
                     FtChip(
                         label = suggestion.label?.let {
-                            stringResource(R.string.start_usual_rate_labelled, rupees(suggestion.amountRupees), it)
-                        } ?: rupees(suggestion.amountRupees),
-                        selected = state.rateRupees == suggestion.amountRupees,
-                        onClick = { onPickRate(suggestion.amountRupees) },
+                            stringResource(R.string.start_usual_rate_labelled, money(suggestion.amountMinor), it)
+                        } ?: money(suggestion.amountMinor),
+                        selected = state.rateMinor == suggestion.amountMinor,
+                        onClick = { onPickRate(suggestion.amountMinor) },
                     )
                 }
             }

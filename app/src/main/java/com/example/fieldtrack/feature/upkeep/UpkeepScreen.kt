@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.upkeep
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,7 +39,7 @@ import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.quantity
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -139,12 +140,12 @@ fun UpkeepScreen(
                                 )
                             },
                             // The repair is operational; the bill for it is not.
-                            trailing = record.costRupees
+                            trailing = record.costMinor
                                 ?.takeIf { state.canSeeMoney }
                                 ?.let { cost ->
                                     {
                                         Text(
-                                            text = rupees(cost),
+                                            text = money(cost),
                                             style = FieldTrackTheme.type.moneyMedium,
                                             color = colors.ink,
                                         )
@@ -421,8 +422,8 @@ private fun ServiceSheet(
                 value = draft.costText,
                 onValueChange = onCost,
                 label = stringResource(R.string.upkeep_cost),
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
 
             FtTextField(

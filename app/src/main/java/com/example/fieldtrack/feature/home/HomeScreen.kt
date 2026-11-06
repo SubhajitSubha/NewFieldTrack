@@ -24,7 +24,7 @@ import com.example.fieldtrack.designsystem.component.FtEmphasisCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonth
@@ -61,7 +61,7 @@ fun HomeScreen(
             add(HomeBlock(Pane.Main) {
                 TodayMoneyCard(
                     loaded = state.loaded,
-                    earned = state.earnedTodayRupees,
+                    earned = state.earnedTodayMinor,
                     jobs = state.jobsToday,
                     area = state.areaToday.takeIf { it > 0 }?.let { measure(it, state.areaUnit) },
                     week = state.weekEarned,
@@ -90,9 +90,9 @@ fun HomeScreen(
             add(HomeBlock(Pane.Main) {
                 MoneyFigures(
                     loaded = state.loaded,
-                    owed = state.owedRupees,
+                    owed = state.owedMinor,
                     owing = state.owingCustomers,
-                    season = state.seasonEarnedRupees,
+                    season = state.seasonEarnedMinor,
                     seasonFrom = state.seasonFromMillis,
                     seasonName = state.seasonName,
                     onOpenCustomers = onOpenCustomers,
@@ -141,7 +141,7 @@ internal fun TodayMoneyCard(
             color = colors.onDarkMuted,
         )
         Text(
-            text = if (loaded) rupees(earned) else NOT_YET,
+            text = if (loaded) money(earned) else NOT_YET,
             style = FieldTrackTheme.type.moneyHero,
             color = colors.onDark,
             modifier = Modifier.padding(top = 6.dp),
@@ -171,7 +171,7 @@ internal fun TodayMoneyCard(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = rupees(week.sum().toLong()),
+                text = money(week.sum().toLong()),
                 style = FieldTrackTheme.type.numeric,
                 color = colors.onDark,
             )
@@ -236,7 +236,7 @@ internal fun MoneyFigures(
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         FigureCard(
             label = stringResource(R.string.money_owed_to_you),
-            value = if (loaded) rupees(owed) else NOT_YET,
+            value = if (loaded) money(owed) else NOT_YET,
             note = if (owing > 0) {
                 stringResource(
                     R.string.home_from_customers,
@@ -251,7 +251,7 @@ internal fun MoneyFigures(
         )
         FigureCard(
             label = stringResource(R.string.home_this_season),
-            value = if (loaded) rupees(season) else NOT_YET,
+            value = if (loaded) money(season) else NOT_YET,
             note = if (seasonName == null) {
                 stringResource(R.string.home_season_since, dayMonth(seasonFrom))
             } else {
@@ -303,11 +303,11 @@ internal fun TodayList(
                         Column(horizontalAlignment = Alignment.End) {
                             if (showMoney) {
                                 Text(
-                                    text = rupees(row.amountRupees),
+                                    text = money(row.amountMinor),
                                     style = FieldTrackTheme.type.numeric,
                                     color = colors.ink,
                                 )
-                                row.lostRupees?.let { LostMark(it) }
+                                row.lostMinor?.let { LostMark(it) }
                             }
                             if (!row.sent) NotSentMark()
                         }

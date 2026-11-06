@@ -73,63 +73,63 @@ class PriceCalculatorTest {
 
     @Test
     fun `work at a rate`() {
-        assertEquals(4_000L, state(rate = "1000", quantity = "4").amountRupees)
-        assertEquals(2_700L, state(rate = "1200", quantity = "2.25").amountRupees)
+        assertEquals(400_000L, state(rate = "1000", quantity = "4").amountMinor)
+        assertEquals(270_000L, state(rate = "1200", quantity = "2.25").amountMinor)
     }
 
     @Test
     fun `there is no answer until there is a question`() {
-        assertNull(state().amountRupees)
-        assertNull("no rate", state(quantity = "4").amountRupees)
-        assertNull("no work", state(rate = "1000").amountRupees)
-        assertNull("nought of it", state(rate = "1000", quantity = "0").amountRupees)
-        assertNull("a lone point", state(rate = "1000", quantity = ".").amountRupees)
+        assertNull(state().amountMinor)
+        assertNull("no rate", state(quantity = "4").amountMinor)
+        assertNull("no work", state(rate = "1000").amountMinor)
+        assertNull("nought of it", state(rate = "1000", quantity = "0").amountMinor)
+        assertNull("a lone point", state(rate = "1000", quantity = ".").amountMinor)
     }
 
     @Test
     fun `hourly work is said as hours and minutes`() {
         val s = state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", hours = "2", minutes = "30")
-        assertEquals(2_500L, s.amountRupees)
+        assertEquals(250_000L, s.amountMinor)
         assertEquals(9_000L, s.seconds)
-        assertEquals("minutes only", 500L, state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", minutes = "30").amountRupees)
+        assertEquals("minutes only", 50_000L, state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", minutes = "30").amountMinor)
         assertEquals(
             "ninety minutes is an hour and a half, however it was typed",
-            state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", hours = "1", minutes = "90").amountRupees,
-            s.copy(input = s.input.copy(hoursText = "2", minutesText = "30")).amountRupees,
+            state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", hours = "1", minutes = "90").amountMinor,
+            s.copy(input = s.input.copy(hoursText = "2", minutesText = "30")).amountMinor,
         )
     }
 
     @Test
     fun `a fixed price is the amount, however much work`() {
         val s = state("Other", BillingMode.Fixed, MeasureUnit.Piece, rate = "6000")
-        assertEquals(6_000L, s.amountRupees)
-        assertEquals(6_000L, s.copy(input = s.input.copy(quantityText = "9")).amountRupees)
-        assertNull(state("Other", BillingMode.Fixed, MeasureUnit.Piece).amountRupees)
+        assertEquals(600_000L, s.amountMinor)
+        assertEquals(600_000L, s.copy(input = s.input.copy(quantityText = "9")).amountMinor)
+        assertNull(state("Other", BillingMode.Fixed, MeasureUnit.Piece).amountMinor)
     }
 
     @Test
     fun `trips, loads and kilometres`() {
-        assertEquals(4_000L, state("Hauling", BillingMode.PerTrip, MeasureUnit.Trip, rate = "800", quantity = "5").amountRupees)
-        assertEquals(1_875L, state("Hauling", BillingMode.PerUnit, MeasureUnit.Quintal, rate = "75", quantity = "25").amountRupees)
-        assertEquals(1_260L, state("Hauling", BillingMode.PerKm, MeasureUnit.Kilometre, rate = "35", quantity = "36").amountRupees)
+        assertEquals(400_000L, state("Hauling", BillingMode.PerTrip, MeasureUnit.Trip, rate = "800", quantity = "5").amountMinor)
+        assertEquals(187_500L, state("Hauling", BillingMode.PerUnit, MeasureUnit.Quintal, rate = "75", quantity = "25").amountMinor)
+        assertEquals(126_000L, state("Hauling", BillingMode.PerKm, MeasureUnit.Kilometre, rate = "35", quantity = "36").amountMinor)
     }
 
     @Test
     fun `it rounds to the rupee exactly as a bill does`() {
         // 2.5 × 1,001 is 2,502.5, and a bill says ₹2,503.
-        assertEquals(2_503L, state(rate = "1001", quantity = "2.5").amountRupees)
+        assertEquals(250_300L, state(rate = "1001", quantity = "2.5").amountMinor)
         for (mode in BillingMode.entries.filter { it != BillingMode.PerTrip }) {
             for (quantity in listOf(0.25, 1.0, 2.5, 2.75, 3.33, 10.0, 12.5, 99.99)) {
                 for (rate in listOf(1L, 99L, 333L, 1_001L, 1_250L, 12_345L)) {
                     val job = JobEntity(
                         id = "j", orgId = "o", customerId = "c", workType = "Rotavator",
-                        billingMode = mode, unit = unitsFor(mode).first(), rateRupees = rate,
+                        billingMode = mode, unit = unitsFor(mode).first(), rateMinor = rate,
                         quantity = quantity, status = JobStatus.Completed,
                         workedAt = 1, recordedAt = 1, createdAt = 1, updatedAt = 1,
                     )
                     assertEquals(
                         "$quantity at ₹$rate by $mode",
-                        job.amountRupees, Billing.amount(mode, quantity, rate),
+                        job.amountMinor, Billing.amount(mode, quantity, rate, job.stepMinor),
                     )
                 }
             }
@@ -141,13 +141,13 @@ class PriceCalculatorTest {
         // Two hours thirty on the clock, at ₹1,000: the calculator and the job agree.
         val job = JobEntity(
             id = "j", orgId = "o", customerId = "c", workType = "Ploughing",
-            billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour, rateRupees = 1_000,
+            billingMode = BillingMode.PerHour, unit = MeasureUnit.Hour, rateMinor = 100_000,
             elapsedSeconds = 9_000, status = JobStatus.Paused,
             workedAt = 1, recordedAt = 1, createdAt = 1, updatedAt = 1,
         )
         val calc = state("Ploughing", BillingMode.PerHour, MeasureUnit.Hour, rate = "1000", hours = "2", minutes = "30")
         val h = com.example.fieldtrack.data.TestHarness()
-        try { assertEquals(h.work.billableRupees(job), calc.amountRupees) } finally { h.close() }
+        try { assertEquals(h.work.billableMinor(job), calc.amountMinor) } finally { h.close() }
     }
 
     // ------------------------------------------------------------- what is typed
@@ -159,7 +159,7 @@ class PriceCalculatorTest {
         val trips = acres.input.copy(billingMode = BillingMode.PerTrip, unit = MeasureUnit.Trip).recleaned()
 
         assertEquals("2", trips.quantityText)
-        assertEquals(1_600L, acres.copy(input = trips).amountRupees)
+        assertEquals(160_000L, acres.copy(input = trips).amountMinor)
     }
 
     @Test
@@ -221,8 +221,8 @@ class PriceCalculatorTest {
         app.sessionStore.load()
     }
 
-    private suspend fun rate(work: String, mode: BillingMode, unit: MeasureUnit, rupees: Long, label: String? = null) {
-        app.directoryRepository.setRate(org, work, mode, unit, rupees, label)
+    private suspend fun rate(work: String, mode: BillingMode, unit: MeasureUnit, amountMinor: Long, label: String? = null) {
+        app.directoryRepository.setRate(org, work, mode, unit, amountMinor * 100, label)
     }
 
     /** Runs [block] with the view model's state being collected, and the main looper turning. */
@@ -254,7 +254,7 @@ class PriceCalculatorTest {
             val s = state()
             assertEquals(MeasureUnit.Bigha, s.input.unit)
             assertEquals("not the acre rate, not the hourly one", "1200", s.input.rateText)
-            assertEquals(listOf(1_200L), s.usualRates.map { it.amountRupees })
+            assertEquals(listOf(120_000L), s.usualRates.map { it.amountMinor })
         }
     }
 
@@ -283,7 +283,7 @@ class PriceCalculatorTest {
             assertEquals("1200", state().input.rateText)
             vm.setBillingMode(BillingMode.PerHour)
             assertEquals("a per-bigha rate is not a per-hour one", "", state().input.rateText)
-            assertNull(state().amountRupees)
+            assertNull(state().amountMinor)
         }
     }
 
@@ -310,7 +310,7 @@ class PriceCalculatorTest {
         withModel { vm, state ->
             vm.setRate("999")
             assertEquals(2, state().usualRates.size)
-            vm.pickRate(1_400)
+            vm.pickRate(140_000)
             assertEquals("1400", state().input.rateText)
             vm.setBillingMode(BillingMode.PerHour)
             assertEquals("a tapped rate belongs to its question", "", state().input.rateText)

@@ -21,7 +21,7 @@ import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.document.Document
 import com.example.fieldtrack.document.DueLine
 import com.example.fieldtrack.document.Documents
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.daysAgo
 
@@ -51,7 +51,7 @@ fun statementDocumentFor(sources: StatementSources): Document {
             customer = sources.customer,
             periodLabel = periodLabel,
             printedLabel = dayMonthYear(System.currentTimeMillis()),
-            openingRupees = 0,
+            openingMinor = 0,
             entries = shown,
             describe = describeLine,
             dateOf = ::dayMonthYear,
@@ -62,7 +62,7 @@ fun statementDocumentFor(sources: StatementSources): Document {
             customer = sources.customer,
             periodLabel = periodLabel,
             printedLabel = dayMonthYear(System.currentTimeMillis()),
-            openingRupees = balanceBefore(sources.entries, state.startMillis),
+            openingMinor = balanceBefore(sources.entries, state.startMillis),
             entries = shown,
             describe = describeLine,
             dateOf = ::dayMonthYear,
@@ -81,11 +81,11 @@ private fun duesDocument(sources: StatementSources): Document.Dues {
     val received = sources.entries
         .filter { it.kind == LedgerKind.Payment }
         .filter { state.startMillis == null || it.atMillis >= state.startMillis }
-        .sumOf { it.amountRupees }
+        .sumOf { it.amountMinor }
     val billed = sources.entries
         .filter { it.kind == LedgerKind.Charge || it.kind == LedgerKind.Opening }
         .filter { state.startMillis == null || it.atMillis >= state.startMillis }
-        .sumOf { it.amountRupees }
+        .sumOf { it.amountMinor }
 
     return Documents.dues(
         org = sources.org,
@@ -97,14 +97,14 @@ private fun duesDocument(sources: StatementSources): Document.Dues {
                 title = lineTitle(item.entry, sources.jobsById),
                 detail = listOfNotNull(
                     rateNote(item.entry, sources.jobsById),
-                    partPaidNote(item.entry.amountRupees, item.outstandingRupees),
+                    partPaidNote(item.entry.amountMinor, item.outstandingMinor),
                 ).joinToString(" · ").ifBlank { null },
                 age = daysAgo(item.entry.atMillis),
-                amountRupees = item.outstandingRupees,
+                amountMinor = item.outstandingMinor,
             )
         },
-        receivedRupees = received,
-        billedRupees = billed,
+        receivedMinor = received,
+        billedMinor = billed,
         sinceLabel = state.startMillis?.let { dayMonthYear(it) },
         // Only claim everything older is settled when something actually is.
         // Only claim older work is settled when there is older work on an earlier
@@ -140,11 +140,11 @@ private fun pickedDocument(sources: StatementSources): Document.Dues {
                     if (job.settled) stringResource(R.string.statement_paid_label) else null,
                 ).joinToString(" · ").ifBlank { null },
                 age = daysAgo(job.atMillis),
-                amountRupees = job.amountRupees,
+                amountMinor = job.amountMinor,
             )
         },
-        receivedRupees = 0,
-        billedRupees = 0,
+        receivedMinor = 0,
+        billedMinor = 0,
         sinceLabel = null,
         settledBeforeLabel = null,
     )
@@ -173,7 +173,7 @@ private fun rateNoteFor(job: JobEntity?): String? {
     if (job == null || job.billingMode == BillingMode.Fixed) return null
     return stringResource(
         R.string.statement_rate_note,
-        rupees(job.rateRupees),
+        money(job.rateMinor),
         stringResource(job.unit.labelRes),
     )
 }
@@ -182,7 +182,7 @@ private fun rateNoteFor(job: JobEntity?): String? {
 @Composable
 private fun partPaidNote(charged: Long, outstanding: Long): String? =
     if (outstanding < charged) {
-        stringResource(R.string.statement_part_paid, rupees(charged - outstanding), rupees(charged))
+        stringResource(R.string.statement_part_paid, money(charged - outstanding), money(charged))
     } else null
 
 /** What a khata line is called on a printed page. */

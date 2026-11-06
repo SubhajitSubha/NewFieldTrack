@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
@@ -52,7 +53,7 @@ fun resolveUnit(mode: BillingMode, orgLandUnit: MeasureUnit): MeasureUnit {
  * [label] is what tells two rates for the same work apart — "wheat" against "paddy" —
  * and is the only thing that makes a row of several chips readable.
  */
-data class RateSuggestion(val amountRupees: Long, val label: String? = null)
+data class RateSuggestion(val amountMinor: Long, val label: String? = null)
 
 data class StartWorkState(
     val step: Int = 0,
@@ -95,7 +96,7 @@ data class StartWorkState(
     /** The plan's today, for saying which day an offered booking was for. */
     val planToday: Long = 0,
 ) {
-    val rateRupees: Long get() = rateText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
 
     /**
      * What this machine costs for the work being set up, if enough is known.
@@ -114,24 +115,24 @@ data class StartWorkState(
             }
             val kind = machineKinds.firstOrNull { it.workType == workType.key && it.unit == unit }
             val perUnit = kind?.let { Costing.perUnit(cost, it) }
-            return perUnit?.let { CostHint.PerUnit(it.costRupees) } ?: CostHint.OnlyHourly(perHour)
+            return perUnit?.let { CostHint.PerUnit(it.costMinor) } ?: CostHint.OnlyHourly(perHour)
         }
 
     val canGoNext: Boolean
         get() = when (step) {
             0 -> customer != null
             1 -> true
-            else -> rateRupees > 0
+            else -> rateMinor > 0
         }
 }
 
 /** What the machine chosen for a job costs, in the terms the rate is being set in. */
 sealed interface CostHint {
     /** What one unit of this work costs on this machine. */
-    data class PerUnit(val costRupees: Long) : CostHint
+    data class PerUnit(val costMinor: Long) : CostHint
 
     /** Only what an hour costs; there is not enough of this work to say per unit. */
-    data class OnlyHourly(val perHourRupees: Long) : CostHint
+    data class OnlyHourly(val perHourMinor: Long) : CostHint
 }
 
 /**
@@ -358,7 +359,7 @@ class StartWorkViewModel(
     fun setUnit(unit: MeasureUnit) = _state.update { it.copy(unit = unit) }
 
     fun setRate(value: String) =
-        _state.update { it.copy(rateText = value.filter { c -> c.isDigit() }.take(MAX_RATE_DIGITS)) }
+        _state.update { it.copy(rateText = MoneyInput.clean(value)) }
 
     fun next() = _state.update { it.copy(step = (it.step + 1).coerceAtMost(LAST_STEP)) }
 
@@ -400,7 +401,7 @@ class StartWorkViewModel(
             workType = current.workType.key,
             billingMode = current.billingMode,
             unit = current.unit,
-            rateRupees = current.rateRupees,
+            rateMinor = current.rateMinor,
             machineId = current.machineId,
             operatorPersonId = s.personId,
             // The whole reason fields exist. Without this the plot screens
@@ -417,7 +418,7 @@ class StartWorkViewModel(
             workType = current.workType.key,
             billingMode = current.billingMode,
             unit = current.unit,
-            amountRupees = current.rateRupees,
+            amountMinor = current.rateMinor,
             customerId = customer.id.takeIf { app.sessionStore.rememberPerCustomer.value },
         )
         return jobId
@@ -448,11 +449,11 @@ class StartWorkViewModel(
         _state.update {
             it.copy(
                 suggestedRates = candidates.map { rate ->
-                    RateSuggestion(rate.amountRupees, rate.label)
+                    RateSuggestion(rate.amountMinor, rate.label)
                 },
                 // Prefill only when the person has not typed anything yet, and only
                 // from the best match — offering a choice does not mean guessing.
-                rateText = if (it.rateText.isBlank()) candidates.first().amountRupees.toString()
+                rateText = if (it.rateText.isBlank()) MoneyInput.text(candidates.first().amountMinor)
                 else it.rateText,
             )
         }

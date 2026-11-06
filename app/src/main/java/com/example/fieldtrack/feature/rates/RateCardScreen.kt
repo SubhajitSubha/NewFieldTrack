@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.rates
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,7 +47,7 @@ import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.WorkTypeOption
@@ -300,7 +301,7 @@ private fun RateListRow(rate: RateRow, onClick: (() -> Unit)?) {
         },
         trailing = {
             Text(
-                text = rupees(rate.amountRupees),
+                text = money(rate.amountMinor),
                 style = FieldTrackTheme.type.moneyMedium,
                 color = colors.ink,
             )
@@ -399,9 +400,9 @@ private fun RateSheet(
                 value = draft.amountText,
                 onValueChange = onAmount,
                 label = stringResource(R.string.rates_amount),
-                prefix = "₹",
+                prefix = Money.style.symbol,
                 suffix = stringResource(R.string.start_rate_per, unitInPhrase(draft.unit)),
-                keyboardType = KeyboardType.Number,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                 focused = true,
             )
 

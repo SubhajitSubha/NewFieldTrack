@@ -41,14 +41,14 @@ data class TodayRow(
     val amountDone: Double,
     val unit: MeasureUnit,
     val elapsedSeconds: Long,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val machineKind: MachineKind,
     /** Who did it, on a home that watches more than one person. */
     val byName: String? = null,
     /** Reached the server. Shown only when it has not. */
     val sent: Boolean = true,
     /** How much this job lost, when it did and every cost is priced. */
-    val lostRupees: Long? = null,
+    val lostMinor: Long? = null,
 )
 
 data class HomeState(
@@ -58,15 +58,15 @@ data class HomeState(
     /** Whether this person may correct a job after it has been billed. */
     val canAmend: Boolean = false,
     val canSeeMoney: Boolean = true,
-    val earnedTodayRupees: Long = 0,
+    val earnedTodayMinor: Long = 0,
     val jobsToday: Int = 0,
     val areaToday: Double = 0.0,
     val areaUnit: MeasureUnit = MeasureUnit.Acre,
     /** Earned on each of the last seven days, today last. */
     val weekEarned: List<Double> = List(7) { 0.0 },
-    val owedRupees: Long = 0,
+    val owedMinor: Long = 0,
     val owingCustomers: Int = 0,
-    val seasonEarnedRupees: Long = 0,
+    val seasonEarnedMinor: Long = 0,
     val seasonFromMillis: Long = 0,
     /** What the business calls this season, if it has named them. */
     val seasonName: String? = null,
@@ -96,7 +96,7 @@ internal data class Books(
 ) {
     /** The jobs that lost money, and by how much — only where every cost is priced. */
     val lostByJob: Map<String, Long>
-        get() = margins.mapNotNull { m -> m.lostRupees?.let { m.jobId to it } }.toMap()
+        get() = margins.mapNotNull { m -> m.lostMinor?.let { m.jobId to it } }.toMap()
 }
 
 internal data class Yard(
@@ -247,7 +247,7 @@ class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val names = books.customers.associate { it.id to it.name }
             val kindById = yard.machines.associate { it.id to it.kind }
             val jobs = week.filter { it.workedAt >= dayStart }
-            val owed = books.balances.filter { it.balanceRupees > 0 }
+            val owed = books.balances.filter { it.balanceMinor > 0 }
 
             HomeState(
                 loaded = true,
@@ -255,14 +255,14 @@ class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 businessName = s.businessName,
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,
-                earnedTodayRupees = jobs.sumOf { it.amountRupees },
+                earnedTodayMinor = jobs.sumOf { it.amountMinor },
                 jobsToday = jobs.size,
                 areaToday = landWorked(jobs, s.landUnit).first,
                 areaUnit = landWorked(jobs, s.landUnit).second,
-                weekEarned = lastSevenDays(week, now, { it.workedAt }) { it.amountRupees.toDouble() },
-                owedRupees = owed.sumOf { it.balanceRupees },
+                weekEarned = lastSevenDays(week, now, { it.workedAt }) { it.amountMinor.toDouble() },
+                owedMinor = owed.sumOf { it.balanceMinor },
                 owingCustomers = owed.size,
-                seasonEarnedRupees = books.seasonEarned,
+                seasonEarnedMinor = books.seasonEarned,
                 seasonFromMillis = seasonFrom,
                 seasonName = season.name,
                 today = jobs.map { job ->
@@ -273,10 +273,10 @@ class HomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         amountDone = job.quantity,
                         unit = job.unit,
                         elapsedSeconds = job.elapsedSeconds,
-                        amountRupees = job.amountRupees,
+                        amountMinor = job.amountMinor,
                         machineKind = job.machineId?.let { kindById[it] } ?: MachineKind.Other,
                         sent = job.syncState == SyncState.Synced,
-                        lostRupees = books.lostByJob[job.id],
+                        lostMinor = books.lostByJob[job.id],
                     )
                 },
                 openJob = live?.toOpenJob(

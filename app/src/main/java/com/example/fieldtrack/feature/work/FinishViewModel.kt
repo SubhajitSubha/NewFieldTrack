@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BillingMode
@@ -44,10 +45,10 @@ data class FinishState(
     val billingMode: BillingMode = BillingMode.PerAcre,
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantity: Double = 0.0,
-    val rateRupees: Long = 0,
+    val rateMinor: Long = 0,
     val elapsedSeconds: Long = 0,
     /** What this job comes to on its own. */
-    val jobAmountRupees: Long = 0,
+    val jobAmountMinor: Long = 0,
     /**
      * True when the trips on this job were not all charged the same.
      *
@@ -56,9 +57,9 @@ data class FinishState(
      */
     val ratesVaried: Boolean = false,
     /** What the customer owed before this job. */
-    val previousBalanceRupees: Long = 0,
+    val previousBalanceMinor: Long = 0,
 ) {
-    val totalDueRupees: Long get() = jobAmountRupees + previousBalanceRupees
+    val totalDueMinor: Long get() = jobAmountMinor + previousBalanceMinor
 }
 
 /**
@@ -88,7 +89,7 @@ data class PaymentState(
     val method: PaymentMethod = PaymentMethod.Cash,
     val saving: Boolean = false,
 ) {
-    val amountRupees: Long get() = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -108,8 +109,8 @@ class FinishViewModel(
     private val _step = MutableStateFlow(0)
     val step: StateFlow<Int> = _step.asStateFlow()
 
-    private val _receivedRupees = MutableStateFlow(0L)
-    val receivedRupees: StateFlow<Long> = _receivedRupees.asStateFlow()
+    private val _receivedMinor = MutableStateFlow(0L)
+    val receivedMinor: StateFlow<Long> = _receivedMinor.asStateFlow()
 
     /**
      * What the customer owed *before* this job, captured once when the screen opens.
@@ -147,9 +148,9 @@ class FinishViewModel(
             val customer = customers.firstOrNull { it.id == job.customerId }
             val elapsed = app.workRepository.elapsedSeconds(job)
             val quantity = app.workRepository.billableQuantity(job)
-            val amount = app.workRepository.billableRupees(job)
+            val amount = app.workRepository.billableMinor(job)
             val varied = job.billingMode == BillingMode.PerTrip &&
-                amount != Math.round(quantity * job.rateRupees)
+                amount != Math.round(quantity * job.rateMinor)
 
             FinishState(
                 loaded = true,
@@ -170,11 +171,11 @@ class FinishViewModel(
                 billingMode = job.billingMode,
                 unit = job.unit,
                 quantity = quantity,
-                rateRupees = job.rateRupees,
+                rateMinor = job.rateMinor,
                 elapsedSeconds = elapsed,
-                jobAmountRupees = amount,
+                jobAmountMinor = amount,
                 ratesVaried = varied,
-                previousBalanceRupees = prior ?: 0L,
+                previousBalanceMinor = prior ?: 0L,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinishState())
@@ -195,7 +196,7 @@ class FinishViewModel(
         _step.value = 1
         // Default to settling everything: it is the common case, and a wrong default
         // here is visible on the next line rather than hidden.
-        val total = state.value.totalDueRupees
+        val total = state.value.totalDueMinor
         _payment.value = _payment.value.copy(
             choice = PaymentChoice.All,
             amountText = total.toString(),
@@ -211,7 +212,7 @@ class FinishViewModel(
     fun chooseAll() {
         _payment.value = _payment.value.copy(
             choice = PaymentChoice.All,
-            amountText = state.value.totalDueRupees.toString(),
+            amountText = MoneyInput.text(state.value.totalDueMinor),
         )
     }
 
@@ -226,7 +227,7 @@ class FinishViewModel(
     fun setAmount(value: String) {
         _payment.value = _payment.value.copy(
             choice = PaymentChoice.Some,
-            amountText = value.filter { it.isDigit() },
+            amountText = MoneyInput.clean(value),
         )
     }
 
@@ -265,7 +266,7 @@ class FinishViewModel(
         // is from the last time the clock was looked at, and an hourly job goes on
         // running while somebody is choosing how to pay.
         val charged = app.workRepository.complete(s.orgId, jobId, byPersonId = s.personId)
-        val due = current.previousBalanceRupees + charged
+        val due = current.previousBalanceMinor + charged
 
         // Written with no figure on it whoever is saving, so one flow serves
         // the driver and the owner alike. A failure here must not cost the
@@ -288,20 +289,20 @@ class FinishViewModel(
 
         val paid = when (pay.choice) {
             PaymentChoice.All -> due
-            else -> pay.amountRupees.coerceAtMost(due)
+            else -> pay.amountMinor.coerceAtMost(due)
         }
         val customerId = app.workRepository.observeJob(s.orgId, jobId).first()?.customerId
         if (pay.choice != PaymentChoice.Nothing && paid > 0 && customerId != null) {
             app.ledgerRepository.recordPayment(
                 orgId = s.orgId,
                 customerId = customerId,
-                amountRupees = paid,
+                amountMinor = paid,
                 method = pay.method,
                 byPersonId = s.personId,
                 jobId = jobId,
             )
         }
-        _receivedRupees.value = paid
+        _receivedMinor.value = paid
         // Read the balance back from the ledger rather than arithmetic on screen
         // state: the khata is the authority on what is owed, and it now holds both
         // this job's charge and whatever was just paid.

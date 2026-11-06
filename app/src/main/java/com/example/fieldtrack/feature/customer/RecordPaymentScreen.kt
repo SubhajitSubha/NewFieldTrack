@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.customer
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -35,7 +37,7 @@ import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,13 +50,13 @@ import kotlinx.coroutines.launch
 data class ClearedLine(
     val title: String,
     val dateLabel: String,
-    val clearedRupees: Long,
+    val clearedMinor: Long,
     val fully: Boolean,
 )
 
 data class RecordPaymentState(
     val customerName: String = "",
-    val owedRupees: Long = 0,
+    val owedMinor: Long = 0,
     /**
      * What the amount typed so far would settle, oldest debt first.
      *
@@ -66,9 +68,9 @@ data class RecordPaymentState(
     val method: PaymentMethod = PaymentMethod.Cash,
     val saving: Boolean = false,
 ) {
-    val amountRupees: Long get() = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val canSave: Boolean get() = amountRupees > 0 && !saving
-    val leftAfterRupees: Long get() = (owedRupees - amountRupees).coerceAtLeast(0)
+    val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
+    val canSave: Boolean get() = amountMinor > 0 && !saving
+    val leftAfterMinor: Long get() = (owedMinor - amountMinor).coerceAtLeast(0)
 }
 
 class RecordPaymentViewModel(
@@ -89,25 +91,25 @@ class RecordPaymentViewModel(
             val owed = app.ledgerRepository.observeBalance(s.orgId, customerId).first()
             entries = app.ledgerRepository.observeLedger(s.orgId, customerId).first()
             _state.update {
-                it.copy(customerName = customer?.name.orEmpty(), owedRupees = owed)
+                it.copy(customerName = customer?.name.orEmpty(), owedMinor = owed)
             }
         }
     }
 
     fun setAmount(value: String) = _state.update {
-        withPreview(it.copy(amountText = value.filter { c -> c.isDigit() }))
+        withPreview(it.copy(amountText = MoneyInput.clean(value)))
     }
 
-    fun takeAll() = _state.update { withPreview(it.copy(amountText = it.owedRupees.toString())) }
+    fun takeAll() = _state.update { withPreview(it.copy(amountText = MoneyInput.text(it.owedMinor))) }
 
     /** Recomputes which jobs the typed amount would settle. */
     private fun withPreview(state: RecordPaymentState): RecordPaymentState =
         state.copy(
-            clears = clearedBy(entries, state.amountRupees).map {
+            clears = clearedBy(entries, state.amountMinor).map {
                 ClearedLine(
                     title = it.entry.note.orEmpty(),
                     dateLabel = dayMonth(it.entry.atMillis),
-                    clearedRupees = it.clearedRupees,
+                    clearedMinor = it.clearedMinor,
                     fully = it.fully,
                 )
             },
@@ -123,12 +125,12 @@ class RecordPaymentViewModel(
         app.ledgerRepository.recordPayment(
             orgId = s.orgId,
             customerId = customerId,
-            amountRupees = current.amountRupees,
+            amountMinor = current.amountMinor,
             method = current.method,
             byPersonId = s.personId,
         )
         _state.update { it.copy(saving = false) }
-        onDone(current.amountRupees)
+        onDone(current.amountMinor)
     }
 }
 
@@ -176,7 +178,7 @@ fun RecordPaymentScreen(
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = rupees(state.owedRupees),
+                        text = money(state.owedMinor),
                         style = FieldTrackTheme.type.moneyMedium,
                         color = colors.due,
                     )
@@ -187,8 +189,8 @@ fun RecordPaymentScreen(
                 label = stringResource(R.string.payment_amount),
                 value = state.amountText,
                 onValueChange = onAmount,
-                prefix = "₹",
-                keyboardType = KeyboardType.Number,
+                prefix = Money.style.symbol,
+                keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                 focused = true,
             )
 
@@ -200,15 +202,15 @@ fun RecordPaymentScreen(
             ) {
                 listOf(2_000L, 5_000L, 10_000L).forEach { amount ->
                     FtChip(
-                        label = rupees(amount),
-                        selected = state.amountRupees == amount,
+                        label = money(amount),
+                        selected = state.amountMinor == amount,
                         onClick = { onAmount(amount.toString()) },
                     )
                 }
-                if (state.owedRupees > 0) {
+                if (state.owedMinor > 0) {
                     FtChip(
                         label = stringResource(R.string.payment_all_of_it),
-                        selected = state.amountRupees == state.owedRupees,
+                        selected = state.amountMinor == state.owedMinor,
                         onClick = onTakeAll,
                     )
                 }
@@ -238,10 +240,10 @@ fun RecordPaymentScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             Text(
-                                text = if (line.fully) rupees(line.clearedRupees)
+                                text = if (line.fully) money(line.clearedMinor)
                                 else stringResource(
                                     R.string.payment_clears_part,
-                                    rupees(line.clearedRupees),
+                                    money(line.clearedMinor),
                                 ),
                                 style = FieldTrackTheme.type.caption,
                                 color = if (line.fully) colors.primaryPressed else colors.inkSecondary,
@@ -259,11 +261,11 @@ fun RecordPaymentScreen(
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
-                    if (state.amountRupees > state.owedRupees) {
+                    if (state.amountMinor > state.owedMinor) {
                         Text(
                             text = stringResource(
                                 R.string.payment_leaves_credit,
-                                rupees(state.amountRupees - state.owedRupees),
+                                money(state.amountMinor - state.owedMinor),
                             ),
                             style = FieldTrackTheme.type.caption,
                             color = colors.inkSecondary,
@@ -309,7 +311,7 @@ fun RecordPaymentScreen(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = rupees(state.leftAfterRupees),
+                    text = money(state.leftAfterMinor),
                     style = FieldTrackTheme.type.moneyMedium,
                     color = colors.primaryPressed,
                 )

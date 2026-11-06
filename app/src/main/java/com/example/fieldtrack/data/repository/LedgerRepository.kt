@@ -73,7 +73,7 @@ class LedgerRepository(
     suspend fun recordPayment(
         orgId: String,
         customerId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         method: PaymentMethod,
         byPersonId: String? = null,
         note: String? = null,
@@ -88,7 +88,7 @@ class LedgerRepository(
         orgId = orgId,
         customerId = customerId,
         kind = LedgerKind.Payment,
-        amountRupees = amountRupees,
+        amountMinor = amountMinor,
         method = method,
         jobId = jobId,
         note = note,
@@ -105,14 +105,14 @@ class LedgerRepository(
     suspend fun recordOpeningBalance(
         orgId: String,
         customerId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         byPersonId: String? = null,
         atMillis: Long = clock.now(),
     ): String = append(
         orgId = orgId,
         customerId = customerId,
         kind = LedgerKind.Opening,
-        amountRupees = amountRupees,
+        amountMinor = amountMinor,
         note = null,
         byPersonId = byPersonId,
         atMillis = atMillis,
@@ -122,14 +122,14 @@ class LedgerRepository(
     suspend fun recordAdjustment(
         orgId: String,
         customerId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         note: String,
         byPersonId: String? = null,
     ): String = append(
         orgId = orgId,
         customerId = customerId,
         kind = LedgerKind.Adjustment,
-        amountRupees = amountRupees,
+        amountMinor = amountMinor,
         note = note,
         byPersonId = byPersonId,
         atMillis = clock.now(),
@@ -157,7 +157,7 @@ class LedgerRepository(
             orgId = orgId,
             customerId = entry.customerId,
             kind = opposite,
-            amountRupees = entry.amountRupees,
+            amountMinor = entry.amountMinor,
             note = reason,
             byPersonId = byPersonId,
             atMillis = clock.now(),
@@ -169,7 +169,7 @@ class LedgerRepository(
         orgId: String,
         customerId: String,
         kind: LedgerKind,
-        amountRupees: Long,
+        amountMinor: Long,
         note: String?,
         byPersonId: String?,
         atMillis: Long,
@@ -177,13 +177,13 @@ class LedgerRepository(
         jobId: String? = null,
         reversesEntryId: String? = null,
     ): String {
-        require(amountRupees > 0) { "A ledger entry must be a positive amount; direction comes from its kind" }
+        require(amountMinor > 0) { "A ledger entry must be a positive amount; direction comes from its kind" }
         val entry = LedgerEntryEntity(
             id = ids.newId(),
             orgId = orgId,
             customerId = customerId,
             kind = kind,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             method = method,
             jobId = jobId,
             note = note,
@@ -213,7 +213,7 @@ class LedgerRepository(
     suspend fun recordPayout(
         orgId: String,
         can: Capabilities,
-        amountRupees: Long,
+        amountMinor: Long,
         covers: PayoutCovers,
         atMillis: Long,
         byPersonId: String?,
@@ -226,7 +226,7 @@ class LedgerRepository(
         note: String? = null,
     ): PayoutEntity {
         can.require(Capability.PayOut)
-        require(amountRupees > 0) { "A payment out is money leaving, so it is positive" }
+        require(amountMinor > 0) { "A payment out is money leaving, so it is positive" }
         require(headcount >= 1) { "A payment covers at least one person" }
         // The invariant the machine-profit figures rest on. A job's costs are
         // totalled from job_costs alone, so a payment that names a job without
@@ -239,7 +239,7 @@ class LedgerRepository(
         val payout = PayoutEntity(
             id = ids.newId(),
             orgId = orgId,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             atMillis = atMillis,
             covers = covers,
             toPersonId = toPersonId,
@@ -301,7 +301,7 @@ class LedgerRepository(
                 )
             ),
         )
-        cost.amountRupees?.let { amount ->
+        cost.amountMinor?.let { amount ->
             syncQueue.enqueueUpsert(
                 cost.orgId,
                 SyncQueue.TABLE_JOB_COST_AMOUNTS,
@@ -310,7 +310,7 @@ class LedgerRepository(
                     JobCostAmountDoc(
                         id = cost.id,
                         orgId = cost.orgId,
-                        amountRupees = amount,
+                        amountMinor = amount,
                         updatedAt = clock.now(),
                     )
                 ),
@@ -338,7 +338,7 @@ class LedgerRepository(
         db.withTransaction {
             db.orgDao().migratedJobCosts(orgId, deviceId).forEach { cost ->
                 enqueueJobCost(cost)
-                queued += if (cost.amountRupees != null) 2 else 1
+                queued += if (cost.amountMinor != null) 2 else 1
             }
             db.orgDao().payoutsOnMigratedCosts(orgId, deviceId).forEach { payout ->
                 syncQueue.enqueueUpsert(
@@ -372,17 +372,17 @@ class LedgerRepository(
         jobId: String,
         kind: JobCostKind,
         headcount: Int? = null,
-        amountRupees: Long? = null,
+        amountMinor: Long? = null,
         note: String? = null,
         byPersonId: String?,
         atMillis: Long,
     ): JobCostEntity {
         can.require(Capability.RecordWork)
-        if (amountRupees != null) can.require(Capability.PayOut)
+        if (amountMinor != null) can.require(Capability.PayOut)
         require(headcount == null || headcount >= 1) {
             "A headcount is how many worked, or null when nobody counted"
         }
-        require(amountRupees == null || amountRupees > 0) {
+        require(amountMinor == null || amountMinor > 0) {
             "A cost with a figure on it is money; nothing is null, not zero"
         }
         val now = clock.now()
@@ -392,7 +392,7 @@ class LedgerRepository(
             jobId = jobId,
             kind = kind,
             headcount = headcount,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             note = note,
             byPersonId = byPersonId,
             atMillis = atMillis,
@@ -416,7 +416,7 @@ class LedgerRepository(
     suspend fun owedOnJobCost(orgId: String, costId: String): Long {
         val cost = db.orgDao().findJobCost(orgId, costId) ?: return 0L
         return db.orgDao().observeJobCosts(orgId, cost.jobId).first()
-            .firstOrNull { it.cost.id == costId }?.owedRupees ?: 0L
+            .firstOrNull { it.cost.id == costId }?.owedMinor ?: 0L
     }
 
     /** Puts a figure on a cost somebody else recorded, or corrects one. */
@@ -424,15 +424,15 @@ class LedgerRepository(
         orgId: String,
         can: Capabilities,
         costId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         note: String? = null,
     ): JobCostEntity {
         can.require(Capability.PayOut)
-        require(amountRupees > 0) { "A cost is money; to unprice it, say so explicitly" }
+        require(amountMinor > 0) { "A cost is money; to unprice it, say so explicitly" }
         val existing = db.orgDao().findJobCost(orgId, costId)
             ?: error("No such cost in this business")
         val updated = existing.copy(
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             note = note ?: existing.note,
             syncState = SyncState.Pending,
         )
@@ -456,7 +456,7 @@ class LedgerRepository(
         orgId: String,
         can: Capabilities,
         costId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         atMillis: Long,
         byPersonId: String?,
         method: PaymentMethod? = null,
@@ -467,7 +467,7 @@ class LedgerRepository(
         return recordPayout(
             orgId = orgId,
             can = can,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             covers = PayoutCovers.Job,
             atMillis = atMillis,
             byPersonId = byPersonId,
@@ -490,7 +490,7 @@ class LedgerRepository(
         orgId: String,
         can: Capabilities,
         jobId: String,
-        amountRupees: Long,
+        amountMinor: Long,
         atMillis: Long,
         byPersonId: String?,
         kind: JobCostKind = JobCostKind.Labour,
@@ -505,7 +505,7 @@ class LedgerRepository(
             jobId = jobId,
             kind = kind,
             headcount = headcount,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             note = note,
             byPersonId = byPersonId,
             atMillis = atMillis,
@@ -514,7 +514,7 @@ class LedgerRepository(
             orgId = orgId,
             can = can,
             costId = cost.id,
-            amountRupees = amountRupees,
+            amountMinor = amountMinor,
             atMillis = atMillis,
             byPersonId = byPersonId,
             method = method,

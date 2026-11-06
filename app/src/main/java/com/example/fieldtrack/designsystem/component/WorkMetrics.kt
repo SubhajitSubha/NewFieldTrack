@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.fieldtrack.designsystem.format.rupees
+import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
@@ -32,7 +32,7 @@ enum class FtMoneySize { Hero, Large, Medium, Row }
 /**
  * A rupee amount.
  *
- * Always goes through here rather than `Text(rupees(x))`, so Indian digit grouping,
+ * Always goes through here rather than `Text(money(x))`, so Indian digit grouping,
  * tabular figures and the due/settled colour rule stay consistent everywhere. A figure
  * someone is owed is red; one they have received is green; everything else is ink.
  */
@@ -59,7 +59,7 @@ fun FtMoney(
         tone == FtMoneyTone.Received -> colors.primaryPressed
         else -> colors.ink
     }
-    Text(text = rupees(amount), style = style, color = color, modifier = modifier)
+    Text(text = money(amount), style = style, color = color, modifier = modifier)
 }
 
 enum class FtMoneyTone { Neutral, Due, Received }

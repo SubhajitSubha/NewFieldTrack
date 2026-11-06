@@ -56,7 +56,7 @@ class FieldTest {
             workType = "Harvesting",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            rateRupees = 1_000,
+            rateMinor = 1_000,
             machineId = "machine-1",
             operatorPersonId = TestHarness.DRIVER,
             fieldId = fieldId,
@@ -100,9 +100,9 @@ class FieldTest {
 
         // Running work has earned nothing yet, the other plot is not this one,
         // and a job that named no field belongs to none of them.
-        assertEquals(6_000, totals.getValue(canal.id).earnedRupees)
+        assertEquals(6_000, totals.getValue(canal.id).earnedMinor)
         assertEquals(2, totals.getValue(canal.id).jobCount)
-        assertEquals(3_000, totals.getValue(behind.id).earnedRupees)
+        assertEquals(3_000, totals.getValue(behind.id).earnedMinor)
     }
 
     @Test
@@ -146,7 +146,7 @@ class FieldTest {
         )
 
         val totals = directory.observeFieldWork(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first()
-        assertEquals(4_000, totals.single().earnedRupees)
+        assertEquals(4_000, totals.single().earnedMinor)
         val updated = directory.observeField(TestHarness.ORG_A, field.id).first()
         assertEquals("Canal plot", updated?.name)
         assertEquals(29.5, updated?.latitude)

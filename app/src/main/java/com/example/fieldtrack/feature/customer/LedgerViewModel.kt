@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 /**
  * One line of the khata as it is shown.
  *
- * [balanceAfterRupees] is the running total as of this line. A contractor arguing a
+ * [balanceAfterMinor] is the running total as of this line. A contractor arguing a
  * figure with a farmer reads down the column; without it the khata is a list of
  * numbers that happen to add up somewhere off screen.
  */
@@ -34,9 +34,9 @@ data class LedgerRow(
     val kind: LedgerKind,
     val label: String,
     val method: PaymentMethod?,
-    val amountRupees: Long,
+    val amountMinor: Long,
     val atMillis: Long,
-    val balanceAfterRupees: Long,
+    val balanceAfterMinor: Long,
     val isReversal: Boolean,
     /** The job this line came from, when it came from one. */
     val jobId: String? = null,
@@ -58,10 +58,10 @@ data class CustomerJobRow(
     val billingMode: BillingMode,
     val machineName: String?,
     val atMillis: Long,
-    val amountRupees: Long,
-    val outstandingRupees: Long,
+    val amountMinor: Long,
+    val outstandingMinor: Long,
 ) {
-    val settled: Boolean get() = outstandingRupees <= 0L
+    val settled: Boolean get() = outstandingMinor <= 0L
 }
 
 /** One payment this customer has made. */
@@ -70,7 +70,7 @@ data class CustomerPaymentRow(
     val method: PaymentMethod?,
     val jobId: String?,
     val atMillis: Long,
-    val amountRupees: Long,
+    val amountMinor: Long,
 )
 
 data class LedgerState(
@@ -82,17 +82,17 @@ data class LedgerState(
     val customerPhone: String? = null,
     val village: String? = null,
     val businessName: String = "",
-    val balanceRupees: Long = 0,
+    val balanceMinor: Long = 0,
     /** When the oldest unsettled charge was raised, for the "oldest N days" line. */
     val oldestDebtMillis: Long? = null,
     val rows: List<LedgerRow> = emptyList(),
     val jobs: List<CustomerJobRow> = emptyList(),
     val payments: List<CustomerPaymentRow> = emptyList(),
     /** Headline figures for the Jobs tab. */
-    val billedRupees: Long = 0,
+    val billedMinor: Long = 0,
     val unpaidJobCount: Int = 0,
     /** Headline figures for the Payments tab. */
-    val receivedRupees: Long = 0,
+    val receivedMinor: Long = 0,
     val lastPaymentMillis: Long? = null,
     /** Whether this person may correct a job behind one of these lines. */
     val canAmend: Boolean = false,
@@ -113,17 +113,17 @@ fun buildKhata(entries: List<LedgerEntryEntity>): List<LedgerRow> {
     var running = 0L
     return entries.asReversed().map { entry ->
         running += when (entry.kind) {
-            LedgerKind.Charge, LedgerKind.Opening -> entry.amountRupees
-            LedgerKind.Payment, LedgerKind.Adjustment -> -entry.amountRupees
+            LedgerKind.Charge, LedgerKind.Opening -> entry.amountMinor
+            LedgerKind.Payment, LedgerKind.Adjustment -> -entry.amountMinor
         }
         LedgerRow(
             id = entry.id,
             kind = entry.kind,
             label = entry.note.orEmpty(),
             method = entry.method,
-            amountRupees = entry.amountRupees,
+            amountMinor = entry.amountMinor,
             atMillis = entry.atMillis,
-            balanceAfterRupees = running,
+            balanceAfterMinor = running,
             isReversal = entry.reversesEntryId != null || entry.id in reversedIds,
             jobId = entry.jobId,
         )
@@ -133,7 +133,7 @@ fun buildKhata(entries: List<LedgerEntryEntity>): List<LedgerRow> {
 /** A charge with money still owed on it, and how much of it is left. */
 data class Due(
     val entry: LedgerEntryEntity,
-    val outstandingRupees: Long,
+    val outstandingMinor: Long,
 )
 
 /**
@@ -160,13 +160,13 @@ fun outstandingCharges(entries: List<LedgerEntryEntity>): List<Due> {
     val perJobCredit = entries
         .filter { it.kind == LedgerKind.Adjustment && it.jobId != null }
         .groupBy { it.jobId }
-        .mapValues { (_, lines) -> lines.sumOf { it.amountRupees } }
+        .mapValues { (_, lines) -> lines.sumOf { it.amountMinor } }
         .toMutableMap()
 
     var pool = entries.sumOf {
         when {
-            it.kind == LedgerKind.Payment -> it.amountRupees
-            it.kind == LedgerKind.Adjustment && it.jobId == null -> it.amountRupees
+            it.kind == LedgerKind.Payment -> it.amountMinor
+            it.kind == LedgerKind.Adjustment && it.jobId == null -> it.amountMinor
             else -> 0L
         }
     }
@@ -174,8 +174,8 @@ fun outstandingCharges(entries: List<LedgerEntryEntity>): List<Due> {
     return charges.mapNotNull { charge ->
         // The job's own corrections first; they reduce what was ever owed.
         val corrected = charge.jobId
-            ?.let { id -> perJobCredit.remove(id)?.let { charge.amountRupees - it } }
-            ?: charge.amountRupees
+            ?.let { id -> perJobCredit.remove(id)?.let { charge.amountMinor - it } }
+            ?: charge.amountMinor
         var left = corrected.coerceAtLeast(0L)
 
         val applied = minOf(pool, left)
@@ -189,7 +189,7 @@ fun outstandingCharges(entries: List<LedgerEntryEntity>): List<Due> {
 /** A charge a payment would settle, and by how much. */
 data class Cleared(
     val entry: LedgerEntryEntity,
-    val clearedRupees: Long,
+    val clearedMinor: Long,
     val fully: Boolean,
 )
 
@@ -204,17 +204,17 @@ data class Cleared(
  * Returns the charges in the order the money reaches them. Anything beyond what is
  * owed is simply not allocated; an overpayment sits on the account as credit.
  */
-fun clearedBy(entries: List<LedgerEntryEntity>, paymentRupees: Long): List<Cleared> {
-    var left = paymentRupees
+fun clearedBy(entries: List<LedgerEntryEntity>, paymentMinor: Long): List<Cleared> {
+    var left = paymentMinor
     val cleared = mutableListOf<Cleared>()
     for (due in outstandingCharges(entries)) {
         if (left <= 0L) break
-        val applied = minOf(left, due.outstandingRupees)
+        val applied = minOf(left, due.outstandingMinor)
         left -= applied
         cleared += Cleared(
             entry = due.entry,
-            clearedRupees = applied,
-            fully = applied >= due.outstandingRupees,
+            clearedMinor = applied,
+            fully = applied >= due.outstandingMinor,
         )
     }
     return cleared
@@ -262,7 +262,7 @@ class LedgerViewModel(
 
             val rows = buildKhata(entries)
             val stillOwed = outstandingCharges(entries)
-                .associate { it.entry.id to it.outstandingRupees }
+                .associate { it.entry.id to it.outstandingMinor }
             val jobsById = jobEntities.associateBy { it.id }
             val machineNames = machines.associate { it.id to it.name }
 
@@ -280,8 +280,8 @@ class LedgerViewModel(
                         billingMode = job?.billingMode ?: BillingMode.Fixed,
                         machineName = job?.machineId?.let { machineNames[it] },
                         atMillis = entry.atMillis,
-                        amountRupees = entry.amountRupees,
-                        outstandingRupees = stillOwed[entry.id] ?: 0L,
+                        amountMinor = entry.amountMinor,
+                        outstandingMinor = stillOwed[entry.id] ?: 0L,
                     )
                 }
 
@@ -294,7 +294,7 @@ class LedgerViewModel(
                         method = it.method,
                         jobId = it.jobId,
                         atMillis = it.atMillis,
-                        amountRupees = it.amountRupees,
+                        amountMinor = it.amountMinor,
                     )
                 }
 
@@ -308,14 +308,14 @@ class LedgerViewModel(
                 customerPhone = customer?.phone,
                 village = customer?.village,
                 businessName = org?.name.orEmpty(),
-                balanceRupees = balance,
+                balanceMinor = balance,
                 oldestDebtMillis = oldestUnpaidAt(entries),
                 rows = rows,
                 jobs = jobRows,
                 payments = paymentRows,
-                billedRupees = jobRows.sumOf { it.amountRupees },
+                billedMinor = jobRows.sumOf { it.amountMinor },
                 unpaidJobCount = jobRows.count { !it.settled },
-                receivedRupees = paymentRows.sumOf { it.amountRupees },
+                receivedMinor = paymentRows.sumOf { it.amountMinor },
                 lastPaymentMillis = paymentRows.firstOrNull()?.atMillis,
             )
         }

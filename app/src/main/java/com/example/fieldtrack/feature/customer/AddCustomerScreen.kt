@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.customer
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +39,7 @@ data class AddCustomerState(
     val openingText: String = "",
     val saving: Boolean = false,
 ) {
-    val openingRupees: Long get() = openingText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val openingMinor: Long get() = MoneyInput.parse(openingText) ?: 0L
     val canSave: Boolean get() = name.isNotBlank() && !saving
 }
 
@@ -49,7 +51,7 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setPhone(v: String) = _state.update { it.copy(phone = v.filter { c -> c.isDigit() }) }
     fun setVillage(v: String) = _state.update { it.copy(village = v) }
-    fun setOpening(v: String) = _state.update { it.copy(openingText = v.filter { c -> c.isDigit() }) }
+    fun setOpening(v: String) = _state.update { it.copy(openingText = MoneyInput.clean(v)) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
@@ -62,7 +64,7 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
             name = current.name,
             phone = current.phone.ifBlank { null },
             village = current.village.ifBlank { null },
-            openingBalanceRupees = current.openingRupees,
+            openingBalanceMinor = current.openingMinor,
             byPersonId = session.personId,
         )
         _state.update { it.copy(saving = false) }
@@ -143,8 +145,8 @@ fun AddCustomerScreen(
                     label = stringResource(R.string.customer_already_owes),
                     value = state.openingText,
                     onValueChange = onOpening,
-                    prefix = "₹",
-                    keyboardType = KeyboardType.Number,
+                    prefix = Money.style.symbol,
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                     helper = stringResource(R.string.customer_already_owes_note),
                 )
             }

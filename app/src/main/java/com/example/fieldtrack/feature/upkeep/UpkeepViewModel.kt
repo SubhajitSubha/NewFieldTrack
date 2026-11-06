@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.upkeep
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BreakdownCategory
@@ -56,7 +57,7 @@ data class ServiceDone(
     val machineName: String,
     val description: String,
     val vendor: String?,
-    val costRupees: Long?,
+    val costMinor: Long?,
     val atMillis: Long,
     val partsNote: String? = null,
 )
@@ -82,7 +83,7 @@ data class ServiceDraft(
     /** Set when this repair closes a specific breakdown. */
     val closesBreakdownId: String? = null,
 ) {
-    val costRupees: Long? get() = costText.filter { it.isDigit() }.toLongOrNull()
+    val costMinor: Long? get() = MoneyInput.parse(costText)
     val canSave: Boolean get() = machineId != null && description.isNotBlank()
 }
 
@@ -147,7 +148,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         machineName = byId[record.machineId]?.name.orEmpty(),
                         description = record.description,
                         vendor = record.vendor,
-                        costRupees = record.costRupees,
+                        costMinor = record.costMinor,
                         atMillis = record.atMillis,
                         partsNote = record.partsNote,
                     )
@@ -185,7 +186,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setDraftMachine(machineId: String) = _draft.update { it?.copy(machineId = machineId) }
     fun setDraftDescription(value: String) = _draft.update { it?.copy(description = value) }
     fun setDraftCost(value: String) = _draft.update {
-        it?.copy(costText = value.filter { c -> c.isDigit() })
+        it?.copy(costText = MoneyInput.clean(value))
     }
     fun setDraftVendor(value: String) = _draft.update { it?.copy(vendor = value) }
     fun setDraftParts(value: String) = _draft.update { it?.copy(parts = value) }
@@ -199,7 +200,7 @@ class UpkeepViewModel(private val app: FieldFlowApplication) : ViewModel() {
             orgId = s.orgId,
             machineId = draft.machineId!!,
             description = draft.description,
-            costRupees = draft.costRupees,
+            costMinor = draft.costMinor,
             vendor = draft.vendor,
             closesBreakdownId = draft.closesBreakdownId,
             partsNote = draft.parts,

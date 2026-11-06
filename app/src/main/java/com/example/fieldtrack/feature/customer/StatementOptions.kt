@@ -35,8 +35,8 @@ fun lastSettledAt(entries: List<LedgerEntryEntity>): Long? {
     var settledAt: Long? = null
     entries.sortedBy { it.atMillis }.forEach { entry ->
         running += when (entry.kind) {
-            LedgerKind.Charge, LedgerKind.Opening -> entry.amountRupees
-            LedgerKind.Payment, LedgerKind.Adjustment -> -entry.amountRupees
+            LedgerKind.Charge, LedgerKind.Opening -> entry.amountMinor
+            LedgerKind.Payment, LedgerKind.Adjustment -> -entry.amountMinor
         }
         if (running <= 0L) settledAt = entry.atMillis
     }
@@ -83,8 +83,8 @@ fun balanceBefore(entries: List<LedgerEntryEntity>, startMillis: Long?): Long {
     if (startMillis == null) return 0L
     return entries.filter { it.atMillis < startMillis }.sumOf {
         when (it.kind) {
-            LedgerKind.Charge, LedgerKind.Opening -> it.amountRupees
-            LedgerKind.Payment, LedgerKind.Adjustment -> -it.amountRupees
+            LedgerKind.Charge, LedgerKind.Opening -> it.amountMinor
+            LedgerKind.Payment, LedgerKind.Adjustment -> -it.amountMinor
         }
     }
 }

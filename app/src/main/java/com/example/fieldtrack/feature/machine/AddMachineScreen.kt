@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.machine
 
+import com.example.fieldtrack.designsystem.format.Money
 import androidx.compose.foundation.background
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -90,7 +92,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setServiceEvery(v: String) =
         _state.update { it.copy(serviceEveryText = v.filter { c -> c.isDigit() }) }
     fun setMonthly(v: String) =
-        _state.update { it.copy(monthlyText = v.filter { c -> c.isDigit() }.take(7)) }
+        _state.update { it.copy(monthlyText = MoneyInput.clean(v)) }
     fun setHoursPerYear(v: String) =
         _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
 
@@ -127,7 +129,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     orgId = s.orgId,
                     can = s.can,
                     machineId = machineId,
-                    monthlyRupees = current.monthlyText.toLongOrNull(),
+                    monthlyMinor = MoneyInput.parse(current.monthlyText),
                     hoursPerYear = current.hoursPerYearText.toIntOrNull(),
                 )
             }
@@ -241,9 +243,9 @@ fun AddMachineScreen(
                             label = stringResource(R.string.machines_own_monthly),
                             value = state.monthlyText,
                             onValueChange = onMonthly,
-                            prefix = "₹",
+                            prefix = Money.style.symbol,
                             suffix = stringResource(R.string.machines_own_per_month),
-                            keyboardType = KeyboardType.Number,
+                            keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                         )
                     }
                     Box(Modifier.weight(1f)) {

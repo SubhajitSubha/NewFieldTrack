@@ -12,6 +12,9 @@ import com.example.fieldtrack.data.db.entity.OutboxEntity
  */
 const val FIELD_SERVER_AT = "_serverAt"
 
+/** Present on a document whose amounts are minor units; absent on one from an older build. */
+const val FIELD_MONEY = "_money"
+
 
 /**
  * One local change, on its way out.

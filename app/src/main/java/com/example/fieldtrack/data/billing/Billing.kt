@@ -20,11 +20,19 @@ import com.example.fieldtrack.data.db.BillingMode
 object Billing {
 
     /**
-     * [quantity] of work at [rateRupees] a unit, to the nearest rupee.
+     * [quantity] of work at [rateMinor] a unit, rounded to the nearest [stepMinor].
+     *
+     * The step is the business's own: 100 in a rupee business that never deals in
+     * paise (so a bill is always whole rupees), 1 where cents count. It travels with
+     * the job, never read from the business's current setting, so changing the
+     * setting later cannot move a bill that was already made.
      *
      * A fixed price is the rate itself, whatever the quantity: an agreed lump sum
      * does not grow with the acres.
      */
-    fun amount(mode: BillingMode, quantity: Double, rateRupees: Long): Long =
-        if (mode == BillingMode.Fixed) rateRupees else Math.round(quantity * rateRupees)
+    fun amount(mode: BillingMode, quantity: Double, rateMinor: Long, stepMinor: Long): Long {
+        if (mode == BillingMode.Fixed) return rateMinor
+        val step = stepMinor.coerceAtLeast(1)
+        return Math.round(quantity * rateMinor / step) * step
+    }
 }

@@ -55,7 +55,7 @@ class IdentityAdoptionTest {
         workType = "Rotavator",
         billingMode = BillingMode.PerAcre,
         unit = MeasureUnit.Acre,
-        rateRupees = 1_000,
+        rateMinor = 1_000,
         machineId = "machine-1",
         operatorPersonId = TestHarness.DRIVER,
     )
@@ -96,7 +96,7 @@ class IdentityAdoptionTest {
         h.ledger.recordPayment(
             orgId = TestHarness.ORG_A,
             customerId = TestHarness.CUSTOMER_A,
-            amountRupees = 5_000,
+            amountMinor = 5_000,
             method = PaymentMethod.Cash,
             byPersonId = TestHarness.DRIVER,
         )

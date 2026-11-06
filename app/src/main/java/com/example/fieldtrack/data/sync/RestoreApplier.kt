@@ -3,6 +3,7 @@ package com.example.fieldtrack.data.sync
 import android.util.Log
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.db.FieldTrackDatabase
+import com.example.fieldtrack.data.db.LegacyMoney
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
@@ -112,7 +113,13 @@ class RestoreApplier(
     }
 
     private suspend fun write(row: RemoteRow): Boolean {
-        val json = JsonObject(row.fields.mapValues { (_, v) -> v.asJson() })
+        val json = LegacyMoney
+            .upgrade(
+                row.table,
+                JsonObject(row.fields.mapValues { (_, v) -> v.asJson() }),
+                // Written by a build that keeps money in minor units: it says so.
+                formatted = FIELD_MONEY in row.fields,
+            )
             .withoutTransportFields()
             .arrivedFromServer()
         return runCatching {
@@ -164,7 +171,7 @@ class RestoreApplier(
                                 headcount = doc.headcount,
                                 // Unpriced until its own document arrives, or
                                 // for ever if this person may not read it.
-                                amountRupees = null,
+                                amountMinor = null,
                                 note = doc.note,
                                 byPersonId = doc.byPersonId,
                                 atMillis = doc.atMillis,
@@ -181,7 +188,7 @@ class RestoreApplier(
                 // and brings both down together.
                 SyncQueue.TABLE_JOB_COST_AMOUNTS -> {
                     val doc = decode<JobCostAmountDoc>(json)
-                    db.orgDao().setJobCostAmount(doc.orgId, doc.id, doc.amountRupees)
+                    db.orgDao().setJobCostAmount(doc.orgId, doc.id, doc.amountMinor)
                 }
                 SyncQueue.TABLE_FIELDS ->
                     db.customerDao().upsertField(decode<FieldEntity>(json))

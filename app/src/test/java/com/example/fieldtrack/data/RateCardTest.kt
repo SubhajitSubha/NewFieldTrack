@@ -55,11 +55,11 @@ class RateCardTest {
             workType = "Rotavator",
             billingMode = BillingMode.PerAcre,
             unit = MeasureUnit.Acre,
-            amountRupees = 1_000,
+            amountMinor = 1_000,
         )
 
         val offered = directory.suggestedRate(TestHarness.ORG_A, "Rotavator", null)
-        assertEquals(1_000L, offered?.amountRupees)
+        assertEquals(1_000L, offered?.amountMinor)
     }
 
     @Test
@@ -93,7 +93,7 @@ class RateCardTest {
         )
 
         val amounts = directory.ratesFor(TestHarness.ORG_A, "Harvesting", null)
-            .map { it.amountRupees }.toSet()
+            .map { it.amountMinor }.toSet()
         assertEquals("both survive", setOf(1_700L, 2_100L), amounts)
     }
 
@@ -110,7 +110,7 @@ class RateCardTest {
 
         val card = directory.observeRateCard(TestHarness.ORG_A).first()
         assertEquals(1, card.size)
-        assertEquals(1_200L, card.first().amountRupees)
+        assertEquals(1_200L, card.first().amountMinor)
     }
 
     @Test
@@ -149,7 +149,7 @@ class RateCardTest {
             workType = "Ploughing",
             billingMode = BillingMode.PerHour,
             unit = MeasureUnit.Hour,
-            amountRupees = 1_100,
+            amountMinor = 1_100,
         )
 
         assertEquals(before + 1, outboxFor(SyncQueue.TABLE_RATES).size)
@@ -199,12 +199,12 @@ class RateCardTest {
             800L,
             directory.suggestedRate(
                 TestHarness.ORG_A, "Rotavator", TestHarness.CUSTOMER_A,
-            )?.amountRupees,
+            )?.amountMinor,
         )
         assertEquals(
             "another farmer still pays the list price",
             1_000L,
-            directory.suggestedRate(TestHarness.ORG_A, "Rotavator", null)?.amountRupees,
+            directory.suggestedRate(TestHarness.ORG_A, "Rotavator", null)?.amountMinor,
         )
     }
 
@@ -235,7 +235,7 @@ class RateCardTest {
         val row = directory.rateById(id)
         assertNotNull(row)
         assertEquals("wheat", row?.label)
-        assertEquals(1_800L, row?.amountRupees)
+        assertEquals(1_800L, row?.amountMinor)
     }
 
     @Test
@@ -247,7 +247,7 @@ class RateCardTest {
 
         val card = directory.observeRateCard(TestHarness.ORG_A).first()
         assertEquals("the card must not stay empty after a season of work", 1, card.size)
-        assertEquals(1_000L, card.first().amountRupees)
+        assertEquals(1_000L, card.first().amountMinor)
     }
 
     @Test
@@ -265,13 +265,13 @@ class RateCardTest {
 
         assertEquals(
             1_000L,
-            directory.suggestedRate(TestHarness.ORG_A, "Rotavator", null)?.amountRupees,
+            directory.suggestedRate(TestHarness.ORG_A, "Rotavator", null)?.amountMinor,
         )
         assertEquals(
             700L,
             directory.suggestedRate(
                 TestHarness.ORG_A, "Rotavator", TestHarness.CUSTOMER_B,
-            )?.amountRupees,
+            )?.amountMinor,
         )
     }
 
@@ -300,8 +300,8 @@ class RateCardTest {
             TestHarness.ORG_A, "Ploughing", TestHarness.CUSTOMER_A, BillingMode.PerHour, MeasureUnit.Hour,
         )
 
-        assertEquals("his acre rate survived the hourly job", 1_500L, perAcre?.amountRupees)
-        assertEquals(800L, perHour?.amountRupees)
+        assertEquals("his acre rate survived the hourly job", 1_500L, perAcre?.amountMinor)
+        assertEquals(800L, perHour?.amountMinor)
         assertNull(
             "nothing is offered for a way of charging never used",
             directory.suggestedRate(
@@ -335,7 +335,7 @@ class RateCardTest {
 
         val card = directory.observeRateCard(TestHarness.ORG_A).first()
         assertEquals(1, card.size)
-        assertEquals("what he typed stands", 1_200L, card.first().amountRupees)
+        assertEquals("what he typed stands", 1_200L, card.first().amountMinor)
     }
 
     // -------------------------------------------------------------------- ordering
@@ -356,12 +356,12 @@ class RateCardTest {
         repeat(5) {
             assertEquals(
                 2_100L,
-                directory.suggestedRate(TestHarness.ORG_A, "Harvesting", null)?.amountRupees,
+                directory.suggestedRate(TestHarness.ORG_A, "Harvesting", null)?.amountMinor,
             )
         }
         assertEquals(
             listOf(2_100L, 1_700L),
-            directory.ratesFor(TestHarness.ORG_A, "Harvesting", null).map { it.amountRupees },
+            directory.ratesFor(TestHarness.ORG_A, "Harvesting", null).map { it.amountMinor },
         )
     }
 

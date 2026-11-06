@@ -70,7 +70,7 @@ data class DriverHomeState(
      * Cash this person took at farmers' gates today. Null for someone who does
      * not take payments, so the card is absent rather than reading ₹0.
      */
-    val cashWithYouRupees: Long? = null,
+    val cashWithYouMinor: Long? = null,
     val plan: PlanSummary = PlanSummary(),
 )
 
@@ -190,7 +190,7 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 pendingUploads = b.pending,
                 uploadsStuck = stuck,
                 alerts = alerts,
-                cashWithYouRupees = cashTaken,
+                cashWithYouMinor = cashTaken,
             )
         }
     }
