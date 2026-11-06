@@ -208,6 +208,7 @@ fun HomeHeader(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+            HeardLine(Modifier.padding(top = 2.dp))
         }
         SyncMark(pendingUploads, stuck, onOpenSync, Modifier.padding(start = 12.dp, top = 2.dp))
     }

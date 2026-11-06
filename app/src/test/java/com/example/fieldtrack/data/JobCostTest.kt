@@ -117,6 +117,37 @@ class JobCostTest {
     }
 
     @Test
+    fun `a job's crew and diesel belong to the season it was worked in, however late they were written down`() = runTest {
+        // Worked on the last day of one season; the crew and the diesel entered two days
+        // later, in the next. Each used to be counted by the day it was typed.
+        val jobId = aJob()
+        val worked = h.nowMillis
+        h.advanceMinutes(2 * 24 * 60)
+        h.ledger.recordJobCost(
+            orgId = TestHarness.ORG_A, can = owner, jobId = jobId,
+            kind = JobCostKind.Labour, headcount = 3, amountRupees = 1_500,
+            byPersonId = TestHarness.OWNER, atMillis = h.nowMillis,
+        )
+        h.work.addFuel(TestHarness.ORG_A, jobId, litres = 20.0, costRupees = 2_000)
+        h.work.addFuelForMachine(TestHarness.ORG_A, "machine-1", litres = 10.0, costRupees = 900)
+        val dao = h.db.orgDao()
+        val machine = h.db.machineDao()
+        val thisSeason = worked - 1_000 to worked + 3_600_000L
+        val nextSeason = worked + 24 * 3_600_000L to worked + 5 * 24 * 3_600_000L
+
+        assertEquals(1_500L, dao.observeJobCostBetween(TestHarness.ORG_A, thisSeason.first, thisSeason.second).first())
+        assertEquals(0L, dao.observeJobCostBetween(TestHarness.ORG_A, nextSeason.first, nextSeason.second).first())
+        assertEquals(
+            "diesel put in on the job goes with the job",
+            2_000L, dao.observeFuelSpendBetween(TestHarness.ORG_A, thisSeason.first, thisSeason.second).first(),
+        )
+        assertEquals(
+            "diesel put in at the yard keeps the day it was bought",
+            900L, dao.observeFuelSpendBetween(TestHarness.ORG_A, nextSeason.first, nextSeason.second).first(),
+        )
+    }
+
+    @Test
     fun `what is owed on a cost is what is left after the instalments`() = runTest {
         val jobId = aJob()
         val cost = h.ledger.recordJobCost(

@@ -49,6 +49,7 @@ import com.example.fieldtrack.designsystem.layout.AdaptiveBody
 import com.example.fieldtrack.designsystem.layout.AdaptiveScreen
 import com.example.fieldtrack.designsystem.layout.LocalWidthClass
 import com.example.fieldtrack.designsystem.layout.WidthClass
+import com.example.fieldtrack.feature.home.HeardLine
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import java.text.DateFormat
 import java.util.Date
@@ -91,6 +92,8 @@ fun PlanScreen(
         AdaptiveBody(
             primary = {
                 if (!twoPane && state.stale) StaleNotice(state.updatedAt)
+                // Where a driver watches for new work: says how old this is and asks again.
+                HeardLine()
                 DayHeader(state, onDay, onStep)
                 if (state.overdue.isNotEmpty()) Overdue(state, onOpen, onStart)
                 Day(state, onOpen, onStart)

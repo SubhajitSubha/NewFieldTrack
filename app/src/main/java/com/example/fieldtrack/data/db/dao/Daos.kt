@@ -298,8 +298,9 @@ interface OrgDao {
 
     @Query(
         """
-        SELECT COALESCE(SUM(costRupees), 0) FROM fuel_entries
-        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        SELECT COALESCE(SUM(f.costRupees), 0) FROM fuel_entries f
+        LEFT JOIN jobs j ON j.id = f.jobId
+        WHERE f.orgId = :orgId AND COALESCE(j.workedAt, f.atMillis) BETWEEN :from AND :to
         """
     )
     fun observeFuelSpendBetween(orgId: String, from: Long, to: Long): Flow<Long>
@@ -315,6 +316,11 @@ interface OrgDao {
     /**
      * What people cost over a stretch of time, laid against jobs.
      *
+     * Dated by the day the job was worked, not the day the cost was written down: a
+     * job worked on the last day of one season with its crew entered the morning after
+     * belongs wholly to the season it was worked in. Diesel put in on a job follows the
+     * same rule; diesel and repairs that belong to no job keep their own date.
+     *
      * Priced work, paid or not. The unpriced are counted separately so the
      * screen can refuse a total rather than quietly understate one.
      */
@@ -323,7 +329,7 @@ interface OrgDao {
         SELECT COALESCE(SUM(c.amountRupees), 0) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
         WHERE c.orgId = :orgId AND j.deletedAt IS NULL
-          AND c.atMillis BETWEEN :from AND :to
+          AND j.workedAt BETWEEN :from AND :to
         """
     )
     fun observeJobCostBetween(orgId: String, from: Long, to: Long): Flow<Long>
@@ -333,7 +339,7 @@ interface OrgDao {
         SELECT COUNT(*) FROM job_costs c
         JOIN jobs j ON j.id = c.jobId
         WHERE c.orgId = :orgId AND c.amountRupees IS NULL AND j.deletedAt IS NULL
-          AND c.atMillis BETWEEN :from AND :to
+          AND j.workedAt BETWEEN :from AND :to
         """
     )
     fun observeUnpricedBetween(orgId: String, from: Long, to: Long): Flow<Int>

@@ -547,6 +547,17 @@
         <item quantity="other">%d to send</item>
     </plurals>
     <string name="home_sync_done">All sent</string>
+    <string name="home_heard_never">Not updated yet. Tap to update.</string>
+    <string name="home_heard_now">Updated just now</string>
+    <string name="home_heard_updating">Updating…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="one">Updated %d min ago</item>
+        <item quantity="other">Updated %d min ago</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="one">Updated %d hour ago. Tap to update.</item>
+        <item quantity="other">Updated %d hours ago. Tap to update.</item>
+    </plurals>
     <string name="home_sync_stuck">Not sending</string>
     <string name="job_not_sent_short">Not sent yet</string>
     <string name="job_not_sent">Not sent yet. It is kept safe on this phone until it goes up.</string>
@@ -1113,7 +1124,7 @@
     <string name="profit_fuel">Diesel</string>
     <string name="profit_service">Repairs and service</string>
     <string name="profit_people">People on this machine</string>
-    <string name="profit_left">What is left</string>
+    <string name="profit_left">What is left, before the loan</string>
     <string name="profit_no_total">No total here, because you cannot see what people were paid. A figure without that is not profit, and it would read like it.</string>
     <string name="profit_left_out">%1$s more was paid out without naming a job — for a day, or for a month — so it cannot be put against this machine. It is counted in what you paid out overall.</string>
     <string name="profit_since_note">Everything since you added this machine.</string>
@@ -1387,6 +1398,7 @@
     <string name="past_from">From</string>
     <string name="past_to">To</string>
     <string name="past_hours">hours</string>
+    <string name="past_hours_differ">These times add up to a different number of hours than the one you typed. The bill uses the hours you typed.</string>
     <string name="past_time_unset">Tap to set</string>
     <string name="past_times_backwards">The finish time is before the start time.</string>
     <string name="past_overlap">This machine is already on another job at that time. Save it anyway if that is what happened.</string>

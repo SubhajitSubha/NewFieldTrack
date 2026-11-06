@@ -359,6 +359,14 @@ private fun TimesSection(
                 }
             }
         }
+        if (state.hoursDisagreeWithTimes) {
+            Text(
+                text = stringResource(R.string.past_hours_differ),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkSecondary,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
         if (state.timesBackwards) {
             Text(
                 text = stringResource(R.string.past_times_backwards),

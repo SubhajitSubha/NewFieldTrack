@@ -41,4 +41,18 @@ class MoneyInputTest {
     fun `a rate has to be there`() {
         assertFalse(amend("3.5", rate = "").canSave)
     }
+
+    private fun past(hours: String, from: Int?, to: Int?, mode: BillingMode = BillingMode.PerHour) =
+        com.example.fieldtrack.feature.work.PastWorkState(
+            billingMode = mode, quantityText = hours, rateText = "500", fromMinutes = from, toMinutes = to,
+        )
+
+    @Test
+    fun `hours typed and times that disagree are said, and rounding is not`() {
+        assertTrue("6 hours typed, 2 hours of times", past("6", 8 * 60, 10 * 60).hoursDisagreeWithTimes)
+        assertFalse("an hour typed for sixty minutes", past("1", 8 * 60, 9 * 60).hoursDisagreeWithTimes)
+        assertFalse("ten minutes out is rounding", past("2", 8 * 60, 10 * 60 + 10).hoursDisagreeWithTimes)
+        assertFalse("no times, nothing to disagree with", past("6", null, null).hoursDisagreeWithTimes)
+        assertFalse("only hourly work has hours to compare", past("6", 8 * 60, 10 * 60, BillingMode.PerAcre).hoursDisagreeWithTimes)
+    }
 }

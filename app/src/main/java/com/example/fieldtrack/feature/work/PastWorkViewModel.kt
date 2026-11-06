@@ -59,6 +59,17 @@ data class PastWorkState(
 
     val hasTimes: Boolean get() = fromMinutes != null || toMinutes != null
 
+    /**
+     * Hourly work where the times and the hours typed do not agree.
+     *
+     * The bill uses the hours typed — that is the figure the screen shows — and the
+     * times are a note of when. Said out loud, so nobody is surprised which one won.
+     * A quarter of an hour either way is rounding, not a disagreement.
+     */
+    val hoursDisagreeWithTimes: Boolean
+        get() = billingMode == BillingMode.PerHour && workedMinutes != null && quantity > 0 &&
+            kotlin.math.abs(workedMinutes!! - quantity * 60) > HOURS_TOLERANCE_MINUTES
+
     /** True when the times are the wrong way round, which is worth saying. */
     val timesBackwards: Boolean
         get() = fromMinutes != null && toMinutes != null && workedMinutes == null
@@ -276,3 +287,6 @@ private const val MIDDAY_MILLIS = 12 * 60 * MINUTE_MILLIS
 
 /** Eight digits is a rate of ten crore a unit; more is a slip of the thumb. */
 private const val MAX_RATE_DIGITS = 8
+
+/** How far the hours typed may be from the times before it is worth saying. */
+private const val HOURS_TOLERANCE_MINUTES = 15

@@ -2,6 +2,7 @@ package com.example.fieldtrack.feature
 
 import com.example.fieldtrack.data.TestHarness
 import com.example.fieldtrack.data.db.BreakdownCategory
+import com.example.fieldtrack.feature.home.heardAge
 import com.example.fieldtrack.feature.home.landWorked
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.MeasureUnit
@@ -124,6 +125,32 @@ class HomeTest {
     // ------------------------------------------------------------------ debt age
 
     private var seq = 0
+    @Test
+    fun `how long ago the phone last heard is said in the words people use`() {
+        val now = 1_700_000_000_000L
+        val min = 60_000L
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.Never, heardAge(null, now))
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.Never, heardAge(0, now))
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.JustNow, heardAge(now - 20_000, now))
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.Minutes(3), heardAge(now - 3 * min, now))
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.Minutes(59), heardAge(now - 59 * min, now))
+        assertEquals(com.example.fieldtrack.feature.home.HeardAge.Hours(2), heardAge(now - 125 * min, now))
+        assertEquals(
+            "a clock corrected since reads as just now, not the future",
+            com.example.fieldtrack.feature.home.HeardAge.JustNow, heardAge(now + 10 * min, now),
+        )
+    }
+
+    @Test
+    fun `it is worth warning about only when it is long, or has never happened`() {
+        val now = 1_700_000_000_000L
+        val hour = 60 * 60_000L
+        assertTrue(heardAge(null, now).stale)
+        assertFalse(heardAge(now - 5 * hour, now).stale)
+        assertTrue(heardAge(now - 6 * hour, now).stale)
+        assertFalse(heardAge(now - 10 * 60_000L, now).stale)
+    }
+
     private fun landJob(unit: MeasureUnit, quantity: Double) = JobEntity(
         id = "j-$unit-$quantity", orgId = "o1", customerId = "c1", workType = "Rotavator",
         billingMode = BillingMode.PerAcre, unit = unit, rateRupees = 1_000, quantity = quantity,
