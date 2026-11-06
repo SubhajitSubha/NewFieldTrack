@@ -84,13 +84,18 @@ fun heardAge(updatedAt: Long?, now: Long): HeardAge {
 fun FieldFlowApplication.observeHeard(): Flow<Heard> = sessionStore.session.flatMapLatest { s ->
     combine(
         db.orgDao().observeTeam(s.orgId),
+        // The moment a pull lands, not a timer's idea of it...
+        pullWatermarks.observeSuccessAt(s.orgId),
+        // ...and a tick so that "3 min ago" keeps moving on a phone that hears nothing.
         flow {
             while (true) {
-                emit(pullWatermarks.lastSuccessAt(s.orgId).takeIf { it > 0 })
+                emit(Unit)
                 delay(HEARD_EVERY_MILLIS)
             }
         },
-    ) { team, at -> Heard(show = team.size > 1, updatedAt = at, now = System.currentTimeMillis()) }
+    ) { team, at, _ ->
+        Heard(show = team.size > 1, updatedAt = at.takeIf { it > 0 }, now = System.currentTimeMillis())
+    }
 }
 
 private const val HEARD_EVERY_MILLIS = 30_000L

@@ -1,6 +1,11 @@
 package com.example.fieldtrack.data.sync
 
 import android.content.Context
+import android.content.SharedPreferences
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 
 /**
  * How far down the server's changes each business has been read.
@@ -37,6 +42,22 @@ class PullWatermarks(context: Context) {
     fun recordSuccess(orgId: String, at: Long) {
         prefs.edit().putLong(success(orgId), at).apply()
     }
+
+    /**
+     * [lastSuccessAt], and again the moment it changes.
+     *
+     * A screen that read it on a timer said "not updated yet" for up to the length of
+     * the timer after a pull had come back, straight after opening the app or switching
+     * business — exactly when somebody is looking.
+     */
+    fun observeSuccessAt(orgId: String): Flow<Long> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == success(orgId)) trySend(lastSuccessAt(orgId))
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(lastSuccessAt(orgId))
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.conflate()
 
     /**
      * Moves the mark forward.

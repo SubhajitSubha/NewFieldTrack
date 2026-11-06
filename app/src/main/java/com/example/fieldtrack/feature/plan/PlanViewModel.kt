@@ -80,12 +80,15 @@ class PlanViewModel(private val app: FieldFlowApplication) : ViewModel() {
             // Not distinct: it is read again every half minute so that "now" moves, and a
             // phone that never hears from the others never changes the value but must
             // still find out that six hours have gone by.
-            flow {
-                while (true) {
-                    emit(app.pullWatermarks.lastSuccessAt(s.orgId))
-                    delay(HEARD_EVERY_MILLIS)
-                }
-            },
+            combine(
+                app.pullWatermarks.observeSuccessAt(s.orgId),
+                flow {
+                    while (true) {
+                        emit(Unit)
+                        delay(HEARD_EVERY_MILLIS)
+                    }
+                },
+            ) { at, _ -> at },
         ) { customers, fields, machines, (team, everyone), updatedAt ->
             Names(
                 customers.associate { it.id to it.name }, fields.associate { it.id to it.name },
