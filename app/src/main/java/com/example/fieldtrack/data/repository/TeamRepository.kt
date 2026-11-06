@@ -6,6 +6,8 @@ import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.IdGenerator
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.OutboxJson
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.OrgEntity
@@ -517,7 +519,19 @@ class TeamRepository(
             val now = clock.now()
             val left = mine.copy(active = false, leftAt = now, updatedAt = now)
             org.upsertMembership(left)
-            enqueue(left)
+            // Only the leaving goes up, so a phone that is behind on the owner's
+            // switches cannot undo them on its way out.
+            syncQueue.enqueueMembershipPatch(
+                orgId, left.id,
+                buildJsonObject {
+                    put("id", left.id)
+                    put("orgId", left.orgId)
+                    put("personId", left.personId)
+                    put("active", false)
+                    put("leftAt", now)
+                    put("updatedAt", now)
+                },
+            )
         }
     }
 

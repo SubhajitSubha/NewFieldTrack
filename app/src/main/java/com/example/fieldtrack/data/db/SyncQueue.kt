@@ -3,6 +3,7 @@ package com.example.fieldtrack.data.db
 import com.example.fieldtrack.data.db.dao.OutboxDao
 import com.example.fieldtrack.data.db.entity.OutboxEntity
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
 /** Wall clock, injectable so tests are not at the mercy of the real one. */
@@ -86,6 +87,17 @@ class SyncQueue(
         enqueueUpsert(orgId, TABLE_MEMBERSHIPS, membershipId, payloadJson)
         enqueueUpsert(orgId, TABLE_MEMBER_ORGS, "${personId}_$orgId", indexJson)
     }
+
+    /**
+     * A few fields of a membership, for the person editing their own row.
+     *
+     * Sent as a patch because a person may change their name or step out, and
+     * nothing else — and a whole row would repeat every switch as this phone last
+     * saw it. The transport merges memberships, so the rest of the server's copy,
+     * grants included, is left exactly as the owner set it.
+     */
+    suspend fun enqueueMembershipPatch(orgId: String, membershipId: String, patch: JsonObject) =
+        enqueueUpsert(orgId, TABLE_MEMBERSHIPS, membershipId, patch.toString())
 
     suspend fun enqueueDelete(orgId: String, table: String, entityId: String) {
         outboxDao.enqueue(

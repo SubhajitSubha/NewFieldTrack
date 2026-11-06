@@ -282,17 +282,43 @@ service cloud.firestore {
                  && request.resource.data.role == get(invitePath()).data.get('role', 'Operator')
                  && request.resource.data.canSeeMoney == get(invitePath()).data.get('canSeeMoney', false)
                  && request.resource.data.canAddCustomers == get(invitePath()).data.get('canAddCustomers', false)
-                 && request.resource.data.canCloseBills == get(invitePath()).data.get('canCloseBills', false);
+                 && request.resource.data.canCloseBills == get(invitePath()).data.get('canCloseBills', false)
+                 && joinsWithoutOtherSwitches();
+        }
+
+        // The switches a code cannot carry.
+        //
+        // A code sets the role and the first three switches and nothing more, so a
+        // person arriving on one holds none of the rest. Checking only what the
+        // code does carry left the others to whatever the joining handset wrote,
+        // and anybody handed an ordinary code could arrive able to run the team
+        // or read what everybody is paid.
+        function joinsWithoutOtherSwitches() {
+          return request.resource.data.get('canPayOut', false) == false
+                 && request.resource.data.get('canEditTeam', false) == false
+                 && request.resource.data.get('canEditMachines', false) == false
+                 && request.resource.data.get('canPlanWork', false) == false
+                 && request.resource.data.get('canSeePeopleCost', false) == false;
         }
 
         // What somebody may change about themselves: how their name is spelled,
-        // and whether they still work here. Never their rank, never their reach
-        // over the money, and never their way back in once they have gone.
+        // and whether they still work here. Never their rank, never any switch an
+        // owner has set — the money, the team, the machines, the plan, what
+        // people are paid — and never their way back in once they have gone.
+        //
+        // Every switch is listed by name, because nothing here can say "all of
+        // them". A new switch added to the app and not to this list is one a
+        // driver can give themselves; a test in the app fails when that happens.
         function keepsOwnRank() {
           return request.resource.data.role == resource.data.role
                  && request.resource.data.canSeeMoney == resource.data.canSeeMoney
                  && request.resource.data.canAddCustomers == resource.data.canAddCustomers
                  && request.resource.data.canCloseBills == resource.data.canCloseBills
+                 && request.resource.data.get('canPayOut', false) == resource.data.get('canPayOut', false)
+                 && request.resource.data.get('canEditTeam', false) == resource.data.get('canEditTeam', false)
+                 && request.resource.data.get('canEditMachines', false) == resource.data.get('canEditMachines', false)
+                 && request.resource.data.get('canPlanWork', false) == resource.data.get('canPlanWork', false)
+                 && request.resource.data.get('canSeePeopleCost', false) == resource.data.get('canSeePeopleCost', false)
                  && (
                       request.resource.data.active == resource.data.active
                       || request.resource.data.active == false
@@ -393,7 +419,11 @@ service cloud.firestore {
          * delegating the team is delegating the drivers, not the business.
          */
         function managerMayWrite() {
-          return may(orgId, 'canEditTeam')
+          // Never one's own row. Somebody who runs the team may switch things on
+          // for a driver, and without this they could switch them on for
+          // themselves: their own row is theirs to rename or leave, not to promote.
+          return !isMine()
+                 && may(orgId, 'canEditTeam')
                  && resource.data.get('role', 'Operator') != 'Owner'
                  && request.resource.data.get('role', 'Operator') != 'Owner'
                  && request.resource.data.get('canEditTeam', false) == false

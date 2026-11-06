@@ -11,6 +11,8 @@ import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -271,6 +273,20 @@ class TeamRepositoryTest {
             before + 1,
             h.db.outboxDao().nextBatch(500)
                 .count { it.tableName == SyncQueue.TABLE_MEMBERSHIPS },
+        )
+    }
+
+    @Test
+    fun `leaving sends the leaving and none of the switches`() = runTest {
+        team.leaveOrg(TestHarness.ORG_A, TestHarness.DRIVER)
+
+        val sent = h.db.outboxDao().nextBatch(500)
+            .last { it.tableName == SyncQueue.TABLE_MEMBERSHIPS }
+        val fields = Json.parseToJsonElement(sent.payloadJson).jsonObject.keys
+        assertTrue("active" in fields)
+        assertEquals(
+            "a phone behind on the owner's switches must not put the old ones back",
+            emptyList<String>(), fields.filter { it.startsWith("can") || it == "role" },
         )
     }
 

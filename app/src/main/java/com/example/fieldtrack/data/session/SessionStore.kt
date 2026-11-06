@@ -14,6 +14,8 @@ import com.example.fieldtrack.data.sync.RestoreApplier
 import com.example.fieldtrack.data.sync.RestoreResult
 import com.example.fieldtrack.data.auth.PhoneAuth
 import com.example.fieldtrack.data.db.OutboxJson
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.entity.MemberOrgDoc
@@ -262,9 +264,17 @@ class SessionStore(
         val membership = db.orgDao().membership(session.orgId, session.personId) ?: return
         val renamed = membership.copy(displayName = name, updatedAt = now)
         db.orgDao().upsertMembership(renamed)
-        syncQueue.enqueueUpsert(
-            session.orgId, SyncQueue.TABLE_MEMBERSHIPS, renamed.id,
-            OutboxJson.encodeToString(renamed),
+        // Only the name goes up. The row on this phone may be behind the owner's
+        // latest switches, and sending all of it would undo them.
+        syncQueue.enqueueMembershipPatch(
+            session.orgId, renamed.id,
+            buildJsonObject {
+                put("id", renamed.id)
+                put("orgId", renamed.orgId)
+                put("personId", renamed.personId)
+                put("displayName", renamed.displayName)
+                put("updatedAt", renamed.updatedAt)
+            },
         )
 
         // Deliberately does not touch the business. A bill goes out under the

@@ -9,6 +9,8 @@ import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.session.SessionStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -110,6 +112,20 @@ class SessionEditTest {
             "a rename that never reaches the outbox is lost on this handset",
             SyncQueue.TABLE_MEMBERSHIPS in outboxTables(),
         )
+    }
+
+    @Test
+    fun `renaming yourself sends the name and none of the switches`() = runTest {
+        // The row on this phone may be behind what the owner has set since. A whole
+        // row would carry the old switches and put them back on the server.
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        store.updateProfile("Harpal Singh")
+
+        val sent = h.db.outboxDao().nextBatch(100)
+            .last { it.tableName == SyncQueue.TABLE_MEMBERSHIPS }
+        val fields = Json.parseToJsonElement(sent.payloadJson).jsonObject.keys
+        assertTrue("displayName" in fields)
+        assertEquals(emptyList<String>(), fields.filter { it.startsWith("can") || it == "role" })
     }
 
     @Test
