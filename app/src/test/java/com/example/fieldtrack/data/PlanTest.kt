@@ -307,6 +307,115 @@ class PlanTest {
         assertEquals(BookingStatus.Done, row(id).booking.status)
     }
 
+    @Test
+    fun `an edit sends its own fields and never the status`() = runTest {
+        // Two planners. One phone has been offline holding "Planned"; the other cancelled
+        // the work for rain. Sending the whole row put the cancelled booking back.
+        val id = book(note = "first")
+        plan.cancel(owner, org, id, CancelReason.Rain)
+        val cancelled = h.db.outboxDao().nextBatch(500).last { it.tableName == SyncQueue.TABLE_BOOKINGS }
+        val statusKeys = kotlinx.serialization.json.Json.parseToJsonElement(cancelled.payloadJson)
+            .let { (it as kotlinx.serialization.json.JsonObject).keys }
+        assertEquals(setOf("id", "orgId", "status", "cancelReason", "updatedAt"), statusKeys)
+
+        plan.reopen(owner, org, id)
+        book(id = id, note = "second", machine = "t1")
+        val edit = h.db.outboxDao().nextBatch(500).last { it.tableName == SyncQueue.TABLE_BOOKINGS }
+        val editKeys = (kotlinx.serialization.json.Json.parseToJsonElement(edit.payloadJson)
+            as kotlinx.serialization.json.JsonObject).keys
+        assertTrue("note" in editKeys && "machineId" in editKeys)
+        assertFalse("an edit leaves the status to whoever last set it", "status" in editKeys)
+        assertFalse("status" in editKeys || "cancelReason" in editKeys || "createdAt" in editKeys)
+    }
+
+    @Test
+    fun `a new booking still goes up whole`() = runTest {
+        val id = book()
+        val created = h.db.outboxDao().nextBatch(500).last { it.tableName == SyncQueue.TABLE_BOOKINGS && it.entityId == id }
+        val keys = (kotlinx.serialization.json.Json.parseToJsonElement(created.payloadJson)
+            as kotlinx.serialization.json.JsonObject).keys
+        assertTrue("status" in keys && "createdAt" in keys && "customerId" in keys)
+    }
+
+    @Test
+    fun `work that has been started can no longer be cancelled, finished by hand or edited`() = runTest {
+        // The planner opens the booking at seven; the driver starts it at five past.
+        val id = book(machine = "t1")
+        startFrom(id)
+
+        assertThrows(com.example.fieldtrack.data.repository.BookingAlreadyStarted::class.java) {
+            kotlinx.coroutines.runBlocking { plan.cancel(owner, org, id, CancelReason.Rain) }
+        }
+        assertThrows(com.example.fieldtrack.data.repository.BookingAlreadyStarted::class.java) {
+            kotlinx.coroutines.runBlocking { plan.markDone(owner, org, id) }
+        }
+        assertThrows(com.example.fieldtrack.data.repository.BookingAlreadyStarted::class.java) {
+            kotlinx.coroutines.runBlocking { book(id = id, note = "late change") }
+        }
+        assertEquals("the booking is as it was", BookingStatus.Planned, row(id).booking.status)
+    }
+
+    @Test
+    fun `once the job is thrown away the booking can be decided again`() = runTest {
+        val id = book()
+        val job = startFrom(id)
+        h.work.discard(org, job)
+
+        plan.cancel(owner, org, id, CancelReason.Farmer)
+
+        assertEquals(BookingStatus.Cancelled, row(id).booking.status)
+    }
+
+    @Test
+    fun `a flow left open while the booking was cancelled does not tie a job to it`() = runTest {
+        val id = book()
+        plan.cancel(owner, org, id, CancelReason.Rain)
+
+        val job = startFrom(id)
+
+        assertNull("the work still starts, as work nobody planned", h.work.observeJob(org, job).first()!!.bookingId)
+        assertNull(row(id).jobStatus)
+    }
+
+    @Test
+    fun `a second phone starting the same booking does not make two jobs claim it`() = runTest {
+        val id = book()
+        val first = startFrom(id)
+        val second = startFrom(id)
+
+        assertEquals(id, h.work.observeJob(org, first).first()!!.bookingId)
+        assertNull(h.work.observeJob(org, second).first()!!.bookingId)
+    }
+
+    @Test
+    fun `a booking is not tied to work for somebody else`() = runTest {
+        val id = book()
+        val job = h.work.startJob(
+            orgId = org, customerId = TestHarness.CUSTOMER_B, workType = "Rotavator",
+            billingMode = BillingMode.PerAcre, unit = MeasureUnit.Acre, rateRupees = 800, bookingId = id,
+        )
+
+        assertNull(h.work.observeJob(org, job).first()!!.bookingId)
+    }
+
+    @Test
+    fun `a machine on a job right now is not free today, and is free on another day`() {
+        val busy = machine("busy", MachineStatus.Working)
+        val idle = machine("idle")
+        assertEquals(listOf("idle"), PlanDay.freeMachines(listOf(busy, idle), emptyList(), isToday = true).map { it.id })
+        assertEquals(
+            "what is running today says nothing about next week",
+            listOf("busy", "idle"), PlanDay.freeMachines(listOf(busy, idle), emptyList(), isToday = false).map { it.id },
+        )
+    }
+
+    @Test
+    fun `a time that is not on a clock does not bring the screen down`() {
+        // Only this phone's own writes are checked, so one can arrive from the server.
+        assertEquals("11:59 PM", com.example.fieldtrack.feature.plan.timeOfDay(1_500).uppercase())
+        assertEquals("12:00 AM", com.example.fieldtrack.feature.plan.timeOfDay(-5).uppercase())
+    }
+
     // ---------------------------------------------------- started comes from the job
 
     @Test

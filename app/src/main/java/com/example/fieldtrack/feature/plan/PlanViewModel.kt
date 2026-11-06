@@ -66,6 +66,7 @@ class PlanViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
         val team: List<com.example.fieldtrack.data.db.entity.MembershipEntity>,
         val updatedAt: Long,
+        val everyoneNames: Map<String, String>,
     )
 
     val state: StateFlow<PlanState> = app.sessionStore.session.flatMapLatest { s ->
@@ -73,15 +74,23 @@ class PlanViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.directoryRepository.observeCustomers(s.orgId),
             app.directoryRepository.observeAllFields(s.orgId),
             app.directoryRepository.observeMachines(s.orgId),
-            app.db.orgDao().observeTeam(s.orgId),
+            // Everyone ever on the team, so work booked for somebody since let go still
+            // says who it was for, instead of reading as "anyone".
+            combine(app.db.orgDao().observeTeam(s.orgId), app.db.orgDao().observeEveryone(s.orgId)) { t, e -> t to e },
+            // Not distinct: it is read again every half minute so that "now" moves, and a
+            // phone that never hears from the others never changes the value but must
+            // still find out that six hours have gone by.
             flow {
                 while (true) {
                     emit(app.pullWatermarks.lastSuccessAt(s.orgId))
                     delay(HEARD_EVERY_MILLIS)
                 }
-            }.distinctUntilChanged(),
-        ) { customers, fields, machines, team, updatedAt ->
-            Names(customers.associate { it.id to it.name }, fields.associate { it.id to it.name }, machines, team, updatedAt)
+            },
+        ) { customers, fields, machines, (team, everyone), updatedAt ->
+            Names(
+                customers.associate { it.id to it.name }, fields.associate { it.id to it.name },
+                machines, team, updatedAt, everyone.associate { it.personId to it.displayName },
+            )
         }
 
         app.observePlanToday(s.orgId).flatMapLatest { (settings, today) ->
@@ -102,7 +111,7 @@ class PlanViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         customerName = n.customers[row.booking.customerId].orEmpty(),
                         fieldName = row.booking.fieldId?.let { n.fields[it] },
                         machineName = row.booking.machineId?.let { machines[it]?.name },
-                        driverName = row.booking.operatorPersonId?.let { people[it] },
+                        driverName = row.booking.operatorPersonId?.let { n.everyoneNames[it] ?: people[it] },
                         // Only somebody who can change the plan has any use for a warning.
                         flags = if (canPlan) {
                             PlanDay.flags(row, sameDay, machines, people.keys, today)
@@ -121,7 +130,11 @@ class PlanViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         day = day,
                         overdue = PlanDay.inOrder(overdue.visibleTo(s, settings)).map { item(it, overdue) },
                         items = PlanDay.inOrder(onDay).map { item(it, days) },
-                        freeMachines = if (canPlan) PlanDay.freeMachines(n.machines, days).map { it.name } else emptyList(),
+                        freeMachines = if (canPlan) {
+                            PlanDay.freeMachines(n.machines, days, isToday = day == today).map { it.name }
+                        } else {
+                            emptyList()
+                        },
                         freeDrivers = if (canPlan) {
                             PlanDay.freeDrivers(n.team.map { it.personId }, days).mapNotNull { people[it] }
                         } else {

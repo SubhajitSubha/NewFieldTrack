@@ -97,7 +97,20 @@ class SyncQueue(
      * grants included, is left exactly as the owner set it.
      */
     suspend fun enqueueMembershipPatch(orgId: String, membershipId: String, patch: JsonObject) =
-        enqueueUpsert(orgId, TABLE_MEMBERSHIPS, membershipId, patch.toString())
+        enqueuePatch(orgId, TABLE_MEMBERSHIPS, membershipId, patch)
+
+    /**
+     * A few fields of a row, merged into the server's copy instead of replacing it.
+     *
+     * For a row two people can change at once. A whole row carries every field as this
+     * phone last saw it, so one that has been offline puts the old status, note and
+     * count back over what somebody else did in the meantime. Only the table must be
+     * one the transport merges: see [MERGED_TABLES].
+     */
+    suspend fun enqueuePatch(orgId: String, table: String, entityId: String, patch: JsonObject) {
+        check(table in MERGED_TABLES) { "$table is replaced whole, not merged" }
+        enqueueUpsert(orgId, table, entityId, patch.toString())
+    }
 
     suspend fun enqueueDelete(orgId: String, table: String, entityId: String) {
         outboxDao.enqueue(
@@ -155,5 +168,13 @@ class SyncQueue(
 
         /** Collections that live at the root because they are read before joining. */
         val ROOT_COLLECTIONS = setOf(TABLE_INVITE_CODES)
+
+        /**
+         * Tables the transport merges rather than replaces, so a patch is safe.
+         *
+         * Memberships, because a person edits only their own name or leaves; bookings,
+         * because two planners can change one at once.
+         */
+        val MERGED_TABLES = setOf(TABLE_MEMBERSHIPS, TABLE_BOOKINGS)
     }
 }

@@ -150,6 +150,28 @@ class BookingFormViewModel(
                 .flatMapLatest { app.planRepository.observeDays(s.orgId, it, it) }
                 .collect { rows -> _state.update { it.copy(sameDay = rows) } }
         }
+        // What can change under a form left open: somebody starts the work, or another
+        // planner cancels it, and the day itself turns over at the roll hour. Read once
+        // at the start, these let a booking be cancelled with a job already running, or
+        // saved for a day that has already gone.
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            val id = bookingId ?: return@launch
+            app.planRepository.observe(s.orgId, id).collect { row ->
+                if (row == null) return@collect
+                _state.update {
+                    it.copy(
+                        status = row.booking.status,
+                        cancelReason = row.booking.cancelReason,
+                        started = row.jobStatus != null,
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            app.observePlanToday(s.orgId).collect { (_, today) -> _state.update { it.copy(today = today) } }
+        }
         viewModelScope.launch {
             val s = app.sessionStore.load() ?: return@launch
             kotlinx.coroutines.flow.combine(

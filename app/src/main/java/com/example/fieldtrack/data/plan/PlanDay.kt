@@ -137,10 +137,23 @@ object PlanDay {
                 (driverId != null && it.booking.operatorPersonId == driverId))
     }
 
-    /** Machines nothing is booked on that day, and that are not broken: free to be given work. */
-    fun freeMachines(machines: List<MachineEntity>, sameDay: List<BookingRow>): List<MachineEntity> {
+    /**
+     * Machines nothing is booked on that day, and that are not broken: free to be given work.
+     *
+     * For today, one on a job right now is not free either — work nobody planned is
+     * still work, and a line saying the tractor is free beside a clock running on it
+     * would be believed.
+     */
+    fun freeMachines(
+        machines: List<MachineEntity>,
+        sameDay: List<BookingRow>,
+        isToday: Boolean = false,
+    ): List<MachineEntity> {
         val taken = sameDay.filter(::holds).mapNotNull { it.booking.machineId }.toSet()
-        return machines.filter { it.deletedAt == null && it.id !in taken && it.status != MachineStatus.Down }
+        return machines.filter {
+            it.deletedAt == null && it.id !in taken && it.status != MachineStatus.Down &&
+                !(isToday && it.status == MachineStatus.Working)
+        }
     }
 
     /** Drivers nothing is booked on that day. */

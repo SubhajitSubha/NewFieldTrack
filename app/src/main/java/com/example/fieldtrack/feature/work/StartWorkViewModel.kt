@@ -17,6 +17,7 @@ import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.session.Session
 import com.example.fieldtrack.feature.WorkTypeOption
 import com.example.fieldtrack.feature.plan.observePlanToday
+import com.example.fieldtrack.feature.plan.visibleTo
 import com.example.fieldtrack.feature.unitsFor
 import com.example.fieldtrack.feature.workTypeOptions
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -221,8 +222,12 @@ class StartWorkViewModel(
             ) { s, id -> s to id }
                 .flatMapLatest { (s, id) ->
                     if (id == null) kotlinx.coroutines.flow.flowOf(0L to emptyList<BookingRow>())
-                    else app.observePlanToday(s.orgId).flatMapLatest { (_, today) ->
-                        app.planRepository.observeOpenFor(s.orgId, id, today).map { today to it }
+                    else app.observePlanToday(s.orgId).flatMapLatest { (settings, today) ->
+                        // Only what this person may see of the plan. A driver starting
+                        // ad hoc work for a farmer was offered other drivers' bookings,
+                        // machine included, whether or not the owner let them see them.
+                        app.planRepository.observeOpenFor(s.orgId, id, today)
+                            .map { today to it.visibleTo(s, settings) }
                     }
                 }
                 .collect { (today, rows) -> _state.update { it.copy(planToday = today, openBookings = rows) } }
@@ -399,8 +404,9 @@ class StartWorkViewModel(
             machineId = current.machineId,
             operatorPersonId = s.personId,
             // The whole reason fields exist. Without this the plot screens
-            // would show nought earned on every field, for ever.
-            fieldId = current.fieldId,
+            // would show nought earned on every field, for ever. Not a plot that has
+            // since been deleted: a booking made last week can name one.
+            fieldId = current.fieldId?.takeIf { app.directoryRepository.observeField(s.orgId, it).first() != null },
             bookingId = current.bookingId,
         )
         // Remember what was charged, against this customer, so "what I charged Ramesh

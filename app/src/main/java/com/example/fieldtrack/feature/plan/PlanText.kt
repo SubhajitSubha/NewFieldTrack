@@ -24,8 +24,12 @@ fun dayDate(day: Long): String =
     DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()).format(PlanDay.date(day))
 
 /** "6:30 am", from minutes past midnight. */
-fun timeOfDay(minute: Int): String =
-    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).format(LocalTime.of(minute / 60, minute % 60))
+fun timeOfDay(minute: Int): String {
+    // Clamped: only this phone's own writes are checked, and a booking that came down
+    // from the server with a time past midnight must not bring the screen down.
+    val safe = minute.coerceIn(0, 24 * 60 - 1)
+    return DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()).format(LocalTime.of(safe / 60, safe % 60))
+}
 
 @Composable
 fun partName(part: DayPart): String = stringResource(

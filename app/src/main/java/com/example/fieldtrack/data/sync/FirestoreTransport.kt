@@ -100,13 +100,13 @@ class FirestoreTransport(
         for (change in changes) {
             val document = documentFor(change)
             when (change.operation) {
-                // A membership is merged, never replaced. The person who writes
-                // their own row may send only the fields they changed, and the
-                // server's grants must survive it: a whole row from a phone that
-                // has not pulled lately would carry old switches and quietly undo
-                // whatever the owner set since.
+                // Memberships and bookings are merged, never replaced. Whoever writes
+                // one may send only the fields they changed, and the server's other
+                // fields must survive it: a whole row from a phone that has not
+                // pulled lately carries old switches, or an old status, and quietly
+                // undoes whatever somebody else set since.
                 OutboxOp.Upsert ->
-                    if (change.table == SyncQueue.TABLE_MEMBERSHIPS) {
+                    if (change.table in SyncQueue.MERGED_TABLES) {
                         batch.set(document, change.asDocument(), SetOptions.merge())
                     } else {
                         batch.set(document, change.asDocument())

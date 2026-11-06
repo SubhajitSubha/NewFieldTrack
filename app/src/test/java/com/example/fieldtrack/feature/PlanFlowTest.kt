@@ -275,6 +275,7 @@ class PlanFlowTest {
             vm.pick(today + 1)
             val item = ready { items.isNotEmpty() }.items.single()
             assertEquals(listOf(PlanDay.Flag.DriverGone), item.flags)
+            assertEquals("still named, not 'anyone'", "Gurmeet", item.driverName)
         }
         val id = runBlocking { app.db.bookingDao().observeDays(org, today + 1, today + 1).first().single().booking.id }
         form(id) { _, ready ->
@@ -429,6 +430,28 @@ class PlanFlowTest {
             start.useBooking(s.openBookings.single())
             start.selectCustomer(app.directoryRepository.findCustomer(org, harjit)!!)
             assertNull("a booking made for somebody else does not follow a changed farmer", start.state.value.bookingId)
+        }
+    }
+
+    @Test
+    fun `a driver starting work is not offered what other drivers were booked for`() {
+        business()
+        val owner = com.example.fieldtrack.data.session.Capabilities.ofOwner()
+        val mine = runBlocking {
+            app.planRepository.save(owner, org, null, ramesh, null, "Ploughing", today, DayPart.Morning, null, tractor, driver, null)
+        }
+        runBlocking {
+            app.planRepository.save(owner, org, null, ramesh, null, "Rotavator", today, DayPart.Afternoon, null, harvester, driver2, null)
+        }
+        signInAs(driver)
+        runBlocking {
+            val start = StartWorkViewModel(app)
+            start.selectCustomer(app.directoryRepository.findCustomer(org, ramesh)!!)
+            val s = settled({ start.state.value }) { it.openBookings.isNotEmpty() }
+            assertEquals(
+                "Gurmeet's booking, and its machine, are not Jaswant's to see or adopt",
+                listOf(mine), s.openBookings.map { it.booking.id },
+            )
         }
     }
 

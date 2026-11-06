@@ -14,7 +14,14 @@ import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
+/** The work has been started, so the booking is no longer the planner's to change. */
+class BookingAlreadyStarted(val bookingId: String) :
+    IllegalStateException("Booking $bookingId has been started")
 
 /**
  * Work booked for a day.
@@ -68,6 +75,9 @@ class PlanRepository(
         val cleanNote = note?.trim()?.ifBlank { null }?.take(MAX_NOTE)
         return db.withTransaction {
             val existing = id?.let { bookings.find(orgId, it) }
+            // Re-checked here as well as on the form: a driver can start the work in
+            // the minutes between the planner opening the booking and saving it.
+            existing?.let { refuseIfStarted(orgId, it.id) }
             val booking = existing?.copy(
                 customerId = customerId,
                 fieldId = fieldId,
@@ -96,17 +106,21 @@ class PlanRepository(
                 createdAt = now,
                 updatedAt = now,
             )
-            write(booking)
+            if (existing == null) write(booking) else writeEdit(booking)
             booking.id
         }
     }
 
     suspend fun cancel(can: Capabilities, orgId: String, id: String, reason: CancelReason) =
-        change(can, orgId, id) { it.copy(status = BookingStatus.Cancelled, cancelReason = reason) }
+        change(can, orgId, id, guardStarted = true) {
+            it.copy(status = BookingStatus.Cancelled, cancelReason = reason)
+        }
 
     /** The work happened without the app's clock and was entered afterwards. */
     suspend fun markDone(can: Capabilities, orgId: String, id: String) =
-        change(can, orgId, id) { it.copy(status = BookingStatus.Done, cancelReason = null) }
+        change(can, orgId, id, guardStarted = true) {
+            it.copy(status = BookingStatus.Done, cancelReason = null)
+        }
 
     /** Back on the plan, for a booking cancelled or marked done by mistake. */
     suspend fun reopen(can: Capabilities, orgId: String, id: String) =
@@ -116,13 +130,57 @@ class PlanRepository(
         can: Capabilities,
         orgId: String,
         id: String,
+        guardStarted: Boolean = false,
         edit: (BookingEntity) -> BookingEntity,
     ) {
         can.require(Capability.PlanWork)
         db.withTransaction {
             val booking = bookings.find(orgId, id) ?: return@withTransaction
-            write(edit(booking).copy(updatedAt = clock.now()))
+            if (guardStarted) refuseIfStarted(orgId, id)
+            val changed = edit(booking).copy(updatedAt = clock.now())
+            bookings.upsert(changed)
+            // Only the status goes up. A planner whose phone has been offline would
+            // otherwise send every field as it last saw it, and a cancellation made
+            // meanwhile on another phone would be put back to Planned.
+            syncQueue.enqueuePatch(
+                changed.orgId, SyncQueue.TABLE_BOOKINGS, changed.id,
+                buildJsonObject {
+                    put("id", changed.id)
+                    put("orgId", changed.orgId)
+                    put("status", changed.status.name)
+                    put("cancelReason", changed.cancelReason?.name)
+                    put("updatedAt", changed.updatedAt)
+                },
+            )
         }
+    }
+
+    /** A job carries this booking, so it can no longer be cancelled, finished by hand or edited. */
+    private suspend fun refuseIfStarted(orgId: String, id: String) {
+        if (bookings.observe(orgId, id).first()?.jobStatus != null) throw BookingAlreadyStarted(id)
+    }
+
+    /** An edit sends the fields an edit can change, and leaves the status to whoever last set it. */
+    private suspend fun writeEdit(booking: BookingEntity) {
+        bookings.upsert(booking)
+        syncQueue.enqueuePatch(
+            booking.orgId, SyncQueue.TABLE_BOOKINGS, booking.id,
+            buildJsonObject {
+                put("id", booking.id)
+                put("orgId", booking.orgId)
+                put("customerId", booking.customerId)
+                put("fieldId", booking.fieldId)
+                put("workType", booking.workType)
+                put("day", booking.day)
+                put("part", booking.part.name)
+                put("startMinute", booking.startMinute)
+                put("machineId", booking.machineId)
+                put("operatorPersonId", booking.operatorPersonId)
+                put("note", booking.note)
+                put("movedCount", booking.movedCount)
+                put("updatedAt", booking.updatedAt)
+            },
+        )
     }
 
     private suspend fun write(booking: BookingEntity) {

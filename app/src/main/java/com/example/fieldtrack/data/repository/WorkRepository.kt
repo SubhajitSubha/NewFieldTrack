@@ -3,6 +3,7 @@ package com.example.fieldtrack.data.repository
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.FuelEntryEntity
@@ -25,6 +26,7 @@ import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import kotlinx.serialization.encodeToString
@@ -150,6 +152,16 @@ class WorkRepository(
         bookingId: String? = null,
     ): String {
         val now = clock.now()
+        // The booking is only the thing this work was planned as if it still is one:
+        // still on the plan, for this farmer, with no job already carrying it. A flow
+        // left open while the booking was cancelled, or started on another phone,
+        // would otherwise tie a second job to it. The work itself still starts.
+        val plannedAs = bookingId?.let { id ->
+            db.bookingDao().observe(orgId, id).first()?.takeIf {
+                it.booking.status == BookingStatus.Planned && it.jobStatus == null &&
+                    it.booking.customerId == customerId
+            }?.booking?.id
+        }
         val job = JobEntity(
             id = ids.newId(),
             orgId = orgId,
@@ -157,7 +169,7 @@ class WorkRepository(
             fieldId = fieldId,
             machineId = machineId,
             operatorPersonId = operatorPersonId,
-            bookingId = bookingId,
+            bookingId = plannedAs,
             workType = workType,
             billingMode = billingMode,
             unit = unit,
