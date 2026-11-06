@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.orgs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.sync.SyncWorker
 import com.example.fieldtrack.data.db.MemberRole
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,6 +124,10 @@ class OrgSwitcherViewModel(private val app: FieldFlowApplication) : ViewModel() 
         }
 
         app.sessionStore.switchTo(orgId)
+        // The business just left was the only one being kept up to date, so what is
+        // on file for this one may be days old. Ask for it now rather than whenever
+        // the next save or the six-hourly run happens to come round.
+        SyncWorker.runNow(app, force = true)
         onSwitched()
     }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
+import androidx.work.Data
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -57,6 +58,9 @@ class SyncWorker(
 
         runCatching {
             app.sessionStore.refreshMembership(app.remoteRestore, app.restoreApplier)
+            // That brought this person's own row down. Take it into the session now
+            // rather than waiting on the pull, which may not get through.
+            app.sessionStore.refreshFromStorage()
         }
 
         val status = app.syncEngine.sync()
@@ -88,7 +92,14 @@ class SyncWorker(
                 )
             }
 
-            runCatching { app.pullSync.pull(session.orgId) }
+            // A person who opened the app, or moved to another business, is waiting to
+            // see what the others did; the ten-minute pause between reads is for the
+            // saves that arrive all morning, and is not made to stand in their way.
+            val somebodyAsked = inputData.getBoolean(KEY_PERSON_ASKED, false)
+            runCatching { app.pullSync.pull(session.orgId, force = somebodyAsked) }
+            // What the pull brought may have changed who this person is here: what
+            // they may do, what the business is called. See refreshFromStorage.
+            runCatching { app.sessionStore.refreshFromStorage() }
         }
         return when (status.stage) {
             // Nothing left, or nowhere to send it. Either way, not a failure.
@@ -126,6 +137,9 @@ class SyncWorker(
         private const val TAG = "SyncWorker"
         private const val PERIODIC = "fieldtrack.sync.periodic"
         private const val ONE_OFF = "fieldtrack.sync.now"
+
+        /** Set when a person, not a save, started this run: see [runNow]. */
+        private const val KEY_PERSON_ASKED = "personAsked"
 
         private val onConnection = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -176,6 +190,7 @@ class SyncWorker(
                     ONE_OFF,
                     if (force) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP,
                     OneTimeWorkRequestBuilder<SyncWorker>()
+                        .setInputData(Data.Builder().putBoolean(KEY_PERSON_ASKED, force).build())
                         .setConstraints(onConnection)
                         .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                         .build(),

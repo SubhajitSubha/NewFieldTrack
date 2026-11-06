@@ -3,6 +3,7 @@ package com.example.fieldtrack.data
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.db.SyncQueue
 import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
@@ -126,6 +127,43 @@ class SessionEditTest {
         val fields = Json.parseToJsonElement(sent.payloadJson).jsonObject.keys
         assertTrue("displayName" in fields)
         assertEquals(emptyList<String>(), fields.filter { it.startsWith("can") || it == "role" })
+    }
+
+    @Test
+    fun `what the owner changes reaches a session that is already open`() = runTest {
+        // The session is a copy taken at load. The pull wrote the owner's change to
+        // the rows and nothing told the copy, so a driver given a new switch saw
+        // nothing until the app was killed and reopened.
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        val before = store.current()!!
+        val dao = h.db.orgDao()
+
+        // The same person, now an operator the owner has given nothing.
+        val mine = dao.membership(before.orgId, before.personId)!!
+        dao.upsertMembership(mine.copy(role = MemberRole.Operator, canPlanWork = false))
+        store.refreshFromStorage()
+        assertFalse(Capability.PlanWork in store.current()!!.can)
+
+        // A switch is turned on, one the old four-field check never looked at.
+        dao.upsertMembership(dao.membership(before.orgId, before.personId)!!.copy(canPlanWork = true))
+        store.refreshFromStorage()
+        assertTrue("the new switch is seen at once", Capability.PlanWork in store.current()!!.can)
+
+        // The business is renamed and its land unit changed on somebody else's phone.
+        dao.upsertOrg(dao.findOrg(before.orgId)!!.copy(name = "Singh Agro Works", defaultLandUnit = MeasureUnit.Bigha))
+        store.refreshFromStorage()
+        assertEquals("Singh Agro Works", store.current()!!.businessName)
+        assertEquals(MeasureUnit.Bigha, store.current()!!.landUnit)
+    }
+
+    @Test
+    fun `refreshing the session changes nothing when nothing changed`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        val before = store.current()
+
+        store.refreshFromStorage()
+
+        assertEquals(before, store.current())
     }
 
     @Test

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.serialization.encodeToString
 
@@ -814,6 +815,39 @@ class SessionStore(
 
     /** How much work would be left behind by signing out right now. */
     suspend fun unsentCount(): Int = db.outboxDao().pendingCount()
+
+    /**
+     * Brings the session up to date with what has reached this phone since it was read.
+     *
+     * The session is a copy taken when the app loaded: what this person may do, what
+     * the business is called, what land is measured in. The pull writes the owner's
+     * changes to those rows and nothing told the copy, so a switch turned on for a
+     * driver, a corrected business name or a different land unit stayed unseen until
+     * the app was killed and reopened. Run after every pull.
+     *
+     * Only ever moves the session for the business it is already in. A membership
+     * that has ended is left to [refreshMembership], which knows how to leave.
+     */
+    suspend fun refreshFromStorage() {
+        val session = current() ?: return
+        val membership = db.orgDao().membership(session.orgId, session.personId) ?: return
+        if (!membership.active) return
+        val org = db.orgDao().findOrg(session.orgId)
+        val fresh = session.copy(
+            displayName = membership.displayName,
+            businessName = org?.name ?: session.businessName,
+            role = membership.role,
+            landUnit = org?.defaultLandUnit ?: session.landUnit,
+            can = Capabilities.of(membership),
+        )
+        if (fresh == session) return
+        // Only if nothing moved while the rows were being read: a switch of business
+        // in the meantime must not be overwritten by the one just left.
+        _startup.update { now ->
+            val ready = now as? Startup.Ready
+            if (ready != null && ready.session == session) Startup.Ready(fresh) else now
+        }
+    }
 
     /** Move the session to another business this person belongs to. */
     suspend fun switchTo(orgId: String) {
