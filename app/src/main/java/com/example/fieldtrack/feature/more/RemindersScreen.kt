@@ -59,6 +59,7 @@ fun RemindersScreen(
     onToggle: (ReminderKind, Boolean) -> Unit,
     push: Map<PushKind, Boolean>,
     canPayments: Boolean,
+    canRequests: Boolean = false,
     onPush: (PushKind, Boolean) -> Unit,
     paperDays: Int,
     onPaperDays: (Int) -> Unit,
@@ -115,6 +116,7 @@ fun RemindersScreen(
                         add(PushKind.Booking to (R.string.push_booking_row to R.string.push_booking_note))
                         add(PushKind.Job to (R.string.push_job_row to R.string.push_job_note))
                         if (canPayments) add(PushKind.Payment to (R.string.push_payment_row to R.string.push_payment_note))
+                        if (canRequests) add(PushKind.Request to (R.string.push_request_row to R.string.push_request_note))
                     }
                     rows.forEachIndexed { index, (kind, texts) ->
                         if (index > 0) FtRowDivider()

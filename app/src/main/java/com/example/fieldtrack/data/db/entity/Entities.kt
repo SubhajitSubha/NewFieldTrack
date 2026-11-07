@@ -18,6 +18,7 @@ import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.PaperKind
+import com.example.fieldtrack.data.db.RequestStatus
 import com.example.fieldtrack.data.db.MachineStatus
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
@@ -134,6 +135,11 @@ data class OrgEntity(
      * asks for it, and asked of nobody who is not set up to be.
      */
     val proofOfWork: Boolean = false,
+    /** Whether farmers may ask for work through the business's link, and the secret part of that link. */
+    val bookingLink: Boolean = false,
+    val bookingSlug: String? = null,
+    /** Whether the public page shows the rates on the rate card. Off until the owner chooses. */
+    val bookingShowRates: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
@@ -956,4 +962,32 @@ data class OutboxEntity(
      * this app can offer to send it again.
      */
     val blockedAt: Long? = null,
+)
+
+
+/**
+ * A farmer's request for work, made on the business's public page.
+ *
+ * Written by the server, not by any phone: the person asking is nobody in the business. It is
+ * a request and nothing more; no booking exists until somebody who plans accepts it, and the
+ * farmer is told nothing by the app, only by the owner picking up the phone.
+ */
+@Entity(tableName = "booking_requests", indices = [Index("orgId")])
+@Serializable
+data class BookingRequestEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val name: String,
+    val phone: String? = null,
+    val village: String? = null,
+    val workType: String? = null,
+    /** The day they asked for, as an epoch day, or null for "when you can". */
+    val day: Long? = null,
+    val note: String? = null,
+    val status: RequestStatus = RequestStatus.New,
+    /** The booking made from it, once accepted. */
+    val bookingId: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
 )

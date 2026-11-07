@@ -57,6 +57,38 @@ class PlanRepository(
 
     suspend fun find(orgId: String, id: String): BookingEntity? = bookings.find(orgId, id)
 
+    // ------------------------------------------------------------ farmers' requests
+
+    fun observeRequests(orgId: String): Flow<List<com.example.fieldtrack.data.db.entity.BookingRequestEntity>> =
+        bookings.observeRequests(orgId)
+
+    fun observeNewRequestCount(orgId: String): Flow<Int> = bookings.observeNewRequestCount(orgId)
+
+    suspend fun findRequest(orgId: String, id: String) = bookings.findRequest(orgId, id)
+
+    /**
+     * Says what became of a farmer's request. Only somebody who plans may; and a request already
+     * dealt with is left as it was, so two planners tapping at once cannot each accept it.
+     * True when this call is the one that settled it.
+     */
+    suspend fun settleRequest(
+        can: Capabilities,
+        orgId: String,
+        id: String,
+        status: com.example.fieldtrack.data.db.RequestStatus,
+        bookingId: String? = null,
+    ): Boolean {
+        can.require(Capability.PlanWork)
+        return db.withTransaction {
+            val request = bookings.findRequest(orgId, id) ?: return@withTransaction false
+            if (request.status != com.example.fieldtrack.data.db.RequestStatus.New) return@withTransaction false
+            val settled = request.copy(status = status, bookingId = bookingId, updatedAt = clock.now())
+            bookings.upsertRequest(settled)
+            syncQueue.enqueueUpsert(orgId, SyncQueue.TABLE_BOOKING_REQUESTS, id, OutboxJson.encodeToString(settled))
+            true
+        }
+    }
+
     /** Books new work when [id] is null, otherwise changes that booking. Returns its id. */
     suspend fun save(
         can: Capabilities,

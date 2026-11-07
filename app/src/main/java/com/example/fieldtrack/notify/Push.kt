@@ -29,7 +29,10 @@ enum class PushKind(val key: String) {
     Job("job"),
 
     /** A payment recorded in the business, for those who look after the money. */
-    Payment("payment");
+    Payment("payment"),
+
+    /** A farmer asked for work through the booking link, for those who plan. */
+    Request("request");
 
     companion object {
         fun of(key: String?) = entries.firstOrNull { it.key == key }
@@ -42,7 +45,8 @@ enum class PushEvent(val kind: PushKind, val key: String) {
     BookingChanged(PushKind.Booking, "booking_changed"),
     BookingCancelled(PushKind.Booking, "booking_cancelled"),
     JobHanded(PushKind.Job, "job_handed"),
-    PaymentRecorded(PushKind.Payment, "payment_recorded");
+    PaymentRecorded(PushKind.Payment, "payment_recorded"),
+    RequestNew(PushKind.Request, "request_new");
 
     companion object {
         /** The event a message from the server names, or null for anything this version does not know. */
@@ -123,6 +127,7 @@ object PushText {
             PushEvent.BookingCancelled -> R.string.push_booking_cancelled
             PushEvent.JobHanded -> R.string.push_job_handed
             PushEvent.PaymentRecorded -> R.string.push_payment_recorded
+            PushEvent.RequestNew -> R.string.push_request_new
         }
     )
 }

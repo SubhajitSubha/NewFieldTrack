@@ -491,6 +491,20 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // What farmers asked for through the business's public page.
+      //
+      // Written by the server alone (the person asking is nobody in the business), so no
+      // handset may create or delete one. Those who plan read them and settle them: the only
+      // fields a handset may change are the status, the booking it became, and the stamps
+      // every write carries.
+      match /booking_requests/{requestId} {
+        allow read: if mayPlan(orgId);
+        allow update: if mayPlan(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'bookingId', 'updatedAt', 'syncState', '_seq', '_device', '_recordedAt', '_serverAt', '_money']);
+        allow create, delete: if false;
+      }
+
       // What the business paid out — wages, labour, anything to a person.
       //
       // Its own block because the generic grant below would let every member
@@ -589,6 +603,7 @@ service cloud.firestore {
                     && collection != 'job_costs'
                     && collection != 'job_cost_amounts'
                     && collection != 'machine_finance'
+                    && collection != 'booking_requests'
                     && collection != 'bookings';
         // Anybody on the team may write the work, except somebody who may only look.
         allow write: if isMember(orgId)
@@ -598,6 +613,7 @@ service cloud.firestore {
                      && collection != 'job_costs'
                      && collection != 'job_cost_amounts'
                      && collection != 'machine_finance'
+                     && collection != 'booking_requests'
                      && collection != 'bookings';
       }
     }

@@ -36,6 +36,9 @@ class Converters {
     @TypeConverter fun methodToDb(v: PaymentMethod?): String? = v?.name
     @TypeConverter fun methodFromDb(v: String?): PaymentMethod? = v?.let { decode<PaymentMethod>(it) }
 
+    @TypeConverter fun requestStatusToDb(v: RequestStatus?): String? = v?.name
+    @TypeConverter fun requestStatusFromDb(v: String?): RequestStatus? = v?.let { decode<RequestStatus>(it) }
+
     @TypeConverter fun paperKindToDb(v: PaperKind?): String? = v?.name
     @TypeConverter fun paperKindFromDb(v: String?): PaperKind? = v?.let { decode<PaperKind>(it) }
 

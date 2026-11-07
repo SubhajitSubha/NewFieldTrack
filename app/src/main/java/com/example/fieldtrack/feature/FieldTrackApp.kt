@@ -166,6 +166,10 @@ import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
 import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.more.BookingLinkScreen
+import com.example.fieldtrack.feature.more.BookingLinkViewModel
+import com.example.fieldtrack.feature.plan.RequestsScreen
+import com.example.fieldtrack.feature.plan.RequestsViewModel
 import com.example.fieldtrack.feature.money.IncomeStatementScreen
 import com.example.fieldtrack.feature.money.IncomeStatementViewModel
 import com.example.fieldtrack.feature.machine.AssetRegisterScreen
@@ -269,6 +273,8 @@ internal object Routes {
     const val HELP = "more/help"
     const val ASSETS = "more/assets"
     const val INCOME = "more/income"
+    const val REQUESTS = "plan/requests"
+    const val BOOKING_LINK = "more/booking-link"
     const val PAPER = "machines/{machineId}/papers/{paperId}"
     const val WORTH = "machines/{machineId}/worth"
     const val TOUR = "tour"
@@ -794,6 +800,7 @@ private fun MainNavHost(navController: NavHostController) {
                         override fun customers() = navController.switchTab(Routes.CUSTOMERS)
                         override fun moneyOut() = navController.navigate(Routes.MONEY_OUT)
                         override fun sync() = navController.navigate(Routes.BACKUP)
+                        override fun requests() = navController.navigate(Routes.REQUESTS)
                     }
                 }
 
@@ -949,6 +956,27 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(Routes.REQUESTS) {
+                val vm: RequestsViewModel = appViewModel { RequestsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                RequestsScreen(
+                    state = state,
+                    onAccept = { id -> vm.accept(id) { bookingId -> navController.navigate(Routes.booking(id = bookingId)) } },
+                    onDecline = vm::decline,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.BOOKING_LINK) {
+                val vm: BookingLinkViewModel = appViewModel { BookingLinkViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                BookingLinkScreen(
+                    state = state,
+                    onChange = vm::set,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(Routes.INCOME) {
                 val vm: IncomeStatementViewModel = appViewModel { IncomeStatementViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
@@ -1069,6 +1097,7 @@ private fun MainNavHost(navController: NavHostController) {
                     },
                     push = PushKind.entries.associateWith { pushOn[it] != false },
                     canPayments = session?.let { Capability.SeeMoney in it.can } == true,
+                    canRequests = session?.let { Capability.PlanWork in it.can } == true,
                     onPush = { kind, enabled ->
                         app.pushSettings.set(kind, enabled)
                         app.runInBackground { PushRegistrar(app).sync() }
@@ -1887,6 +1916,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onExport = { navController.navigate(Routes.EXPORT) },
                     onReminders = { navController.navigate(Routes.REMINDERS) },
                     onHelp = { navController.navigate(Routes.HELP) },
+                    onRequests = if (state.canPlan) ({ navController.navigate(Routes.REQUESTS) }) else null,
+                    onBookingLink = if (state.canEditBusiness) ({ navController.navigate(Routes.BOOKING_LINK) }) else null,
                     onIncome = if (state.canSeePeopleCost && state.canSeeMoney) ({ navController.navigate(Routes.INCOME) }) else null,
                     onAssets = if (state.canSeePeopleCost) ({ navController.navigate(Routes.ASSETS) }) else null,
                     onRates = { navController.navigate(Routes.RATES) },

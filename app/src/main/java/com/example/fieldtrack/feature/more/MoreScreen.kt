@@ -61,6 +61,8 @@ data class MoreState(
     val lastBackupAt: Long? = null,
     /** False for a driver, who may not rename the business they work for. */
     val canEditBusiness: Boolean = false,
+    /** Whether this person plans work, and so deals with farmers' requests. */
+    val canPlan: Boolean = false,
     val memberCount: Int = 0,
     val canSeeTeam: Boolean = false,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
@@ -97,6 +99,7 @@ class MoreViewModel(app: FieldFlowApplication) : ViewModel() {
                 canSeeMoney = s.canSeeMoney,
                 canSeePeopleCost = Capability.SeePeopleCost in s.can,
                 canEditBusiness = Capability.EditBusiness in s.can,
+                canPlan = Capability.PlanWork in s.can,
                 memberCount = team.size,
                 // A one-person outfit has no team to manage; the row appears when
                 // business mode is switched on, which is where drivers come from.
@@ -136,6 +139,8 @@ fun MoreScreen(
     /** For somebody who may see what the business pays: what the machines are worth. */
     onAssets: (() -> Unit)? = null,
     onIncome: (() -> Unit)? = null,
+    onRequests: (() -> Unit)? = null,
+    onBookingLink: (() -> Unit)? = null,
     onRates: () -> Unit,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
@@ -369,6 +374,26 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onDisplay,
                 )
+                if (onRequests != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.requests_title),
+                        subtitle = stringResource(R.string.requests_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Calendar, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onRequests,
+                    )
+                }
+                if (onBookingLink != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.link_title),
+                        subtitle = stringResource(R.string.link_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.WhatsApp, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onBookingLink,
+                    )
+                }
                 if (onIncome != null) {
                     FtRowDivider()
                     FtListRow(

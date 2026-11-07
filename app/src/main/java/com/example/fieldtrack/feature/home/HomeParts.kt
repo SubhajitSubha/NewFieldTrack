@@ -761,6 +761,8 @@ interface AlertActions {
     fun customers()
     fun moneyOut()
     fun sync()
+    /** Farmers' requests for work, to be accepted or declined. */
+    fun requests() = Unit
 }
 
 /**
@@ -931,6 +933,13 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
             title = pluralStringResource(R.plurals.home_alert_unpriced, alert.count, alert.count)
             note = stringResource(R.string.home_alert_unpriced_note)
             onClick = actions::moneyOut
+        }
+        is HomeAlert.Requests -> {
+            tone = Tone.Wait
+            icon = FieldTrackIcons.Calendar
+            title = pluralStringResource(R.plurals.home_alert_requests, alert.count, alert.count)
+            note = stringResource(R.string.home_alert_requests_note)
+            onClick = actions::requests
         }
         is HomeAlert.PaperDue -> {
             tone = if (alert.daysLeft < 0) Tone.Stop else Tone.Wait

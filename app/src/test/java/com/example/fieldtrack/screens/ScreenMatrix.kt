@@ -750,6 +750,13 @@ abstract class ScreenMatrix(
             ORG, owner, swaraj, 12_000, 700,
             purchasedDay = calendarDay - 3 * 365, purchaseMinor = 6_500_000_00, resaleMinor = 1_000_000_00, lifeYears = 10,
         )
+        app.db.bookingDao().upsertRequest(
+            com.example.fieldtrack.data.db.entity.BookingRequestEntity(
+                id = "req-1", orgId = ORG, name = "Kamau Njoroge", phone = "+254700000001", village = "Nyeri", workType = "Ploughing",
+                day = calendarDay + 3, note = "About two acres by the river", createdAt = now - 3_600_000, updatedAt = now - 3_600_000,
+            )
+        )
+        app.db.orgDao().observeOrg(ORG).first()?.let { o -> app.db.orgDao().upsertOrg(o.copy(bookingLink = true, bookingSlug = "a1b2c3d4e5f6a7")) }
         dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Insurance, "POL-2291", calendarDay + 12, null)
         dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Fitness, null, calendarDay - 4, "Renew at the RTO")
         dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Registration, "PB 10 AB 1234", calendarDay + 900, null)
@@ -857,6 +864,8 @@ abstract class ScreenMatrix(
         "worth" to "machines/${ids.machineId}/worth",
         "assets" to Routes.ASSETS,
         "income" to Routes.INCOME,
+        "requests" to Routes.REQUESTS,
+        "booking-link" to Routes.BOOKING_LINK,
         "fuel" to "machines/${ids.machineId}/fuel",
         "machine-profit" to "machines/${ids.machineId}/made",
         "loss-job" to "jobs/${ids.lossJobId}",

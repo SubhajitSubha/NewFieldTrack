@@ -82,20 +82,18 @@ Done first because it touches every screen and every table.
 - [x] Checked on a 2 GB emulator: the app holds about 170 MB with a season of data; with no network every screen works and the queue waits (checked all through M1-M5). Battery: nothing runs in the background but the six-hourly backstop, a sync per change, and the two-minute freshness poll while the screen is on and a team exists; the poll is now about a seventh of its former cost. A day on a real phone is for the final run.
 - [x] Cold start measured: 4.7 to 7.5 seconds on the debug build on the emulator, almost all of it loading and checking code with no startup profile (the log shows no profile file). That is what code shrinking and a baseline profile fix, and both are in the release list; the figure is to be re-taken on the release build on a real phone.
 
-## M7. Better than every competitor
-Ideas we can build because we know the work. To be ordered with the product owner.
-- [ ] **True cost and margin per machine-hour and per acre**, and a price advisor: "your cost here is X, you charge Y".
-- [ ] **Diesel watch:** litres per hour or per acre against the machine's usual, flags a tank that drains too fast.
-- [ ] **Proof of work:** optional photo of the hour meter at start and finish, and an optional GPS trail of the job. Ends disputes with farmers and with drivers.
-- [ ] **Field history:** what was done on each field each season, and when it is due again.
-- [ ] **Machine papers:** registration, insurance, fitness and permit expiry with reminders and a photo of each.
-- [ ] **Voice and icons first:** say "rotavator, Ramesh, 3 acre" to log a job; read-aloud of key screens, for people who do not read well.
-- [ ] **Customer booking link (in, recommended):** a farmer opens the owner's link, picks the work, day and place, and leaves a name and number. It lands in the owner's Plan as a *request*; nothing is booked until the owner accepts. The owner can switch the link off. Doubles as a small public page for the business ("Harpal Agro Works: machines and rates").
-- [ ] **Income statement for a bank loan:** a clean season income and cost report.
-- [ ] **Asset register:** purchase date and value, depreciation, resale.
+## M7. Better than every competitor (done)
+Ideas we can build because we know the work.
+- [x] **True cost and margin per machine-hour and per acre**, and a price advisor ("your cost here is X, you charge Y"): already built before the roadmap (running cost per hour, cost per acre, the hint under the rate, the price calculator, the season screen); the asset register below adds what each machine is worth.
+- [x] **Diesel watch:** this week's litres per hour against the four weeks before; flags a machine drinking clearly more (Home).
+- [x] **Proof of work:** off until the owner switches it on (Profile). The crew can note the hour meter, photograph it and mark where the phone is, at the start and finish; it sits on the job for the owner to see (readings, a map link, the photos). Photos are shrunk, kept on the phone first and sent when there is a signal (Firebase Storage, `storage.rules`). **A GPS trail of the whole job is not built**: it needs a background location permission and drains the battery of exactly the phones in a cab all day; a start and finish mark answers "were you there". Revisit only if owners ask.
+- [x] **Field history:** each field lists what was done in each season, with the last time of each kind of work. **"Due again" reminders are not built**: they need a repeat gap per kind of work and nobody has said what it should be; the last-done list is the base for it.
+- [x] **Machine papers:** registration, insurance, fitness, permit and pollution with number, expiry date and a note; a warning on Home and an optional reminder, with how many days before as a setting. A photo of each paper is not on the paper itself yet (the photo store is there to do it).
+- [x] **Voice and icons first:** "Say it instead" on Work done earlier takes "rotavator, Harjit, 3 acre, yesterday" and fills in the form, which the person then checks; each Home has a speaker button that reads the day's figures aloud in the phone's language.
+- [x] **Customer booking link:** a public page for each business with a request form; requests land in "Farmers' requests", where whoever plans accepts (a booking is made, the farmer matched by phone or added) or declines; the owner can switch it off and choose whether rates are shown; a push tells those who plan. The page and its form run on our own server code (`functions/`, `firebase.json`, `web/`), **not deployed yet**.
+- [x] **Income statement for a bank loan:** a year or a season, income and costs and the business in figures, as a PDF; only for those who see both the money and the wages.
+- [x] **Asset register:** purchase date, price, expected resale and life per machine, what each is worth today, and a total.
 - Marketplace (renting your idle machine to strangers): **out for now.** Needs supply nearby, trust, disputes and moderation. Revisit only after launch if the booking link shows demand.
-
----
 
 ## M8. How the app earns
 The product owner wants to charge. Build it before release so early users are never surprised.

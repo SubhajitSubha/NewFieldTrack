@@ -2265,4 +2265,35 @@
     <string name="proof_meter_line">Meter: %1$s to %2$s</string>
     <string name="proof_meter_diff">%1$s hours on the meter</string>
     <string name="proof_open_map">Show on the map: %1$s</string>
+    <string name="link_title">Booking link</string>
+    <string name="link_row_note">Let farmers ask for work from a link</string>
+    <string name="link_intro">Give farmers a link. They say what work they want, where and when, and leave a name and number. It lands in your requests; nothing is booked until you accept it.</string>
+    <string name="link_switch">Farmers can ask for work</string>
+    <string name="link_switch_note">Switch it off any time and the link stops working.</string>
+    <string name="link_rates">Show my rates on the page</string>
+    <string name="link_rates_note">Your usual rates from the rate card. Off until you choose.</string>
+    <string name="link_copy">Copy the link</string>
+    <string name="link_share">Share it</string>
+    <string name="link_share_text">Ask for work with us here: %1$s</string>
+    <string name="link_no_project">The link cannot be made until this app is connected to its server project.</string>
+    <string name="link_how">Anyone with the link can send a request, so it is only ever a request. You see each one before anything happens.</string>
+    <string name="requests_title">Farmers\' requests</string>
+    <string name="requests_row_note">Work farmers asked for through your link</string>
+    <string name="requests_none">No requests yet.</string>
+    <string name="requests_any_day">When you can</string>
+    <string name="requests_accept">Accept</string>
+    <string name="requests_decline">Decline</string>
+    <string name="requests_call">Call</string>
+    <string name="requests_message">Message</string>
+    <string name="requests_reply">Hello %1$s, about the work you asked for. </string>
+    <string name="requests_accepted">Accepted and booked</string>
+    <string name="requests_declined">Declined</string>
+    <plurals name="home_alert_requests">
+        <item quantity="one">%d farmer asked for work</item>
+        <item quantity="other">%d farmers asked for work</item>
+    </plurals>
+    <string name="home_alert_requests_note">Look at it and accept or decline</string>
+    <string name="push_request_new">A farmer asked for work</string>
+    <string name="push_request_row">Farmers\' requests</string>
+    <string name="push_request_note">When a farmer asks for work through your link</string>
 </resources>

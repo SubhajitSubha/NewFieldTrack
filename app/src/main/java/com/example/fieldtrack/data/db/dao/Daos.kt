@@ -8,6 +8,7 @@ import androidx.room.Upsert
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.entity.BookingEntity
+import com.example.fieldtrack.data.db.entity.BookingRequestEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
@@ -1612,6 +1613,17 @@ private const val BOOKING_ROWS = """
 interface BookingDao {
     @Upsert suspend fun upsert(booking: BookingEntity)
 
+    @Upsert suspend fun upsertRequest(request: BookingRequestEntity)
+
+    @Query("SELECT * FROM booking_requests WHERE orgId = :orgId ORDER BY (status = 'New') DESC, createdAt DESC LIMIT 200")
+    fun observeRequests(orgId: String): Flow<List<BookingRequestEntity>>
+
+    @Query("SELECT COUNT(*) FROM booking_requests WHERE orgId = :orgId AND status = 'New'")
+    fun observeNewRequestCount(orgId: String): Flow<Int>
+
+    @Query("SELECT * FROM booking_requests WHERE orgId = :orgId AND id = :id")
+    suspend fun findRequest(orgId: String, id: String): BookingRequestEntity?
+
     @Query("SELECT * FROM bookings WHERE orgId = :orgId AND id = :id")
     suspend fun find(orgId: String, id: String): BookingEntity?
 
@@ -1727,6 +1739,7 @@ interface SampleDao {
     @Query("DELETE FROM job_events WHERE orgId = :orgId") suspend fun jobEvents(orgId: String)
     @Query("DELETE FROM ledger_entries WHERE orgId = :orgId") suspend fun ledger(orgId: String)
     @Query("DELETE FROM bookings WHERE orgId = :orgId") suspend fun bookings(orgId: String)
+    @Query("DELETE FROM booking_requests WHERE orgId = :orgId") suspend fun requests(orgId: String)
     @Query("DELETE FROM outbox WHERE orgId = :orgId") suspend fun outbox(orgId: String)
     @Query("DELETE FROM organisations WHERE id = :orgId") suspend fun org(orgId: String)
 
@@ -1734,6 +1747,6 @@ interface SampleDao {
     suspend fun wipe(orgId: String) {
         memberships(orgId); invites(orgId); customers(orgId); fields(orgId); machines(orgId); fuel(orgId)
         services(orgId); finance(orgId); papers(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
-        rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); outbox(orgId); org(orgId)
+        rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); requests(orgId); outbox(orgId); org(orgId)
     }
 }

@@ -466,6 +466,23 @@ class SessionStore(
         _startup.value = Startup.Ready(session.copy(fiscalStartMonth = month, timeZoneId = zone))
     }
 
+    /**
+     * Turns the booking link on or off. The secret part of the link is made the first time and
+     * kept, so a link already given out works again if it is switched back on.
+     */
+    suspend fun setBookingLink(on: Boolean, showRates: Boolean) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        val slug = org.bookingSlug ?: ids.newId().replace("-", "").take(14)
+        if (org.bookingLink == on && org.bookingShowRates == showRates && org.bookingSlug == slug) return
+        val updated = org.copy(bookingLink = on, bookingSlug = slug, bookingShowRates = showRates, updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+    }
+
     /** Whether the crew is asked for proof of work: the meter, a photo and a mark of where they were. */
     suspend fun setProofOfWork(on: Boolean) {
         val session = current() ?: return

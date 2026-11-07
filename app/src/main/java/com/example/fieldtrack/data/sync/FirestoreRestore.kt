@@ -214,6 +214,7 @@ class FirestoreRestore(
             SyncQueue.TABLE_FIELDS,
             SyncQueue.TABLE_MACHINE_FINANCE,
             SyncQueue.TABLE_MACHINE_PAPERS,
+            SyncQueue.TABLE_BOOKING_REQUESTS,
             SyncQueue.TABLE_BOOKINGS,
         )
     }

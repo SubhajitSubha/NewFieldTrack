@@ -15,6 +15,7 @@ import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
 import com.example.fieldtrack.data.db.entity.MachinePaperEntity
+import com.example.fieldtrack.data.db.entity.BookingRequestEntity
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
@@ -197,6 +198,8 @@ class RestoreApplier(
                     db.machineDao().upsertFinance(decode<MachineFinanceEntity>(json))
                 SyncQueue.TABLE_MACHINE_PAPERS ->
                     db.machineDao().upsertPaper(decode<MachinePaperEntity>(json))
+                SyncQueue.TABLE_BOOKING_REQUESTS ->
+                    db.bookingDao().upsertRequest(decode<BookingRequestEntity>(json))
                 SyncQueue.TABLE_BOOKINGS ->
                     db.bookingDao().upsert(decode<BookingEntity>(json))
                 SyncQueue.TABLE_TEAM_EVENTS ->

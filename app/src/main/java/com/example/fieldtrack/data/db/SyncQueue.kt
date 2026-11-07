@@ -148,6 +148,7 @@ class SyncQueue(
         const val TABLE_JOB_COST_AMOUNTS = "job_cost_amounts"
         const val TABLE_MACHINE_FINANCE = "machine_finance"
         const val TABLE_MACHINE_PAPERS = "machine_papers"
+        const val TABLE_BOOKING_REQUESTS = "booking_requests"
         const val TABLE_BOOKINGS = "bookings"
         const val TABLE_INVITES = "invites"
 
@@ -179,6 +180,6 @@ class SyncQueue(
          * Memberships, because a person edits only their own name or leaves; bookings,
          * because two planners can change one at once.
          */
-        val MERGED_TABLES = setOf(TABLE_MEMBERSHIPS, TABLE_BOOKINGS)
+        val MERGED_TABLES = setOf(TABLE_MEMBERSHIPS, TABLE_BOOKINGS, TABLE_BOOKING_REQUESTS)
     }
 }

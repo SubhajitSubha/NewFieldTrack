@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(24, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(25, c.getInt(0))
         }
     }
 
@@ -502,5 +502,17 @@ class MigrationTest {
         db.query("SELECT meterStart, meterEnd, startLat, startLng, endLat, endLng, startPhotoId, endPhotoId FROM jobs").use { c ->
             assertEquals(8, c.columnCount)
         }
+    }
+
+    @Test
+    fun `the booking link is off until chosen, and requests start empty`() {
+        create(24) { }
+        val db = open().openHelper.writableDatabase
+        db.query("PRAGMA table_info(organisations)").use { c ->
+            val defaults = mutableMapOf<String, String?>()
+            while (c.moveToNext()) defaults[c.getString(c.getColumnIndexOrThrow("name"))] = c.getString(c.getColumnIndexOrThrow("dflt_value"))
+            assertEquals("0", defaults["bookingLink"]); assertEquals("0", defaults["bookingShowRates"]); assertTrue("bookingSlug" in defaults)
+        }
+        db.query("SELECT COUNT(*) FROM booking_requests").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
     }
 }

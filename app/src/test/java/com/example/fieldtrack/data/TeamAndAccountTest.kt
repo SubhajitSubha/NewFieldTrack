@@ -241,4 +241,21 @@ class TeamAndAccountTest {
         assertNotNull(h.db.orgDao().observeOrg(mine).first())
         assertTrue(store.startup.value is Startup.Ready)
     }
+
+    @Test
+    fun `the booking link keeps its secret through being switched off and on`() = runTest {
+        onboard()
+        store.setBookingLink(true, showRates = false)
+        val first = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
+        assertTrue(first.bookingLink)
+        val slug = first.bookingSlug
+        assertNotNull(slug)
+        store.setBookingLink(false, showRates = false)
+        val off = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
+        assertFalse(off.bookingLink)
+        assertEquals("a link already given out works again", slug, off.bookingSlug)
+        store.setBookingLink(true, showRates = true)
+        val back = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
+        assertEquals(slug, back.bookingSlug); assertTrue(back.bookingShowRates)
+    }
 }

@@ -55,6 +55,11 @@ sealed interface HomeAlert {
         override val rank get() = 0
     }
 
+    /** Farmers have asked for work through the booking link. */
+    data class Requests(val count: Int) : HomeAlert {
+        override val rank get() = 2
+    }
+
     /** A paper a machine has to carry is about to run out, or has. */
     data class PaperDue(
         val machineId: String,

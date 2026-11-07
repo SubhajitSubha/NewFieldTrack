@@ -23,3 +23,8 @@ bottom of ROADMAP.md.
    project, then publish `storage.rules` (the console asks to allow the rules to read Firestore
    the first time). Until it is published, photos stay on the phone that took them and the owner
    sees the readings and the place but not the picture.
+8. **The booking link.** Deploy functions and hosting together (`firebase deploy --only functions,hosting`):
+   hosting serves `web/`, and `firebase.json` sends `/b/{secret}` to the page and `/api/request` to the
+   form. The link a business shares is `https://<project>.web.app/b/<secret>`. Needs Hosting switched
+   on for the project; both pieces need the Blaze plan. Publish the whole rules file again: it now has
+   a rule for `booking_requests`.

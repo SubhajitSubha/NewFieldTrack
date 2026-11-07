@@ -12,6 +12,8 @@
 // document read per recipient per event, which the free tier covers at first.
 
 const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
+const crypto = require("crypto");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -116,4 +118,128 @@ exports.onDeletionRequest = onDocumentWritten("deletionRequests/{personId}", asy
     if (e.code !== "auth/user-not-found") throw e;
   }
   await event.data.after.ref.set({ doneAt: Date.now() }, { merge: true });
+});
+
+
+// ---------------------------------------------------------------------------------------------
+// The booking link: a small public page for a business, and the form that sends a request.
+//
+//   GET  /b/{slug}     the page: the business's name, optionally its rates, and the form
+//   POST /api/request  a request for work, which lands in the owner's requests
+//
+// Nothing here books anything. A request is a document the owner sees, and accepts or declines
+// by hand. The slug is the secret in the link; the owner can switch the link off, and then this
+// answers "not found".
+
+const WORK_TYPES = [
+  "Rotavator", "Ploughing", "Harvesting", "Levelling", "Spraying", "Hauling", "Sowing",
+  "Planting", "Baling", "Threshing", "Mulching", "Digging", "Pumping", "Other",
+];
+const MAX_PER_ORG_PER_DAY = 40;
+const MAX_PER_PHONE_PER_DAY = 3;
+
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function orgBySlug(slug) {
+  if (!/^[a-f0-9]{10,32}$/.test(slug || "")) return null;
+  const found = await db.collection("orgs").where("bookingSlug", "==", slug).where("bookingLink", "==", true).limit(1).get();
+  return found.empty ? null : found.docs[0];
+}
+
+const page = (body) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font-family:system-ui,sans-serif;background:#f5f3ee;color:#16231c;margin:0}main{max-width:480px;margin:0 auto;padding:20px}
+h1{font-size:24px;margin:8px 0 4px}label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#4a5a51;margin:14px 0 6px}
+input,select,textarea{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border:1px solid #e2e0d8;border-radius:12px;background:#fff}
+button{width:100%;margin-top:18px;padding:14px;border:0;border-radius:14px;background:#0e6b3d;color:#fff;font-size:17px;font-weight:700}
+.card{background:#fff;border:1px solid #e2e0d8;border-radius:16px;padding:14px;margin-top:14px}.sub{color:#4a5a51}.hp{position:absolute;left:-9999px}</style></head>
+<body><main>${body}</main></body></html>`;
+
+exports.bookingPage = onRequest({ cors: false }, async (req, res) => {
+  const slug = (req.path.match(/^\/b\/([a-f0-9]+)\/?$/) || [])[1];
+  const org = slug && (await orgBySlug(slug));
+  if (!org) {
+    res.status(404).send(page("<h1>This link is not available</h1><p class='sub'>Ask the business for a new one.</p>"));
+    return;
+  }
+  const data = org.data();
+  let rates = "";
+  if (data.bookingShowRates === true) {
+    const snap = await org.ref.collection("rates").get();
+    // Whole units for a currency with no minor unit; hundredths otherwise.
+    let digits = 2;
+    try { digits = new Intl.NumberFormat("en", { style: "currency", currency: data.currencyCode || "USD" }).resolvedOptions().maximumFractionDigits; } catch (e) { /* unknown code: hundredths */ }
+    const lines = snap.docs.map((d) => d.data()).filter((r) => !r.customerId && r.amountMinor > 0)
+      .map((r) => `<div style="display:flex;justify-content:space-between;padding:4px 0"><span>${esc(r.workType)}</span><span>${esc((r.amountMinor / Math.pow(10, digits)).toFixed(digits))} ${esc(data.currencyCode || "")} / ${esc(String(r.unit || "").toLowerCase())}</span></div>`);
+    if (lines.length) rates = `<div class="card"><strong>Usual rates</strong>${lines.join("")}</div>`;
+  }
+  const options = WORK_TYPES.map((w) => `<option value="${w}">${w}</option>`).join("");
+  res.status(200).send(page(`<h1>${esc(data.name)}</h1><p class="sub">Tell us what work you need. We will call you to confirm; nothing is booked until we do.</p>${rates}
+<form method="post" action="/api/request"><input type="hidden" name="slug" value="${esc(slug)}">
+<input class="hp" name="website" tabindex="-1" autocomplete="off">
+<label>Your name</label><input name="name" required maxlength="80">
+<label>Your phone number (with country code)</label><input name="phone" required inputmode="tel" maxlength="20" placeholder="+91 98765 43210">
+<label>Village or place</label><input name="village" maxlength="80">
+<label>What work</label><select name="workType">${options}</select>
+<label>Which day (if you know)</label><input type="date" name="day">
+<label>Anything we should know</label><textarea name="note" rows="3" maxlength="300"></textarea>
+<button type="submit">Send the request</button></form>`));
+});
+
+exports.bookingRequest = onRequest({ cors: false }, async (req, res) => {
+  if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
+  const b = req.body || {};
+  // A real person leaves the hidden field empty; a script fills every field it sees.
+  if (b.website) { res.status(200).send(page("<h1>Thank you</h1>")); return; }
+  const org = await orgBySlug(String(b.slug || ""));
+  if (!org) { res.status(404).send(page("<h1>This link is not available</h1>")); return; }
+  const name = String(b.name || "").trim().slice(0, 80);
+  const phone = String(b.phone || "").replace(/[^0-9+]/g, "").slice(0, 20);
+  if (!name || phone.replace(/\D/g, "").length < 7) {
+    res.status(400).send(page("<h1>Please give a name and a phone number</h1><p class='sub'>Go back and try again.</p>"));
+    return;
+  }
+  const workType = WORK_TYPES.includes(b.workType) ? b.workType : "Other";
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(b.day || "") ? Math.floor(Date.parse(b.day + "T00:00:00Z") / 86400000) : null;
+
+  // A day's limits, kept as counters on the business so one link cannot flood an inbox.
+  const today = new Date().toISOString().slice(0, 10);
+  const orgCounter = org.ref.collection("meta").doc("requests-" + today);
+  const phoneCounter = org.ref.collection("meta").doc("requests-" + today + "-" + crypto.createHash("sha1").update(phone).digest("hex").slice(0, 12));
+  const allowed = await db.runTransaction(async (tx) => {
+    const [o, p] = await Promise.all([tx.get(orgCounter), tx.get(phoneCounter)]);
+    const orgN = (o.exists ? o.get("n") : 0) + 1;
+    const phoneN = (p.exists ? p.get("n") : 0) + 1;
+    if (orgN > MAX_PER_ORG_PER_DAY || phoneN > MAX_PER_PHONE_PER_DAY) return false;
+    tx.set(orgCounter, { n: orgN });
+    tx.set(phoneCounter, { n: phoneN });
+    return true;
+  });
+  if (!allowed) { res.status(429).send(page("<h1>Too many requests today</h1><p class='sub'>Please call the business instead.</p>")); return; }
+
+  const now = Date.now();
+  const id = crypto.randomUUID();
+  const doc = {
+    id, orgId: org.id, name, phone,
+    village: String(b.village || "").trim().slice(0, 80) || null,
+    workType, day,
+    note: String(b.note || "").trim().slice(0, 300) || null,
+    status: "New", bookingId: null,
+    createdAt: now, updatedAt: now, syncState: "Pending",
+    _money: 2, _device: "booking-page", _recordedAt: now,
+    _serverAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  const batch = db.batch();
+  batch.set(org.ref.collection("booking_requests").doc(id), doc);
+  // So every phone's one-read "has anything changed?" check sees it.
+  batch.set(org.ref.collection("meta").doc("changed"), { at: admin.firestore.FieldValue.serverTimestamp() });
+  await batch.commit();
+
+  // Tell those who plan, at once.
+  const members = await org.ref.collection("memberships").where("active", "==", true).get();
+  const planners = members.docs.map((m) => m.data()).filter((m) => m.personId && (m.role === "Owner" || m.canPlanWork === true));
+  const lists = await Promise.all(planners.map((m) => devicesFor(m.personId, "request", "booking-page")));
+  await send(lists.flat(), "request_new", org.id);
+
+  res.status(200).send(page("<h1>Thank you</h1><p class='sub'>Your request has been sent. The business will call you to confirm.</p>"));
 });

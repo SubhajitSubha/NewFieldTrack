@@ -164,6 +164,9 @@ enum class DayPart { Morning, Afternoon, WholeDay }
  */
 enum class BookingStatus { Planned, Cancelled, Done }
 
+/** Where a farmer's request for work, made through the booking link, stands. */
+enum class RequestStatus { New, Accepted, Declined }
+
 /** Why a booking did not happen. Cheap to say, and the question is always asked later. */
 enum class CancelReason { Rain, Farmer, Machine, Other }
 
