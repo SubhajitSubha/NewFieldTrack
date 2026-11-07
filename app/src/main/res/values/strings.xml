@@ -2218,4 +2218,6 @@
     <string name="income_f_worth">What the machines are worth</string>
     <string name="income_share_button">Share as PDF</string>
     <string name="income_share">Send the income statement</string>
+    <string name="field_last_done">Last done here</string>
+    <string name="field_season_from">Season from %1$s</string>
 </resources>

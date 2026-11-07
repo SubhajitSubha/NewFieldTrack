@@ -22,6 +22,9 @@ data class FieldJobRow(
     val quantity: Double,
     val unit: MeasureUnit,
     val amountMinor: Long,
+    /** The season this was done in, as the day it began (millis) and what the business calls it. */
+    val seasonStartMillis: Long = 0,
+    val seasonName: String? = null,
 )
 
 data class FieldDetailState(
@@ -40,6 +43,8 @@ data class FieldDetailState(
     val jobs: List<FieldJobRow> = emptyList(),
     val canSeeMoney: Boolean = false,
     val canEdit: Boolean = false,
+    /** The most recent finished job of each kind of work, newest first: what was last done here, and when. */
+    val lastDone: List<FieldJobRow> = emptyList(),
 ) {
     val hasPin: Boolean get() = latitude != null && longitude != null
 }
@@ -68,7 +73,9 @@ class FieldDetailViewModel(
                 app.workRepository.observeForCustomer(s.orgId, field.customerId),
                 app.directoryRepository.observeCustomers(s.orgId)
                     .map { all -> all.firstOrNull { it.id == field.customerId } },
-            ) { jobs, customer ->
+                app.directoryRepository.observeSeasons(s.orgId),
+            ) { jobs, customer, seasons ->
+                val zone = com.example.fieldtrack.data.region.BusinessClock.zone
                 val here = jobs.filter { it.fieldId == fieldId }
                 val billed = here.filter { it.status == JobStatus.Completed }
                 FieldDetailState(
@@ -87,20 +94,33 @@ class FieldDetailViewModel(
                     // yet, and counting it would show a field as having paid
                     // for work that is still happening.
                     earnedMinor = billed.sumOf { it.amountMinor },
-                    jobs = here.sortedByDescending { it.workedAt }.map { job ->
-                        FieldJobRow(
-                            id = job.id,
-                            workType = job.workType,
-                            workedAtMillis = job.workedAt,
-                            quantity = app.workRepository.billableQuantity(job),
-                            unit = job.unit,
-                            amountMinor = app.workRepository.billableMinor(job),
-                        )
-                    },
+                    jobs = here.sortedByDescending { it.workedAt }.map { job -> rowOf(job, seasons, zone) },
+                    lastDone = billed.groupBy { it.workType }
+                        .mapValues { (_, same) -> same.maxBy { it.workedAt } }
+                        .values.sortedByDescending { it.workedAt }
+                        .map { job -> rowOf(job, seasons, zone) },
                     canSeeMoney = s.canSeeMoney,
                     canEdit = Capability.EditCustomers in s.can,
                 )
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FieldDetailState())
+
+    private fun rowOf(
+        job: com.example.fieldtrack.data.db.entity.JobEntity,
+        seasons: com.example.fieldtrack.data.season.SeasonCalendar,
+        zone: java.time.ZoneId,
+    ): FieldJobRow {
+        val season = seasons.current(job.workedAt, zone)
+        return FieldJobRow(
+            id = job.id,
+            workType = job.workType,
+            workedAtMillis = job.workedAt,
+            quantity = app.workRepository.billableQuantity(job),
+            unit = job.unit,
+            amountMinor = app.workRepository.billableMinor(job),
+            seasonStartMillis = season.startMillis(zone),
+            seasonName = season.name,
+        )
+    }
 }

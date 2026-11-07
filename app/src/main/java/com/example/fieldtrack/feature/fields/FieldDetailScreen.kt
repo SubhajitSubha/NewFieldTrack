@@ -19,6 +19,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.daysAgo
+import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -138,6 +140,30 @@ fun FieldDetailScreen(
                 }
             }
 
+            if (state.lastDone.isNotEmpty()) {
+                FtSectionLabel(stringResource(R.string.field_last_done))
+                FtCard(padding = 0.dp) {
+                    state.lastDone.forEachIndexed { index, job ->
+                        if (index > 0) FtRowDivider()
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = workLabel(job.workType),
+                                style = FieldTrackTheme.type.rowTitle,
+                                color = colors.ink,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(dayMonthYear(job.workedAtMillis), style = FieldTrackTheme.type.bodySmall, color = colors.ink)
+                                Text(daysAgo(job.workedAtMillis), style = FieldTrackTheme.type.caption, color = colors.inkSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+
             FtSectionLabel(stringResource(R.string.field_work_here))
             FtCard(padding = 0.dp) {
                 if (state.jobs.isEmpty()) {
@@ -149,7 +175,17 @@ fun FieldDetailScreen(
                     )
                 }
                 state.jobs.forEachIndexed { index, job ->
-                    if (index > 0) FtRowDivider()
+                    // A heading each time the season changes, so a field's years read as years.
+                    if (index == 0 || state.jobs[index - 1].seasonStartMillis != job.seasonStartMillis) {
+                        if (index > 0) FtRowDivider()
+                        Text(
+                            text = job.seasonName?.let { "$it · ${dayMonthYear(job.seasonStartMillis)}" }
+                                ?: stringResource(R.string.field_season_from, dayMonthYear(job.seasonStartMillis)),
+                            style = FieldTrackTheme.type.overline,
+                            color = colors.inkTertiary,
+                            modifier = Modifier.padding(start = 15.dp, end = 15.dp, top = 12.dp),
+                        )
+                    } else FtRowDivider()
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically,
