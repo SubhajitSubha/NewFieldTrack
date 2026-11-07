@@ -19,6 +19,7 @@ import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.PaperKind
 import com.example.fieldtrack.data.db.RequestStatus
+import com.example.fieldtrack.data.db.PlanTier
 import com.example.fieldtrack.data.db.MachineStatus
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
@@ -990,4 +991,25 @@ data class BookingRequestEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
+)
+
+
+/**
+ * What a business has paid for, as the server knows it.
+ *
+ * Written by our server alone, after it has checked a purchase with the store; a phone only reads
+ * it. The id is the business's. The plan runs to [untilDay] (an epoch day), and the app allows a
+ * grace after that before the extras stop, so a lapse of signal or a slow renewal never switches
+ * anything off in the middle of a season.
+ */
+@Entity(tableName = "entitlements", indices = [Index("orgId")])
+@Serializable
+data class EntitlementEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val tier: PlanTier = PlanTier.Free,
+    val untilDay: Long? = null,
+    /** Bought at the founding price, which is kept for as long as it is renewed. */
+    val founding: Boolean = false,
+    val updatedAt: Long = 0,
 )

@@ -49,6 +49,8 @@ class DirectoryRepository(
     private val ledger: LedgerRepository,
     private val clock: Clock = Clock.System,
     private val ids: IdGenerator = IdGenerator.Random,
+    /** What the plan allows. Null where there are no limits, as in a test. */
+    private val gate: com.example.fieldtrack.data.plan.PlanGate? = null,
 ) {
     private val customers = db.customerDao()
     private val machines = db.machineDao()
@@ -209,6 +211,9 @@ class DirectoryRepository(
          */
         hoursUsed: Double? = null,
     ): String {
+        if (gate?.allows(orgId, com.example.fieldtrack.data.plan.Need.MoreMachines) == false) {
+            throw com.example.fieldtrack.data.plan.PlanLimit(com.example.fieldtrack.data.plan.Need.MoreMachines)
+        }
         val now = clock.now()
         val machine = MachineEntity(
             id = ids.newId(),

@@ -189,6 +189,8 @@ class MainActivity : ComponentActivity() {
         SyncWorker.runNow(this, force = true)
         (application as FieldFlowApplication).let { app ->
             app.runInBackground { runCatching { app.updateGate.refresh() } }
+            // A purchase made earlier, or renewed since: told to the server, which checks it.
+            app.runInBackground { runCatching { app.purchaseClaims.claimActive() } }
             // Whether the app has had a fair chance to be asked about.
             app.runInBackground {
                 runCatching {

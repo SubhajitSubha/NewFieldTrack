@@ -164,6 +164,12 @@ enum class DayPart { Morning, Afternoon, WholeDay }
  */
 enum class BookingStatus { Planned, Cancelled, Done }
 
+/**
+ * What a business has paid for. Free is real and complete for one person with a few machines;
+ * Business adds a team, any number of machines, and the extras.
+ */
+enum class PlanTier { Free, Business }
+
 /** Where a farmer's request for work, made through the booking link, stands. */
 enum class RequestStatus { New, Accepted, Declined }
 

@@ -76,8 +76,16 @@ class TeamRepository(
      * class constructible on its own.
      */
     private val pauseLiveJob: suspend (orgId: String, jobId: String) -> Unit = { _, _ -> },
+    /** What the plan allows. Null where there are no limits, as in a test. */
+    private val gate: com.example.fieldtrack.data.plan.PlanGate? = null,
 ) {
     private val org = db.orgDao()
+
+    private suspend fun requireRoom(orgId: String) {
+        if (gate?.allows(orgId, com.example.fieldtrack.data.plan.Need.TeamMember) == false) {
+            throw com.example.fieldtrack.data.plan.PlanLimit(com.example.fieldtrack.data.plan.Need.TeamMember)
+        }
+    }
 
     /** Invite codes must not be guessable, so this is not [java.util.Random]. */
     private val secureRandom by lazy { java.security.SecureRandom() }
@@ -113,6 +121,7 @@ class TeamRepository(
         randomInt: (Int) -> Int = { secureRandom.nextInt(it) },
     ): InviteEntity {
         can.require(Capability.EditTeam)
+        requireRoom(orgId)
         val now = clock.now()
         val invite = InviteEntity(
             id = ids.newId(),
@@ -362,6 +371,7 @@ class TeamRepository(
         canCloseBills: Boolean = false,
     ): String {
         can.require(Capability.EditTeam)
+        requireRoom(orgId)
         val now = clock.now()
         // A placeholder identity until this person signs in and redeems an invite.
         // Their real one is their auth subject, which only they can prove.

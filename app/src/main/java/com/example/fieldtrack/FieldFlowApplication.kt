@@ -80,8 +80,11 @@ class FieldFlowApplication : Application() {
         LedgerRepository(db = db, syncQueue = syncQueue, deviceId = deviceId)
     }
 
+    /** What the plan allows, read from what is on the phone, so it answers offline. */
+    val planGate: com.example.fieldtrack.data.plan.PlanGate by lazy { com.example.fieldtrack.data.plan.PlanGate(db) }
+
     val directoryRepository: DirectoryRepository by lazy {
-        DirectoryRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository)
+        DirectoryRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository, gate = planGate)
     }
 
     val planRepository: PlanRepository by lazy {
@@ -94,6 +97,7 @@ class FieldFlowApplication : Application() {
             syncQueue = syncQueue,
             // Taking somebody off the team stops whatever they were driving.
             pauseLiveJob = { orgId, jobId -> workRepository.pause(orgId, jobId) },
+            gate = planGate,
         )
     }
 
@@ -199,6 +203,16 @@ class FieldFlowApplication : Application() {
     /** The practice business: made-up work to look around in, kept on this phone alone. */
     val sampleBusiness: com.example.fieldtrack.data.sample.SampleBusiness by lazy {
         com.example.fieldtrack.data.sample.SampleBusiness(this, this)
+    }
+
+    /** The store: prices, the payment sheet and what has been bought. Nothing in the app trusts it for who has paid. */
+    val storeBilling: com.example.fieldtrack.data.billing.store.StoreBilling by lazy {
+        com.example.fieldtrack.data.billing.store.PlayBilling(this)
+    }
+
+    /** Hands purchases to our server to check. */
+    val purchaseClaims: com.example.fieldtrack.data.billing.store.PurchaseClaims by lazy {
+        com.example.fieldtrack.data.billing.store.PurchaseClaims(this)
     }
 
     /** Photos taken as proof of work: kept here first, sent when there is a signal. */

@@ -45,3 +45,25 @@ class IncomeStatementDocumentTest {
         assertEquals("Income-statement-1-Apr-2026-31-Mar-2027-Harpal-Agro-Works", doc().fileName.replace("--", "-"))
     }
 }
+
+/** The words on a page, in step between the code's defaults and the resources. */
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [34])
+class DocLabelsTest {
+    @Test fun `the English in the code and the English in the resources are the same words`() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        assertEquals(DocLabels.English, DocLabels.of(context))
+    }
+
+    @Test fun `a page written in another language uses its words and says which language and direction`() {
+        val arabic = DocLabels.English.copy(languageTag = "ar", rightToLeft = true, kindBill = "فاتورة")
+        val doc = Document.Receipt(
+            letterhead = Letterhead(businessName = "Harpal"), style = com.example.fieldtrack.designsystem.format.MoneyStyle.of("INR", 100),
+            customer = Party("Kamau"), dateLabel = "1 Jan", methodLabel = "Cash", amountMinor = 100, note = null, balanceAfterMinor = 0, amountInWords = null,
+        )
+        val html = DocumentHtml.render(doc, arabic)
+        assertTrue(html.contains("lang=\"ar\"") && html.contains("dir='rtl'"))
+        val english = DocumentHtml.render(doc)
+        assertTrue(english.contains("lang=\"en\"") && !english.contains("dir='rtl'"))
+    }
+}

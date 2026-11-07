@@ -95,15 +95,14 @@ Ideas we can build because we know the work.
 - [x] **Asset register:** purchase date, price, expected resale and life per machine, what each is worth today, and a total.
 - Marketplace (renting your idle machine to strangers): **out for now.** Needs supply nearby, trust, disputes and moderation. Revisit only after launch if the booking link shows demand.
 
-## M8. How the app earns
-The product owner wants to charge. Build it before release so early users are never surprised.
-- [ ] Plans: free for one person with a few machines, paid when there are team members or many machines. Exact limits to be decided with the owner.
-- [ ] Price by season or by year (farm income is seasonal), not only by month; regional prices through the store.
-- [ ] Never hold data hostage: if a plan lapses the owner can still see everything, export everything, and record work; only the paid extras stop.
-- [ ] Early users keep an early price ("founding users").
-- [ ] Store billing, restoring purchases, and plan checks that work offline.
-
----
+## M8. How the app earns (built; figures to confirm, store setup is release work)
+Details and the lines between free and paid: `docs/pricing.md`.
+- [x] Plans: **Free** for one person with up to three machines and everything for running the work and keeping the khata; **Business** adds a team, any number of machines, the booking link and proof of work. The lines are in one file (`data/plan/Plans.kt`) for the owner to move.
+- [x] Price by season or by year (a store subscription with a `season` and a `year` base plan), in the person's own currency as the store sets it per country.
+- [x] Never hold data hostage: a lapsed plan stops *adding* and nothing else; every record stays, every export works, everybody keeps recording. Tested.
+- [x] Founding users: an offer tagged `founding`, shown where it exists; the server keeps the flag while the plan renews.
+- [x] Store billing and plan checks that work offline: Play Billing for payment; our server checks every purchase with the store and writes the entitlement; phones read it like any record, with 14 days of grace after the end date. Restoring a purchase from "I already paid".
+- [ ] To do in the store before anyone pays: create the subscription, base plans and founding offers; give the server's account Play Console access; set the real application id (see the release list). Nothing could be tested against the real store from here.
 
 ## M9. Translations (last, once the text stops changing)
 - [ ] Translate every string into the first wave (Hindi, Spanish, Portuguese, French, Indonesian, Swahili, Bengali, Arabic), drafted here and marked for a native speaker to read before it ships.
@@ -140,6 +139,7 @@ Decided:
 - [ ] Closed test with real contractors (if the developer account is a personal one, the store asks for about 12 testers for 14 days before production).
 - [ ] Version numbering scheme, build as an app bundle.
 - [ ] Crash and ANR monitoring through the store's own reports.
+- [ ] Store setup for paying (`docs/pricing.md`): the subscription, its base plans and founding offers, the Play Developer API, the functions' service account, `PLAY_PACKAGE`.
 - [ ] Server hand-offs in `docs/server-setup.md`: publish the whole rules file, create `appConfig/android`, deploy `functions/` (Blaze plan), set `support_email`.
 - [ ] Remove the stray `patch_*.sh` and `fix_compile.sh` scripts from the repo root.
 - [ ] Final run of every flow on the physical phones (Pixel 9 Pro XL, Samsung) with the release build.

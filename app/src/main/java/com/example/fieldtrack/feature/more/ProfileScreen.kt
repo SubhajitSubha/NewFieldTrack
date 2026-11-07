@@ -170,7 +170,17 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setBusinessMode(enabled: Boolean) = app.sessionStore.setBusinessMode(enabled)
 
-    fun setProofOfWork(on: Boolean) = viewModelScope.launch { runCatching { app.sessionStore.setProofOfWork(on) } }
+    /** Set when switching proof of work on needs the paid plan. */
+    val needsPlan = MutableStateFlow(false)
+
+    fun setProofOfWork(on: Boolean) = viewModelScope.launch {
+        try {
+            app.sessionStore.setProofOfWork(on)
+        } catch (limit: com.example.fieldtrack.data.plan.PlanLimit) {
+            needsPlan.value = true
+        } catch (other: Exception) {
+        }
+    }
 }
 
 /**

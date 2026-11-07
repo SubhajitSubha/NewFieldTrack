@@ -28,3 +28,6 @@ bottom of ROADMAP.md.
    form. The link a business shares is `https://<project>.web.app/b/<secret>`. Needs Hosting switched
    on for the project; both pieces need the Blaze plan. Publish the whole rules file again: it now has
    a rule for `booking_requests`.
+9. **Paying.** `docs/pricing.md` lists what to create in the Play Console and what to give the server.
+   Deploy the functions again (they now include the purchase check) and publish the whole rules file:
+   it has rules for `entitlement` and `purchase_claims`.

@@ -400,7 +400,10 @@ abstract class ScreenMatrix(
         settle()
         capture("sheets", "work-menu")
         // With proof of work asked for: the row in the menu, and the sheet behind it.
-        runBlocking { app.sessionStore.setProofOfWork(true) }
+        runBlocking {
+            app.db.orgDao().upsertEntitlement(com.example.fieldtrack.data.db.entity.EntitlementEntity(id = ORG, orgId = ORG, tier = com.example.fieldtrack.data.db.PlanTier.Business, untilDay = java.time.LocalDate.now().toEpochDay() + 30))
+            app.sessionStore.setProofOfWork(true)
+        }
         compose.runOnUiThread { nav.popBackStack() }
         settle()
         compose.runOnUiThread { nav.navigate(Routes.live(ids.ownJobId)) }
@@ -692,6 +695,13 @@ abstract class ScreenMatrix(
 
     private suspend fun seedBusiness(business: Boolean): Ids {
         seedSession(ORG, OWNER, MemberRole.Owner, business)
+        // A business with a crew, so on the paid plan: the screens are checked as they are with a team.
+        app.db.orgDao().upsertEntitlement(
+            com.example.fieldtrack.data.db.entity.EntitlementEntity(
+                id = ORG, orgId = ORG, tier = com.example.fieldtrack.data.db.PlanTier.Business,
+                untilDay = java.time.LocalDate.now().toEpochDay() + 200,
+            )
+        )
         val dir = app.directoryRepository
         val work = app.workRepository
         val ledger = app.ledgerRepository
@@ -865,6 +875,8 @@ abstract class ScreenMatrix(
         "assets" to Routes.ASSETS,
         "income" to Routes.INCOME,
         "requests" to Routes.REQUESTS,
+        "plan" to Routes.planPrice(),
+        "plan-need" to Routes.planPrice(com.example.fieldtrack.data.plan.Need.MoreMachines),
         "booking-link" to Routes.BOOKING_LINK,
         "fuel" to "machines/${ids.machineId}/fuel",
         "machine-profit" to "machines/${ids.machineId}/made",

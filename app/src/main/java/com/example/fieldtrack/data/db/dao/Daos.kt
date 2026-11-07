@@ -9,6 +9,7 @@ import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.BookingRequestEntity
+import com.example.fieldtrack.data.db.entity.EntitlementEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
@@ -77,6 +78,14 @@ END, j.minimumMinor) + j.arrivalMinor + j.fuelBilledMinor + j.waitingMinor - j.d
 
 @Dao
 interface OrgDao {
+    @Upsert suspend fun upsertEntitlement(entitlement: EntitlementEntity)
+
+    @Query("SELECT * FROM entitlements WHERE orgId = :orgId LIMIT 1")
+    suspend fun entitlement(orgId: String): EntitlementEntity?
+
+    @Query("SELECT * FROM entitlements WHERE orgId = :orgId LIMIT 1")
+    fun observeEntitlement(orgId: String): Flow<EntitlementEntity?>
+
     @Upsert suspend fun upsertOrg(org: OrgEntity)
 
     @Query("SELECT * FROM organisations WHERE id = :orgId")
@@ -486,6 +495,10 @@ interface OrgDao {
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND id = :membershipId LIMIT 1")
     fun observeMembershipById(orgId: String, membershipId: String): Flow<MembershipEntity?>
 
+    /** Everybody working in the business now, for what the plan allows. */
+    @Query("SELECT COUNT(*) FROM memberships WHERE orgId = :orgId AND active = 1")
+    suspend fun activeMemberCount(orgId: String): Int
+
     /** Guards the last-owner rule: a business must always have someone in charge. */
     @Query("SELECT COUNT(*) FROM memberships WHERE orgId = :orgId AND active = 1 AND role = 'Owner'")
     suspend fun activeOwnerCount(orgId: String): Int
@@ -732,6 +745,9 @@ interface MachineDao {
     @Upsert suspend fun upsertFinance(finance: MachineFinanceEntity)
 
     @Upsert suspend fun upsertPaper(paper: MachinePaperEntity)
+
+    @Query("SELECT COUNT(*) FROM machines WHERE orgId = :orgId AND deletedAt IS NULL")
+    suspend fun liveMachineCount(orgId: String): Int
 
     @Query("SELECT name FROM machines WHERE orgId = :orgId AND id = :machineId")
     suspend fun findMachineName(orgId: String, machineId: String): String?
@@ -1740,6 +1756,7 @@ interface SampleDao {
     @Query("DELETE FROM ledger_entries WHERE orgId = :orgId") suspend fun ledger(orgId: String)
     @Query("DELETE FROM bookings WHERE orgId = :orgId") suspend fun bookings(orgId: String)
     @Query("DELETE FROM booking_requests WHERE orgId = :orgId") suspend fun requests(orgId: String)
+    @Query("DELETE FROM entitlements WHERE orgId = :orgId") suspend fun entitlements(orgId: String)
     @Query("DELETE FROM outbox WHERE orgId = :orgId") suspend fun outbox(orgId: String)
     @Query("DELETE FROM organisations WHERE id = :orgId") suspend fun org(orgId: String)
 
@@ -1747,6 +1764,6 @@ interface SampleDao {
     suspend fun wipe(orgId: String) {
         memberships(orgId); invites(orgId); customers(orgId); fields(orgId); machines(orgId); fuel(orgId)
         services(orgId); finance(orgId); papers(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
-        rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); requests(orgId); outbox(orgId); org(orgId)
+        rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); requests(orgId); entitlements(orgId); outbox(orgId); org(orgId)
     }
 }

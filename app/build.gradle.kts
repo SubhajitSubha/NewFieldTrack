@@ -190,6 +190,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.messaging)
+    // Google Play's own billing: the store takes the payment, our server checks it.
+    implementation(libs.play.billing)
 //    implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.analytics)
 

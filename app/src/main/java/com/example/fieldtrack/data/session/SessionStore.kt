@@ -474,6 +474,10 @@ class SessionStore(
         val session = current() ?: return
         session.can.require(Capability.EditBusiness)
         val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        // Switching it off is always allowed; switching it on is a paid extra.
+        if (on && !org.bookingLink && !com.example.fieldtrack.data.plan.PlanGate(db).allows(session.orgId, com.example.fieldtrack.data.plan.Need.BookingLink)) {
+            throw com.example.fieldtrack.data.plan.PlanLimit(com.example.fieldtrack.data.plan.Need.BookingLink)
+        }
         val slug = org.bookingSlug ?: ids.newId().replace("-", "").take(14)
         if (org.bookingLink == on && org.bookingShowRates == showRates && org.bookingSlug == slug) return
         val updated = org.copy(bookingLink = on, bookingSlug = slug, bookingShowRates = showRates, updatedAt = clock.now())
@@ -489,6 +493,9 @@ class SessionStore(
         session.can.require(Capability.EditBusiness)
         val org = db.orgDao().observeOrg(session.orgId).first() ?: return
         if (org.proofOfWork == on) return
+        if (on && !com.example.fieldtrack.data.plan.PlanGate(db).allows(session.orgId, com.example.fieldtrack.data.plan.Need.ProofOfWork)) {
+            throw com.example.fieldtrack.data.plan.PlanLimit(com.example.fieldtrack.data.plan.Need.ProofOfWork)
+        }
         val updated = org.copy(proofOfWork = on, updatedAt = clock.now())
         db.orgDao().upsertOrg(updated)
         syncQueue.enqueueUpsert(

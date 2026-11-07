@@ -47,3 +47,24 @@ class TabletPortraitDarkScreens : ScreenMatrix("tablet-port-dark")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
 class PhoneBigTextScreens : ScreenMatrix("phone-big", biggerText = true)
+
+/**
+ * Right to left: the whole layout mirrors, directional icons turn, numbers stay as they are.
+ * Arabic is the longest check of the layout work, so it is rendered like every other size.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "ar-rEG-w411dp-h891dp-port-xxhdpi")
+class PhoneArabicScreens : ScreenMatrix("phone-ar")
+
+/** A language with a long word for most things, with bigger text on top: where a layout gives way first. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "hi-rIN-w411dp-h891dp-port-xxhdpi")
+class PhoneHindiBigTextScreens : ScreenMatrix("phone-hi-big", biggerText = true)
+
+/** French, the longest of the Latin-script languages in the first wave. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "fr-rFR-w411dp-h891dp-port-xxhdpi")
+class PhoneFrenchScreens : ScreenMatrix("phone-fr")

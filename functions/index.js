@@ -243,3 +243,59 @@ exports.bookingRequest = onRequest({ cors: false }, async (req, res) => {
 
   res.status(200).send(page("<h1>Thank you</h1><p class='sub'>Your request has been sent. The business will call you to confirm.</p>"));
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// Paying. The owner's phone writes a claim ("here is a purchase token") under the business; this
+// asks the store whether it is real, whether it is for this business, and when it runs out, and
+// writes the answer where every phone in the business reads it. Nothing on a phone can say a
+// business has paid. The product and its two base plans ("season", "year") are made in the
+// store's console; an offer tagged "founding" is the founding price.
+//
+// Needs: the Google Play Developer API switched on for the project, this function's service
+// account invited to the Play Console with permission to view financial data, and PLAY_PACKAGE
+// set to the app's real package name (see docs/server-setup.md).
+
+const { google } = require("googleapis");
+
+exports.onPurchaseClaim = onDocumentWritten("orgs/{orgId}/purchase_claims/{id}", async (event) => {
+  if (!event.data.after.exists) return;
+  const orgId = event.params.orgId;
+  const claim = event.data.after.data();
+  const ref = event.data.after.ref;
+  try {
+    const publisher = google.androidpublisher({
+      version: "v3",
+      auth: new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] }),
+    });
+    const { data: sub } = await publisher.purchases.subscriptionsv2.get({
+      packageName: process.env.PLAY_PACKAGE || "com.example.fieldtrack",
+      token: claim.token,
+    });
+    // Valid while the store says so; a cancelled subscription is still paid until it runs out.
+    const live = ["SUBSCRIPTION_STATE_ACTIVE", "SUBSCRIPTION_STATE_IN_GRACE_PERIOD", "SUBSCRIPTION_STATE_CANCELED"].includes(sub.subscriptionState);
+    const forThisBusiness = sub.externalAccountIdentifiers && sub.externalAccountIdentifiers.obfuscatedExternalAccountId === orgId;
+    const line = (sub.lineItems || [])[0] || {};
+    const until = line.expiryTime ? Math.floor(Date.parse(line.expiryTime) / 86400000) : null;
+    if (!live || !forThisBusiness || until == null) {
+      await ref.set({ checkedAt: Date.now(), accepted: false }, { merge: true });
+      return;
+    }
+    const entitlement = db.collection("orgs").doc(orgId).collection("entitlement").doc("current");
+    const before = (await entitlement.get()).data() || {};
+    const tags = (line.offerDetails && line.offerDetails.offerTags) || [];
+    await entitlement.set({
+      id: orgId, orgId, tier: "Business",
+      untilDay: Math.max(until, before.untilDay || 0),
+      founding: before.founding === true || tags.includes("founding"),
+      updatedAt: Date.now(),
+      _money: 2, _device: "server", _recordedAt: Date.now(),
+      _serverAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    // So every phone's one-read "has anything changed?" check notices.
+    await db.collection("orgs").doc(orgId).collection("meta").doc("changed").set({ at: admin.firestore.FieldValue.serverTimestamp() });
+    await ref.set({ checkedAt: Date.now(), accepted: true, untilDay: until }, { merge: true });
+  } catch (e) {
+    await ref.set({ checkedAt: Date.now(), accepted: false, error: String(e.message || e).slice(0, 200) }, { merge: true });
+  }
+});

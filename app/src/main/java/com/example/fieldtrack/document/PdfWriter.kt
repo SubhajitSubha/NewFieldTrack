@@ -44,7 +44,7 @@ object PdfWriter {
      * internally, since a WebView may only be touched there.
      */
     suspend fun write(context: Context, document: Document): File {
-        val html = DocumentHtml.render(document)
+        val html = DocumentHtml.render(document, labelsFor(context, document))
         val target = documentFile(context, document.fileName)
 
         val webView = withContext(Dispatchers.Main) {
@@ -72,7 +72,7 @@ object PdfWriter {
      * It is built on the application context, so holding it cannot pin an Activity.
      */
     suspend fun printAdapter(context: Context, document: Document): PrintDocumentAdapter {
-        val html = DocumentHtml.render(document)
+        val html = DocumentHtml.render(document, labelsFor(context, document))
         val webView = withContext(Dispatchers.Main) {
             printing?.destroy()
             loadOffscreen(context.applicationContext, html).also { printing = it }
@@ -84,6 +84,18 @@ object PdfWriter {
 
     /** Kept alive for the system print dialog. See [printAdapter]. */
     private var printing: WebView? = null
+
+    /**
+     * The words the page is written in: the language the app is in, which is the language its
+     * lines (work names, dates, payment methods) are already written in, so a page never mixes two.
+     * A customer who reads another language gets it from the reminder, which is written whole in
+     * theirs; a bill follows the business.
+     */
+    fun labelsFor(context: Context, @Suppress("UNUSED_PARAMETER") document: Document): DocLabels {
+        val locale = context.resources.configuration.locales[0]
+        val rtl = android.text.TextUtils.getLayoutDirectionFromLocale(locale) == android.view.View.LAYOUT_DIRECTION_RTL
+        return DocLabels.of(context, locale.toLanguageTag(), rtl, words = locale.language == "en")
+    }
 
     /** Where a generated document lives. Cache: a sent bill can always be remade. */
     fun documentFile(context: Context, name: String): File {

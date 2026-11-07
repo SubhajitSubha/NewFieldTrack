@@ -141,6 +141,7 @@ fun MoreScreen(
     onIncome: (() -> Unit)? = null,
     onRequests: (() -> Unit)? = null,
     onBookingLink: (() -> Unit)? = null,
+    onPlan: (() -> Unit)? = null,
     onRates: () -> Unit,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
@@ -374,6 +375,16 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onDisplay,
                 )
+                if (onPlan != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.pricing_title),
+                        subtitle = stringResource(R.string.plan_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Check, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onPlan,
+                    )
+                }
                 if (onRequests != null) {
                     FtRowDivider()
                     FtListRow(

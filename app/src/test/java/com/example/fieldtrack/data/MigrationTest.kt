@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(25, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(26, c.getInt(0))
         }
     }
 
@@ -514,5 +514,12 @@ class MigrationTest {
             assertEquals("0", defaults["bookingLink"]); assertEquals("0", defaults["bookingShowRates"]); assertTrue("bookingSlug" in defaults)
         }
         db.query("SELECT COUNT(*) FROM booking_requests").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
+    }
+
+    @Test
+    fun `nobody has a paid plan until the server says so`() {
+        create(25) { }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT COUNT(*) FROM entitlements").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
     }
 }

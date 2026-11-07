@@ -166,6 +166,8 @@ import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
 import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.more.PricingScreen
+import com.example.fieldtrack.feature.more.PricingViewModel
 import com.example.fieldtrack.feature.more.BookingLinkScreen
 import com.example.fieldtrack.feature.more.BookingLinkViewModel
 import com.example.fieldtrack.feature.plan.RequestsScreen
@@ -275,6 +277,8 @@ internal object Routes {
     const val INCOME = "more/income"
     const val REQUESTS = "plan/requests"
     const val BOOKING_LINK = "more/booking-link"
+    const val PLAN_PRICE = "more/plan?need={need}"
+    fun planPrice(need: com.example.fieldtrack.data.plan.Need? = null) = "more/plan?need=${need?.name.orEmpty()}"
     const val PAPER = "machines/{machineId}/papers/{paperId}"
     const val WORTH = "machines/{machineId}/worth"
     const val TOUR = "tour"
@@ -956,6 +960,23 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(
+                Routes.PLAN_PRICE,
+                arguments = listOf(navArgument("need") { defaultValue = ""; nullable = false }),
+            ) { entry ->
+                val need = entry.arguments?.getString("need")?.let { name -> com.example.fieldtrack.data.plan.Need.entries.firstOrNull { it.name == name } }
+                val vm: PricingViewModel = appViewModel { PricingViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val activity = LocalContext.current as? android.app.Activity
+                PricingScreen(
+                    state = state,
+                    need = need,
+                    onBuy = { offer -> activity?.let { vm.buy(it, offer) } },
+                    onRestore = vm::restore,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(Routes.REQUESTS) {
                 val vm: RequestsViewModel = appViewModel { RequestsViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
@@ -970,6 +991,13 @@ private fun MainNavHost(navController: NavHostController) {
             composable(Routes.BOOKING_LINK) {
                 val vm: BookingLinkViewModel = appViewModel { BookingLinkViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
+                val needsPlan by vm.needsPlan.collectAsStateWithLifecycle()
+                LaunchedEffect(needsPlan) {
+                    if (needsPlan) {
+                        vm.needsPlan.value = false
+                        navController.navigate(Routes.planPrice(com.example.fieldtrack.data.plan.Need.BookingLink))
+                    }
+                }
                 BookingLinkScreen(
                     state = state,
                     onChange = vm::set,
@@ -1784,9 +1812,10 @@ private fun MainNavHost(navController: NavHostController) {
                 val isTab = Routes.MACHINES in Routes.roots(
                     kind, (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()),
                 )
+                val planGuard = rememberPlanGuard(navController)
                 MachinesScreen(
                     state = state,
-                    onAdd = { navController.navigate(Routes.NEW_MACHINE) },
+                    onAdd = { planGuard(com.example.fieldtrack.data.plan.Need.MoreMachines) { navController.navigate(Routes.NEW_MACHINE) } },
                     // Opens the machine rather than the form. Everyone can look at
                     // what a machine has been doing; only an owner can rename it,
                     // and that now lives behind the pencil on the detail screen.
@@ -1916,6 +1945,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onExport = { navController.navigate(Routes.EXPORT) },
                     onReminders = { navController.navigate(Routes.REMINDERS) },
                     onHelp = { navController.navigate(Routes.HELP) },
+                    onPlan = if (state.canEditBusiness) ({ navController.navigate(Routes.planPrice()) }) else null,
                     onRequests = if (state.canPlan) ({ navController.navigate(Routes.REQUESTS) }) else null,
                     onBookingLink = if (state.canEditBusiness) ({ navController.navigate(Routes.BOOKING_LINK) }) else null,
                     onIncome = if (state.canSeePeopleCost && state.canSeeMoney) ({ navController.navigate(Routes.INCOME) }) else null,
@@ -1994,12 +2024,13 @@ private fun MainNavHost(navController: NavHostController) {
                 val scope = rememberCoroutineScope()
                 var adding by remember { mutableStateOf(false) }
 
+                val planGuard = rememberPlanGuard(navController)
                 TeamScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
                     onOpenMember = { id -> navController.navigate("more/team/$id") },
-                    onAddMember = { adding = true }.takeIf { state.canEditTeam },
-                    onInvite = { navController.navigate(Routes.INVITE) }
+                    onAddMember = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { adding = true } }.takeIf { state.canEditTeam },
+                    onInvite = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { navController.navigate(Routes.INVITE) } }
                         .takeIf { state.canEditTeam },
                     onSentCodes = { navController.navigate(Routes.SENT_CODES) }
                         .takeIf { state.canEditTeam },
@@ -2097,6 +2128,7 @@ private fun MainNavHost(navController: NavHostController) {
             }
 
             composable(Routes.SENT_CODES) {
+                val planGuard = rememberPlanGuard(navController)
                 val vm: SentCodesViewModel = appViewModel { SentCodesViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 val context = LocalContext.current
@@ -2120,7 +2152,7 @@ private fun MainNavHost(navController: NavHostController) {
                         )
                     },
                     onRevoke = vm::revoke,
-                    onInviteMore = { navController.navigate(Routes.INVITE) },
+                    onInviteMore = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { navController.navigate(Routes.INVITE) } },
                 )
             }
 
@@ -2291,6 +2323,13 @@ private fun MainNavHost(navController: NavHostController) {
                 LaunchedEffect(Unit) { unsent = app.sessionStore.unsentCount() }
                 val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
+                val proofNeedsPlan by vm.needsPlan.collectAsStateWithLifecycle()
+                LaunchedEffect(proofNeedsPlan) {
+                    if (proofNeedsPlan) {
+                        vm.needsPlan.value = false
+                        navController.navigate(Routes.planPrice(com.example.fieldtrack.data.plan.Need.ProofOfWork))
+                    }
+                }
                 val googleAuth = remember { com.example.fieldtrack.data.auth.FirebaseGoogleAuth(context = app, activityProvider = { activity }) }
                 var googleEmail by remember { mutableStateOf(googleAuth.linkedEmail() ?: state.signedInEmail) }
                 var googleNote by remember { mutableStateOf<Int?>(null) }
@@ -2803,4 +2842,23 @@ private fun StartWorkDestination(
                     },
                 )
             }
+}
+
+
+/**
+ * Something the free plan will not add, asked for: go on if the plan allows it, and otherwise
+ * to the plan screen saying which thing asked. Reads only what is on the phone, so it answers
+ * offline; and it only ever stops *adding*, never what is already there.
+ */
+@Composable
+private fun rememberPlanGuard(navController: NavHostController): (com.example.fieldtrack.data.plan.Need, () -> Unit) -> Unit {
+    val app = LocalContext.current.applicationContext as FieldFlowApplication
+    val scope = rememberCoroutineScope()
+    return { need, proceed ->
+        scope.launch {
+            val orgId = app.sessionStore.load()?.orgId
+            if (orgId == null || app.planGate.allows(orgId, need)) proceed()
+            else navController.navigate(Routes.planPrice(need))
+        }
+    }
 }

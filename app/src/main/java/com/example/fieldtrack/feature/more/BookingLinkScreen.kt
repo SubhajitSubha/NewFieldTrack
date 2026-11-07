@@ -67,8 +67,17 @@ class BookingLinkViewModel(private val app: FieldFlowApplication) : ViewModel() 
 
     init { viewModelScope.launch { app.sessionStore.load() } }
 
+    /** Set when switching it on needs the paid plan, so the screen can say so and lead to it. */
+    val needsPlan = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     fun set(on: Boolean, showRates: Boolean) = viewModelScope.launch {
-        runCatching { app.sessionStore.setBookingLink(on, showRates) }
+        try {
+            app.sessionStore.setBookingLink(on, showRates)
+        } catch (limit: com.example.fieldtrack.data.plan.PlanLimit) {
+            needsPlan.value = true
+        } catch (other: Exception) {
+            // Not allowed to change the business: nothing happens, as before.
+        }
     }
 }
 

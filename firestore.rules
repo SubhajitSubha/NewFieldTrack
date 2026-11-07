@@ -491,6 +491,21 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // What the business has paid for, written by our server after it has checked the store, and
+      // read by everybody in the business so every phone agrees. No handset writes it, the owner's
+      // included: a plan the owner could write for themselves would not be a plan.
+      match /entitlement/{doc} {
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
+
+      // A purchase the owner's phone hands over to be checked. Created by the owner and then read
+      // only by the server, which asks the store whether it is real and whose it is.
+      match /purchase_claims/{claimId} {
+        allow create: if isOwner(orgId);
+        allow read, update, delete: if false;
+      }
+
       // What farmers asked for through the business's public page.
       //
       // Written by the server alone (the person asking is nobody in the business), so no
@@ -604,6 +619,8 @@ service cloud.firestore {
                     && collection != 'job_cost_amounts'
                     && collection != 'machine_finance'
                     && collection != 'booking_requests'
+                    && collection != 'entitlement'
+                    && collection != 'purchase_claims'
                     && collection != 'bookings';
         // Anybody on the team may write the work, except somebody who may only look.
         allow write: if isMember(orgId)
@@ -614,6 +631,8 @@ service cloud.firestore {
                      && collection != 'job_cost_amounts'
                      && collection != 'machine_finance'
                      && collection != 'booking_requests'
+                     && collection != 'entitlement'
+                     && collection != 'purchase_claims'
                      && collection != 'bookings';
       }
     }

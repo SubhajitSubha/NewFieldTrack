@@ -149,6 +149,10 @@ class SyncQueue(
         const val TABLE_MACHINE_FINANCE = "machine_finance"
         const val TABLE_MACHINE_PAPERS = "machine_papers"
         const val TABLE_BOOKING_REQUESTS = "booking_requests"
+        /** What the business has paid for: written by the server, read here. Never queued. */
+        const val TABLE_ENTITLEMENT = "entitlement"
+        /** A purchase the owner's phone hands to the server to check. */
+        const val TABLE_PURCHASE_CLAIMS = "purchase_claims"
         const val TABLE_BOOKINGS = "bookings"
         const val TABLE_INVITES = "invites"
 

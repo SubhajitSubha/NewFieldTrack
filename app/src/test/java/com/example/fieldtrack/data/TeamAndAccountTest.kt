@@ -245,6 +245,7 @@ class TeamAndAccountTest {
     @Test
     fun `the booking link keeps its secret through being switched off and on`() = runTest {
         onboard()
+        h.db.orgDao().upsertEntitlement(com.example.fieldtrack.data.db.entity.EntitlementEntity(id = store.current()!!.orgId, orgId = store.current()!!.orgId, tier = com.example.fieldtrack.data.db.PlanTier.Business, untilDay = java.time.LocalDate.now().toEpochDay() + 30))
         store.setBookingLink(true, showRates = false)
         val first = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
         assertTrue(first.bookingLink)

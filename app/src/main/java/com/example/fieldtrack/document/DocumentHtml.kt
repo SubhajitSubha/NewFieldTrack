@@ -39,9 +39,14 @@ object DocumentHtml {
      * never read from whatever business happens to be on screen.
      */
     private val styleInUse = ThreadLocal<MoneyStyle>()
+    private val labelsInUse = ThreadLocal<DocLabels>()
 
-    fun render(document: Document): String {
+    /** The words of the page being written on this thread. */
+    private val L: DocLabels get() = labelsInUse.get() ?: DocLabels.English
+
+    fun render(document: Document, labels: DocLabels = DocLabels.English): String {
         styleInUse.set(document.style)
+        labelsInUse.set(labels)
         try {
             return page(
                 when (document) {
@@ -54,6 +59,7 @@ object DocumentHtml {
             )
         } finally {
             styleInUse.remove()
+            labelsInUse.remove()
         }
     }
 
@@ -61,19 +67,19 @@ object DocumentHtml {
 
     private fun bill(d: Document.Bill): String = buildString {
         // A business that charges a tax and gives its registration number prints a tax invoice.
-        val kind = if (d.letterhead.taxName != null && d.letterhead.gstin != null) "TAX INVOICE" else "BILL"
+        val kind = if (d.letterhead.taxName != null && d.letterhead.gstin != null) L.kindTaxInvoice else L.kindBill
         append(letterhead(d.letterhead, kind, d.billNumber ?: "", d.dateLabel))
         append("<div class='body'>")
 
         append("<div class='row'>")
         append(
-            "<div class='col'>${label("BILL TO")}<div class='big'>${esc(d.customer.name)}</div>" +
+            "<div class='col'>${label(L.billTo)}<div class='big'>${esc(d.customer.name)}</div>" +
                 "<div class='sub'>${listOfNotNull(d.customer.addressLine, d.customer.phone).joinToString("<br>") { esc(it) }}</div></div>"
         )
         if (d.workedOnLabel != null) {
             append("<div class='vrule'></div>")
             append(
-                "<div class='col'>${label("WORK DONE ON")}<div class='big'>${esc(d.workedOnLabel)}</div>" +
+                "<div class='col'>${label(L.workDoneOn)}<div class='big'>${esc(d.workedOnLabel)}</div>" +
                     "<div class='sub'>${d.machineLabel?.let { esc(it) }.orEmpty()}</div></div>"
             )
         }
@@ -81,7 +87,7 @@ object DocumentHtml {
 
         append("<div class='gap'></div>")
         append("<table><thead><tr>")
-        append("<th>WORK</th><th class='r w120'>MEASURE</th><th class='r w150'>RATE</th><th class='r w130'>AMOUNT</th>")
+        append("<th>${esc(L.colWork)}</th><th class='r w120'>${esc(L.colMeasure)}</th><th class='r w150'>${esc(L.colRate)}</th><th class='r w130'>${esc(L.colAmount)}</th>")
         append("</tr></thead><tbody>")
         d.lines.forEach { line ->
             append("<tr>")
@@ -96,11 +102,11 @@ object DocumentHtml {
         append("</tbody></table>")
 
         append("<div class='gap'></div><div class='totals'>")
-        append(totalRow("This bill", d.thisBillMinor))
+        append(totalRow(L.thisBill, d.thisBillMinor))
         if (d.previousBalanceMinor != 0L) {
-            append(totalRow("Balance before this bill", d.previousBalanceMinor))
+            append(totalRow(L.balanceBefore, d.previousBalanceMinor))
             append("<div class='hr'></div>")
-            append(totalRow("Total", d.totalMinor, strong = true))
+            append(totalRow(L.total, d.totalMinor, strong = true))
         }
         // Prices include the tax; the bill says how much of it that is.
         val bps = d.letterhead.taxPercentBps
@@ -109,14 +115,14 @@ object DocumentHtml {
             val tax = TaxRate.includedIn(d.totalMinor, bps, d.style.stepMinor)
             append(
                 "<div class='cell-sub' style='text-align:right;padding-top:6px'>" +
-                    "${esc("Includes $taxName ${TaxRate.text(bps)}%")}: ${money(tax)}</div>"
+                    "${esc(L.includesTax.format(taxName, TaxRate.text(bps)))}: ${money(tax)}</div>"
             )
         }
         append("</div>")
 
         if (d.payments.isNotEmpty()) {
             append("<div class='gap'></div>")
-            append(label("RECEIVED"))
+            append(label(L.received))
             append("<table class='plain'><tbody>")
             d.payments.forEach {
                 append(
@@ -129,19 +135,19 @@ object DocumentHtml {
         }
 
         append("<div class='gap'></div>")
-        append(dueBand("BALANCE DUE", d.balanceInWords, d.balanceMinor))
+        append(dueBand(L.balanceDue, d.balanceInWords, d.balanceMinor))
         append(payBlock(d.letterhead))
         append("<div class='spacer'></div>")
         append(signature(d.letterhead.businessName))
         append("</div>")
-        append(footer(d.billNumber?.let { "Bill $it" }))
+        append(footer(d.billNumber?.let { L.billFooter.format(it) }))
     }
 
     private fun statement(d: Document.Statement): String = buildString {
-        append(letterhead(d.letterhead, "STATEMENT", d.periodLabel, d.printedLabel))
+        append(letterhead(d.letterhead, L.kindStatement, d.periodLabel, d.printedLabel))
         append("<div class='body'>")
 
-        append(label("ACCOUNT OF"))
+        append(label(L.accountOf))
         append("<h1>${esc(d.customer.name)}</h1>")
         append(
             "<div class='sub'>${listOfNotNull(d.customer.addressLine, d.customer.phone).joinToString(" &middot; ") { esc(it) }}</div>"
@@ -154,19 +160,19 @@ object DocumentHtml {
         if (!d.paymentsOnly) {
             append("<div class='gap'></div>")
             append("<div class='summary'>")
-            append(summaryCell("OPENING", d.openingMinor))
-            append(summaryCell("WORK BILLED", d.billedMinor))
-            append(summaryCell("RECEIVED", d.receivedMinor, color = GREEN_DARK))
-            append(summaryCell("STILL DUE", d.closingMinor, color = DUE, wash = true, last = true))
+            append(summaryCell(L.opening, d.openingMinor))
+            append(summaryCell(L.workBilled, d.billedMinor))
+            append(summaryCell(L.received, d.receivedMinor, color = GREEN_DARK))
+            append(summaryCell(L.stillDue, d.closingMinor, color = DUE, wash = true, last = true))
             append("</div>")
         }
 
         append("<div class='gap'></div>")
         append("<table class='tight'><thead><tr>")
-        append("<th class='w125 nowrap'>DATE</th><th>DETAILS</th>")
-        if (!d.paymentsOnly) append("<th class='r w104'>CHARGED</th>")
-        append("<th class='r w104'>PAID</th>")
-        append("<th class='r w110'>${if (d.paymentsOnly) "PAID SO FAR" else "BALANCE"}</th>")
+        append("<th class='w125 nowrap'>${esc(L.colDate)}</th><th>${esc(L.colDetails)}</th>")
+        if (!d.paymentsOnly) append("<th class='r w104'>${esc(L.colCharged)}</th>")
+        append("<th class='r w104'>${esc(L.colPaid)}</th>")
+        append("<th class='r w110'>${esc(if (d.paymentsOnly) L.colPaidSoFar else L.colBalance)}</th>")
         append("</tr></thead><tbody class='num'>")
         d.lines.forEach { line ->
             append("<tr${if (line.isBroughtForward) " class='bf'" else ""}>")
@@ -184,22 +190,21 @@ object DocumentHtml {
         append("<div class='gap'></div>")
         append(
             if (d.paymentsOnly) {
-                paidBand("TOTAL RECEIVED", d.closingInWords, d.closingMinor)
+                paidBand(L.totalReceived, d.closingInWords, d.closingMinor)
             } else {
-                dueBand("BALANCE ON ${d.printedLabel.uppercase()}", d.closingInWords, d.closingMinor)
+                dueBand(L.balanceOn.format(d.printedLabel.uppercase()), d.closingInWords, d.closingMinor)
             }
         )
         append("<div class='spacer'></div>")
         append(
-            "<div class='foot-row'><div class='note'>Please tell us within 7 days if any line " +
-                "here does not match your record.</div>${signatureBox(d.letterhead.businessName)}</div>"
+            "<div class='foot-row'><div class='note'>${esc(L.statementNote)}</div>${signatureBox(d.letterhead.businessName)}</div>"
         )
         append("</div>")
-        append(footer("${d.lines.size} entries"))
+        append(footer(L.entries.format(d.lines.size)))
     }
 
     private fun dues(d: Document.Dues): String = buildString {
-        append(letterhead(d.letterhead, "AMOUNT DUE", "", d.asOnLabel))
+        append(letterhead(d.letterhead, L.kindAmountDue, "", d.asOnLabel))
         append("<div class='body'>")
 
         append("<div class='row'>")
@@ -214,9 +219,9 @@ object DocumentHtml {
         append("</div>")
 
         append("<div class='gap'></div>")
-        append(label("WORK NOT YET PAID FOR"))
+        append(label(L.workNotPaid))
         append("<table><thead><tr>")
-        append("<th class='w125 nowrap'>DATE</th><th>WORK</th><th class='r w110'>WAITING</th><th class='r w125'>AMOUNT</th>")
+        append("<th class='w125 nowrap'>${esc(L.colDate)}</th><th>${esc(L.colWork)}</th><th class='r w110'>${esc(L.colWaiting)}</th><th class='r w125'>${esc(L.colAmount)}</th>")
         append("</tr></thead><tbody class='num'>")
         d.lines.forEach { line ->
             append("<tr>")
@@ -240,20 +245,19 @@ object DocumentHtml {
         }
 
         append("<div class='gap'></div>")
-        append(dueBand("TOTAL STILL TO PAY", d.totalInWords, d.totalMinor))
+        append(dueBand(L.totalStillToPay, d.totalInWords, d.totalMinor))
         append(payBlock(d.letterhead))
         append("<div class='spacer'></div>")
         append(
-            "<div class='foot-row'><div class='note'>If you have already paid any of this, " +
-                "tell us and we will correct the record the same day.</div>" +
+            "<div class='foot-row'><div class='note'>${esc(L.duesNote)}</div>" +
                 "${signatureBox(d.letterhead.businessName)}</div>"
         )
         append("</div>")
-        append(footer("${d.lines.size} jobs"))
+        append(footer(L.jobs.format(d.lines.size)))
     }
 
     private fun income(d: Document.IncomeStatement): String = buildString {
-        append(letterhead(d.letterhead, "INCOME STATEMENT", d.periodLabel, d.printedLabel))
+        append(letterhead(d.letterhead, L.kindIncome, d.periodLabel, d.printedLabel))
         append("<div class='body'>")
         fun rows(list: List<StatementRow>) {
             append("<table class='plain'><tbody>")
@@ -264,58 +268,57 @@ object DocumentHtml {
             }
             append("</tbody></table>")
         }
-        append(label("WORK BILLED AND MONEY IN"))
+        append(label(L.incomeIn))
         rows(d.income)
-        append("<div class='totals'>${totalRow("Total income", d.incomeMinor, strong = true)}</div>")
+        append("<div class='totals'>${totalRow(L.totalIncome, d.incomeMinor, strong = true)}</div>")
         append("<div class='gap'></div>")
-        append(label("WHAT IT COST"))
+        append(label(L.incomeCosts))
         rows(d.costs)
-        append("<div class='totals'>${totalRow("Total costs", d.costsMinor, strong = true)}</div>")
+        append("<div class='totals'>${totalRow(L.totalCosts, d.costsMinor, strong = true)}</div>")
         append("<div class='gap'></div>")
-        append("<div class='totals'><div class='hr'></div>${totalRow("Left after costs", d.netMinor, strong = true)}</div>")
+        append("<div class='totals'><div class='hr'></div>${totalRow(L.leftAfterCosts, d.netMinor, strong = true)}</div>")
         if (d.facts.isNotEmpty()) {
             append("<div class='gap'></div>")
-            append(label("THE BUSINESS IN FIGURES"))
+            append(label(L.inFigures))
             d.facts.forEach { (k, v) -> append(textRow(k, v)) }
         }
         d.notes.forEach { append("<div class='cell-sub' style='padding-top:8px'>${esc(it)}</div>") }
         append("<div class='spacer'></div>")
         append(
-            "<div class='foot-row'><div class='note'>Prepared from the business's own records kept in FieldTrack. " +
-                "It has not been audited.</div>${signatureBox(d.letterhead.businessName)}</div>"
+            "<div class='foot-row'><div class='note'>${esc(L.notAudited)}</div>${signatureBox(d.letterhead.businessName)}</div>"
         )
         append("</div>")
         append(footer(d.periodLabel))
     }
 
     private fun receipt(d: Document.Receipt): String = buildString {
-        append(letterhead(d.letterhead, "RECEIPT", d.dateLabel, ""))
+        append(letterhead(d.letterhead, L.kindReceipt, d.dateLabel, ""))
         append("<div class='body'>")
-        append(label("RECEIVED FROM"))
+        append(label(L.receivedFrom))
         append("<h1>${esc(d.customer.name)}</h1>")
         append(
             "<div class='sub'>${listOfNotNull(d.customer.addressLine, d.customer.phone).joinToString(" &middot; ") { esc(it) }}</div>"
         )
         append("<div class='gap'></div>")
-        append(paidBand("PAYMENT RECEIVED", d.amountInWords, d.amountMinor))
+        append(paidBand(L.paymentReceived, d.amountInWords, d.amountMinor))
         append("<div class='gap'></div><div class='totals'>")
-        append(textRow("Paid by", d.methodLabel))
+        append(textRow(L.paidBy, d.methodLabel))
         d.note?.takeIf { it.isNotBlank() }?.let {
-            append(textRow("For", it))
+            append(textRow(L.forWhat, it))
         }
         append("<div class='hr'></div>")
         if (d.balanceAfterMinor > 0) {
-            append(totalRow("Still due after this", d.balanceAfterMinor, strong = true))
+            append(totalRow(L.stillDueAfter, d.balanceAfterMinor, strong = true))
         } else if (d.balanceAfterMinor < 0) {
-            append(totalRow("Paid ahead", -d.balanceAfterMinor, strong = true))
+            append(totalRow(L.paidAhead, -d.balanceAfterMinor, strong = true))
         } else {
-            append("<div class='total-row'><span class='strong'>Account settled</span><span class='num strong'>${money(0)}</span></div>")
+            append("<div class='total-row'><span class='strong'>${esc(L.accountSettled)}</span><span class='num strong'>${money(0)}</span></div>")
         }
         append("</div>")
         append("<div class='spacer'></div>")
         append(signature(d.letterhead.businessName))
         append("</div>")
-        append(footer("Receipt"))
+        append(footer(L.receiptFooter))
     }
 
     // -------------------------------------------------------------- shared parts
@@ -323,7 +326,7 @@ object DocumentHtml {
     private fun letterhead(l: Letterhead, kind: String, line1: String, line2: String): String {
         val contact = listOfNotNull(
             l.phone?.let { formatPhone(it) },
-            l.gstin?.let { "${l.taxName?.takeIf { n -> n.isNotBlank() } ?: "GSTIN"} $it" },
+            l.gstin?.let { "${l.taxName?.takeIf { n -> n.isNotBlank() } ?: L.taxIdDefault} $it" },
         ).joinToString(" &middot; ") { esc(it) }
         return buildString {
             append("<div class='head'><div class='mark'>$TRACTOR</div><div class='who'>")
@@ -372,19 +375,19 @@ object DocumentHtml {
 
     /** The amount in words, left off where there is no wording for the currency. */
     private fun wordsLine(words: String?) =
-        if (words == null) "</div>" else "<div class='due-words'>${esc(words)}</div></div>"
+        if (words == null || !L.showAmountInWords) "</div>" else "<div class='due-words'>${esc(words)}</div></div>"
 
     private fun payBlock(l: Letterhead): String {
         val details = l.payDetails?.takeIf { it.isNotBlank() }
         if (l.upiId == null && details != null) {
             return "<div class='gap'></div><div class='pay'><div>" +
-                "<div class='label'>PAY TO</div>" +
+                "<div class='label'>${esc(L.payTo)}</div>" +
                 "<div class='upi'>${details.lines().joinToString("<br>") { esc(it) }}</div></div></div>"
         }
         val upi = l.upiId ?: return ""
         return "<div class='gap'></div><div class='pay'><div class='qr'>UPI<br>QR</div>" +
-            "<div><div class='label'>PAY BY UPI</div><div class='upi'>${esc(upi)}</div>" +
-            "<div class='cell-sub'>Scan with any UPI app, or pay in cash at the next job.</div>" +
+            "<div><div class='label'>${esc(L.payByUpi)}</div><div class='upi'>${esc(upi)}</div>" +
+            "<div class='cell-sub'>${esc(L.scanUpi)}</div>" +
             "</div></div>"
     }
 
@@ -392,13 +395,13 @@ object DocumentHtml {
         "<div class='sign-row'>${signatureBox(business)}</div>"
 
     private fun signatureBox(business: String) =
-        "<div class='sign'><div class='sign-line'></div><div class='sign-for'>For ${esc(business)}</div></div>"
+        "<div class='sign'><div class='sign-line'></div><div class='sign-for'>${esc(L.signFor.format(business))}</div></div>"
 
     private fun footer(right: String?) =
         "<div class='foot'><div class='foot-mark'>$TRACTOR</div>" +
-            "<div class='foot-text'><strong>Made with FieldTrack</strong> &middot; " +
-            "record the work, send the bill, keep the khata</div>" +
-            "<div class='foot-right'>${right?.let { esc(it) + " &middot; " }.orEmpty()}page 1 of 1</div></div>"
+            "<div class='foot-text'><strong>${esc(L.madeWith)}</strong> &middot; " +
+            "${esc(L.tagline)}</div>" +
+            "<div class='foot-right'>${right?.let { esc(it) + " &middot; " }.orEmpty()}${esc(L.pageOne)}</div></div>"
 
     private const val TRACTOR =
         "<svg viewBox='0 0 32 32' fill='none' stroke='#FFFFFF' stroke-width='2.4' " +
@@ -416,7 +419,7 @@ object DocumentHtml {
 
     private fun page(content: String): String = """
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="${esc(L.languageTag)}"${if (L.rightToLeft) " dir='rtl'" else ""}><head><meta charset="utf-8">
 <meta name="viewport" content="width=794">
 <style>
 @font-face {

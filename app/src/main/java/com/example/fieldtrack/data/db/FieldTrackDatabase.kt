@@ -28,6 +28,7 @@ import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
 import com.example.fieldtrack.data.db.entity.MachinePaperEntity
 import com.example.fieldtrack.data.db.entity.BookingRequestEntity
+import com.example.fieldtrack.data.db.entity.EntitlementEntity
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.OutboxEntity
@@ -61,6 +62,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         MachineFinanceEntity::class,
         MachinePaperEntity::class,
         BookingRequestEntity::class,
+        EntitlementEntity::class,
         FuelEntryEntity::class,
         ServiceRecordEntity::class,
         BreakdownEntity::class,
@@ -71,7 +73,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         BookingEntity::class,
         OutboxEntity::class,
     ],
-    version = 25,
+    version = 26,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
