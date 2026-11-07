@@ -133,6 +133,8 @@ fun MoreScreen(
     onExport: (() -> Unit)? = null,
     onReminders: (() -> Unit)? = null,
     onHelp: (() -> Unit)? = null,
+    /** For somebody who may see what the business pays: what the machines are worth. */
+    onAssets: (() -> Unit)? = null,
     onRates: () -> Unit,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
@@ -366,6 +368,16 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onDisplay,
                 )
+                if (onAssets != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.assets_title),
+                        subtitle = stringResource(R.string.assets_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Tractor, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onAssets,
+                    )
+                }
                 if (onHelp != null) {
                     FtRowDivider()
                     FtListRow(

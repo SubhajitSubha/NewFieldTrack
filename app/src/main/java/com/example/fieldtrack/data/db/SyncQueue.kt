@@ -147,6 +147,7 @@ class SyncQueue(
         const val TABLE_JOB_COSTS = "job_costs"
         const val TABLE_JOB_COST_AMOUNTS = "job_cost_amounts"
         const val TABLE_MACHINE_FINANCE = "machine_finance"
+        const val TABLE_MACHINE_PAPERS = "machine_papers"
         const val TABLE_BOOKINGS = "bookings"
         const val TABLE_INVITES = "invites"
 

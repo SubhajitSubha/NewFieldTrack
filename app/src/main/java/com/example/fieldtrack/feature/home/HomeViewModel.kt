@@ -109,6 +109,8 @@ internal data class Yard(
     val stuck: Boolean,
     /** Machines drinking clearly more diesel an hour than they were. */
     val fuelRises: List<HomeAlert.FuelHigh> = emptyList(),
+    /** Papers running out or run out, soonest first. */
+    val papers: List<HomeAlert.PaperDue> = emptyList(),
 )
 
 /** Shared by the solo and yard homes: the money side of the business. */
@@ -141,7 +143,8 @@ internal fun FieldFlowApplication.observeYard(s: Session): Flow<Yard> = combine(
     combine(
         directoryRepository.observeMachines(s.orgId),
         db.machineDao().observeOpenBreakdowns(s.orgId),
-        ::Pair,
+        directoryRepository.observePapers(s.orgId),
+        ::Triple,
     ),
     if (Capability.SeePeopleCost in s.can) db.orgDao().observeUnpricedJobCostCount(s.orgId)
     else flowOf(0),
@@ -158,12 +161,13 @@ internal fun FieldFlowApplication.observeYard(s: Session): Flow<Yard> = combine(
             ::Pair,
         )
     },
-) { (machines, breakdowns), unpriced, pending, status, (recent, before) ->
+) { (machines, breakdowns, paperRows), unpriced, pending, status, (recent, before) ->
     val recentBy = recent.associateBy { it.machineId }
     val beforeBy = before.associateBy { it.machineId }
     Yard(
         machines, breakdowns, unpriced, pending,
         stuck = status.stage == SyncStage.Blocked,
+        papers = paperAlerts(paperRows, machines, reminderSettings.paperWarnDays.value),
         fuelRises = machines.mapNotNull { machine ->
             Costing.fuelRise(recentBy[machine.id], beforeBy[machine.id])?.let { rise ->
                 HomeAlert.FuelHigh(
@@ -186,6 +190,7 @@ internal fun ownerAlerts(books: Books, yard: Yard, canSeeMoney: Boolean, now: Lo
         // machine would be the same problem twice.
         val brokenDown = yard.breakdowns.map { it.machineId }.toSet()
         addAll(yard.fuelRises.filter { it.machineId !in brokenDown })
+        addAll(yard.papers)
         if (canSeeMoney) {
             overdueAlert(
                 debtsByAge(books.entries),

@@ -108,9 +108,28 @@ class RecordsExport(private val db: FieldTrackDatabase) {
             listOf("Field", "Customer", "Area", "Unit", "Crop"),
             fields.map { listOf(it.name, customerName[it.customerId], it.area.toString(), it.unit.name, it.crop) },
         )
+        val finance = if (scope.peopleCost) dao.finance(orgId).associateBy { it.id } else emptyMap()
+        val today = java.time.LocalDate.now(zone).toEpochDay()
         files["machines.csv"] = table(
-            listOf("Machine", "Kind", "Own name for it", "Registration", "Hours used"),
-            machines.map { listOf(it.name, it.kind.name, it.typeLabel, it.plate, it.hoursUsed.toString()) },
+            buildList {
+                addAll(listOf("Machine", "Kind", "Own name for it", "Registration", "Hours used"))
+                if (scope.peopleCost) addAll(listOf("Bought on", "Cost", "Worth today", "Years it lasts"))
+            },
+            machines.map { m ->
+                buildList {
+                    addAll(listOf(m.name, m.kind.name, m.typeLabel, m.plate, m.hoursUsed.toString()))
+                    if (scope.peopleCost) {
+                        val f = finance[m.id]
+                        add(dayNumber(f?.purchasedDay)); add(money(f?.purchaseMinor))
+                        add(money(com.example.fieldtrack.data.costing.Assets.bookValue(f, today)))
+                        add(f?.lifeYears?.toString())
+                    }
+                }
+            },
+        )
+        files["papers.csv"] = table(
+            listOf("Machine", "Paper", "Number", "Runs out on", "Note"),
+            dao.papers(orgId).map { listOf(machineName[it.machineId], it.kind.name, it.number, dayNumber(it.expiresDay), it.note) },
         )
         files["jobs.csv"] = table(
             buildList {

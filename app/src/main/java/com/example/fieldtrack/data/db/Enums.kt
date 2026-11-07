@@ -138,6 +138,9 @@ enum class PayoutCovers {
  */
 enum class JobCostKind { Labour, Other }
 
+/** The papers a machine has to carry, each with a date it runs out. */
+enum class PaperKind { Registration, Insurance, Fitness, Permit, Pollution, Other }
+
 enum class MachineKind {
     Tractor, Harvester, Rotavator, Cultivator, Trolley, Thresher,
     Sprayer, Transplanter, PowerTiller, Baler, Leveller, Other,

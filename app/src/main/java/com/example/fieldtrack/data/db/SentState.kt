@@ -31,7 +31,7 @@ object SentState {
 
     /** Every table with a `syncState` column, which is every table the outbox feeds. */
     val TABLES = listOf(
-        "organisations", "memberships", "invites", "customers", "fields", "machines", "machine_finance",
+        "organisations", "memberships", "invites", "customers", "fields", "machines", "machine_finance", "machine_papers",
         "fuel_entries", "service_records", "payouts", "job_costs", "team_events",
         "breakdowns", "rates", "jobs", "job_events", "ledger_entries", "bookings",
     )

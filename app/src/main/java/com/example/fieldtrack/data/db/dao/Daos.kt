@@ -18,6 +18,7 @@ import com.example.fieldtrack.data.db.entity.JobEventEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.db.entity.MachinePaperEntity
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.entity.MembershipEntity
@@ -728,6 +729,23 @@ interface MachineDao {
     suspend fun findWithWork(orgId: String, id: String): MachineWithWork?
 
     @Upsert suspend fun upsertFinance(finance: MachineFinanceEntity)
+
+    @Upsert suspend fun upsertPaper(paper: MachinePaperEntity)
+
+    @Query("SELECT name FROM machines WHERE orgId = :orgId AND id = :machineId")
+    suspend fun findMachineName(orgId: String, machineId: String): String?
+
+    @Query("SELECT * FROM machine_papers WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY expiresDay IS NULL, expiresDay")
+    fun observePapers(orgId: String): Flow<List<MachinePaperEntity>>
+
+    @Query("SELECT * FROM machine_papers WHERE orgId = :orgId AND machineId = :machineId AND deletedAt IS NULL ORDER BY expiresDay IS NULL, expiresDay")
+    fun observePapersFor(orgId: String, machineId: String): Flow<List<MachinePaperEntity>>
+
+    @Query("SELECT * FROM machine_papers WHERE orgId = :orgId AND id = :id")
+    suspend fun findPaper(orgId: String, id: String): MachinePaperEntity?
+
+    @Query("SELECT * FROM machine_papers WHERE orgId = :orgId AND deletedAt IS NULL")
+    suspend fun papersOnce(orgId: String): List<MachinePaperEntity>
 
     @Query("SELECT * FROM machine_finance WHERE orgId = :orgId")
     fun observeFinance(orgId: String): Flow<List<MachineFinanceEntity>>
@@ -1672,6 +1690,12 @@ interface ExportDao {
     @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis")
     suspend fun payouts(orgId: String): List<PayoutEntity>
 
+    @Query("SELECT * FROM machine_papers WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY machineId, kind")
+    suspend fun papers(orgId: String): List<MachinePaperEntity>
+
+    @Query("SELECT * FROM machine_finance WHERE orgId = :orgId")
+    suspend fun finance(orgId: String): List<MachineFinanceEntity>
+
     @Query("SELECT * FROM job_costs WHERE orgId = :orgId ORDER BY atMillis")
     suspend fun jobCosts(orgId: String): List<JobCostEntity>
 
@@ -1693,6 +1717,7 @@ interface SampleDao {
     @Query("DELETE FROM fuel_entries WHERE orgId = :orgId") suspend fun fuel(orgId: String)
     @Query("DELETE FROM service_records WHERE orgId = :orgId") suspend fun services(orgId: String)
     @Query("DELETE FROM machine_finance WHERE orgId = :orgId") suspend fun finance(orgId: String)
+    @Query("DELETE FROM machine_papers WHERE orgId = :orgId") suspend fun papers(orgId: String)
     @Query("DELETE FROM payouts WHERE orgId = :orgId") suspend fun payouts(orgId: String)
     @Query("DELETE FROM job_costs WHERE orgId = :orgId") suspend fun jobCosts(orgId: String)
     @Query("DELETE FROM team_events WHERE orgId = :orgId") suspend fun teamEvents(orgId: String)
@@ -1708,7 +1733,7 @@ interface SampleDao {
     /** Every row the business owns, and the business. Callers wrap it in a transaction. */
     suspend fun wipe(orgId: String) {
         memberships(orgId); invites(orgId); customers(orgId); fields(orgId); machines(orgId); fuel(orgId)
-        services(orgId); finance(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
+        services(orgId); finance(orgId); papers(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
         rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); outbox(orgId); org(orgId)
     }
 }

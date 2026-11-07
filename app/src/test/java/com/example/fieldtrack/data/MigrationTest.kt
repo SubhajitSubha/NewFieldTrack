@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(22, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(23, c.getInt(0))
         }
     }
 
@@ -466,5 +466,22 @@ class MigrationTest {
         db.query("SELECT displayName, replacesPersonId FROM memberships").use { c ->
             assertTrue(c.moveToFirst()); assertEquals("Gurmeet", c.getString(0)); assertTrue(c.isNull(1))
         }
+    }
+
+    @Test
+    fun `machine finance gains what a machine is worth, and papers start empty`() {
+        create(22) {
+            it.execSQL(
+                "INSERT INTO machine_finance (id, orgId, monthlyMinor, hoursPerYear, updatedAt, syncState) " +
+                    "VALUES ('m1', 'o1', 500000, 600, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT monthlyMinor, hoursPerYear, purchasedDay, purchaseMinor, resaleMinor, lifeYears FROM machine_finance").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(500_000L, c.getLong(0)); assertEquals(600, c.getInt(1))
+            assertTrue(c.isNull(2) && c.isNull(3) && c.isNull(4) && c.isNull(5))
+        }
+        db.query("SELECT COUNT(*) FROM machine_papers").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
     }
 }

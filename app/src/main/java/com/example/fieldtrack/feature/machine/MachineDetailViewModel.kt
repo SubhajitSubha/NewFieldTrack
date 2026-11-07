@@ -7,6 +7,12 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BreakdownCategory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.example.fieldtrack.data.costing.Assets
+import com.example.fieldtrack.data.costing.PaperStatus
+import com.example.fieldtrack.data.costing.Papers
+import com.example.fieldtrack.data.db.PaperKind
+import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.db.entity.MachinePaperEntity
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.db.MachineStatus
 import com.example.fieldtrack.data.db.entity.JobEntity
@@ -42,6 +48,15 @@ data class MachineJobRow(
     val live: Boolean,
 )
 
+/** One paper the machine carries, with where it stands against the calendar. */
+data class PaperRow(
+    val id: String,
+    val kind: PaperKind,
+    val number: String?,
+    val expiresDay: Long?,
+    val status: PaperStatus,
+)
+
 data class MachineDetailState(
     val loaded: Boolean = false,
     val exists: Boolean = false,
@@ -63,6 +78,10 @@ data class MachineDetailState(
     val recentJobs: List<MachineJobRow> = emptyList(),
     val canEdit: Boolean = false,
     val canSeeMoney: Boolean = true,
+    val papers: List<PaperRow> = emptyList(),
+    /** Whether this person may see and set what the machine is worth (what the business pays for it). */
+    val canSeeWorth: Boolean = false,
+    val worthMinor: Long? = null,
 ) {
     val serviceOverdue: Boolean get() = serviceInHours != null && serviceInHours <= 0
 }
@@ -91,8 +110,22 @@ class MachineDetailViewModel(
                 app.directoryRepository.observeCustomers(s.orgId),
                 app.teamRepository.observeEveryone(s.orgId),
                 app.workRepository.observeBreakdowns(s.orgId, machineId),
-            ) { customers, team, breakdowns -> Triple(customers, team, breakdowns) },
-        ) { machine, jobs, earned, diesel, (customers, team, breakdowns) ->
+                combine(
+                    app.directoryRepository.observePapersFor(s.orgId, machineId),
+                    app.directoryRepository.observeMachineFinance(s.orgId),
+                ) { papers, finance -> papers to finance },
+            ) { customers, team, breakdowns, extra -> arrayOf(customers, team, breakdowns, extra) },
+        ) { machine, jobs, earned, diesel, parts ->
+            @Suppress("UNCHECKED_CAST")
+            val customers = parts[0] as List<com.example.fieldtrack.data.db.entity.CustomerEntity>
+            @Suppress("UNCHECKED_CAST")
+            val team = parts[1] as List<com.example.fieldtrack.data.db.entity.MembershipEntity>
+            @Suppress("UNCHECKED_CAST")
+            val breakdowns = parts[2] as List<com.example.fieldtrack.data.db.entity.BreakdownEntity>
+            @Suppress("UNCHECKED_CAST")
+            val extra = parts[3] as Pair<List<MachinePaperEntity>, List<MachineFinanceEntity>>
+            val today = java.time.LocalDate.now(com.example.fieldtrack.data.region.BusinessClock.zone).toEpochDay()
+            val warn = app.reminderSettings.paperWarnDays.value
             if (machine == null) return@combine MachineDetailState(loaded = true, exists = false)
             val names = customers.associate { it.id to it.name }
             val live = jobs.firstOrNull { it.status.name == "Running" || it.status.name == "Paused" }
@@ -118,6 +151,11 @@ class MachineDetailViewModel(
                 recentJobs = jobs.map { it.asRow(names[it.customerId].orEmpty()) },
                 canEdit = Capability.EditMachines in s.can,
                 canSeeMoney = s.canSeeMoney,
+                papers = extra.first.map { PaperRow(it.id, it.kind, it.number, it.expiresDay, Papers.status(it, today, warn)) },
+                canSeeWorth = Capability.SeePeopleCost in s.can,
+                worthMinor = if (Capability.SeePeopleCost in s.can) {
+                    Assets.bookValue(extra.second.firstOrNull { it.id == machineId }, today)
+                } else null,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MachineDetailState())

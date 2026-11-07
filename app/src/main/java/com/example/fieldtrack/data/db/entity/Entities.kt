@@ -17,6 +17,7 @@ import com.example.fieldtrack.data.db.JobEventType
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.LedgerKind
 import com.example.fieldtrack.data.db.MachineKind
+import com.example.fieldtrack.data.db.PaperKind
 import com.example.fieldtrack.data.db.MachineStatus
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
@@ -395,6 +396,40 @@ data class MachineFinanceEntity(
      */
     val hoursPerYear: Int? = null,
     val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    /**
+     * What the machine is worth on the books: when it was bought (an epoch day), for how
+     * much, what it should fetch at the end of its working life, and how many years that
+     * is. All optional; with the first three the asset register can say what it is worth
+     * today.
+     */
+    val purchasedDay: Long? = null,
+    val purchaseMinor: Long? = null,
+    val resaleMinor: Long? = null,
+    val lifeYears: Int? = null,
+)
+
+/**
+ * One paper a machine carries: its registration, insurance, fitness, permit or pollution
+ * certificate, with its number and the day it runs out.
+ *
+ * Seen by the whole team, since a driver is the one stopped at a checkpost. The photo is
+ * a [photoId] (see the photo store), never a path on somebody's phone.
+ */
+@Entity(tableName = "machine_papers", indices = [Index("orgId"), Index("machineId")])
+@Serializable
+data class MachinePaperEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val machineId: String,
+    val kind: PaperKind,
+    val number: String? = null,
+    /** The last day it is valid, as an epoch day in the business's own calendar. */
+    val expiresDay: Long? = null,
+    val note: String? = null,
+    val photoId: String? = null,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
     val syncState: SyncState = SyncState.Pending,
 )
 

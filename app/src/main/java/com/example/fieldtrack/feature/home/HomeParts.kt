@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import com.example.fieldtrack.feature.machine.labelRes
 import com.example.fieldtrack.designsystem.component.FtFitText
 import com.example.fieldtrack.data.repository.ClockCheck
 import com.example.fieldtrack.data.db.MachineKind
@@ -920,6 +921,17 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
             title = pluralStringResource(R.plurals.home_alert_unpriced, alert.count, alert.count)
             note = stringResource(R.string.home_alert_unpriced_note)
             onClick = actions::moneyOut
+        }
+        is HomeAlert.PaperDue -> {
+            tone = if (alert.daysLeft < 0) Tone.Stop else Tone.Wait
+            icon = FieldTrackIcons.Bill
+            title = stringResource(R.string.home_alert_paper, stringResource(alert.kind.labelRes), alert.machineName)
+            note = when {
+                alert.daysLeft < 0 -> pluralStringResource(R.plurals.paper_expired, (-alert.daysLeft).toInt(), (-alert.daysLeft).toInt())
+                alert.daysLeft == 0L -> stringResource(R.string.paper_last_day)
+                else -> pluralStringResource(R.plurals.paper_runs_out, alert.daysLeft.toInt(), alert.daysLeft.toInt())
+            }
+            onClick = { actions.machine(alert.machineId) }
         }
         is HomeAlert.ServiceSoon -> {
             tone = Tone.Calm

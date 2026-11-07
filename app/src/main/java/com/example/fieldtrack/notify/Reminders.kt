@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 
 /** The three things the app can tell somebody about without being opened. */
-enum class ReminderKind { Plan, Dues, Service }
+enum class ReminderKind { Plan, Dues, Service, Papers }
 
 /**
  * Which reminders this phone gives, and when. Per phone and per person: a driver wants
@@ -48,10 +48,18 @@ class ReminderSettings(context: Context) {
     private val on = ReminderKind.entries.associateWith { MutableStateFlow(prefs.getBoolean(it.name, false)) }
     private val _evening = MutableStateFlow(prefs.getInt(KEY_EVENING, DEFAULT_EVENING))
     private val _morning = MutableStateFlow(prefs.getInt(KEY_MORNING, DEFAULT_MORNING))
+    private val _paperDays = MutableStateFlow(prefs.getInt(KEY_PAPER_DAYS, com.example.fieldtrack.data.costing.Papers.DEFAULT_WARN_DAYS))
 
     fun enabled(kind: ReminderKind): StateFlow<Boolean> = on.getValue(kind).asStateFlow()
     val eveningHour: StateFlow<Int> get() = _evening.asStateFlow()
     val morningHour: StateFlow<Int> get() = _morning.asStateFlow()
+
+    /** How many days before a machine's paper runs out it starts being mentioned. */
+    val paperWarnDays: StateFlow<Int> get() = _paperDays.asStateFlow()
+
+    fun setPaperWarnDays(days: Int) {
+        prefs.edit().putInt(KEY_PAPER_DAYS, days).apply(); _paperDays.value = days
+    }
 
     fun isOn(kind: ReminderKind) = on.getValue(kind).value
     val any: Boolean get() = ReminderKind.entries.any { isOn(it) }
@@ -76,6 +84,7 @@ class ReminderSettings(context: Context) {
         const val PREFS = "fieldtrack.reminders"
         private const val KEY_EVENING = "eveningHour"
         private const val KEY_MORNING = "morningHour"
+        private const val KEY_PAPER_DAYS = "paperDays"
         const val DEFAULT_EVENING = 19
         const val DEFAULT_MORNING = 8
         val EVENING_HOURS = listOf(17, 18, 19, 20, 21)
@@ -92,6 +101,12 @@ object ReminderText {
     fun dues(context: Context, farmers: Int): Pair<String, String>? =
         if (farmers <= 0) null
         else context.getString(R.string.remind_dues_title) to context.resources.getQuantityString(R.plurals.remind_dues_body, farmers, farmers)
+
+    fun papers(context: Context, count: Int, firstMachine: String?): Pair<String, String>? = when {
+        count <= 0 -> null
+        count == 1 && firstMachine != null -> context.getString(R.string.remind_papers_title) to context.getString(R.string.remind_papers_one, firstMachine)
+        else -> context.getString(R.string.remind_papers_title) to context.resources.getQuantityString(R.plurals.remind_papers_many, count, count)
+    }
 
     fun service(context: Context, machines: List<String>): Pair<String, String>? = when {
         machines.isEmpty() -> null
@@ -123,8 +138,19 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
             ReminderKind.Dues -> if (Capability.SeeMoney !in s.can) null else ReminderText.dues(context, farmersToChase(app, s, now))
             ReminderKind.Service ->
                 if (Capability.EditMachines !in s.can) null else ReminderText.service(context, machinesDueForService(app, s))
+            ReminderKind.Papers ->
+                if (Capability.EditMachines !in s.can) null else papersMessage(context, app, s)
         } ?: return
         Reminders.post(context, kind, message.first, message.second)
+    }
+
+    private suspend fun papersMessage(context: Context, app: FieldFlowApplication, s: Session): Pair<String, String>? {
+        val today = java.time.LocalDate.now(com.example.fieldtrack.data.region.BusinessClock.zone).toEpochDay()
+        val due = com.example.fieldtrack.data.costing.Papers.needingAttention(
+            app.db.machineDao().papersOnce(s.orgId), today, app.reminderSettings.paperWarnDays.value,
+        )
+        val first = due.firstOrNull()?.let { paper -> app.db.machineDao().findMachineName(s.orgId, paper.machineId) }
+        return ReminderText.papers(context, due.size, first)
     }
 
     private suspend fun tomorrowsJobs(app: FieldFlowApplication, s: Session, now: Long): Int {

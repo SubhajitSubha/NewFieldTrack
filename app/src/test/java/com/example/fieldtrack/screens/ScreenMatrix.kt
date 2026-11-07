@@ -733,7 +733,14 @@ abstract class ScreenMatrix(
         // What a machine costs: a loan on the Swaraj, and enough finished hours on
         // it that an hour's cost is worth saying. Elapsed time is set directly —
         // a test that really waited out twenty-five hours would not finish.
-        dir.setMachineFinance(ORG, owner, swaraj, 12_000, 700)
+        val calendarDay = java.time.LocalDate.now().toEpochDay()
+        dir.setMachineFinance(
+            ORG, owner, swaraj, 12_000, 700,
+            purchasedDay = calendarDay - 3 * 365, purchaseMinor = 6_500_000_00, resaleMinor = 1_000_000_00, lifeYears = 10,
+        )
+        dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Insurance, "POL-2291", calendarDay + 12, null)
+        dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Fitness, null, calendarDay - 4, "Renew at the RTO")
+        dir.savePaper(ORG, owner, swaraj, com.example.fieldtrack.data.db.PaperKind.Registration, "PB 10 AB 1234", calendarDay + 900, null)
         db.execSQL("UPDATE jobs SET elapsedSeconds = ${9 * 3600} WHERE id = '$done'")
         finishedJob(ramesh, swaraj, "Rotavator", BillingMode.PerAcre, MeasureUnit.Bigha, 1_000, 10.0, 8, daysAgo = 9)
         finishedJob(ramesh, swaraj, "Rotavator", BillingMode.PerAcre, MeasureUnit.Bigha, 1_000, 12.0, 9, daysAgo = 12)
@@ -834,6 +841,9 @@ abstract class ScreenMatrix(
         "new-machine" to Routes.NEW_MACHINE,
         "machine" to "machines/${ids.machineId}",
         "edit-machine" to "machines/${ids.machineId}/edit",
+        "paper-new" to "machines/${ids.machineId}/papers/new",
+        "worth" to "machines/${ids.machineId}/worth",
+        "assets" to Routes.ASSETS,
         "fuel" to "machines/${ids.machineId}/fuel",
         "machine-profit" to "machines/${ids.machineId}/made",
         "loss-job" to "jobs/${ids.lossJobId}",

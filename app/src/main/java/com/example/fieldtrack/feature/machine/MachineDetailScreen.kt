@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,6 +81,8 @@ fun MachineDetailScreen(
     onService: () -> Unit,
     onBreakdown: () -> Unit,
     onWhatItMade: () -> Unit,
+    onPaper: (String?) -> Unit = {},
+    onWorth: (() -> Unit)? = null,
     onSaveBreakdown: (BreakdownCategory, String?) -> Unit,
     onDismissReport: () -> Unit,
     onServiceDescription: (String) -> Unit,
@@ -237,6 +240,19 @@ fun MachineDetailScreen(
             }
 
         }, secondary = {
+            PapersCard(papers = state.papers, canEdit = state.canEdit, onOpen = onPaper)
+            if (onWorth != null) {
+                Spacer(Modifier.height(11.dp))
+                FtCard(padding = 0.dp) {
+                    FtListRow(
+                        title = stringResource(R.string.worth_row),
+                        subtitle = state.worthMinor?.let { money(it) },
+                        showChevron = true,
+                        onClick = onWorth,
+                    )
+                }
+                Spacer(Modifier.height(11.dp))
+            }
             FtSectionLabel(stringResource(R.string.machine_recent_jobs))
             if (state.recentJobs.isEmpty()) {
                 if (state.loaded) {

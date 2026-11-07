@@ -166,6 +166,12 @@ import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
 import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.machine.AssetRegisterScreen
+import com.example.fieldtrack.feature.machine.AssetRegisterViewModel
+import com.example.fieldtrack.feature.machine.PaperEditScreen
+import com.example.fieldtrack.feature.machine.PaperEditViewModel
+import com.example.fieldtrack.feature.machine.WorthScreen
+import com.example.fieldtrack.feature.machine.WorthViewModel
 import com.example.fieldtrack.feature.help.HelpScreen
 import com.example.fieldtrack.feature.help.TourScreen
 import com.example.fieldtrack.feature.help.contactSupport
@@ -259,6 +265,9 @@ internal object Routes {
     const val EXPORT = "more/export"
     const val REMINDERS = "more/reminders"
     const val HELP = "more/help"
+    const val ASSETS = "more/assets"
+    const val PAPER = "machines/{machineId}/papers/{paperId}"
+    const val WORTH = "machines/{machineId}/worth"
     const val TOUR = "tour"
     const val RATES = "more/rates"
     const val PRICE = "more/price"
@@ -937,6 +946,48 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(Routes.ASSETS) {
+                val vm: AssetRegisterViewModel = appViewModel { AssetRegisterViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AssetRegisterScreen(
+                    state = state,
+                    onOpen = { id -> navController.navigate("machines/$id/worth") },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PAPER) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val paperId = entry.arguments?.getString("paperId")?.takeIf { it != "new" }
+                val vm: PaperEditViewModel = appViewModel(key = "$machineId/$paperId") { PaperEditViewModel(it, machineId, paperId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PaperEditScreen(
+                    state = state,
+                    onKind = vm::setKind,
+                    onNumber = vm::setNumber,
+                    onExpires = vm::setExpires,
+                    onNote = vm::setNote,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onRemove = { vm.remove { navController.popBackStack() } },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.WORTH) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: WorthViewModel = appViewModel(key = machineId) { WorthViewModel(it, machineId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                WorthScreen(
+                    state = state,
+                    onDay = vm::setDay,
+                    onPrice = vm::setPrice,
+                    onResale = vm::setResale,
+                    onLife = vm::setLife,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
             composable(Routes.TOUR) {
                 TourScreen(onDone = { navController.popBackStack() })
             }
@@ -973,6 +1024,8 @@ private fun MainNavHost(navController: NavHostController) {
                 val plan by settings.enabled(ReminderKind.Plan).collectAsStateWithLifecycle()
                 val dues by settings.enabled(ReminderKind.Dues).collectAsStateWithLifecycle()
                 val service by settings.enabled(ReminderKind.Service).collectAsStateWithLifecycle()
+                val papers by settings.enabled(ReminderKind.Papers).collectAsStateWithLifecycle()
+                val paperDays by settings.paperWarnDays.collectAsStateWithLifecycle()
                 val evening by settings.eveningHour.collectAsStateWithLifecycle()
                 val morning by settings.morningHour.collectAsStateWithLifecycle()
                 val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
@@ -983,7 +1036,9 @@ private fun MainNavHost(navController: NavHostController) {
                     blocked = !app.workClockNotifier.canPost()
                 }
                 RemindersScreen(
-                    on = mapOf(ReminderKind.Plan to plan, ReminderKind.Dues to dues, ReminderKind.Service to service),
+                    on = mapOf(ReminderKind.Plan to plan, ReminderKind.Dues to dues, ReminderKind.Service to service, ReminderKind.Papers to papers),
+                    paperDays = paperDays,
+                    onPaperDays = settings::setPaperWarnDays,
                     eveningHour = evening,
                     morningHour = morning,
                     canDues = session?.let { Capability.SeeMoney in it.can } == true,
@@ -1721,6 +1776,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onWhatItMade = {
                         navController.navigate("machines/$machineId/made")
                     },
+                    onPaper = { paperId -> navController.navigate("machines/$machineId/papers/${paperId ?: "new"}") },
+                    onWorth = if (state.canSeeWorth) ({ navController.navigate("machines/$machineId/worth") }) else null,
                     onSaveBreakdown = vm::saveBreakdown,
                     onDismissReport = vm::dismissReport,
                     onServiceDescription = vm::setServiceDescription,
@@ -1810,6 +1867,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onExport = { navController.navigate(Routes.EXPORT) },
                     onReminders = { navController.navigate(Routes.REMINDERS) },
                     onHelp = { navController.navigate(Routes.HELP) },
+                    onAssets = if (state.canSeePeopleCost) ({ navController.navigate(Routes.ASSETS) }) else null,
                     onRates = { navController.navigate(Routes.RATES) },
                     onSearch = { navController.navigate(Routes.SEARCH) },
                     onPrice = { navController.navigate(Routes.PRICE) },

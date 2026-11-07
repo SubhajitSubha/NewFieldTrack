@@ -15,6 +15,8 @@ import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.db.entity.MachinePaperEntity
+import com.example.fieldtrack.data.db.PaperKind
 import com.example.fieldtrack.data.billing.JobTerms
 import com.example.fieldtrack.data.costing.Costing
 import kotlinx.coroutines.flow.combine
@@ -307,10 +309,18 @@ class DirectoryRepository(
         machineId: String,
         monthlyMinor: Long?,
         hoursPerYear: Int?,
+        /** What it is worth on the books; see [com.example.fieldtrack.data.costing.Assets]. */
+        purchasedDay: Long? = null,
+        purchaseMinor: Long? = null,
+        resaleMinor: Long? = null,
+        lifeYears: Int? = null,
     ) {
         can.require(Capability.EditMachines)
         can.require(Capability.SeePeopleCost)
         require(monthlyMinor == null || monthlyMinor >= 0) { "A loan instalment is not negative" }
+        require(purchaseMinor == null || purchaseMinor >= 0) { "A price is not negative" }
+        require(resaleMinor == null || resaleMinor >= 0) { "A resale value is not negative" }
+        require(lifeYears == null || lifeYears in 1..60) { "A machine lasts between one and sixty years" }
         require(hoursPerYear == null || hoursPerYear in 0..MAX_HOURS_PER_YEAR) {
             "A machine cannot work more hours than there are in a year"
         }
@@ -321,6 +331,10 @@ class DirectoryRepository(
                 orgId = orgId,
                 monthlyMinor = monthlyMinor?.takeIf { it > 0 },
                 hoursPerYear = hoursPerYear?.takeIf { it > 0 },
+                purchasedDay = purchasedDay,
+                purchaseMinor = purchaseMinor?.takeIf { it > 0 },
+                resaleMinor = resaleMinor?.takeIf { it > 0 },
+                lifeYears = lifeYears,
                 updatedAt = clock.now(),
             )
             machines.upsertFinance(finance)
@@ -328,6 +342,58 @@ class DirectoryRepository(
                 orgId, SyncQueue.TABLE_MACHINE_FINANCE, finance.id,
                 OutboxJson.encodeToString(finance),
             )
+        }
+    }
+
+    // ------------------------------------------------------------------- papers
+
+    fun observePapers(orgId: String): Flow<List<MachinePaperEntity>> = machines.observePapers(orgId)
+
+    fun observePapersFor(orgId: String, machineId: String): Flow<List<MachinePaperEntity>> =
+        machines.observePapersFor(orgId, machineId)
+
+    suspend fun findPaper(orgId: String, id: String): MachinePaperEntity? = machines.findPaper(orgId, id)
+
+    /** Writes a paper, new when [paperId] is null and otherwise a correction of that one. */
+    suspend fun savePaper(
+        orgId: String,
+        can: Capabilities,
+        machineId: String,
+        kind: PaperKind,
+        number: String?,
+        expiresDay: Long?,
+        note: String?,
+        photoId: String? = null,
+        paperId: String? = null,
+    ): String {
+        can.require(Capability.EditMachines)
+        val paper = MachinePaperEntity(
+            id = paperId ?: ids.newId(),
+            orgId = orgId,
+            machineId = machineId,
+            kind = kind,
+            number = number?.trim()?.ifBlank { null },
+            expiresDay = expiresDay,
+            note = note?.trim()?.ifBlank { null },
+            photoId = photoId,
+            updatedAt = clock.now(),
+        )
+        db.withTransaction {
+            if (machines.find(orgId, machineId) == null) return@withTransaction
+            machines.upsertPaper(paper)
+            syncQueue.enqueueUpsert(orgId, SyncQueue.TABLE_MACHINE_PAPERS, paper.id, OutboxJson.encodeToString(paper))
+        }
+        return paper.id
+    }
+
+    /** Takes a paper off the machine. Kept as a deleted row so every phone hears about it. */
+    suspend fun removePaper(orgId: String, can: Capabilities, paperId: String) {
+        can.require(Capability.EditMachines)
+        db.withTransaction {
+            val paper = machines.findPaper(orgId, paperId) ?: return@withTransaction
+            val gone = paper.copy(deletedAt = clock.now(), updatedAt = clock.now())
+            machines.upsertPaper(gone)
+            syncQueue.enqueueUpsert(orgId, SyncQueue.TABLE_MACHINE_PAPERS, gone.id, OutboxJson.encodeToString(gone))
         }
     }
 

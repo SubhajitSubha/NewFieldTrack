@@ -55,6 +55,17 @@ sealed interface HomeAlert {
         override val rank get() = 0
     }
 
+    /** A paper a machine has to carry is about to run out, or has. */
+    data class PaperDue(
+        val machineId: String,
+        val machineName: String,
+        val kind: com.example.fieldtrack.data.db.PaperKind,
+        /** Negative once it has run out. */
+        val daysLeft: Long,
+    ) : HomeAlert {
+        override val rank get() = if (daysLeft < 0) 1 else 3
+    }
+
     data class ServiceOverdue(
         val machineId: String,
         val machineName: String,
@@ -130,6 +141,20 @@ const val OVERDUE_DAYS = 30
 const val SERVICE_WARNING_HOURS = 50.0
 
 private const val DAY_MILLIS = 24L * 60 * 60 * 1000
+
+/** The papers worth saying something about, one row each, with the machine named. */
+fun paperAlerts(
+    papers: List<com.example.fieldtrack.data.db.entity.MachinePaperEntity>,
+    machines: List<MachineEntity>,
+    warnDays: Int,
+): List<HomeAlert.PaperDue> {
+    val today = java.time.LocalDate.now(BusinessClock.zone).toEpochDay()
+    val names = machines.associateBy { it.id }
+    return com.example.fieldtrack.data.costing.Papers.needingAttention(papers, today, warnDays).mapNotNull { paper ->
+        val machine = names[paper.machineId] ?: return@mapNotNull null
+        HomeAlert.PaperDue(machine.id, machine.name, paper.kind, (paper.expiresDay ?: return@mapNotNull null) - today)
+    }
+}
 
 /** Breakdowns and services, for whichever machines this person looks after. */
 fun machineAlerts(

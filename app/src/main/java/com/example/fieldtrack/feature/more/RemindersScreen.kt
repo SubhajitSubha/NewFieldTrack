@@ -60,6 +60,8 @@ fun RemindersScreen(
     push: Map<PushKind, Boolean>,
     canPayments: Boolean,
     onPush: (PushKind, Boolean) -> Unit,
+    paperDays: Int,
+    onPaperDays: (Int) -> Unit,
     onEvening: (Int) -> Unit,
     onMorning: (Int) -> Unit,
     onBack: () -> Unit,
@@ -71,6 +73,7 @@ fun RemindersScreen(
         add(ReminderKind.Plan to (R.string.remind_plan_row to R.string.remind_plan_note))
         if (canDues) add(ReminderKind.Dues to (R.string.remind_dues_row to R.string.remind_dues_note))
         if (canService) add(ReminderKind.Service to (R.string.remind_service_row to R.string.remind_service_note))
+        if (canService) add(ReminderKind.Papers to (R.string.remind_papers_row to R.string.remind_papers_note))
     }
     Column(modifier.fillMaxSize().background(colors.paper)) {
         FtTopBar(
@@ -132,7 +135,15 @@ fun RemindersScreen(
                     }
                 }
             }
-            if (on[ReminderKind.Dues] == true || on[ReminderKind.Service] == true) {
+            if (on[ReminderKind.Papers] == true) {
+                FtSectionLabel(stringResource(R.string.remind_papers_window), Modifier.padding(top = 8.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.example.fieldtrack.data.costing.Papers.WARN_CHOICES.forEach { days ->
+                        FtChip(label = stringResource(R.string.remind_papers_days, days), selected = paperDays == days, onClick = { onPaperDays(days) })
+                    }
+                }
+            }
+            if (on[ReminderKind.Dues] == true || on[ReminderKind.Service] == true || on[ReminderKind.Papers] == true) {
                 FtSectionLabel(stringResource(R.string.remind_morning), Modifier.padding(top = 8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ReminderSettings.MORNING_HOURS.forEach { hour ->

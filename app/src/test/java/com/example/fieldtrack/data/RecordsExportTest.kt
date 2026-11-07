@@ -77,7 +77,7 @@ class RecordsExportTest {
         seed()
         val zip = RecordsExport(h.db).build(org, "Harpal Agro", ExportPeriod.Everything, ExportScope(money = true, peopleCost = true), dir, millis("2026-06-01"), ZoneOffset.UTC, 4)
         val names = ZipFile(zip).use { z -> z.entries().toList().map { it.name } }
-        assertTrue(names.containsAll(listOf("README.txt", "customers.csv", "jobs.csv", "money.csv", "machines.csv", "team.csv", "pay.csv")))
+        assertTrue(names.containsAll(listOf("README.txt", "customers.csv", "jobs.csv", "money.csv", "machines.csv", "papers.csv", "team.csv", "pay.csv")))
         val money = read(zip, "money.csv").trim().lines()
         assertEquals("Date,Customer,What,Amount,How paid,Note", money[0])
         assertEquals("2025-06-10,\"Balwinder, \"\"Bali\"\" Singh\",Charge,5000.00,,", money[1])
