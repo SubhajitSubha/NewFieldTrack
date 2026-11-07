@@ -128,6 +128,11 @@ fun MoreScreen(
     onEditBusiness: (() -> Unit)?,
     onBackup: () -> Unit,
     onDisplay: () -> Unit,
+    /** Null where the phone has nothing to lock with is not a case: the screen explains it. */
+    onSecurity: (() -> Unit)? = null,
+    onExport: (() -> Unit)? = null,
+    onReminders: (() -> Unit)? = null,
+    onHelp: (() -> Unit)? = null,
     onRates: () -> Unit,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
@@ -180,8 +185,11 @@ fun MoreScreen(
                             text = listOf(
                                 state.businessName.takeIf { it != state.displayName },
                                 stringResource(
-                                    if (state.role == MemberRole.Owner) R.string.more_owner
-                                    else R.string.more_operator
+                                    when (state.role) {
+                                        MemberRole.Owner -> R.string.more_owner
+                                        MemberRole.Viewer -> R.string.more_viewer
+                                        else -> R.string.more_operator
+                                    }
                                 ),
                             ).filterNotNull().filter { it.isNotBlank() }.joinToString(" · "),
                             style = FieldTrackTheme.type.caption,
@@ -358,6 +366,46 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onDisplay,
                 )
+                if (onHelp != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.help_title),
+                        subtitle = stringResource(R.string.help_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Search, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onHelp,
+                    )
+                }
+                if (onReminders != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.remind_title),
+                        subtitle = stringResource(R.string.remind_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Bell, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onReminders,
+                    )
+                }
+                if (onSecurity != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.security_title),
+                        subtitle = stringResource(R.string.security_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Lock, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onSecurity,
+                    )
+                }
+                if (onExport != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.export_title),
+                        subtitle = stringResource(R.string.export_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Report, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onExport,
+                    )
+                }
                 FtRowDivider()
                 FtListRow(
                     title = stringResource(R.string.more_backup),

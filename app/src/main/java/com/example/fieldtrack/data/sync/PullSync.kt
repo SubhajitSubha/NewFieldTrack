@@ -40,7 +40,12 @@ class PullSync(
      * data and the project's quota to learn nothing.
      */
     private val minIntervalMillis: Long = 10 * 60_000L,
+    /** How often every collection is asked regardless of what the marker says. */
+    private val sweepEveryMillis: Long = 30 * 60_000L,
 ) {
+
+    /** When each business was last read in full, in this process. A restart reads in full once. */
+    private val lastSweep = mutableMapOf<String, Long>()
 
     /** Returns how many rows were written. [force] ignores the interval. */
     suspend fun pull(orgId: String, force: Boolean = false): Int {
@@ -81,7 +86,18 @@ class PullSync(
                 marks.markSeeded(orgId)
             }
 
-            val page = restore.fetchChangesSince(orgId, marks.watermark(orgId))
+            // One read to find out whether anything changed at all; the dozen-odd collection
+            // queries are only run when it did, or when the answer could not be had, or every
+            // so often anyway in case a writer did not leave the marker (an older version).
+            val mark = marks.watermark(orgId)
+            val sweepDue = now - (lastSweep[orgId] ?: 0L) >= sweepEveryMillis
+            if (!mustSeed && !sweepDue && restore.changedSince(orgId, mark) == false) {
+                marks.recordSuccess(orgId, now)
+                return 0
+            }
+            lastSweep[orgId] = now
+
+            val page = restore.fetchChangesSince(orgId, mark)
             written += applier.apply(page.rows)
             // Only after the rows are safely down. Moving the mark first and
             // failing to write would skip those rows for good.

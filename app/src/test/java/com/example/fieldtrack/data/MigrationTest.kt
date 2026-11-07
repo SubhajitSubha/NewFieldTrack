@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(21, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(22, c.getInt(0))
         }
     }
 
@@ -450,6 +450,21 @@ class MigrationTest {
         }
         db.query("SELECT amountMinor, recoversAdvanceMinor FROM payouts").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0)); assertEquals(0L, c.getLong(1))
+        }
+    }
+
+    @Test
+    fun `members keep their place and replace nobody`() {
+        create(21) {
+            it.execSQL(
+                "INSERT INTO memberships (id, orgId, personId, displayName, role, canSeeMoney, canAddCustomers, " +
+                    "canCloseBills, canEditTeam, canEditMachines, canPayOut, canSeePeopleCost, canPlanWork, active, joinedAt, " +
+                    "updatedAt, syncState, unsentCount) VALUES ('o1_p1', 'o1', 'p1', 'Gurmeet', 'Operator', 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 'Synced', 0)"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT displayName, replacesPersonId FROM memberships").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals("Gurmeet", c.getString(0)); assertTrue(c.isNull(1))
         }
     }
 }

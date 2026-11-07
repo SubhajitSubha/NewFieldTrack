@@ -142,6 +142,17 @@ class FirestoreRestore(
             )
         }
 
+    override suspend fun changedSince(orgId: String, since: Long): Boolean? = try {
+        withTimeout(TIMEOUT_MILLIS) {
+            val marker = firestore.collection(ORGS).document(orgId)
+                .collection(SyncQueue.META).document(SyncQueue.CHANGED)
+                .get(Source.SERVER).await()
+            marker.getTimestamp("at")?.toDate()?.time?.let { it > since }
+        }
+    } catch (failure: Exception) {
+        null
+    }
+
     override suspend fun isAccountDisabled(personId: String): Boolean =
         withTimeout(TIMEOUT_MILLIS) {
             val snapshot = firestore.collection(PEOPLE).document(personId).get(Source.SERVER).await()

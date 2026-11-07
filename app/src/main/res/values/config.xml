@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Where "Contact support" and feedback go. Empty until there is a real address: with
+        none, those rows are simply not shown, rather than writing to somebody else's
+        inbox. Set before release (see the release list in ROADMAP.md).
+    -->
+    <string name="support_email" translatable="false"></string>
+</resources>

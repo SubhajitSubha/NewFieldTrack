@@ -101,6 +101,22 @@ interface SyncTransport {
      * Default does nothing, for builds with nowhere to send it.
      */
     suspend fun reportUnsent(orgId: String, personId: String, count: Int, at: Long) = Unit
+
+    /**
+     * Asks the server to delete this person's account and, for the businesses [ownedAlone]
+     * names (theirs alone, nobody else to run them), the business itself.
+     *
+     * A request, not a deletion: nothing on a handset may delete a business, and what is
+     * written here is picked up and carried out where the data lives. True when the
+     * server has the request. Default says no, for builds with nowhere to send it.
+     */
+    suspend fun requestAccountDeletion(personId: String, orgIds: List<String>, ownedAlone: List<String>, at: Long): Boolean = false
+
+    /**
+     * Tells the server how to reach this phone with an instant notification, and which
+     * kinds it wants. A null [token] removes the phone. Best effort; true when it landed.
+     */
+    suspend fun registerPush(personId: String, deviceId: String, token: String?, wants: Map<String, Boolean>, at: Long): Boolean = false
 }
 
 /** Reads an outbox row as the change it represents. */

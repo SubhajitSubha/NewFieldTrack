@@ -45,6 +45,8 @@ data class MemberState(
     val jobCount: Int = 0,
     val totalSeconds: Long = 0,
     val broughtInMinor: Long = 0,
+    /** What this person has been advanced and not yet settled, for whoever may see money. */
+    val advanceOwedMinor: Long = 0,
     /** False for anyone who may not manage the team, and for your own record. */
     val editable: Boolean = false,
     val isYou: Boolean = false,
@@ -152,7 +154,11 @@ class MemberViewModel(
                     canCloseBills = member.canCloseBills,
                     jobCount = billed.size,
                     totalSeconds = jobs.sumOf { job -> job.elapsedSeconds },
-                    broughtInMinor = billed.sumOf { job -> job.amountMinor },
+                    // What the business earned off work this person did as the operator: a
+                    // job shared with others is not credited in full to each of them.
+                    broughtInMinor = billed.filter { job -> job.operatorPersonId == member.personId }
+                        .sumOf { job -> job.amountMinor },
+                    advanceOwedMinor = app.ledgerRepository.observeAdvanceOutstanding(s.orgId, member.personId).first(),
                     isYou = member.personId == s.personId,
                     // Your own access is not editable from here: an owner who could
                     // switch off their own permissions would lock themselves out.

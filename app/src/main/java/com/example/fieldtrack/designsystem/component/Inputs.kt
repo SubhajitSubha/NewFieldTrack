@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
@@ -112,7 +114,12 @@ fun FtTextField(
                     singleLine = true,
                     cursorBrush = SolidColor(colors.primary),
                     keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                    modifier = Modifier.fillMaxWidth(),
+                    // The label is drawn above and the box says nothing of its own, so a screen
+                    // reader would announce an unnamed edit box. Give it the name a sighted
+                    // person reads off the screen.
+                    modifier = Modifier.fillMaxWidth().semantics {
+                        (label ?: placeholder.takeIf { it.isNotEmpty() })?.let { contentDescription = it }
+                    },
                 )
             }
             if (suffix != null) {

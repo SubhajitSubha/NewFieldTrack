@@ -1,11 +1,31 @@
 package com.example.fieldtrack
 
+import android.app.KeyguardManager
 import android.content.Intent
 import android.os.Bundle
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Column
+import com.example.fieldtrack.data.update.UpdateNeed
+import com.example.fieldtrack.feature.help.PracticeBar
+import com.example.fieldtrack.feature.help.RatingBar
+import com.example.fieldtrack.feature.help.contactSupport
+import androidx.compose.ui.res.stringResource
+import com.example.fieldtrack.feature.lock.LockScreen
+import com.example.fieldtrack.feature.update.UpdateBar
+import com.example.fieldtrack.feature.update.UpdateRequiredScreen
+import com.example.fieldtrack.feature.update.openStorePage
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
@@ -68,6 +88,14 @@ class MainActivity : ComponentActivity() {
         // activity the intent is the old one, and the job it named was opened then.
         if (savedInstanceState == null) takeOpenJob(intent)
 
+        // With the lock on, the task switcher must not show a picture of the farm's figures
+        // to whoever picks the phone up. Android 13 and later can be asked; earlier
+        // phones keep what they have, since the only fix there (a blank window on every
+        // screenshot) would also stop people sharing their own bills.
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            lifecycleScope.launch { app.appLock.enabled.collect { setRecentsScreenshotEnabled(!it) } }
+        }
+
         enableEdgeToEdge()
         setContent {
             AppTheme {
@@ -75,10 +103,62 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars),
                     color = FieldTrackTheme.colors.paper,
                 ) {
-                    FieldTrackApp(
-                        openJobRequests = openJobRequests,
-                        onOpenJobHandled = { openJobRequests.value = null },
-                    )
+                    val locked by app.appLock.locked.collectAsStateWithLifecycle()
+                    val unlockLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.StartActivityForResult()
+                    ) { result -> if (result.resultCode == RESULT_OK) app.appLock.unlock() }
+                    val askForLock = {
+                        val title = getString(R.string.lock_prompt_title)
+                        val body = getString(R.string.lock_prompt_body)
+                        val keyguard = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+                        val ask = keyguard.createConfirmDeviceCredentialIntent(title, body)
+                        // No lock on the phone any more: nothing to ask, so nothing to hold shut.
+                        if (ask == null) app.appLock.unlock() else unlockLauncher.launch(ask)
+                    }
+                    // Asked for the moment it shuts, once; a cancelled prompt leaves the button.
+                    LaunchedEffect(locked) { if (locked) askForLock() }
+                    val update by app.updateGate.need.collectAsStateWithLifecycle()
+                    val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                    val practising = session?.let { app.sessionStore.isSample(it.orgId) } == true
+                    val rating by app.ratingPrompt.step.collectAsStateWithLifecycle()
+                    Box {
+                        Box(if (locked) Modifier.clearAndSetSemantics { } else Modifier) {
+                            if (update == UpdateNeed.Required) {
+                                UpdateRequiredScreen(onUpdate = { openStorePage(this@MainActivity) })
+                            } else Column {
+                                if (update == UpdateNeed.Available) {
+                                    UpdateBar(onUpdate = { openStorePage(this@MainActivity) }, onLater = app.updateGate::later)
+                                }
+                                if (practising) {
+                                    PracticeBar(onLeave = { app.runInBackground { app.sampleBusiness.remove() } })
+                                } else if (update != UpdateNeed.Available) {
+                                    val support = stringResource(R.string.support_email)
+                                    RatingBar(
+                                        step = rating,
+                                        canWrite = support.isNotBlank(),
+                                        onAnswer = app.ratingPrompt::answer,
+                                        onLater = app.ratingPrompt::later,
+                                        onRate = { openStorePage(this@MainActivity); app.ratingPrompt.finish() },
+                                        onWrite = {
+                                            contactSupport(
+                                                this@MainActivity, support,
+                                                getString(R.string.help_mail_subject), getString(R.string.help_mail_intro),
+                                            )
+                                            app.ratingPrompt.finish()
+                                        },
+                                        onNo = app.ratingPrompt::finish,
+                                    )
+                                }
+                                Box(Modifier.weight(1f)) {
+                                    FieldTrackApp(
+                                        openJobRequests = openJobRequests,
+                                        onOpenJobHandled = { openJobRequests.value = null },
+                                    )
+                                }
+                            }
+                        }
+                        if (locked) LockScreen(onUnlock = askForLock)
+                    }
                 }
             }
         }
@@ -103,9 +183,30 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        (application as FieldFlowApplication).appLock.onForeground()
         // Forced: a person opening the app outranks whatever is queued, including
         // a backoff left over from a morning with no signal.
         SyncWorker.runNow(this, force = true)
+        (application as FieldFlowApplication).let { app ->
+            app.runInBackground { runCatching { app.updateGate.refresh() } }
+            // Whether the app has had a fair chance to be asked about.
+            app.runInBackground {
+                runCatching {
+                    val s = app.sessionStore.current()
+                    if (s != null && !app.sessionStore.isSample(s.orgId)) {
+                        app.ratingPrompt.evaluate(app.db.exportDao().completedJobs(s.orgId))
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Turning the phone or changing the language remakes this screen; neither is
+        // leaving the app, so neither starts the clock on the lock.
+        val app = application as FieldFlowApplication
+        if (!isChangingConfigurations && !app.appLock.locked.value) app.appLock.onBackground()
     }
 
     companion object {

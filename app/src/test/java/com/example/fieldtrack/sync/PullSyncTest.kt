@@ -55,6 +55,11 @@ class PullSyncTest {
         var fullFetches = 0
         var fullRows = listOf<RemoteRow>()
 
+        /** What the one-read marker says: null when it cannot be told. */
+        var changed: Boolean? = null
+        var probes = 0
+        override suspend fun changedSince(orgId: String, since: Long): Boolean? { probes++; return changed }
+
         override suspend fun orgsFor(personId: String) = emptyList<RemoteOrg>()
         override suspend fun fetchOrg(orgId: String): List<RemoteRow> {
             fullFetches++
@@ -340,5 +345,41 @@ class PullSyncTest {
 
     private companion object {
         const val ORG = "org-1"
+    }
+
+    @Test
+    fun `when the marker says nothing changed no collection is asked, until the sweep is due`() = runTest {
+        marks.markSeeded(ORG)
+        val pull = sync()
+        pull.pull(ORG, force = true) // first pass in this process: read in full
+        assertEquals(1, restore.calls)
+        restore.changed = false
+        pull.pull(ORG, force = true)
+        pull.pull(ORG, force = true)
+        assertEquals("two probes, no collection queries", 1, restore.calls)
+        assertEquals(2, restore.probes)
+        now += 31 * 60_000L
+        pull.pull(ORG, force = true)
+        assertEquals("the sweep reads everything whatever the marker says", 2, restore.calls)
+    }
+
+    @Test
+    fun `a marker that says something changed, or cannot be read, reads everything`() = runTest {
+        marks.markSeeded(ORG)
+        val pull = sync()
+        pull.pull(ORG, force = true)
+        restore.changed = true
+        pull.pull(ORG, force = true)
+        assertEquals(2, restore.calls)
+        restore.changed = null
+        pull.pull(ORG, force = true)
+        assertEquals("no answer is never read as nothing new", 3, restore.calls)
+    }
+
+    @Test
+    fun `a business not yet read in full is read in full whatever the marker says`() = runTest {
+        restore.changed = false
+        sync().pull(ORG, force = true)
+        assertEquals(1, restore.fullFetches)
     }
 }

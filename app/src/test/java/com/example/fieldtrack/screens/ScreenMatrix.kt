@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.example.fieldtrack.feature.fields.GpsAccess
 import com.example.fieldtrack.feature.fields.Signal
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performScrollTo
@@ -81,6 +83,45 @@ abstract class ScreenMatrix(
         val ids = runBlocking { seedBusiness(business = true) }
         start()
         routes(ids).forEach { (name, route) -> shoot("owner", name, route) }
+    }
+
+    /** What stands in front of the app: the lock, the update notice, and the page that stops an old version. */
+    @Test fun gates() {
+        var page by mutableStateOf(0)
+        compose.setContent {
+            com.example.fieldtrack.feature.AppTheme {
+                when (page) {
+                    0 -> com.example.fieldtrack.feature.lock.LockScreen(onUnlock = {})
+                    1 -> com.example.fieldtrack.feature.update.UpdateRequiredScreen(onUpdate = {})
+                    2 -> androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                        com.example.fieldtrack.feature.update.UpdateBar(onUpdate = {}, onLater = {})
+                    }
+                    3 -> androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                        com.example.fieldtrack.feature.help.PracticeBar(onLeave = {})
+                    }
+                    else -> androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                        com.example.fieldtrack.feature.help.RatingBar(
+                            step = com.example.fieldtrack.data.feedback.RatingStep.Ask, canWrite = true,
+                            onAnswer = {}, onLater = {}, onRate = {}, onWrite = {}, onNo = {},
+                        )
+                    }
+                }
+            }
+        }
+        settle()
+        capture("gates", "lock")
+        compose.runOnUiThread { page = 1 }
+        settle()
+        capture("gates", "update-required")
+        compose.runOnUiThread { page = 2 }
+        settle()
+        capture("gates", "update-bar")
+        compose.runOnUiThread { page = 3 }
+        settle()
+        capture("gates", "practice-bar")
+        compose.runOnUiThread { page = 4 }
+        settle()
+        capture("gates", "rating-bar")
     }
 
     /** Setting up a job on a machine that has history: the cost hint under the rate. */
@@ -490,6 +531,7 @@ abstract class ScreenMatrix(
             settle()
         }
         capture(pass, name)
+        audit(name)
         // Scrolled to the end, so what is below the fold is looked at too. Through
         // each scrollable's own scroll action: a swipe gesture does not fling under
         // Robolectric, so it moved nothing.
@@ -498,6 +540,42 @@ abstract class ScreenMatrix(
         capture(pass, "$name.end")
         compose.runOnUiThread { nav.popBackStack(Routes.HOME, inclusive = false) }
         settle()
+    }
+
+    /**
+     * What a screen reader and a thumb need: every control says what it is, and is big
+     * enough to hit. Written to `a11y.txt` beside the images; an unlabelled control fails
+     * the test, since to a screen reader it is an unmarked button.
+     */
+    private val unlabelled = mutableListOf<String>()
+    private val tooSmall = mutableListOf<String>()
+
+    private fun audit(name: String) {
+        val density = compose.density.density
+        val min = 48 * density
+        val nodes = runCatching {
+            compose.onAllNodes(androidx.compose.ui.test.hasClickAction(), useUnmergedTree = false).fetchSemanticsNodes()
+        }.getOrDefault(emptyList())
+        nodes.forEach { node ->
+            val config = node.config
+            val text = config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString(" ") { it.text }
+            val description = config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription)?.joinToString(" ")
+            val label = listOfNotNull(text, description).joinToString(" ").trim()
+            val bounds = node.touchBoundsInRoot
+            if (bounds.width <= 0f || bounds.height <= 0f) return@forEach
+            if (label.isEmpty()) unlabelled += "$name: a control with no label at ${bounds.left.toInt()},${bounds.top.toInt()}"
+            if (bounds.width < min - 1 || bounds.height < min - 1) {
+                tooSmall += "$name: '${label.take(30)}' is ${(bounds.width / density).toInt()}x${(bounds.height / density).toInt()}dp"
+            }
+        }
+    }
+
+    @org.junit.After fun writeAudit() {
+        if (unlabelled.isEmpty() && tooSmall.isEmpty()) return
+        // Small ones are reported only: many are cut off by the edge of the window while scrolled.
+        File("build/screens/$config/a11y.txt").apply { parentFile?.mkdirs() }
+            .writeText("NO LABEL\n" + unlabelled.distinct().joinToString("\n") + "\n\nTOO SMALL\n" + tooSmall.distinct().joinToString("\n"))
+        org.junit.Assert.assertTrue("Controls a screen reader would call 'button' with no name: ${unlabelled.distinct()}", unlabelled.isEmpty())
     }
 
     private fun scrollEverythingToEnd() {
@@ -774,6 +852,9 @@ abstract class ScreenMatrix(
         "team-changes" to Routes.TEAM_CHANGES,
         "backup" to Routes.BACKUP,
         "display" to Routes.DISPLAY,
+        "security" to Routes.SECURITY,
+        "export" to Routes.EXPORT,
+        "reminders" to Routes.REMINDERS,
         "rates" to Routes.RATES,
         "price" to Routes.PRICE,
         "seasons-edit" to Routes.SEASONS_EDIT,

@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -149,6 +151,8 @@ import com.example.fieldtrack.feature.plan.PlanSettingsViewModel
 import com.example.fieldtrack.feature.plan.PlanViewModel
 import com.example.fieldtrack.feature.region.MoneySettingsScreen
 import com.example.fieldtrack.feature.region.MoneySettingsViewModel
+import com.example.fieldtrack.feature.orgs.NewBusinessScreen
+import com.example.fieldtrack.feature.orgs.NewBusinessViewModel
 import com.example.fieldtrack.feature.search.SearchScreen
 import com.example.fieldtrack.feature.search.SearchViewModel
 import com.example.fieldtrack.feature.season.SeasonsScreen
@@ -161,6 +165,17 @@ import com.example.fieldtrack.feature.orgs.OrgSwitcherViewModel
 import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
+import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.help.HelpScreen
+import com.example.fieldtrack.feature.help.TourScreen
+import com.example.fieldtrack.feature.help.contactSupport
+import com.example.fieldtrack.feature.more.RemindersScreen
+import com.example.fieldtrack.notify.PushKind
+import com.example.fieldtrack.notify.PushRegistrar
+import com.example.fieldtrack.notify.ReminderKind
+import com.example.fieldtrack.notify.Reminders
+import com.example.fieldtrack.feature.more.ExportScreen
+import com.example.fieldtrack.feature.more.ExportViewModel
 import com.example.fieldtrack.feature.more.EditBusinessViewModel
 import com.example.fieldtrack.feature.more.EditProfileViewModel
 import com.example.fieldtrack.feature.more.EditSettingsScreen
@@ -240,10 +255,16 @@ internal object Routes {
     const val EDIT_BUSINESS = "more/business"
     const val BACKUP = "more/backup"
     const val DISPLAY = "more/display"
+    const val SECURITY = "more/security"
+    const val EXPORT = "more/export"
+    const val REMINDERS = "more/reminders"
+    const val HELP = "more/help"
+    const val TOUR = "tour"
     const val RATES = "more/rates"
     const val PRICE = "more/price"
     const val ORGS = "more/businesses"
     const val JOIN_ANOTHER = "more/businesses/join"
+    const val NEW_BUSINESS = "more/businesses/new"
     const val UPKEEP = "fleet/upkeep"
     const val INVITE = "more/team/invite"
     const val SENT_CODES = "more/team/invite/sent"
@@ -555,6 +576,18 @@ private fun MainGraph(
 ) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
 
+    // On the first screen a signed-in person sees, not only once a clock has started:
+    // work booked for them is news the moment it happens.
+    com.example.fieldtrack.feature.work.AskForNotificationsOnce()
+
+    // Once, right after setting up or joining: the short tour.
+    LaunchedEffect(Unit) {
+        if (app.sessionStore.tourPending()) {
+            app.sessionStore.tourShown()
+            navController.navigate(Routes.TOUR)
+        }
+    }
+
     val openJob by openJobRequests.collectAsStateWithLifecycle()
     LaunchedEffect(openJob) {
         val jobId = openJob ?: return@LaunchedEffect
@@ -798,6 +831,7 @@ private fun MainNavHost(navController: NavHostController) {
                         val state by vm.state.collectAsStateWithLifecycle()
                         YardHomeScreen(
                             state = state,
+                            canRecord = Capability.RecordWork in session.can,
                             onStartWork = { navController.navigate(Routes.START) },
                             onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
                             onOpenLive = { navController.navigate(Routes.live(it)) },
@@ -900,6 +934,108 @@ private fun MainNavHost(navController: NavHostController) {
                     onHour = vm::stepHour,
                     onDriversSeeAll = vm::setDriversSeeAll,
                     onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.TOUR) {
+                TourScreen(onDone = { navController.popBackStack() })
+            }
+
+            composable(Routes.HELP) {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                val support = stringResource(R.string.support_email)
+                var practising by remember { mutableStateOf(app.sessionStore.sampleOrgId() != null) }
+                HelpScreen(
+                    hasSupport = support.isNotBlank(),
+                    practiceExists = practising,
+                    onTour = { navController.navigate(Routes.TOUR) },
+                    onPractice = {
+                        scope.launch {
+                            if (app.sampleBusiness.start()) {
+                                practising = true
+                                navController.popBackStack(Routes.HOME, inclusive = false)
+                            }
+                        }
+                    },
+                    onRate = { com.example.fieldtrack.feature.update.openStorePage(context) },
+                    onContact = {
+                        contactSupport(
+                            context, support, context.getString(R.string.help_mail_subject), context.getString(R.string.help_mail_intro),
+                        )
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.REMINDERS) {
+                val settings = app.reminderSettings
+                val plan by settings.enabled(ReminderKind.Plan).collectAsStateWithLifecycle()
+                val dues by settings.enabled(ReminderKind.Dues).collectAsStateWithLifecycle()
+                val service by settings.enabled(ReminderKind.Service).collectAsStateWithLifecycle()
+                val evening by settings.eveningHour.collectAsStateWithLifecycle()
+                val morning by settings.morningHour.collectAsStateWithLifecycle()
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                val pushOn = PushKind.entries.associateWith { app.pushSettings.enabled(it).collectAsStateWithLifecycle().value }
+                val context = LocalContext.current
+                var blocked by remember { mutableStateOf(!app.workClockNotifier.canPost()) }
+                val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                    blocked = !app.workClockNotifier.canPost()
+                }
+                RemindersScreen(
+                    on = mapOf(ReminderKind.Plan to plan, ReminderKind.Dues to dues, ReminderKind.Service to service),
+                    eveningHour = evening,
+                    morningHour = morning,
+                    canDues = session?.let { Capability.SeeMoney in it.can } == true,
+                    canService = session?.let { Capability.EditMachines in it.can } == true,
+                    blocked = blocked,
+                    onToggle = { kind, enabled ->
+                        settings.set(kind, enabled)
+                        Reminders.schedule(context, settings)
+                        if (enabled && android.os.Build.VERSION.SDK_INT >= 33 && !app.workClockNotifier.canPost()) {
+                            askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        blocked = !app.workClockNotifier.canPost()
+                    },
+                    push = PushKind.entries.associateWith { pushOn[it] != false },
+                    canPayments = session?.let { Capability.SeeMoney in it.can } == true,
+                    onPush = { kind, enabled ->
+                        app.pushSettings.set(kind, enabled)
+                        app.runInBackground { PushRegistrar(app).sync() }
+                        if (enabled && android.os.Build.VERSION.SDK_INT >= 33 && !app.workClockNotifier.canPost()) {
+                            askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        blocked = !app.workClockNotifier.canPost()
+                    },
+                    onEvening = { settings.setEvening(it); Reminders.schedule(context, settings) },
+                    onMorning = { settings.setMorning(it); Reminders.schedule(context, settings) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.EXPORT) {
+                val vm: ExportViewModel = appViewModel { ExportViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                ExportScreen(
+                    state = state,
+                    onPeriod = vm::setPeriod,
+                    onExport = { vm.export(context) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.SECURITY) {
+                val lock = app.appLock
+                val enabled by lock.enabled.collectAsStateWithLifecycle()
+                val after by lock.after.collectAsStateWithLifecycle()
+                SecurityScreen(
+                    available = lock.available(),
+                    enabled = enabled,
+                    after = after,
+                    onEnabled = lock::setEnabled,
+                    onAfter = lock::setAfter,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -1670,6 +1806,10 @@ private fun MainNavHost(navController: NavHostController) {
                     } else null,
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onDisplay = { navController.navigate(Routes.DISPLAY) },
+                    onSecurity = { navController.navigate(Routes.SECURITY) },
+                    onExport = { navController.navigate(Routes.EXPORT) },
+                    onReminders = { navController.navigate(Routes.REMINDERS) },
+                    onHelp = { navController.navigate(Routes.HELP) },
                     onRates = { navController.navigate(Routes.RATES) },
                     onSearch = { navController.navigate(Routes.SEARCH) },
                     onPrice = { navController.navigate(Routes.PRICE) },
@@ -2015,6 +2155,21 @@ private fun MainNavHost(navController: NavHostController) {
                     },
                     onJoinAnother = { navController.navigate(Routes.JOIN_ANOTHER) },
                     onDismissRefusal = vm::clearRefusal,
+                    onStartNew = { navController.navigate(Routes.NEW_BUSINESS) },
+                )
+            }
+
+            composable(Routes.NEW_BUSINESS) {
+                val vm: NewBusinessViewModel = appViewModel { NewBusinessViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                NewBusinessScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onCurrency = vm::setCurrency,
+                    onLandUnit = vm::setLandUnit,
+                    // The switch builds a fresh history for the new business, which starts at Home.
+                    onCreate = { vm.create {} },
                 )
             }
 
@@ -2029,6 +2184,7 @@ private fun MainNavHost(navController: NavHostController) {
                 val googleAuth = remember { com.example.fieldtrack.data.auth.FirebaseGoogleAuth(context = app, activityProvider = { activity }) }
                 var googleEmail by remember { mutableStateOf(googleAuth.linkedEmail() ?: state.signedInEmail) }
                 var googleNote by remember { mutableStateOf<Int?>(null) }
+                var deleteFailed by remember { mutableStateOf(false) }
                 ProfileScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
@@ -2041,6 +2197,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onBusinesses = { navController.navigate(Routes.ORGS) },
                     onSignOut = {
                         scope.launch {
+                            // While still signed in: the server only lets a person remove their own phone.
+                            app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
                             app.sessionStore.signOut(
                                 FirebasePhoneAuth(activityProvider = { activity })
                             )
@@ -2059,6 +2217,19 @@ private fun MainNavHost(navController: NavHostController) {
                         }
                     } else null,
                     unsentCount = unsent,
+                    deleteFailed = deleteFailed,
+                    onDeleteAccount = {
+                        scope.launch {
+                            deleteFailed = false
+                            app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
+                            val result = app.sessionStore.deleteAccount(
+                                app.syncTransport, FirebasePhoneAuth(activityProvider = { activity }),
+                            )
+                            if (result == com.example.fieldtrack.data.session.SessionStore.DeletionResult.CouldNotReachServer) {
+                                deleteFailed = true
+                            }
+                        }
+                    },
                     google = if (googleAuth.available) {
                         com.example.fieldtrack.feature.more.GoogleLink(
                             email = googleEmail,

@@ -120,7 +120,23 @@ class FieldFlowApplication : Application() {
      * was built and tested before the Firebase project existed.
      */
     val syncTransport: SyncTransport by lazy {
-        FirestoreTransport(deviceId = deviceId)
+        // An install the server has called too old holds its changes back (see UpdateGate).
+        com.example.fieldtrack.data.update.GatedTransport(
+            FirestoreTransport(deviceId = deviceId),
+            blocked = { updateGate.required },
+            isSample = { sessionStore.isSample(it) },
+        )
+    }
+
+    /** Whether this version is still allowed to share data, and whether a newer one is out. */
+    val updateGate: com.example.fieldtrack.data.update.UpdateGate by lazy {
+        com.example.fieldtrack.data.update.UpdateGate(
+            context = this,
+            installedCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(
+                packageManager.getPackageInfo(packageName, 0)
+            ),
+            source = com.example.fieldtrack.data.update.FirestoreVersionRules(),
+        )
     }
 
     /**
@@ -168,6 +184,31 @@ class FieldFlowApplication : Application() {
     /** Light or dark, and bigger text — how this phone shows the app. */
     val displaySettings: com.example.fieldtrack.data.settings.DisplaySettings by lazy {
         com.example.fieldtrack.data.settings.DisplaySettings(this)
+    }
+
+    /** Whether the phone's own lock stands in front of the app. */
+    val appLock: com.example.fieldtrack.data.settings.AppLock by lazy {
+        com.example.fieldtrack.data.settings.AppLock(this)
+    }
+
+    /** The one-time "is it helping?" question. */
+    val ratingPrompt: com.example.fieldtrack.data.feedback.RatingPrompt by lazy {
+        com.example.fieldtrack.data.feedback.RatingPrompt(this)
+    }
+
+    /** The practice business: made-up work to look around in, kept on this phone alone. */
+    val sampleBusiness: com.example.fieldtrack.data.sample.SampleBusiness by lazy {
+        com.example.fieldtrack.data.sample.SampleBusiness(this, this)
+    }
+
+    /** Which instant notifications this phone wants. */
+    val pushSettings: com.example.fieldtrack.notify.PushSettings by lazy {
+        com.example.fieldtrack.notify.PushSettings(this)
+    }
+
+    /** Which reminders this phone gives, and at what hour. */
+    val reminderSettings: com.example.fieldtrack.notify.ReminderSettings by lazy {
+        com.example.fieldtrack.notify.ReminderSettings(this)
     }
 
     /** Which overnight clocks this person has already said were real work. */
@@ -237,6 +278,8 @@ class FieldFlowApplication : Application() {
         workClockNotifier.createChannels()
         workClock.watch(appScope)
         ClockReminderWorker.schedule(this)
+        com.example.fieldtrack.notify.Reminders.schedule(this, reminderSettings)
+        com.example.fieldtrack.notify.Push.createChannel(this)
     }
 }
 

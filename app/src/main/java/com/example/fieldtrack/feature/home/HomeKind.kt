@@ -26,6 +26,8 @@ enum class HomeKind {
 
 fun homeKindFor(role: MemberRole, can: Capabilities, business: Boolean): HomeKind = when {
     role == MemberRole.Owner -> if (business) HomeKind.Yard else HomeKind.Solo
+    // Somebody watching: the crew, the machines and the money, with nothing to start.
+    role == MemberRole.Viewer -> HomeKind.Yard
     // Either of these means looking after more than one's own machine. Neither
     // is in a senior driver's preset, so the line falls where the job does.
     Capability.EditTeam in can || Capability.EditMachines in can -> HomeKind.Yard

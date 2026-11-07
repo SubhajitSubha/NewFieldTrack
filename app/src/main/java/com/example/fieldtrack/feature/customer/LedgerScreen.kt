@@ -260,7 +260,7 @@ val list: @Composable (Modifier) -> Unit = { listModifier ->
                 FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
                     FtListRow(
                         title = row.title(),
-                        subtitle = dayMonth(row.atMillis),
+                        subtitle = listOfNotNull(dayMonth(row.atMillis), row.byName?.let { stringResource(R.string.ledger_by, it) }).joinToString(" · "),
                         // "This 3,500 is wrong" is how the argument actually starts,
                         // so the line itself is the way back to the job. Only for a
                         // charge: a payment now carries a job id too, and tapping
@@ -335,19 +335,21 @@ val list: @Composable (Modifier) -> Unit = { listModifier ->
                 tone = FtButtonTone.Secondary,
                 height = 54.dp,
             )
-            FtButton(
-                text = stringResource(R.string.ledger_got_money),
-                onClick = onRecordPayment,
-                modifier = Modifier.weight(1f),
-                height = 54.dp,
-            )
-            FtIconButton(
-                icon = FieldTrackIcons.Add,
-                contentDescription = stringResource(R.string.customer_new_job_cd),
-                onClick = onNewJob,
-                tint = colors.onPrimary,
-                background = colors.primaryPressed,
-            )
+            if (state.canRecord) {
+                FtButton(
+                    text = stringResource(R.string.ledger_got_money),
+                    onClick = onRecordPayment,
+                    modifier = Modifier.weight(1f),
+                    height = 54.dp,
+                )
+                FtIconButton(
+                    icon = FieldTrackIcons.Add,
+                    contentDescription = stringResource(R.string.customer_new_job_cd),
+                    onClick = onNewJob,
+                    tint = colors.onPrimary,
+                    background = colors.primaryPressed,
+                )
+            }
         }
     }
 }

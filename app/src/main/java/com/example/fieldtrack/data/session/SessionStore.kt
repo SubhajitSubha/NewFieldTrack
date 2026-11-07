@@ -1,5 +1,6 @@
 package com.example.fieldtrack.data.session
 
+import kotlinx.coroutines.withContext
 import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.designsystem.format.Money
 import com.example.fieldtrack.designsystem.format.MoneyStyle
@@ -291,7 +292,20 @@ class SessionStore(
 
     /** Hands control to the app once onboarding has shown its last screen. */
     suspend fun activate() {
+        askForTour()
         load()
+    }
+
+    /** The first time somebody gets into a business, the short tour is shown once. */
+    private fun askForTour() {
+        if (!prefs.getBoolean(KEY_TOUR_SEEN, false)) prefs.edit().putBoolean(KEY_TOUR_PENDING, true).apply()
+    }
+
+    fun tourPending(): Boolean = prefs.getBoolean(KEY_TOUR_PENDING, false)
+
+    /** Shown now: not again unless asked for from Help. */
+    fun tourShown() {
+        prefs.edit().putBoolean(KEY_TOUR_PENDING, false).putBoolean(KEY_TOUR_SEEN, true).apply()
     }
 
     /**
@@ -549,6 +563,7 @@ class SessionStore(
      * app opening on their boss's work.
      */
     suspend fun adoptMembership(orgId: String) {
+        askForTour()
         prefs.edit().putString(KEY_ORG, orgId).apply()
         // A driver is not running a business of their own, whatever tabs the owner
         // of this phone may have switched on before.
@@ -618,14 +633,17 @@ class SessionStore(
         // The server still holds the rows under the old id. Re-queueing the
         // membership is what tells it who this is now; without that, the rules keep
         // refusing and the queue stays stuck behind a change it cannot explain.
-        val orgId = prefs.getString(KEY_ORG, null)
-        if (orgId != null) {
-            db.orgDao().membership(orgId, uid)?.let { membership ->
-                syncQueue.enqueueUpsert(
-                    orgId, SyncQueue.TABLE_MEMBERSHIPS, membership.id,
-                    OutboxJson.encodeToString(membership),
-                )
-            }
+        //
+        // Every business gets told, not just the one open now, and each is told which
+        // identity this one replaces: that is what lets every other phone stop listing
+        // the left-behind row as a second person.
+        db.orgDao().membershipsOf(uid).forEach { membership ->
+            val told = membership.copy(replacesPersonId = stored, updatedAt = clock.now())
+            db.orgDao().upsertMembership(told)
+            syncQueue.enqueueUpsert(
+                told.orgId, SyncQueue.TABLE_MEMBERSHIPS, told.id,
+                OutboxJson.encodeToString(told),
+            )
         }
         _startup.value = Startup.Loading
         load()
@@ -698,6 +716,8 @@ class SessionStore(
     ): MembershipRefresh {
         val personId = prefs.getString(KEY_PERSON, null) ?: return MembershipRefresh.Unchanged
         val orgId = prefs.getString(KEY_ORG, null) ?: return MembershipRefresh.Unchanged
+        // The practice business is on this phone alone; there is nothing on a server to ask.
+        if (isSample(orgId)) return MembershipRefresh.Unchanged
         val local = db.orgDao().membership(orgId, personId) ?: return MembershipRefresh.Unchanged
 
         val remote = try {
@@ -954,6 +974,128 @@ class SessionStore(
         _startup.value = Startup.NeedsSignIn
     }
 
+    /**
+     * Starts another business of this person's own, in its own books.
+     *
+     * For somebody who runs two enterprises, or works in two currencies: a business has one
+     * currency for good, and the way to keep books in another is another business. The
+     * person is its owner, it is made the one on screen, and nothing about the business
+     * they are leaving is touched.
+     */
+    suspend fun startAnotherBusiness(
+        businessName: String,
+        landUnit: MeasureUnit,
+        currencyCode: String,
+        moneyStepMinor: Long,
+        fiscalStartMonth: Int,
+        /** A practice business: marked before anything is queued, so nothing of it ever leaves the phone. */
+        sample: Boolean = false,
+    ): String? {
+        val personId = prefs.getString(KEY_PERSON, null) ?: return null
+        val displayName = current()?.displayName ?: return null
+        val now = clock.now()
+        val orgId = ids.newId()
+        if (sample) prefs.edit().putString(KEY_SAMPLE_ORG, orgId).apply()
+        val org = OrgEntity(
+            id = orgId,
+            name = businessName.trim(),
+            defaultLandUnit = landUnit,
+            currencyCode = currencyCode,
+            moneyStepMinor = moneyStepMinor,
+            fiscalStartMonth = fiscalStartMonth,
+            createdAt = now,
+            updatedAt = now,
+        )
+        val membership = MembershipEntity(
+            id = membershipId(orgId, personId),
+            orgId = orgId,
+            personId = personId,
+            displayName = displayName,
+            role = MemberRole.Owner,
+            canSeeMoney = true,
+            canAddCustomers = true,
+            canCloseBills = true,
+            joinedAt = now,
+            updatedAt = now,
+        )
+        db.withTransaction {
+            db.orgDao().upsertOrg(org)
+            db.orgDao().upsertMembership(membership)
+        }
+        syncQueue.enqueueUpsert(orgId, SyncQueue.TABLE_ORGS, orgId, OutboxJson.encodeToString(org))
+        syncQueue.enqueueMembership(
+            orgId = orgId,
+            personId = personId,
+            membershipId = membership.id,
+            payloadJson = OutboxJson.encodeToString(membership),
+            indexJson = OutboxJson.encodeToString(MemberOrgDoc(personId, orgId, businessName.trim(), now)),
+        )
+        switchTo(orgId)
+        return orgId
+    }
+
+    /** The practice business on this phone, if one was made. It exists nowhere else. */
+    fun sampleOrgId(): String? = prefs.getString(KEY_SAMPLE_ORG, null)
+
+    fun isSample(orgId: String): Boolean = orgId == sampleOrgId()
+
+    /**
+     * Takes the practice business off this phone: every row it owns, and the mark. If it
+     * was the one on screen, the person's own business takes its place. Nothing of it was
+     * ever sent anywhere, so there is nothing to undo elsewhere.
+     */
+    suspend fun removeSample() {
+        val orgId = sampleOrgId() ?: return
+        val personId = prefs.getString(KEY_PERSON, null)
+        val next = personId?.let { id ->
+            db.orgDao().membershipsOf(id).firstOrNull { it.active && it.orgId != orgId }?.orgId
+        }
+        db.withTransaction { db.sampleDao().wipe(orgId) }
+        prefs.edit().remove(KEY_SAMPLE_ORG).apply()
+        if (prefs.getString(KEY_ORG, null) == orgId && next != null) switchTo(next)
+    }
+
+    /** What came of asking to delete the account. */
+    enum class DeletionResult { Done, CouldNotReachServer }
+
+    /** The businesses that would go with the account: this person's alone, with nobody else to run them. */
+    suspend fun businessesOwnedAlone(): List<String> {
+        val personId = prefs.getString(KEY_PERSON, null) ?: return emptyList()
+        return db.orgDao().membershipsOf(personId)
+            .filter { it.active && !isSample(it.orgId) && it.role == MemberRole.Owner && db.orgDao().activeOwnerCount(it.orgId) <= 1 }
+            .map { it.orgId }
+    }
+
+    /**
+     * Deletes this person's account and what is theirs alone.
+     *
+     * The request goes to the server first and the phone is only wiped once the server has
+     * it, so a phone with no signal cannot lose the account on the phone while it still
+     * exists everywhere else. The request names the businesses that go with it, those with
+     * no other owner. After that the sign-in is deleted, everything on this phone is
+     * cleared, and the app is back at its first screen.
+     */
+    suspend fun deleteAccount(transport: com.example.fieldtrack.data.sync.SyncTransport?, auth: PhoneAuth?): DeletionResult {
+        val personId = prefs.getString(KEY_PERSON, null) ?: return DeletionResult.Done
+        val memberships = db.orgDao().membershipsOf(personId)
+        val ownedAlone = businessesOwnedAlone()
+        val accepted = transport?.requestAccountDeletion(
+            personId = personId,
+            orgIds = memberships.map { it.orgId }.distinct(),
+            ownedAlone = ownedAlone,
+            at = clock.now(),
+        ) == true
+        if (!accepted) return DeletionResult.CouldNotReachServer
+        runCatching { auth?.deleteAccount() }
+        runCatching { auth?.signOut() }
+        withContext(kotlinx.coroutines.Dispatchers.IO) { db.clearAllTables() }
+        prefs.edit().clear().apply()
+        _businessMode.value = false
+        Money.style = MoneyStyle()
+        _startup.value = Startup.NeedsSignIn
+        return DeletionResult.Done
+    }
+
     /** How much work would be left behind by signing out right now. */
     suspend fun unsentCount(): Int = db.outboxDao().pendingCount()
 
@@ -1017,6 +1159,9 @@ class SessionStore(
 
     private companion object {
         const val PREFS = "fieldtrack.session"
+        private const val KEY_SAMPLE_ORG = "sampleOrg"
+        private const val KEY_TOUR_PENDING = "tourPending"
+        private const val KEY_TOUR_SEEN = "tourSeen"
         const val KEY_PERSON = "personId"
         const val KEY_ORG = "orgId"
         const val KEY_IS_BUSINESS = "isBusiness"

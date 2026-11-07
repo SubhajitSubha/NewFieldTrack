@@ -114,6 +114,22 @@ class FirestoreTransport(
                 OutboxOp.Delete -> batch.delete(document)
             }
         }
+        // Say that this business changed, once per commit. Skipped when the commit creates
+        // the business or somebody's place in it: until it lands, the rules cannot yet know
+        // this person is a member, and the marker would be refused and take the whole
+        // commit with it. The next ordinary commit writes it.
+        val creating = changes.any { it.table == SyncQueue.TABLE_ORGS || it.table == SyncQueue.TABLE_MEMBERSHIPS }
+        if (!creating) {
+            changes.map { it.orgId }
+                .filter { it.isNotBlank() && changes.any { c -> c.orgId == it && c.table !in SyncQueue.ROOT_COLLECTIONS && c.table != SyncQueue.TABLE_MEMBER_ORGS } }
+                .distinct()
+                .forEach { org ->
+                    batch.set(
+                        firestore.collection(ORGS).document(org).collection(SyncQueue.META).document(SyncQueue.CHANGED),
+                        mapOf("at" to FieldValue.serverTimestamp()),
+                    )
+                }
+        }
         batch.commit().await()
     }
 
@@ -164,6 +180,51 @@ class FirestoreTransport(
             // server's clock.
             put(FIELD_SERVER_AT, FieldValue.serverTimestamp())
         }
+
+    override suspend fun requestAccountDeletion(
+        personId: String,
+        orgIds: List<String>,
+        ownedAlone: List<String>,
+        at: Long,
+    ): Boolean {
+        if (signIn() != null) return false
+        return try {
+            withTimeout(TIMEOUT_MILLIS) {
+                firestore.collection(DELETION_REQUESTS).document(personId).set(
+                    mapOf(
+                        "personId" to personId,
+                        "orgs" to orgIds,
+                        "ownedAlone" to ownedAlone,
+                        "requestedAt" to at,
+                        FIELD_SERVER_AT to FieldValue.serverTimestamp(),
+                    )
+                ).await()
+            }
+            true
+        } catch (failure: Exception) {
+            false
+        }
+    }
+
+    override suspend fun registerPush(
+        personId: String,
+        deviceId: String,
+        token: String?,
+        wants: Map<String, Boolean>,
+        at: Long,
+    ): Boolean {
+        if (signIn() != null) return false
+        return try {
+            withTimeout(TIMEOUT_MILLIS) {
+                val doc = firestore.collection(PEOPLE).document(personId).collection(DEVICES).document(deviceId)
+                if (token == null) doc.delete().await()
+                else doc.set(wants + mapOf("token" to token, "updatedAt" to at)).await()
+            }
+            true
+        } catch (failure: Exception) {
+            false
+        }
+    }
 
     override suspend fun reportUnsent(orgId: String, personId: String, count: Int, at: Long) {
         signIn()?.let { return }
@@ -229,6 +290,8 @@ class FirestoreTransport(
     private companion object {
         const val ORGS = "orgs"
         const val PEOPLE = "people"
+        const val DEVICES = "devices"
+        const val DELETION_REQUESTS = "deletionRequests"
         const val FIELD_SEQ = "_seq"
         const val FIELD_DEVICE = "_device"
         const val FIELD_RECORDED_AT = "_recordedAt"

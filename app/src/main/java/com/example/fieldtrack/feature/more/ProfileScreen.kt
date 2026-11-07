@@ -14,6 +14,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -53,6 +55,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import com.example.fieldtrack.designsystem.format.money
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -89,6 +95,10 @@ data class ProfileState(
     val signedInPhone: String? = null,
     /** The Google account they signed in with or added, if any. */
     val signedInEmail: String? = null,
+    /** Businesses that go with the account if it is deleted: theirs alone, nobody else to run them. */
+    val soleOwnerOf: List<String> = emptyList(),
+    /** Advance this person still owes the business, said when they are about to leave it. */
+    val advanceOwedMinor: Long = 0,
     /** Businesses they work for today — what the row's subtitle counts. */
     val orgCount: Int = 1,
     /** Including ended ones: decides whether the row is worth showing at all. */
@@ -141,6 +151,10 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 canLeave = s.role != MemberRole.Owner || otherOwners > 0,
                 signedInPhone = app.sessionStore.signedInPhone(),
                 signedInEmail = app.sessionStore.signedInEmail(),
+                soleOwnerOf = app.sessionStore.businessesOwnedAlone().mapNotNull { id ->
+                    app.db.orgDao().findOrg(id)?.name
+                },
+                advanceOwedMinor = app.ledgerRepository.observeAdvanceOutstanding(s.orgId, s.personId).first(),
                 orgCount = app.db.orgDao().activeMembershipCountFor(s.personId),
                 everOrgCount = app.db.orgDao().membershipCountFor(s.personId),
             )
@@ -175,6 +189,10 @@ fun ProfileScreen(
     google: GoogleLink? = null,
     onBusinessMode: (Boolean) -> Unit,
     onSignOut: () -> Unit,
+    /** Deletes the account. Null where there is no way to ask the server. */
+    onDeleteAccount: (() -> Unit)? = null,
+    /** Set when the last try could not reach the server, so the person is told rather than left wondering. */
+    deleteFailed: Boolean = false,
     onBusinesses: () -> Unit,
     /** Null for the only owner, who cannot leave their own business. */
     onLeave: (() -> Unit)?,
@@ -325,7 +343,9 @@ fun ProfileScreen(
                 )
                 FtRowDivider()
                 Row(
-                    Modifier.padding(horizontal = 15.dp, vertical = 13.dp),
+                    Modifier
+                        .toggleable(value = state.businessMode, role = Role.Switch, onValueChange = onBusinessMode)
+                        .padding(horizontal = 15.dp, vertical = 13.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -343,7 +363,8 @@ fun ProfileScreen(
                     }
                     Switch(
                         checked = state.businessMode,
-                        onCheckedChange = onBusinessMode,
+                        // The whole row toggles; the switch only shows the state.
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = colors.onPrimary,
                             checkedTrackColor = colors.primary,
@@ -429,13 +450,42 @@ fun ProfileScreen(
                 }
             }
 
-            onLeave?.let {
+            onLeave?.let { leave ->
+                var leaving by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
                 FtButton(
                     text = stringResource(R.string.account_leave),
-                    onClick = it,
+                    onClick = { leaving = true },
                     tone = FtButtonTone.Secondary,
                     height = 50.dp,
                 )
+                if (leaving) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { leaving = false },
+                        title = { Text(stringResource(R.string.account_leave_confirm, state.businessName)) },
+                        text = {
+                            Text(
+                                buildString {
+                                    append(stringResource(R.string.account_leave_body))
+                                    // Said to the person leaving, so it is not a surprise at the next payday.
+                                    if (state.advanceOwedMinor > 0) {
+                                        append("\n\n")
+                                        append(stringResource(R.string.account_leave_advance, money(state.advanceOwedMinor)))
+                                    }
+                                }
+                            )
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = { leaving = false; leave() }) {
+                                Text(stringResource(R.string.account_leave_yes), color = colors.dueInk)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { leaving = false }) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                        },
+                    )
+                }
             }
 
             FtButton(
@@ -444,6 +494,55 @@ fun ProfileScreen(
                 tone = FtButtonTone.Danger,
                 height = 50.dp,
             )
+
+            if (onDeleteAccount != null) {
+                var confirming by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+                FtButton(
+                    text = stringResource(R.string.account_delete),
+                    onClick = { confirming = true },
+                    tone = FtButtonTone.Secondary,
+                    height = 46.dp,
+                )
+                if (deleteFailed) {
+                    Text(
+                        text = stringResource(R.string.account_delete_failed),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.dueInk,
+                    )
+                }
+                if (confirming) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { confirming = false },
+                        title = { Text(stringResource(R.string.account_delete_title)) },
+                        text = {
+                            Text(
+                                buildString {
+                                    append(stringResource(R.string.account_delete_body))
+                                    if (state.soleOwnerOf.isNotEmpty()) {
+                                        append("\n\n")
+                                        append(
+                                            stringResource(
+                                                R.string.account_delete_businesses,
+                                                state.soleOwnerOf.joinToString(", "),
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = { confirming = false; onDeleteAccount() }) {
+                                Text(stringResource(R.string.account_delete_yes), color = colors.dueInk)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { confirming = false }) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                        },
+                    )
+                }
+            }
 
             Box(Modifier.padding(bottom = dimens.space4))
         }

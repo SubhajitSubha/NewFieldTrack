@@ -176,6 +176,14 @@ fun MemberScreen(
                 }
             }
 
+            if (state.canSeeTheirEarnings && state.advanceOwedMinor > 0) {
+                Text(
+                    text = stringResource(R.string.team_advance_owed, moneyCompact(state.advanceOwedMinor)),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.moneyInk,
+                )
+            }
+
             // Said plainly, because it is the thing an owner worries about when told
             // their driver also works for somebody else. Never on your own record,
             // where it would be telling you that you cannot see your own books.
@@ -610,6 +618,7 @@ private fun presetTitle(preset: RolePreset): Int = when (preset) {
     RolePreset.SeniorDriver -> R.string.team_preset_senior
     RolePreset.Manager -> R.string.team_preset_manager
     RolePreset.Owner -> R.string.team_role_owner
+    RolePreset.Viewer -> R.string.team_preset_viewer
 }
 
 @StringRes
@@ -618,6 +627,7 @@ private fun presetNote(preset: RolePreset): Int = when (preset) {
     RolePreset.SeniorDriver -> R.string.team_preset_senior_note
     RolePreset.Manager -> R.string.team_preset_manager_note
     RolePreset.Owner -> R.string.team_preset_owner_note
+    RolePreset.Viewer -> R.string.team_preset_viewer_note
 }
 
 /**

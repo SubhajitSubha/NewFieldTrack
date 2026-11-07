@@ -36,6 +36,15 @@ fun AskToShowClockOnce() {
     }
 }
 
+/**
+ * Asks, once, to be allowed to tell this person things: work booked for them, a job
+ * handed over, a reminder they chose. The same single question as the clock's, so a
+ * person is never asked twice; a refusal is an answer, and the app works without it.
+ * The Notifications screen says what each switch does and where to turn them on again.
+ */
+@Composable
+fun AskForNotificationsOnce() = AskToShowClockOnce()
+
 private fun prefs(context: Context) =
     context.applicationContext.getSharedPreferences("clock_notifications", Context.MODE_PRIVATE)
 

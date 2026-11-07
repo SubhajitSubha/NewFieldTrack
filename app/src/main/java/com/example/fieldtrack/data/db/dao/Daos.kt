@@ -98,6 +98,10 @@ interface OrgDao {
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND personId = :personId LIMIT 1")
     suspend fun membership(orgId: String, personId: String): MembershipEntity?
 
+    /** Every business this person is on the books of, for telling each of them who they are now. */
+    @Query("SELECT * FROM memberships WHERE personId = :personId")
+    suspend fun membershipsOf(personId: String): List<MembershipEntity>
+
     // ------------------------------------------------------- what changed, when
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -455,11 +459,23 @@ interface OrgDao {
     suspend fun payoutsOnMigratedCosts(orgId: String, deviceId: String): List<PayoutEntity>
 
     /** The team list: everyone in one business. */
-    @Query("SELECT * FROM memberships WHERE orgId = :orgId AND active = 1 ORDER BY role, displayName")
+    @Query(
+        """
+        SELECT * FROM memberships WHERE orgId = :orgId AND active = 1
+          AND personId NOT IN (SELECT r.replacesPersonId FROM memberships r WHERE r.orgId = :orgId AND r.replacesPersonId IS NOT NULL)
+        ORDER BY role, displayName
+        """
+    )
     fun observeTeam(orgId: String): Flow<List<MembershipEntity>>
 
     /** Everyone ever on the books here, including people who have left. */
-    @Query("SELECT * FROM memberships WHERE orgId = :orgId ORDER BY active DESC, role, displayName")
+    @Query(
+        """
+        SELECT * FROM memberships WHERE orgId = :orgId
+          AND personId NOT IN (SELECT r.replacesPersonId FROM memberships r WHERE r.orgId = :orgId AND r.replacesPersonId IS NOT NULL)
+        ORDER BY active DESC, role, displayName
+        """
+    )
     fun observeEveryone(orgId: String): Flow<List<MembershipEntity>>
 
     @Query("SELECT * FROM memberships WHERE orgId = :orgId AND id = :membershipId LIMIT 1")
@@ -1617,4 +1633,82 @@ interface BookingDao {
         """
     )
     fun observeOpenFor(orgId: String, customerId: String, throughDay: Long): Flow<List<BookingRow>>
+}
+
+/**
+ * Everything a business has, as rows, for taking it out of the app.
+ *
+ * Whole tables for one business, deleted rows left out, oldest first. The period filter
+ * is applied by the caller on the date each row carries, so that a bill the owner
+ * edited later is still found under the day the work was done.
+ */
+@Dao
+interface ExportDao {
+    /** How much work has been finished here, for deciding whether the app has had a fair chance. */
+    @Query("SELECT COUNT(*) FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status = 'Completed'")
+    suspend fun completedJobs(orgId: String): Int
+
+    @Query("SELECT * FROM customers WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY name")
+    suspend fun customers(orgId: String): List<CustomerEntity>
+
+    @Query("SELECT * FROM fields WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY name")
+    suspend fun fields(orgId: String): List<FieldEntity>
+
+    @Query("SELECT * FROM machines WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY name")
+    suspend fun machines(orgId: String): List<MachineEntity>
+
+    @Query("SELECT * FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status != 'Discarded' ORDER BY workedAt")
+    suspend fun jobs(orgId: String): List<JobEntity>
+
+    @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId ORDER BY atMillis, createdAt")
+    suspend fun ledger(orgId: String): List<LedgerEntryEntity>
+
+    @Query("SELECT * FROM fuel_entries WHERE orgId = :orgId ORDER BY atMillis")
+    suspend fun fuel(orgId: String): List<FuelEntryEntity>
+
+    @Query("SELECT * FROM service_records WHERE orgId = :orgId ORDER BY atMillis")
+    suspend fun services(orgId: String): List<ServiceRecordEntity>
+
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis")
+    suspend fun payouts(orgId: String): List<PayoutEntity>
+
+    @Query("SELECT * FROM job_costs WHERE orgId = :orgId ORDER BY atMillis")
+    suspend fun jobCosts(orgId: String): List<JobCostEntity>
+
+    @Query("SELECT * FROM bookings WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY day")
+    suspend fun bookings(orgId: String): List<BookingEntity>
+
+    @Query("SELECT * FROM memberships WHERE orgId = :orgId AND active = 1 ORDER BY displayName")
+    suspend fun team(orgId: String): List<MembershipEntity>
+}
+
+/** Taking one whole business off this phone. Used for the practice business only. */
+@Dao
+interface SampleDao {
+    @Query("DELETE FROM memberships WHERE orgId = :orgId") suspend fun memberships(orgId: String)
+    @Query("DELETE FROM invites WHERE orgId = :orgId") suspend fun invites(orgId: String)
+    @Query("DELETE FROM customers WHERE orgId = :orgId") suspend fun customers(orgId: String)
+    @Query("DELETE FROM fields WHERE orgId = :orgId") suspend fun fields(orgId: String)
+    @Query("DELETE FROM machines WHERE orgId = :orgId") suspend fun machines(orgId: String)
+    @Query("DELETE FROM fuel_entries WHERE orgId = :orgId") suspend fun fuel(orgId: String)
+    @Query("DELETE FROM service_records WHERE orgId = :orgId") suspend fun services(orgId: String)
+    @Query("DELETE FROM machine_finance WHERE orgId = :orgId") suspend fun finance(orgId: String)
+    @Query("DELETE FROM payouts WHERE orgId = :orgId") suspend fun payouts(orgId: String)
+    @Query("DELETE FROM job_costs WHERE orgId = :orgId") suspend fun jobCosts(orgId: String)
+    @Query("DELETE FROM team_events WHERE orgId = :orgId") suspend fun teamEvents(orgId: String)
+    @Query("DELETE FROM breakdowns WHERE orgId = :orgId") suspend fun breakdowns(orgId: String)
+    @Query("DELETE FROM rates WHERE orgId = :orgId") suspend fun rates(orgId: String)
+    @Query("DELETE FROM jobs WHERE orgId = :orgId") suspend fun jobs(orgId: String)
+    @Query("DELETE FROM job_events WHERE orgId = :orgId") suspend fun jobEvents(orgId: String)
+    @Query("DELETE FROM ledger_entries WHERE orgId = :orgId") suspend fun ledger(orgId: String)
+    @Query("DELETE FROM bookings WHERE orgId = :orgId") suspend fun bookings(orgId: String)
+    @Query("DELETE FROM outbox WHERE orgId = :orgId") suspend fun outbox(orgId: String)
+    @Query("DELETE FROM organisations WHERE id = :orgId") suspend fun org(orgId: String)
+
+    /** Every row the business owns, and the business. Callers wrap it in a transaction. */
+    suspend fun wipe(orgId: String) {
+        memberships(orgId); invites(orgId); customers(orgId); fields(orgId); machines(orgId); fuel(orgId)
+        services(orgId); finance(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
+        rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); outbox(orgId); org(orgId)
+    }
 }

@@ -24,4 +24,18 @@
         made — the one thing the backup screen must never say.
     -->
     <exclude domain="sharedpref" path="fieldtrack.sync.xml"/>
+    <!--
+        How far each business has been read from the server. A fact about one install:
+        carried to another phone it would claim rows had been read that the phone has
+        never seen, and the pull would skip them for good. Left behind, the new phone
+        simply reads everything once, which is the right answer.
+    -->
+    <exclude domain="sharedpref" path="fieldtrack.pull.xml"/>
+    <!-- What this handset's clock was found to be doing, and a field walk half done: both describe a moment on one phone. -->
+    <exclude domain="sharedpref" path="clock_check.xml"/>
+    <exclude domain="sharedpref" path="field_walk.xml"/>
+    <!-- That this phone was already asked to show notifications: the new phone has not been, and its answer is its own. -->
+    <exclude domain="sharedpref" path="clock_notifications.xml"/>
+    <!-- Where to reach this phone with a notification, and what it was last told. -->
+    <exclude domain="sharedpref" path="fieldtrack.push.xml"/>
 </full-backup-content>

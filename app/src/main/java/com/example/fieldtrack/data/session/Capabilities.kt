@@ -83,6 +83,16 @@ value class Capabilities(private val granted: Set<Capability>) {
 
         fun of(membership: MembershipEntity): Capabilities {
             if (membership.role == MemberRole.Owner) return ofOwner()
+            // Looking only: no recording, no customers, no payments, no planning. Whatever
+            // switches were ticked on the row, none of them opens a way to change anything.
+            if (membership.role == MemberRole.Viewer) {
+                return Capabilities(
+                    buildSet {
+                        if (membership.canSeeMoney) add(Capability.SeeMoney)
+                        if (membership.canSeePeopleCost) add(Capability.SeePeopleCost)
+                    }
+                )
+            }
             return Capabilities(
                 buildSet {
                     // Recording work is the whole point of a driver's account.

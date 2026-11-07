@@ -67,6 +67,16 @@ service cloud.firestore {
              && get(membershipPath(orgId)).data.get(flag, false) == true;
     }
 
+    // A member who may look and may not change anything: a partner, an accountant.
+    // Held on the same membership document as every other grant, so it costs no
+    // extra read. Blocks the writes that are open to every member; the writes that
+    // already need a switch (paying people, planning, the team) are refused to a
+    // viewer because none of those switches is ever set on one.
+    function isViewer(orgId) {
+      return isMember(orgId)
+             && get(membershipPath(orgId)).data.get('role', '') == 'Viewer';
+    }
+
     // Who may run the team: an owner, or somebody an owner has said may.
     function mayRunTeam(orgId) {
       return isOwner(orgId) || may(orgId, 'canEditTeam');
@@ -208,6 +218,13 @@ service cloud.firestore {
     // and it exists because a freshly signed-in handset knows its owner's id and
     // nothing else. Written by the device as it joins or creates a business.
     match /people/{personId}/orgs/{orgId} {
+      allow read, write: if signedIn() && request.auth.uid == personId;
+    }
+
+    // The phones a person can be reached on, and what each wants to hear about. Read by
+    // the server's own code to decide whom to send a notification to; a person can read
+    // and change only their own, and a phone that signs out removes its row.
+    match /people/{personId}/devices/{deviceId} {
       allow read, write: if signedIn() && request.auth.uid == personId;
     }
 
@@ -519,7 +536,7 @@ service cloud.firestore {
       // done stays done.
       match /job_costs/{costId} {
         allow read: if isMember(orgId);
-        allow create, update: if isMember(orgId);
+        allow create, update: if isMember(orgId) && !isViewer(orgId);
         allow delete: if false;
       }
 
@@ -566,14 +583,42 @@ service cloud.firestore {
       // it. Excluding the name here is the only way to say "everything except",
       // since a rule cannot revoke what another rule allows.
       match /{collection}/{document} {
-        allow read, write: if isMember(orgId)
-                           && collection != 'memberships'
-                           && collection != 'payouts'
-                           && collection != 'job_costs'
-                           && collection != 'job_cost_amounts'
-                           && collection != 'machine_finance'
-                           && collection != 'bookings';
+        allow read: if isMember(orgId)
+                    && collection != 'memberships'
+                    && collection != 'payouts'
+                    && collection != 'job_costs'
+                    && collection != 'job_cost_amounts'
+                    && collection != 'machine_finance'
+                    && collection != 'bookings';
+        // Anybody on the team may write the work, except somebody who may only look.
+        allow write: if isMember(orgId)
+                     && !isViewer(orgId)
+                     && collection != 'memberships'
+                     && collection != 'payouts'
+                     && collection != 'job_costs'
+                     && collection != 'job_cost_amounts'
+                     && collection != 'machine_finance'
+                     && collection != 'bookings';
       }
+    }
+
+    // A person asking for their account, and what is theirs alone, to be deleted.
+    //
+    // Nothing on a handset deletes a business, so this is a request that whoever runs the
+    // data carries out. Each person may write only their own, and may read it back to
+    // see that it landed; it is never deleted from a handset.
+    match /deletionRequests/{personId} {
+      allow create, update: if signedIn() && request.auth.uid == personId;
+      allow read: if signedIn() && request.auth.uid == personId;
+      allow delete: if false;
+    }
+
+    // The oldest app version still allowed to share data, and the newest there is.
+    // Written by hand in the console; no handset ever writes it. Any signed-in person
+    // may read it, which is what lets an old install find out it is too old.
+    match /appConfig/{document} {
+      allow read: if signedIn();
+      allow write: if false;
     }
 
     // Anything not laid out above is not something this app writes.

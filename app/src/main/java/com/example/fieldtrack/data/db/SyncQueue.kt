@@ -127,6 +127,9 @@ class SyncQueue(
     }
 
     companion object {
+        /** A document in each business that every commit touches, so a reader can tell cheaply whether anything changed. */
+        const val META = "meta"
+        const val CHANGED = "changed"
         const val TABLE_ORGS = "organisations"
         const val TABLE_MEMBERSHIPS = "memberships"
         const val TABLE_JOBS = "jobs"

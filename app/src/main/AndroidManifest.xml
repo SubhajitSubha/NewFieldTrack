@@ -67,6 +67,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Instant news from the server: work booked for you, a job handed over, a payment. -->
+        <service
+            android:name=".notify.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- Pause and Resume pressed on the clock notification. Ours alone. -->
         <receiver
             android:name=".notify.ClockActionReceiver"

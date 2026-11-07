@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.customer
 
+import com.example.fieldtrack.data.db.entity.MembershipEntity
 import kotlinx.coroutines.flow.first
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -41,6 +42,9 @@ data class LedgerRow(
     val isReversal: Boolean,
     /** The job this line came from, when it came from one. */
     val jobId: String? = null,
+    /** Who wrote this line, by name; only filled in where more than one person writes here. */
+    val byName: String? = null,
+    val byPersonId: String? = null,
 ) {
     /** True when this line increases what the customer owes. */
     val isDebit: Boolean get() = kind == LedgerKind.Charge || kind == LedgerKind.Opening
@@ -106,6 +110,8 @@ data class LedgerState(
     val canAmend: Boolean = false,
     /** False for a driver the owner did not trust with money. */
     val canSeeMoney: Boolean = true,
+    /** False for somebody who may only look: no money to take, no job to start. */
+    val canRecord: Boolean = true,
 )
 
 /**
@@ -134,6 +140,7 @@ fun buildKhata(entries: List<LedgerEntryEntity>): List<LedgerRow> {
             balanceAfterMinor = running,
             isReversal = entry.reversesEntryId != null || entry.id in reversedIds,
             jobId = entry.jobId,
+            byPersonId = entry.byPersonId,
         )
     }.asReversed()
 }
@@ -254,6 +261,7 @@ class LedgerViewModel(
             app.workRepository.observeForCustomer(s.orgId, customerId),
             app.directoryRepository.observeMachines(s.orgId),
             app.directoryRepository.observeFields(s.orgId, customerId),
+            app.teamRepository.observeEveryone(s.orgId),
         ) { values ->
             @Suppress("UNCHECKED_CAST")
             val customer = values[0] as CustomerEntity?
@@ -268,7 +276,13 @@ class LedgerViewModel(
             @Suppress("UNCHECKED_CAST")
             val fields = values[6] as List<FieldEntity>
 
-            val rows = buildKhata(entries)
+            @Suppress("UNCHECKED_CAST")
+            val team = values[7] as List<MembershipEntity>
+            // Names only where more than one person writes in this business: "by you" on
+            // every line of a one-person khata is noise, and "by Gurmeet" is the answer
+            // an owner with a crew is looking for when a figure surprises them.
+            val names = if (team.count { it.active } > 1) team.associate { it.personId to it.displayName } else emptyMap()
+            val rows = buildKhata(entries).map { it.copy(byName = it.byPersonId?.let { id -> names[id] }) }
             val stillOwed = outstandingCharges(entries)
                 .associate { it.entry.id to it.outstandingMinor }
             val jobsById = jobEntities.associateBy { it.id }
@@ -311,6 +325,7 @@ class LedgerViewModel(
                 loaded = true,
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,
+                canRecord = Capability.RecordWork in s.can,
                 customerId = customerId,
                 customerName = customer?.name.orEmpty(),
                 customerPhone = customer?.phone,

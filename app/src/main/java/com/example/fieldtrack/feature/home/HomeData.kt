@@ -200,7 +200,7 @@ fun debtsByAge(entries: List<LedgerEntryEntity>): List<Debt> =
  * still owe. Gone as soon as they pay: a reminder to ask for money already received
  * would be the app nagging about its own bookkeeping.
  */
-fun chaseAlerts(customers: List<CustomerEntity>, debts: List<Debt>, now: Long): List<HomeAlert.Chase> {
+fun chaseAlerts(customers: List<CustomerEntity>, debts: List<Debt>, now: Long, limit: Int = 3): List<HomeAlert.Chase> {
     val today = java.time.LocalDate.now(BusinessClock.zone).toEpochDay()
     val owing = debts.associateBy { it.customerId }
     return customers.mapNotNull { customer ->
@@ -208,7 +208,7 @@ fun chaseAlerts(customers: List<CustomerEntity>, debts: List<Debt>, now: Long): 
         val debt = owing[customer.id] ?: return@mapNotNull null
         if (day > today) return@mapNotNull null
         HomeAlert.Chase(customer.id, customer.name, debt.amountMinor)
-    }.sortedByDescending { it.amountMinor }.take(3)
+    }.sortedByDescending { it.amountMinor }.take(limit)
 }
 
 /** The late debts as one alert, or nothing when nobody is late. */

@@ -164,7 +164,11 @@ enum class BookingStatus { Planned, Cancelled, Done }
 /** Why a booking did not happen. Cheap to say, and the question is always asked later. */
 enum class CancelReason { Rain, Farmer, Machine, Other }
 
-enum class MemberRole { Owner, Operator }
+/**
+ * What somebody is in a business. A [Viewer] looks and cannot change: a partner, an
+ * accountant, a son at university. Added after the other two, so it goes last.
+ */
+enum class MemberRole { Owner, Operator, Viewer }
 
 /**
  * The kinds of change worth writing down about a team.

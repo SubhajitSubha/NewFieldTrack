@@ -57,6 +57,8 @@ fun OrgSwitcherScreen(
     onJoinAnother: () -> Unit,
     onDismissRefusal: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Starts a business of the person's own. Null where that is not offered. */
+    onStartNew: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -142,6 +144,22 @@ fun OrgSwitcherScreen(
                     FtRowDivider()
                 }
 
+                if (onStartNew != null) {
+                    FtListRow(
+                        title = stringResource(R.string.orgs_start_new),
+                        subtitle = stringResource(R.string.orgs_start_new_note),
+                        leading = {
+                            FtIconTile(
+                                icon = FieldTrackIcons.Add,
+                                size = 46.dp,
+                                background = colors.primaryWash,
+                                tint = colors.primaryPressed,
+                            )
+                        },
+                        onClick = onStartNew,
+                    )
+                    FtRowDivider()
+                }
                 FtListRow(
                     title = stringResource(R.string.orgs_join),
                     subtitle = stringResource(R.string.orgs_join_note),

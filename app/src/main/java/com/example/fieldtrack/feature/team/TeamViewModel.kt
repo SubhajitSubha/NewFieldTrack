@@ -153,7 +153,7 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
  * The one he joined on is kept, because it is the only one he can prove at the
  * server; the hand-written row is the one absorbed.
  */
-private fun duplicateAmong(
+internal fun duplicateAmong(
     members: List<MembershipEntity>,
     dismissed: Set<String>,
 ): DuplicatePair? {
@@ -179,6 +179,26 @@ private fun duplicateAmong(
                 phone = digits,
             )
         }
+    }
+    // The same name on two rows, one written by hand and one that joined with a code, with
+    // numbers that do not match: what a person who changed their number or their phone
+    // looks like. Asked about rather than assumed, because two men called Singh are not
+    // rare, and "not the same person" is remembered.
+    fun nameOf(m: MembershipEntity) = m.displayName.trim().lowercase()
+    for (joined in live.filter { it.joinedWithCode != null }) {
+        val written = live.firstOrNull { other ->
+            other.id != joined.id && other.personId != joined.personId &&
+                other.joinedWithCode == null && other.role != MemberRole.Owner &&
+                nameOf(other) == nameOf(joined) && nameOf(joined).isNotEmpty() &&
+                duplicateKey(joined.id, other.id) !in dismissed
+        } ?: continue
+        return DuplicatePair(
+            keepMembershipId = joined.id,
+            absorbMembershipId = written.id,
+            keepName = joined.displayName,
+            absorbName = written.displayName,
+            phone = joined.phone?.let { PhoneNumbers.normalize(it) }.orEmpty(),
+        )
     }
     return null
 }

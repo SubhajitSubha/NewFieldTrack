@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -175,7 +177,10 @@ fun RateCardScreen(
             // Only an owner may change how rates are kept; a driver sees the list.
             if (state.canEdit) {
                 FtCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.toggleable(value = state.perCustomer, role = Role.Switch, onValueChange = onPerCustomer),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(R.string.rates_per_customer),
@@ -194,7 +199,7 @@ fun RateCardScreen(
                         }
                         Switch(
                             checked = state.perCustomer,
-                            onCheckedChange = onPerCustomer,
+                            onCheckedChange = null,
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = colors.onPrimary,
                                 checkedTrackColor = colors.primary,

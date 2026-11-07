@@ -58,6 +58,13 @@ enum class RolePreset {
 
     /** The same as you, and able to take you off. */
     Owner,
+
+    /**
+     * Can see the business and cannot change any of it: a partner, an accountant, a
+     * family member who wants to follow the season. Sees the money, never what each
+     * person is paid, and records nothing.
+     */
+    Viewer,
     ;
 
     /** What picking this writes to the switches. */
@@ -84,10 +91,16 @@ enum class RolePreset {
             // true so that stepping back down to Driver has something coherent
             // to clear, rather than leaving a demoted owner holding everything.
             Owner -> Manager.grants
+            Viewer -> Grants(seeMoney = true)
         }
 
     /** The role this preset carries. Only one of them is not an ordinary member. */
-    val role: MemberRole get() = if (this == Owner) MemberRole.Owner else MemberRole.Operator
+    val role: MemberRole
+        get() = when (this) {
+            Owner -> MemberRole.Owner
+            Viewer -> MemberRole.Viewer
+            else -> MemberRole.Operator
+        }
 
     companion object {
         /**
@@ -99,7 +112,9 @@ enum class RolePreset {
          */
         fun matching(role: MemberRole, grants: Grants): RolePreset? {
             if (role == MemberRole.Owner) return Owner
-            return entries.firstOrNull { it != Owner && it.grants == grants }
+            // A viewer is a viewer whatever else was ticked: the role is what stops them recording.
+            if (role == MemberRole.Viewer) return Viewer
+            return entries.firstOrNull { it != Owner && it != Viewer && it.grants == grants }
         }
 
         /**

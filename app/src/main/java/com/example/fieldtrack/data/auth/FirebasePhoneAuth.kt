@@ -9,6 +9,7 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
@@ -90,6 +91,12 @@ class FirebasePhoneAuth(
         }
 
     override suspend fun signOut() = auth.signOut()
+
+    /** False when the provider wants a fresh sign-in first: the request is already with the server by then. */
+    override suspend fun deleteAccount(): Boolean = runCatching {
+        auth.currentUser?.delete()?.await()
+        true
+    }.getOrDefault(false)
 
     private fun com.google.firebase.auth.FirebaseUser?.asSignedIn() = SignedIn(
         uid = this?.uid.orEmpty(),

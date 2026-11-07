@@ -84,6 +84,9 @@ interface PhoneAuth {
     suspend fun verify(verificationId: String, code: String): AuthResult
 
     suspend fun signOut()
+
+    /** Deletes the sign-in itself. Default does nothing, for tests and builds with no provider. */
+    suspend fun deleteAccount(): Boolean = false
 }
 
 /** A number India's carriers would actually route: ten digits, not starting 0–5. */

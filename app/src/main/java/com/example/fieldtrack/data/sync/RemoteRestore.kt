@@ -90,6 +90,17 @@ interface RemoteRestore {
     suspend fun fetchChangesSince(orgId: String, since: Long): PullPage
 
     /**
+     * One cheap read that says whether anything in the business was written after
+     * [since]: true if so, false if not, null when it cannot be told (no marker yet, no
+     * answer). Null always means "read it all", never "nothing new".
+     *
+     * Asking every collection costs a read each even when nothing changed, which is
+     * nearly every time somebody is only looking. The marker is one document that every
+     * batch of changes touches.
+     */
+    suspend fun changedSince(orgId: String, since: Long): Boolean? = null
+
+    /**
      * Whether this account has been turned off outright.
      *
      * Separate from membership, because the two answer different questions. Being

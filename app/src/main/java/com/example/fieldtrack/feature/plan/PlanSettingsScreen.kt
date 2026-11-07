@@ -13,6 +13,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -109,7 +111,9 @@ fun PlanSettingsScreen(
 
             FtCard(padding = 0.dp) {
                 Row(
-                    Modifier.padding(horizontal = 15.dp, vertical = 13.dp),
+                    Modifier
+                        .toggleable(value = state.settings.driversSeeAll, role = Role.Switch, onValueChange = onDriversSeeAll)
+                        .padding(horizontal = 15.dp, vertical = 13.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -127,7 +131,7 @@ fun PlanSettingsScreen(
                     }
                     Switch(
                         checked = state.settings.driversSeeAll,
-                        onCheckedChange = onDriversSeeAll,
+                        onCheckedChange = null,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = colors.onPrimary,
                             checkedTrackColor = colors.primary,

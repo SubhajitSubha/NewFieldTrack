@@ -63,6 +63,8 @@ fun YardHomeScreen(
     alertActions: AlertActions,
     modifier: Modifier = Modifier,
     onOpenPlan: () -> Unit = {},
+    /** False for somebody who may only look: there is no work of their own to start or to show. */
+    canRecord: Boolean = true,
 ) {
     val ownWork = HomeBlock(Pane.Side) {
         if (state.ownJob == null) HomeSection(stringResource(R.string.home_your_own_work))
@@ -81,7 +83,7 @@ fun YardHomeScreen(
         add(HomeBlock(Pane.Main) { YardHero(state, onOpenFleet) })
 
         // Somebody who is driving themselves wants their own clock near the top.
-        if (state.ownJob != null) add(ownWork)
+        if (canRecord && state.ownJob != null) add(ownWork)
 
         add(HomeBlock(Pane.Side) { PlanCard(state.plan, onOpenPlan) })
 
@@ -107,7 +109,7 @@ fun YardHomeScreen(
             })
         }
 
-        if (state.ownJob == null) add(ownWork)
+        if (canRecord && state.ownJob == null) add(ownWork)
 
         add(HomeBlock(Pane.Main) {
             HomeSection(

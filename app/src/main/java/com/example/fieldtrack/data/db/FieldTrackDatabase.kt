@@ -11,7 +11,9 @@ import com.example.fieldtrack.data.db.dao.JobDao
 import com.example.fieldtrack.data.db.dao.LedgerDao
 import com.example.fieldtrack.data.db.dao.MachineDao
 import com.example.fieldtrack.data.db.dao.OrgDao
+import com.example.fieldtrack.data.db.dao.ExportDao
 import com.example.fieldtrack.data.db.dao.OutboxDao
+import com.example.fieldtrack.data.db.dao.SampleDao
 import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
@@ -65,7 +67,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         BookingEntity::class,
         OutboxEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -78,6 +80,8 @@ abstract class FieldTrackDatabase : RoomDatabase() {
     abstract fun ledgerDao(): LedgerDao
     abstract fun bookingDao(): BookingDao
     abstract fun outboxDao(): OutboxDao
+    abstract fun exportDao(): ExportDao
+    abstract fun sampleDao(): SampleDao
 
     companion object {
         private const val NAME = "fieldtrack.db"

@@ -168,6 +168,15 @@ data class MembershipEntity(
     val phone: String? = null,
     val photoPath: String? = null,
     val role: MemberRole,
+    /**
+     * The identity this person used before they proved who they are, when this row took
+     * over from one.
+     *
+     * The old row is still on the server and cannot be taken down, so every phone is told
+     * which person is the same as which: a row whose person is named here is a left-behind
+     * identity and is not listed as somebody else.
+     */
+    val replacesPersonId: String? = null,
 
     /** Money, rates and balances. False for an operator unless the owner grants it. */
     val canSeeMoney: Boolean = false,

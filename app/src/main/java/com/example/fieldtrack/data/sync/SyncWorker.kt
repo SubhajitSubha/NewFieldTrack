@@ -37,6 +37,12 @@ class SyncWorker(
     override suspend fun doWork(): Result {
         val app = applicationContext as? FieldFlowApplication ?: return Result.success()
 
+        runCatching { app.updateGate.refresh() }
+        runCatching { com.example.fieldtrack.notify.PushRegistrar(app).sync() }
+
+        // Too old to be trusted with shared records: do nothing, and ask again once updated.
+        if (app.updateGate.required) return Result.success()
+
         // Before sending, find out what the owner has decided. A permission
         // withdrawn or a driver removed takes effect on the next wake rather than
         // whenever somebody happens to reopen the app, which is what makes any of
@@ -78,7 +84,8 @@ class SyncWorker(
         // while the app is shut — would find it null and skip the pull without a
         // word, so the one case this exists for was the one case it did nothing.
         // load() is idempotent and returns the session it resolves.
-        runCatching { app.sessionStore.load() }.getOrNull()?.let { session ->
+        // The practice business has nothing on a server to report or read.
+        runCatching { app.sessionStore.load() }.getOrNull()?.takeUnless { app.sessionStore.isSample(it.orgId) }?.let { session ->
             // How much this phone is still holding for this business, written
             // onto its own membership so the owner can see it before acting on
             // somebody. After the send, so the number is the leftover rather

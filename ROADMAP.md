@@ -55,31 +55,32 @@ Done first because it touches every screen and every table.
 - [x] Driver advances: an advance is money given to a team member, taken off later pay on the pay screen, with what is still owed back shown there.
 - [ ] Tap to call is on the khata; message goes through the reminder. Calling from the customer list row is not added.
 
-## M4. Business and team
-- [x] Invite by one tap share (already built: the invite code goes out through the share sheet).
-- [ ] Co-owner and ownership transfer.
-- [ ] Changing a phone number or losing a phone: a safe way to attach the same person to a new number.
-- [ ] Fix the duplicate owner row left behind when an anonymous owner becomes a signed-in one.
-- [ ] Short "who changed what" history on money entries.
-- [ ] Delete my account and delete my business inside the app (the feature; the store paperwork is a blocker).
-- [ ] Leaving a business with money still owed: warn both sides.
-- [ ] Read-only role (accountant, family member).
+## M4. Business and team (done)
+- [x] Invite by one tap share (the invite code goes out through the share sheet).
+- [x] Co-owner and ownership transfer (hand over, or add a second owner).
+- [x] Losing a phone or changing a number: add Google on the profile and sign in with it anywhere; a person who comes back under a new number and the same name is offered a merge with the old entry.
+- [x] The duplicate owner row left behind when an anonymous owner becomes a signed-in one is hidden on every phone (a membership says whom it replaces).
+- [x] "Who changed what": the khata can show entries by name.
+- [x] Delete my account inside the app (a request the server acts on; businesses that are yours alone go with it, and you are told which). Starting another business replaces "delete my business" as the way out of a locked currency.
+- [x] Leaving a business with an advance still owed warns the leaver; the member screen shows the advance on the owner's side.
+- [x] Read-only role (Viewer: accountant, family member), also enforced in the Firestore rules.
+- Server side of account deletion (something has to act on `deletionRequests`) comes with the Cloud Function work in M5.
 
 ## M5. Trust and safety
-- [ ] Optional app lock (fingerprint or PIN), a setting.
-- [ ] Update prompt, and a minimum supported version so old installs cannot corrupt shared data.
-- [ ] Export everything (CSV and PDF) for the owner: portability, bank proof of income, accountant.
-- [ ] Decide what Android automatic backup may copy (the local database, the sync queue, the session) so a restored phone cannot misbehave.
-- [ ] Notifications: local reminders for tomorrow's plan, dues, services due. **Instant push (recommended, pending OK):** a small piece of our own code on Google's servers sends a notification when a booking for you is made, changed or cancelled, when a job is handed to you, and when a payment is recorded. Per-person switch for each kind, and no money amounts on the lock screen.
-- [ ] Help inside the app, contact support, "try with sample data", a short first-run tour, rating prompt.
-- [ ] Accessibility pass: screen reader labels, large text, colour contrast, one-handed reach.
+- [x] Optional app lock: the phone's own screen lock (fingerprint, face, PIN or pattern) before the app opens; a setting under More > Security, with how long out of sight before it asks. Task-switcher picture hidden while on (Android 13+). A phone with no screen lock is never held shut.
+- [x] Update notice, and a minimum supported version: a version document in the console (`appConfig/android`) stops too-old installs from sending (records stay on the phone) and shows an update page.
+- [x] Export everything: one zip of plain CSV tables (customers, fields, machines, jobs, money, fuel, repairs, pay, team, bookings), for everything or an accounting year, limited to what the person may see. Statements stay PDF.
+- [x] Backup scope decided: records, session and settings go to a new phone; everything that describes one install (device id, sync journal, pull watermarks, clock check, field walk, notification asks, push token) stays behind. A test guards the list.
+- [x] Notifications: reminders for tomorrow's work, money to ask for and services due (each its own switch and hour; nothing on by default); instant push for bookings, handed jobs and payments, per-kind switches told to the server, no amounts anywhere, locked screens show only that there is something. The server code is in `functions/` and is **not deployed yet** (see `docs/server-setup.md`).
+- [x] Help inside the app (answers, tour again), first-run tour, practice business with made-up work that never leaves the phone and can be removed, rating question after a fortnight and real work (a "yes" goes to the store page, a "not really" to a note to us). "Write to us" appears once a support address is set.
+- [~] Accessibility pass: an audit of every screen for unlabelled and too-small controls is in the screen tests; fixes follow what it finds.
 
 ## M6. Fast on any phone, at any size
-- [ ] Load three seasons of data (about 5,000 jobs) and fix whatever is slow: Home, Season, lists.
-- [ ] Paging for long lists, indexes on hot queries.
-- [ ] Confirm the server pull only fetches what changed. Project reads per user per day.
+- [x] Three seasons of data (5,000 jobs, 7,500 khata lines, 300 farmers) loaded in a test: every list and total opens in tens of milliseconds, and the indexes that make it so are kept by a test (`ScaleTest`, figures in `build/scale.txt`).
+- [x] Long lists: the largest list on screen is one season's finished jobs (about 1,700 rows) drawn lazily; nothing loads a whole table into a screen that does not need it. Export reads whole tables once, off the main thread.
+- [x] The server pull only fetches what changed (a server-stamped mark per business, pages of 300). It now also asks one document, "has anything changed?", before running the eighteen collection queries, so an idle poll costs about one read instead of twenty-one (see `docs/m6-scale.md` for the cost figures).
 - [ ] Test on a 2-3 GB phone, a slow network, no network, and battery use over a working day.
-- [ ] Cold start time measured and kept down.
+- [ ] Cold start time measured and kept down (the startup profile is part of the release work).
 
 ## M7. Better than every competitor
 Ideas we can build because we know the work. To be ordered with the product owner.
@@ -141,5 +142,6 @@ Decided:
 - [ ] Closed test with real contractors (if the developer account is a personal one, the store asks for about 12 testers for 14 days before production).
 - [ ] Version numbering scheme, build as an app bundle.
 - [ ] Crash and ANR monitoring through the store's own reports.
+- [ ] Server hand-offs in `docs/server-setup.md`: publish the whole rules file, create `appConfig/android`, deploy `functions/` (Blaze plan), set `support_email`.
 - [ ] Remove the stray `patch_*.sh` and `fix_compile.sh` scripts from the repo root.
 - [ ] Final run of every flow on the physical phones (Pixel 9 Pro XL, Samsung) with the release build.
