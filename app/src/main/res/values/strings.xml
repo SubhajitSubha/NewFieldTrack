@@ -134,6 +134,8 @@
     <string name="billing_per_km_caption">Distance carried</string>
     <string name="billing_fixed">Fixed price</string>
     <string name="billing_fixed_caption">One agreed amount</string>
+    <string name="billing_per_day">Per day</string>
+    <string name="billing_per_day_caption">Machine and driver hired by the day</string>
 
     <!-- Land units are regional: the picker offers all of them, the business picks one. -->
     <string name="unit_acre">Acre</string>
@@ -154,6 +156,7 @@
     <string name="unit_bushel">Bushel</string>
     <string name="unit_kg">kg</string>
     <string name="unit_litre">Litre</string>
+    <string name="unit_day">Day</string>
 
     <plurals name="field_earned_jobs">
         <item quantity="one">from %d job</item>
@@ -1849,4 +1852,40 @@
     <string name="tax_name_hint">GST, VAT, sales tax</string>
     <string name="tax_rate_label">Rate</string>
     <string name="tax_note">Leave empty if you charge none. Your prices already include it; bills show how much of the total is tax.</string>
+    <!-- Terms of a job -->
+    <string name="terms_title">Terms</string>
+    <string name="terms_none">Just the rate</string>
+    <string name="terms_sum_minimum">Minimum %1$s</string>
+    <string name="terms_sum_arrival">Arrival %1$s</string>
+    <string name="terms_sum_waiting">Waiting %1$s an hour</string>
+    <string name="terms_sum_fuel_theirs">Customer gives diesel</string>
+    <string name="terms_sum_fuel_billed">Diesel billed extra</string>
+    <string name="terms_sum_crew">%1$d more on the job</string>
+    <string name="terms_minimum">Minimum charge</string>
+    <string name="terms_minimum_note">If the work comes to less than this, this is the bill. Leave empty for none.</string>
+    <string name="terms_arrival">Arrival charge</string>
+    <string name="terms_arrival_note">A flat charge for getting the machine to the field, added to the bill.</string>
+    <string name="terms_diesel">Diesel</string>
+    <string name="terms_diesel_included">In the rate</string>
+    <string name="terms_diesel_theirs">Customer gives it</string>
+    <string name="terms_diesel_billed">Billed extra</string>
+    <string name="terms_diesel_included_note">You buy the diesel and the rate covers it.</string>
+    <string name="terms_diesel_theirs_note">The farmer fills the tank, so the rate is for the work alone. Said on the bill.</string>
+    <string name="terms_diesel_billed_note">The diesel you put in for this job is added to the bill at what it cost.</string>
+    <string name="terms_waiting">Waiting for the customer</string>
+    <string name="terms_per_hour">an hour</string>
+    <string name="terms_waiting_note">Time the job sits paused is billed at this. Leave empty to bill no waiting.</string>
+    <string name="terms_implement">Implement</string>
+    <string name="terms_no_implement">None</string>
+    <string name="terms_implement_note">The tractor earns the bill; the implement gets the hours, so its service comes round on time.</string>
+    <string name="terms_crew">Also on this job</string>
+    <string name="terms_crew_note">They see the job in their own work too.</string>
+    <string name="finish_line_minimum">Minimum charge</string>
+    <string name="finish_line_arrival">Arrival charge</string>
+    <string name="finish_line_waiting">Waiting time</string>
+    <string name="finish_line_diesel">Diesel</string>
+    <string name="finish_line_discount">Discount</string>
+    <string name="finish_discount_label">Discount or round-off (optional)</string>
+    <string name="finish_discount_note">Taken off the bill. Leave empty for none.</string>
+    <string name="bill_diesel_theirs">Diesel supplied by the customer</string>
 </resources>

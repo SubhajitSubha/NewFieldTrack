@@ -15,6 +15,7 @@ import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.MachineFinanceEntity
+import com.example.fieldtrack.data.billing.JobTerms
 import com.example.fieldtrack.data.costing.Costing
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -355,6 +356,8 @@ class DirectoryRepository(
         unit: MeasureUnit,
         amountMinor: Long,
         customerId: String? = null,
+        /** The terms the price came with, so the next job at this rate starts from them. */
+        terms: JobTerms = JobTerms(),
     ) {
         // A lump sum agreed for one job is not a price per anything, and offering it
         // next time as a rate per bigha would put ₹15,000 in the box.
@@ -376,6 +379,10 @@ class DirectoryRepository(
                 // row it matched, and renaming a contractor's "paddy" rate because a
                 // job happened to use it is not something a background write may do.
                 label = existing?.takeIf { it.customerId == customerId }?.label,
+                minimumMinor = terms.minimumMinor,
+                arrivalMinor = terms.arrivalMinor,
+                fuelTerms = terms.fuelTerms,
+                waitingRateMinor = terms.waitingRateMinor,
                 updatedAt = clock.now(),
             )
         )
@@ -399,6 +406,10 @@ class DirectoryRepository(
                     unit = unit,
                     amountMinor = amountMinor,
                     customerId = null,
+                    minimumMinor = terms.minimumMinor,
+                    arrivalMinor = terms.arrivalMinor,
+                    fuelTerms = terms.fuelTerms,
+                    waitingRateMinor = terms.waitingRateMinor,
                     updatedAt = clock.now(),
                 )
             )

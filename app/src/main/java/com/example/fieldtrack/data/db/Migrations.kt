@@ -570,8 +570,35 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
     }
 }
 
+/**
+ * Terms a job can carry beyond its rate: a minimum, an arrival charge, who pays for the
+ * diesel, waiting time, a discount; the implement and the extra hands on it; the token
+ * taken at booking; and what an owner calls a machine the list has no name for.
+ *
+ * Everything starts empty, which bills exactly as before.
+ */
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE jobs ADD COLUMN minimumMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN arrivalMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN fuelTerms TEXT NOT NULL DEFAULT 'Included'")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN fuelBilledMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN waitingRateMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN waitingMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN discountMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN implementMachineId TEXT")
+        db.execSQL("ALTER TABLE jobs ADD COLUMN coOperatorIds TEXT")
+        db.execSQL("ALTER TABLE rates ADD COLUMN minimumMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE rates ADD COLUMN arrivalMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE rates ADD COLUMN fuelTerms TEXT NOT NULL DEFAULT 'Included'")
+        db.execSQL("ALTER TABLE rates ADD COLUMN waitingRateMinor INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE bookings ADD COLUMN advanceMinor INTEGER")
+        db.execSQL("ALTER TABLE machines ADD COLUMN typeLabel TEXT")
+    }
+}
+
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
 )

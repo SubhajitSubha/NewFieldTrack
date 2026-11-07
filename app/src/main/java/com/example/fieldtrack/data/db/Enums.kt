@@ -14,7 +14,10 @@ enum class BillingMode {
     /** Bag, quintal, piece — anything counted rather than measured. */
     PerUnit,
     PerKm,
-    Fixed;
+    Fixed,
+
+    /** Charged by the day, half days allowed: a machine and its driver hired for the day. */
+    PerDay;
 
     /** True when the billable figure is counted up during the job rather than at the end. */
     val countsUpLive: Boolean
@@ -27,7 +30,10 @@ enum class MeasureUnit {
     Hour, Trip, Quintal, Bag, Piece, Kilometre,
 
     /** Added with the worldwide units: ground in the metric system, and the loads and weights sold by it. */
-    Hectare, SquareMetre, Bale, Tonne, Bushel, Kilogram, Litre;
+    Hectare, SquareMetre, Bale, Tonne, Bushel, Kilogram, Litre,
+
+    /** Hired by the day. */
+    Day;
 
     /**
      * Whether this measures ground.
@@ -40,6 +46,15 @@ enum class MeasureUnit {
         get() = this == Acre || this == Bigha || this == Kanal ||
             this == Guntha || this == Katha || this == Hectare || this == SquareMetre
 }
+
+/**
+ * Who pays for the diesel on a job, which changes what the rate means.
+ *
+ * [Included] is the usual: the rate covers it and the contractor buys it. [CustomerSupplies]
+ * means the farmer fills the tank, so the rate is for the work alone. [BilledExtra] means the
+ * diesel the contractor puts in is added to the bill at what it cost.
+ */
+enum class FuelTerms { Included, CustomerSupplies, BilledExtra }
 
 enum class JobStatus { Running, Paused, Completed, Discarded }
 

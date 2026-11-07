@@ -84,6 +84,8 @@ fun FinishScreen(
     makingPdf: Boolean = false,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    discountText: String = "",
+    onDiscount: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -120,7 +122,7 @@ fun FinishScreen(
                     onUncounted = onLabourUncounted,
                     onCounted = onLabourCounted,
                 )
-                1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod)
+                1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod, discountText, onDiscount)
                 else -> SavedStep(state, receivedMinor, finalBalanceMinor)
             }
             Box(Modifier.height(dimens.space4))
@@ -355,6 +357,28 @@ private fun ReviewStep(
     }
 }
 
+/**
+ * The job's line on a bill, and under it whatever else makes the total: a minimum that was
+ * applied, the arrival charge, waiting time, diesel, a discount. With none of them it is the
+ * one line it always was.
+ */
+@Composable
+private fun JobBillLines(state: FinishState, title: String) {
+    val q = state.quote
+    if (q == null || !q.hasExtras) {
+        AmountLine(title, state.jobAmountMinor)
+        return
+    }
+    AmountLine(title, q.workMinor)
+    if (q.minimumTopUpMinor > 0) AmountLine(stringResource(R.string.finish_line_minimum), q.minimumTopUpMinor)
+    if (q.arrivalMinor > 0) AmountLine(stringResource(R.string.finish_line_arrival), q.arrivalMinor)
+    if (q.waitingMinor > 0) AmountLine(stringResource(R.string.finish_line_waiting), q.waitingMinor)
+    if (q.fuelMinor > 0) AmountLine(stringResource(R.string.finish_line_diesel), q.fuelMinor)
+    if (q.discountMinor > 0) {
+        AmountLine(stringResource(R.string.finish_line_discount), -q.discountMinor, tone = FtMoneyTone.Received)
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BillStep(
@@ -365,6 +389,8 @@ private fun BillStep(
     onChooseNothing: () -> Unit,
     onAmount: (String) -> Unit,
     onMethod: (PaymentMethod) -> Unit,
+    discountText: String,
+    onDiscount: (String) -> Unit,
 ) {
     FtCard {
         FtSectionLabel(stringResource(R.string.finish_bill_for))
@@ -374,7 +400,7 @@ private fun BillStep(
             color = FieldTrackTheme.colors.ink,
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
         )
-        AmountLine(stringResource(R.string.finish_this_job), state.jobAmountMinor)
+        JobBillLines(state, stringResource(R.string.finish_this_job))
         if (state.previousBalanceMinor != 0L) {
             AmountLine(
                 stringResource(R.string.money_old_balance),
@@ -399,6 +425,16 @@ private fun BillStep(
             FtMoney(state.totalDueMinor, size = FtMoneySize.Medium)
         }
     }
+
+    // Taken off here, where the customer is standing, rather than in a correction afterwards.
+    FtTextField(
+        label = stringResource(R.string.finish_discount_label),
+        value = discountText,
+        onValueChange = onDiscount,
+        prefix = Money.style.symbol,
+        keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+        helper = stringResource(R.string.finish_discount_note),
+    )
 
     FtSectionLabel(stringResource(R.string.money_did_they_pay))
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -513,7 +549,7 @@ private fun SavedStep(state: FinishState, receivedMinor: Long, finalBalanceMinor
                 color = FieldTrackTheme.colors.ink,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )
-            AmountLine("${state.workType} · ${measure(state.quantity, state.unit)}", state.jobAmountMinor)
+            JobBillLines(state, "${state.workType} · ${measure(state.quantity, state.unit)}")
             if (state.previousBalanceMinor != 0L) {
                 AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceMinor)
             }

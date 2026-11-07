@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.FuelTerms
 import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.CancelReason
@@ -291,6 +292,8 @@ data class MachineEntity(
     val orgId: String,
     val name: String,
     val kind: MachineKind,
+    /** What the owner calls a kind of machine the list does not have, when [kind] is Other. */
+    val typeLabel: String? = null,
     val plate: String? = null,
     val photoPath: String? = null,
     val status: MachineStatus = MachineStatus.Idle,
@@ -578,6 +581,15 @@ data class RateEntity(
     val amountMinor: Long,
     val customerId: String? = null,
     val label: String? = null,
+    /** The terms this price usually comes with, which a new job starts from. */
+    @ColumnInfo(defaultValue = "0")
+    val minimumMinor: Long = 0,
+    @ColumnInfo(defaultValue = "0")
+    val arrivalMinor: Long = 0,
+    @ColumnInfo(defaultValue = "'Included'")
+    val fuelTerms: FuelTerms = FuelTerms.Included,
+    @ColumnInfo(defaultValue = "0")
+    val waitingRateMinor: Long = 0,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
 )
@@ -638,6 +650,31 @@ data class JobEntity(
      * only what the NEXT trip will cost.
      */
     val tripTotalMinor: Long = 0,
+    /** The least this job is billed, whatever the work comes to ("minimum two hours"). 0 for none. */
+    @ColumnInfo(defaultValue = "0")
+    val minimumMinor: Long = 0,
+    /** A flat charge for getting the machine to the field. 0 for none. */
+    @ColumnInfo(defaultValue = "0")
+    val arrivalMinor: Long = 0,
+    /** Who pays for the diesel, which says what the rate covers. */
+    @ColumnInfo(defaultValue = "'Included'")
+    val fuelTerms: FuelTerms = FuelTerms.Included,
+    /** Diesel added to the bill at what it cost, fixed when the job is finished. */
+    @ColumnInfo(defaultValue = "0")
+    val fuelBilledMinor: Long = 0,
+    /** What an hour spent waiting for the customer is billed at. 0 means waiting is not billed. */
+    @ColumnInfo(defaultValue = "0")
+    val waitingRateMinor: Long = 0,
+    /** The waiting time worked out when the job was finished, at [waitingRateMinor] an hour. */
+    @ColumnInfo(defaultValue = "0")
+    val waitingMinor: Long = 0,
+    /** Taken off when the customer settles: a round-off, a discount. */
+    @ColumnInfo(defaultValue = "0")
+    val discountMinor: Long = 0,
+    /** A second machine on the same job, such as the implement behind a tractor. It wears; the tractor earns. */
+    val implementMachineId: String? = null,
+    /** More people on the job than the operator, as person ids joined by commas. */
+    val coOperatorIds: String? = null,
     val elapsedSeconds: Long = 0,
     val distanceMetres: Long? = null,
 
@@ -682,13 +719,29 @@ data class JobEntity(
     val billsFromClock: Boolean
         get() = billingMode == BillingMode.PerHour && entryMethod != EntryMethod.Manual
 
-    /** What this job is worth, rounded to the rupee the way a contractor would. */
-    val amountMinor: Long
+    /** What the work itself comes to, before any of the extras. */
+    val workAmountMinor: Long
         get() = when (billingMode) {
             // Trips carry their own prices; multiplying loses every rate change.
             BillingMode.PerTrip -> tripTotalMinor
             else -> Billing.amount(billingMode, quantity, rateMinor, stepMinor)
         }
+
+    /**
+     * The bill for [work]: raised to the minimum, then the arrival charge, waiting time and
+     * billed diesel added, then the discount taken off. Never below nothing.
+     *
+     * The same arithmetic is written in SQL for totals ([JOB_AMOUNT_SQL]); a test holds the
+     * two together, because a total that differs from the bills under it is the one thing
+     * an owner finds out about from a customer.
+     */
+    fun amountFor(work: Long): Long =
+        (maxOf(work, minimumMinor) + arrivalMinor + fuelBilledMinor + waitingMinor - discountMinor)
+            .coerceAtLeast(0)
+
+    /** What this job is worth, rounded to the way the business bills. */
+    val amountMinor: Long
+        get() = amountFor(workAmountMinor)
 }
 
 /**
@@ -784,6 +837,8 @@ data class BookingEntity(
     val cancelReason: CancelReason? = null,
     /** How many times it has been moved to another day. Farmers reschedule; the owner should see how often. */
     val movedCount: Int = 0,
+    /** A token taken when the work was booked, already on the customer's account as a payment. */
+    val advanceMinor: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,

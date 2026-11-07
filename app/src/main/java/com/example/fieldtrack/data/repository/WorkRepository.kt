@@ -3,7 +3,10 @@ package com.example.fieldtrack.data.repository
 import com.example.fieldtrack.data.region.BusinessClock
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.billing.Billing
+import com.example.fieldtrack.data.billing.JobTerms
+import com.example.fieldtrack.data.billing.Quote
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.FuelTerms
 import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
@@ -141,7 +144,9 @@ class WorkRepository(
      */
     fun billableMinor(job: JobEntity, now: Long = clock.now()): Long =
         if (job.billsFromClock) {
-            Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateMinor, job.stepMinor)
+            job.amountFor(
+                Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateMinor, job.stepMinor)
+            )
         } else {
             job.amountMinor
         }
@@ -158,6 +163,7 @@ class WorkRepository(
         operatorPersonId: String? = null,
         /** The booking this work was planned as, which is what makes that booking started. */
         bookingId: String? = null,
+        terms: JobTerms = JobTerms(),
     ): String {
         val now = clock.now()
         // The booking is only the thing this work was planned as if it still is one:
@@ -192,7 +198,7 @@ class WorkRepository(
             createdAt = now,
             updatedAt = now,
             lastWriterDeviceId = deviceId,
-        )
+        ).let { terms.applyTo(it) }
         db.withTransaction {
             jobs.upsert(job)
             addEvent(job, JobEventType.Started, operatorPersonId, at = now)
@@ -484,13 +490,78 @@ class WorkRepository(
         }
 
     /**
+     * The bill for a job as it stands, with every line that makes it up.
+     *
+     * For a job still running this is what finishing it now would bill; for a finished
+     * one it is what was billed. [discountMinor] is what the customer is being let off
+     * on top of anything already recorded, for the bill being looked at before it is saved.
+     */
+    suspend fun quote(
+        orgId: String,
+        jobId: String,
+        discountMinor: Long? = null,
+        now: Long = clock.now(),
+    ): Quote? {
+        val job = jobs.find(orgId, jobId) ?: return null
+        val finished = job.status == JobStatus.Completed
+        val work = if (job.billsFromClock && !finished) {
+            Billing.amount(BillingMode.PerHour, billableQuantity(job, now), job.rateMinor, job.stepMinor)
+        } else job.workAmountMinor
+        val waiting = if (finished) job.waitingMinor else waitingBilled(job, now)
+        val fuel = when {
+            finished -> job.fuelBilledMinor
+            job.fuelTerms == FuelTerms.BilledExtra -> jobs.fuelCostForJob(orgId, job.id)
+            else -> 0L
+        }
+        val discount = (discountMinor ?: job.discountMinor).coerceAtLeast(0)
+        val priced = job.copy(waitingMinor = waiting, fuelBilledMinor = fuel, discountMinor = discount)
+        return Quote(
+            workMinor = work,
+            minimumTopUpMinor = (job.minimumMinor - work).coerceAtLeast(0),
+            arrivalMinor = job.arrivalMinor,
+            waitingMinor = waiting,
+            fuelMinor = fuel,
+            discountMinor = discount,
+            totalMinor = priced.amountFor(work),
+        )
+    }
+
+    /**
+     * What the time spent waiting for the customer comes to.
+     *
+     * Waiting is the time the job sat paused: from each pause to the next resume, and from
+     * the last pause to now when it is finished while paused. Billed at the job's waiting
+     * rate to the way the business bills, and nothing when there is no waiting rate.
+     */
+    private suspend fun waitingBilled(job: JobEntity, now: Long): Long {
+        if (job.waitingRateMinor <= 0) return 0
+        var pausedAt: Long? = null
+        var seconds = 0L
+        for (event in jobs.eventsOnce(job.id)) {
+            when (event.type) {
+                JobEventType.Paused -> pausedAt = pausedAt ?: event.atMillis
+                JobEventType.Resumed -> pausedAt?.let { seconds += (event.atMillis - it) / 1000; pausedAt = null }
+                else -> Unit
+            }
+        }
+        pausedAt?.let { seconds += (now - it).coerceAtLeast(0) / 1000 }
+        return Billing.amount(BillingMode.PerHour, seconds / 3600.0, job.waitingRateMinor, job.stepMinor)
+    }
+
+    /**
      * Finish the job and bill it.
      *
      * The charge lands on the customer's ledger in the same transaction as the job
      * row, so there is no window in which work is complete but unbilled. Returns the
      * amount charged.
      */
-    suspend fun complete(orgId: String, jobId: String, byPersonId: String? = null): Long {
+    suspend fun complete(
+        orgId: String,
+        jobId: String,
+        byPersonId: String? = null,
+        /** Taken off the bill when the customer settles: a round-off, a discount. */
+        discountMinor: Long = 0,
+    ): Long {
         val now = clock.now()
         var charged = 0L
         db.withTransaction {
@@ -521,10 +592,19 @@ class WorkRepository(
             )
             // For hourly work the billable figure is the clock, so derive it here
             // rather than asking the driver to copy a number they can already see.
-            val billable =
+            val timed =
                 if (finished.billsFromClock) {
                     finished.copy(quantity = finished.elapsedSeconds / 3600.0)
                 } else finished
+            // The extras that can only be known now: time spent waiting for the customer,
+            // and the diesel put in against this job when the customer is to pay for it.
+            val billable = timed.copy(
+                waitingMinor = waitingBilled(timed, now),
+                fuelBilledMinor = if (timed.fuelTerms == FuelTerms.BilledExtra) {
+                    jobs.fuelCostForJob(orgId, timed.id)
+                } else 0L,
+                discountMinor = discountMinor.coerceAtLeast(0),
+            )
 
             charged = billable.amountMinor
 
@@ -933,6 +1013,7 @@ class WorkRepository(
         fieldId: String? = null,
         operatorPersonId: String? = null,
         note: String? = null,
+        terms: JobTerms = JobTerms(),
     ): String {
         val now = clock.now()
         val elapsed = if (startedAt != null && completedAt != null) {
@@ -971,7 +1052,7 @@ class WorkRepository(
             createdAt = now,
             updatedAt = now,
             lastWriterDeviceId = deviceId,
-        )
+        ).let { terms.applyTo(it) }
         db.withTransaction {
             jobs.upsert(job)
             addEvent(job, JobEventType.Started, operatorPersonId, at = workedAt)

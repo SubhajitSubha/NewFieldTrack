@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(19, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(20, c.getInt(0))
         }
     }
 
@@ -402,6 +402,34 @@ class MigrationTest {
         db.query("SELECT paymentMethods, payDetails, taxName, taxPercentBps FROM organisations").use { c ->
             assertTrue(c.moveToFirst())
             for (i in 0..3) assertTrue("column $i is empty: nothing was chosen", c.isNull(i))
+        }
+    }
+
+    @Test
+    fun `old jobs and rates have no extra terms, and bill exactly as they did`() {
+        create(19) {
+            it.execSQL(
+                "INSERT INTO jobs (id, orgId, customerId, workType, billingMode, unit, rateMinor, stepMinor, quantity, " +
+                    "tripTotalMinor, elapsedSeconds, status, workedAt, recordedAt, entryMethod, createdAt, updatedAt, " +
+                    "syncState, revision) VALUES ('j1', 'o1', 'c1', 'Rotavator', 'PerAcre', 'Acre', 80000, 100, 2.0, 0, 0, " +
+                    "'Completed', 1, 1, 'Timed', 1, 1, 'Synced', 1)"
+            )
+            it.execSQL(
+                "INSERT INTO rates (id, orgId, workType, billingMode, unit, amountMinor, updatedAt, syncState) " +
+                    "VALUES ('r1', 'o1', 'Rotavator', 'PerAcre', 'Acre', 80000, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT minimumMinor, arrivalMinor, fuelTerms, fuelBilledMinor, waitingRateMinor, waitingMinor, discountMinor, implementMachineId, coOperatorIds FROM jobs").use { c ->
+            assertTrue(c.moveToFirst())
+            for (i in listOf(0, 1, 3, 4, 5, 6)) assertEquals(0L, c.getLong(i))
+            assertEquals("Included", c.getString(2))
+            assertTrue(c.isNull(7)); assertTrue(c.isNull(8))
+        }
+        db.query("SELECT minimumMinor, arrivalMinor, fuelTerms, waitingRateMinor FROM rates").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0L, c.getLong(0)); assertEquals(0L, c.getLong(1))
+            assertEquals("Included", c.getString(2)); assertEquals(0L, c.getLong(3))
         }
     }
 }

@@ -13,6 +13,7 @@ import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.dao.BookingRow
 import com.example.fieldtrack.data.db.entity.BookingEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
+import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.session.Session
@@ -53,7 +54,12 @@ fun resolveUnit(mode: BillingMode, orgLandUnit: MeasureUnit): MeasureUnit {
  * [label] is what tells two rates for the same work apart — "wheat" against "paddy" —
  * and is the only thing that makes a row of several chips readable.
  */
-data class RateSuggestion(val amountMinor: Long, val label: String? = null)
+data class RateSuggestion(
+    val amountMinor: Long,
+    val label: String? = null,
+    /** The terms this rate usually came with, offered along with it. */
+    val rate: RateEntity? = null,
+)
 
 data class StartWorkState(
     val step: Int = 0,
@@ -79,6 +85,10 @@ data class StartWorkState(
     /** False for a driver, who picks from the fleet but may not add to it. */
     val canAddMachines: Boolean = false,
     val rateText: String = "",
+    /** What is agreed beyond the rate; folded away until somebody opens it. */
+    val terms: TermsDraft = TermsDraft(),
+    /** People who can be put on the job besides whoever starts it. */
+    val crew: List<Crew> = emptyList(),
     /** A rate this contractor has used before for this work — offered as one tap. */
     val suggestedRates: List<RateSuggestion> = emptyList(),
     val starting: Boolean = false,
@@ -184,8 +194,10 @@ class StartWorkViewModel(
         viewModelScope.launch {
             val s = app.sessionStore.load() ?: return@launch
             orgLandUnit = s.landUnit
+            val team = app.teamRepository.observeTeam(s.orgId).first()
             _state.update {
                 it.copy(
+                    crew = team.filter { m -> m.personId != s.personId }.map { m -> Crew(m.personId, m.displayName) },
                     landUnit = s.landUnit,
                     unit = resolveUnit(it.billingMode, s.landUnit),
                     canAddMachines = Capability.EditMachines in s.can,
@@ -361,6 +373,16 @@ class StartWorkViewModel(
     fun setRate(value: String) =
         _state.update { it.copy(rateText = MoneyInput.clean(value)) }
 
+    fun setTerms(draft: TermsDraft) = _state.update { it.copy(terms = draft) }
+
+    /** A usual rate tapped: its amount, and the terms it usually comes with. */
+    fun applySuggestion(suggestion: RateSuggestion) = _state.update {
+        it.copy(
+            rateText = MoneyInput.text(suggestion.amountMinor),
+            terms = TermsDraft.of(suggestion.rate, keep = it.terms),
+        )
+    }
+
     fun next() = _state.update { it.copy(step = (it.step + 1).coerceAtMost(LAST_STEP)) }
 
     /**
@@ -409,6 +431,7 @@ class StartWorkViewModel(
             // since been deleted: a booking made last week can name one.
             fieldId = current.fieldId?.takeIf { app.directoryRepository.observeField(s.orgId, it).first() != null },
             bookingId = current.bookingId,
+            terms = current.terms.toTerms(),
         )
         // Remember what was charged, against this customer, so "what I charged Ramesh
         // last time" is the number offered first next time. Switched off on the rate
@@ -420,6 +443,7 @@ class StartWorkViewModel(
             unit = current.unit,
             amountMinor = current.rateMinor,
             customerId = customer.id.takeIf { app.sessionStore.rememberPerCustomer.value },
+            terms = current.terms.toTerms(),
         )
         return jobId
     }
@@ -449,12 +473,16 @@ class StartWorkViewModel(
         _state.update {
             it.copy(
                 suggestedRates = candidates.map { rate ->
-                    RateSuggestion(rate.amountMinor, rate.label)
+                    RateSuggestion(rate.amountMinor, rate.label, rate)
                 },
                 // Prefill only when the person has not typed anything yet, and only
                 // from the best match — offering a choice does not mean guessing.
                 rateText = if (it.rateText.isBlank()) MoneyInput.text(candidates.first().amountMinor)
                 else it.rateText,
+                // The terms that usually come with that rate, unless some were typed already.
+                terms = if (it.rateText.isBlank() && it.terms.isPlain) {
+                    TermsDraft.of(candidates.first(), keep = it.terms)
+                } else it.terms,
             )
         }
     }

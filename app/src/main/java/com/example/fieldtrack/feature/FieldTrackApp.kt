@@ -2100,6 +2100,7 @@ private fun MainNavHost(navController: NavHostController) {
                 }
                 val state by vm.state.collectAsStateWithLifecycle()
                 val payment by vm.payment.collectAsStateWithLifecycle()
+                val discountText by vm.discountText.collectAsStateWithLifecycle()
                 val step by vm.step.collectAsStateWithLifecycle()
                 val received by vm.receivedMinor.collectAsStateWithLifecycle()
                 val finalBalance by vm.finalBalance.collectAsStateWithLifecycle()
@@ -2137,6 +2138,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onChooseNothing = vm::chooseNothing,
                     onAmount = vm::setAmount,
                     onMethod = vm::setMethod,
+                    discountText = discountText,
+                    onDiscount = vm::setDiscount,
                     labour = labour,
                     onAnyLabour = vm::setAnyLabour,
                     onLabourHeadcount = vm::setLabourHeadcount,
@@ -2244,7 +2247,9 @@ private fun billDocumentFor(
         lines = listOf(
             WorkLine(
                 title = state.workType,
-                detail = null,
+                detail = if (state.fuelTerms == com.example.fieldtrack.data.db.FuelTerms.CustomerSupplies) {
+                    stringResource(R.string.bill_diesel_theirs)
+                } else null,
                 measure = measure(state.quantity, state.unit),
                 rate = if (state.ratesVaried) {
                     stringResource(R.string.finish_rate_varies)
@@ -2255,9 +2260,9 @@ private fun billDocumentFor(
                         unit,
                     )
                 },
-                amountMinor = state.jobAmountMinor,
+                amountMinor = state.quote?.takeIf { it.hasExtras }?.workMinor ?: state.jobAmountMinor,
             )
-        ),
+        ) + extraBillLines(state),
         previousBalanceMinor = state.previousBalanceMinor,
         payments = if (receivedMinor > 0) {
             listOf(PaymentLine(dateLabel, methodLabel, receivedMinor))
@@ -2265,6 +2270,20 @@ private fun billDocumentFor(
         balanceMinor = finalBalanceMinor.coerceAtLeast(0),
         balanceInWords = amountInWords(finalBalanceMinor.coerceAtLeast(0), com.example.fieldtrack.designsystem.format.Money.style),
     )
+}
+
+/** The lines under the work on a bill: a minimum applied, arrival, waiting, diesel, a discount. */
+@Composable
+private fun extraBillLines(state: com.example.fieldtrack.feature.work.FinishState): List<WorkLine> {
+    val q = state.quote ?: return emptyList()
+    return buildList {
+        if (q.minimumTopUpMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_minimum), amountMinor = q.minimumTopUpMinor))
+        if (q.arrivalMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_arrival), amountMinor = q.arrivalMinor))
+        if (q.waitingMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_waiting), amountMinor = q.waitingMinor))
+        if (q.fuelMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_diesel), amountMinor = q.fuelMinor))
+        // A discount is a line that takes away; a negative amount says so without a new column.
+        if (q.discountMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_discount), amountMinor = -q.discountMinor))
+    }
 }
 
 /** The receipt as plain text, in the order the paper bill reads. */
@@ -2405,6 +2424,8 @@ private fun StartWorkDestination(
                 onBillingMode = vm::setBillingMode,
                 onUnit = vm::setUnit,
                 onRate = vm::setRate,
+                onTerms = vm::setTerms,
+                onSuggestion = vm::applySuggestion,
                 onNext = vm::next,
                 onStart = {
                     scope.launch {

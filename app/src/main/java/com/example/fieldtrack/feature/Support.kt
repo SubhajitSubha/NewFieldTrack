@@ -341,6 +341,7 @@ val MeasureUnit.labelRes: Int
         MeasureUnit.Bushel -> R.string.unit_bushel
         MeasureUnit.Kilogram -> R.string.unit_kg
         MeasureUnit.Litre -> R.string.unit_litre
+        MeasureUnit.Day -> R.string.unit_day
     }
 
 /** How a payment is named on screen. One place, so a new way of paying cannot read as "Cash" somewhere. */
@@ -367,6 +368,7 @@ val BillingMode.labelRes: Int
         BillingMode.PerUnit -> R.string.billing_per_unit
         BillingMode.PerKm -> R.string.billing_per_km
         BillingMode.Fixed -> R.string.billing_fixed
+        BillingMode.PerDay -> R.string.billing_per_day
     }
 
 /**
@@ -403,6 +405,7 @@ val BillingMode.captionRes: Int
         BillingMode.PerUnit -> R.string.billing_per_unit_caption
         BillingMode.PerKm -> R.string.billing_per_km_caption
         BillingMode.Fixed -> R.string.billing_fixed_caption
+        BillingMode.PerDay -> R.string.billing_per_day_caption
     }
 
 /** What a driver would call the thing that has gone wrong. */
@@ -442,6 +445,7 @@ fun unitsFor(mode: BillingMode): List<MeasureUnit> = when (mode) {
     )
     BillingMode.PerKm -> listOf(MeasureUnit.Kilometre)
     BillingMode.Fixed -> listOf(MeasureUnit.Piece)
+    BillingMode.PerDay -> listOf(MeasureUnit.Day)
 }
 
 /**

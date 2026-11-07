@@ -53,6 +53,26 @@ data class JobCostWithPaid(
  * phone. There is deliberately no "get all customers" query to misuse.
  */
 
+/**
+ * What a job is billed, as SQL: the work (or the fixed price, or the trip total) raised to
+ * the minimum, plus the arrival charge, billed diesel and waiting time, less the discount,
+ * never below nothing. [JobEntity.amountFor] is the same arithmetic in Kotlin and a test
+ * keeps them identical. The first is for queries that read `jobs` bare, the second for
+ * ones that alias it as `j`.
+ */
+internal const val JOB_AMOUNT_SQL = """MAX(0, MAX(
+CASE billingMode
+    WHEN 'Fixed' THEN rateMinor
+    WHEN 'PerTrip' THEN tripTotalMinor
+    ELSE CAST(ROUND(quantity * rateMinor / stepMinor) * stepMinor AS INTEGER)
+END, minimumMinor) + arrivalMinor + fuelBilledMinor + waitingMinor - discountMinor)"""
+internal const val JOB_AMOUNT_J_SQL = """MAX(0, MAX(
+CASE j.billingMode
+    WHEN 'Fixed' THEN j.rateMinor
+    WHEN 'PerTrip' THEN j.tripTotalMinor
+    ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
+END, j.minimumMinor) + j.arrivalMinor + j.fuelBilledMinor + j.waitingMinor - j.discountMinor)"""
+
 @Dao
 interface OrgDao {
     @Upsert suspend fun upsertOrg(org: OrgEntity)
@@ -303,13 +323,7 @@ interface OrgDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(
-            CASE billingMode
-                WHEN 'Fixed' THEN rateMinor
-                WHEN 'PerTrip' THEN tripTotalMinor
-                ELSE CAST(ROUND(quantity * rateMinor / stepMinor) * stepMinor AS INTEGER)
-            END
-        ), 0)
+        SELECT COALESCE(SUM($JOB_AMOUNT_SQL), 0)
         FROM jobs
         WHERE orgId = :orgId AND deletedAt IS NULL AND status = 'Completed'
           AND workedAt BETWEEN :from AND :to
@@ -392,11 +406,7 @@ interface OrgDao {
     @Query(
         """
         SELECT j.id AS jobId,
-            CASE j.billingMode
-                WHEN 'Fixed' THEN j.rateMinor
-                WHEN 'PerTrip' THEN j.tripTotalMinor
-                ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
-            END AS earnedMinor,
+            $JOB_AMOUNT_J_SQL AS earnedMinor,
             COALESCE((SELECT SUM(f.costMinor) FROM fuel_entries f WHERE f.jobId = j.id), 0) AS fuelMinor,
             COALESCE((SELECT SUM(c.amountMinor) FROM job_costs c WHERE c.jobId = j.id), 0) AS peopleMinor,
             (SELECT COUNT(*) FROM job_costs c WHERE c.jobId = j.id AND c.amountMinor IS NULL) AS unpriced
@@ -587,13 +597,7 @@ interface CustomerDao {
         """
         SELECT j.fieldId AS fieldId,
                COUNT(*) AS jobCount,
-               COALESCE(SUM(
-                   CASE j.billingMode
-                       WHEN 'Fixed' THEN j.rateMinor
-                       WHEN 'PerTrip' THEN j.tripTotalMinor
-                       ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
-                   END
-               ), 0) AS earnedMinor,
+               COALESCE(SUM($JOB_AMOUNT_J_SQL), 0) AS earnedMinor,
                MAX(j.workedAt) AS lastWorkedAt
         FROM jobs j
         WHERE j.orgId = :orgId AND j.customerId = :customerId
@@ -713,11 +717,7 @@ interface MachineDao {
             COALESCE(SUM(j.quantity), 0.0) AS quantity,
             COALESCE(SUM(CASE WHEN j.elapsedSeconds > 0 THEN j.quantity ELSE 0.0 END), 0.0) AS timedQuantity,
             COALESCE(SUM(j.elapsedSeconds), 0) AS seconds,
-            COALESCE(SUM(CASE j.billingMode
-                WHEN 'Fixed' THEN j.rateMinor
-                WHEN 'PerTrip' THEN j.tripTotalMinor
-                ELSE CAST(ROUND(j.quantity * j.rateMinor / j.stepMinor) * j.stepMinor AS INTEGER)
-            END), 0) AS earnedMinor,
+            COALESCE(SUM($JOB_AMOUNT_J_SQL), 0) AS earnedMinor,
             COUNT(*) AS jobs
         FROM jobs j
         WHERE j.orgId = :orgId AND j.machineId = :machineId AND j.deletedAt IS NULL
@@ -917,13 +917,7 @@ interface JobDao {
      */
     @Query(
         """
-        SELECT COALESCE(SUM(
-            CASE billingMode
-                WHEN 'Fixed' THEN rateMinor
-                WHEN 'PerTrip' THEN tripTotalMinor
-                ELSE CAST(ROUND(quantity * rateMinor / stepMinor) * stepMinor AS INTEGER)
-            END
-        ), 0)
+        SELECT COALESCE(SUM($JOB_AMOUNT_SQL), 0)
         FROM jobs
         WHERE orgId = :orgId AND machineId = :machineId AND deletedAt IS NULL
           AND status = 'Completed'
@@ -1107,6 +1101,14 @@ interface JobDao {
 
     @Query("SELECT * FROM job_events WHERE jobId = :jobId ORDER BY atMillis ASC")
     fun observeEvents(jobId: String): Flow<List<JobEventEntity>>
+
+    /** The same timeline, once, in the order it happened. */
+    @Query("SELECT * FROM job_events WHERE jobId = :jobId ORDER BY atMillis ASC, rowid ASC")
+    suspend fun eventsOnce(jobId: String): List<JobEventEntity>
+
+    /** What the diesel put in against this job cost, which a job on "diesel billed extra" passes on. */
+    @Query("SELECT COALESCE(SUM(costMinor), 0) FROM fuel_entries WHERE orgId = :orgId AND jobId = :jobId")
+    suspend fun fuelCostForJob(orgId: String, jobId: String): Long
 
     @Upsert suspend fun upsertRate(rate: RateEntity)
 

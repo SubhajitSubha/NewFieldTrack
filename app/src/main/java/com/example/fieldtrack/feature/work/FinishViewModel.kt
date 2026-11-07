@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.billing.Quote
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.formatBillNumber
@@ -49,9 +50,15 @@ data class FinishState(
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantity: Double = 0.0,
     val rateMinor: Long = 0,
+    /** Who pays for the diesel, so the bill can say when the customer does. */
+    val fuelTerms: com.example.fieldtrack.data.db.FuelTerms = com.example.fieldtrack.data.db.FuelTerms.Included,
     val elapsedSeconds: Long = 0,
-    /** What this job comes to on its own. */
+    /** What this job comes to on its own, extras and discount included. */
     val jobAmountMinor: Long = 0,
+    /** The bill line by line, for saying where the figure comes from. */
+    val quote: Quote? = null,
+    /** What the customer is being let off, as typed on this screen. */
+    val discountMinor: Long = 0,
     /**
      * True when the trips on this job were not all charged the same.
      *
@@ -129,6 +136,16 @@ class FinishViewModel(
     private val _finalBalance = MutableStateFlow<Long?>(null)
     val finalBalance: StateFlow<Long?> = _finalBalance.asStateFlow()
 
+    /** A discount or round-off the customer is given at settlement, as typed. */
+    private val _discountText = MutableStateFlow("")
+    val discountText: StateFlow<String> = _discountText.asStateFlow()
+
+    fun setDiscount(value: String) {
+        _discountText.value = MoneyInput.clean(value)
+        // The amount to be paid moves with it: a customer settling in full settles the smaller bill.
+        if (_payment.value.choice == PaymentChoice.All) chooseAll()
+    }
+
     private val tick = kotlinx.coroutines.flow.flow {
         while (true) {
             emit(Unit)
@@ -145,15 +162,17 @@ class FinishViewModel(
             app.directoryRepository.observeCustomers(s.orgId),
             app.db.orgDao().observeOrg(s.orgId),
             app.directoryRepository.observeMachines(s.orgId),
-            priorBalance,
-        ) { job, customers, org, machines, prior ->
+            priorBalance.combine(_discountText) { prior, discount -> prior to discount },
+        ) { job, customers, org, machines, (prior, discountText) ->
             if (job == null) return@combine FinishState()
             val customer = customers.firstOrNull { it.id == job.customerId }
             val elapsed = app.workRepository.elapsedSeconds(job)
             val quantity = app.workRepository.billableQuantity(job)
-            val amount = app.workRepository.billableMinor(job)
+            val discount = MoneyInput.parse(discountText) ?: 0L
+            val quote = app.workRepository.quote(s.orgId, jobId, discountMinor = discount)
+            val amount = quote?.totalMinor ?: app.workRepository.billableMinor(job)
             val varied = job.billingMode == BillingMode.PerTrip &&
-                amount != Math.round(quantity * job.rateMinor)
+                quote?.workMinor != Math.round(quantity * job.rateMinor)
 
             FinishState(
                 loaded = true,
@@ -178,8 +197,11 @@ class FinishViewModel(
                 unit = job.unit,
                 quantity = quantity,
                 rateMinor = job.rateMinor,
+                fuelTerms = job.fuelTerms,
                 elapsedSeconds = elapsed,
                 jobAmountMinor = amount,
+                quote = quote,
+                discountMinor = if (job.status == com.example.fieldtrack.data.db.JobStatus.Completed) job.discountMinor else discount,
                 ratesVaried = varied,
                 previousBalanceMinor = prior ?: 0L,
             )
@@ -205,7 +227,7 @@ class FinishViewModel(
         val total = state.value.totalDueMinor
         _payment.value = _payment.value.copy(
             choice = PaymentChoice.All,
-            amountText = total.toString(),
+            amountText = MoneyInput.text(total),
         )
     }
 
@@ -271,7 +293,9 @@ class FinishViewModel(
         // What the job really came to, read when it was billed. The figure on screen
         // is from the last time the clock was looked at, and an hourly job goes on
         // running while somebody is choosing how to pay.
-        val charged = app.workRepository.complete(s.orgId, jobId, byPersonId = s.personId)
+        val charged = app.workRepository.complete(
+            s.orgId, jobId, byPersonId = s.personId, discountMinor = current.discountMinor,
+        )
         val due = current.previousBalanceMinor + charged
 
         // Written with no figure on it whoever is saving, so one flow serves

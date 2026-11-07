@@ -77,6 +77,8 @@ fun StartWorkScreen(
     modifier: Modifier = Modifier,
     onUseBooking: (BookingRow) -> Unit = {},
     onDropBooking: () -> Unit = {},
+    onTerms: (TermsDraft) -> Unit = {},
+    onSuggestion: (RateSuggestion) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -107,7 +109,7 @@ fun StartWorkScreen(
                     state, onSelectMachine, onSelectField, onSelectWorkType, onNewMachine,
                     onUseBooking, onDropBooking,
                 )
-                else -> RateStep(state, onBillingMode, onUnit, onRate)
+                else -> RateStep(state, onBillingMode, onUnit, onRate, onTerms, onSuggestion)
             }
         }
 
@@ -410,6 +412,8 @@ private fun RateStep(
     onBillingMode: (BillingMode) -> Unit,
     onUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
     onRate: (String) -> Unit,
+    onTerms: (TermsDraft) -> Unit,
+    onSuggestion: (RateSuggestion) -> Unit,
 ) {
     val dimens = FieldTrackTheme.dimens
     Column(
@@ -459,13 +463,20 @@ private fun RateStep(
                             )
                         } ?: money(suggestion.amountMinor),
                         selected = state.rateMinor == suggestion.amountMinor,
-                        onClick = { onRate(MoneyInput.text(suggestion.amountMinor)) },
+                        onClick = { onSuggestion(suggestion) },
                     )
                 }
             }
         }
 
         CostHintCard(state)
+
+        TermsSection(
+            draft = state.terms,
+            onChange = onTerms,
+            implements = state.machines.filter { it.id != state.machineId },
+            crew = state.crew,
+        )
 
         val units = unitsFor(state.billingMode)
         if (units.size > 1) {
