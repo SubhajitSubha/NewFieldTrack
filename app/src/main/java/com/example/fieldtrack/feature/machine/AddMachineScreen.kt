@@ -30,8 +30,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.db.HireBasis
+import com.example.fieldtrack.data.db.MachineOwner
+import kotlinx.coroutines.flow.first
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.designsystem.component.FtButton
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtDropdown
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
@@ -66,7 +70,37 @@ data class AddMachineState(
     /** Whether this person may enter and see what a machine costs to own. */
     val canSeeFinance: Boolean = false,
     val saving: Boolean = false,
+    /** Whose machine it is: the business's own unless somebody says otherwise. */
+    val owner: MachineOwner = MachineOwner.Own,
+    val ownerPersonId: String? = null,
+    val ownerName: String = "",
+    val hireBasis: HireBasis = HireBasis.PerHour,
+    val hireRateText: String = "",
+    val hireShareText: String = "",
+    /** The team members a machine could belong to: (person id, name). */
+    val team: List<Pair<String, String>> = emptyList(),
+    /** The business's land unit, which a rate by the land covered is per. */
+    val landUnit: com.example.fieldtrack.data.db.MeasureUnit = com.example.fieldtrack.data.db.MeasureUnit.Acre,
+    /** The ownership the form opened with, so a save can tell a change from a redisplay. */
+    val initialOwnership: String = "",
 ) {
+    /** Everything about whose machine it is, in one comparable line. */
+    val ownershipSignature: String
+        get() = listOf(owner, ownerPersonId, ownerName.trim(), hireBasis, hireRateText, hireShareText).joinToString("|")
+
+    val ownershipChanged: Boolean get() = ownershipSignature != initialOwnership
+
+    val hireRateMinor: Long? get() = MoneyInput.parse(hireRateText)?.takeIf { it > 0 }
+    val hireSharePercent: Int? get() = hireShareText.toIntOrNull()?.takeIf { it in 1..100 }
+
+    /** Somebody else's machine is only complete once it says who and how they are paid. */
+    val ownershipComplete: Boolean
+        get() = when (owner) {
+            MachineOwner.Own -> true
+            else -> (if (owner == MachineOwner.Member) ownerPersonId != null else ownerName.isNotBlank()) &&
+                (if (hireBasis == HireBasis.Share) hireSharePercent != null else hireRateMinor != null)
+        }
+
     /** A year has 8,760 hours; nothing works more than that, so it is a typo. */
     val hoursPerYearTooMany: Boolean
         get() = (hoursPerYearText.toIntOrNull() ?: 0) > MAX_HOURS_PER_YEAR
@@ -76,10 +110,35 @@ data class AddMachineState(
     val financeChanged: Boolean
         get() = monthlyText != initialMonthlyText || hoursPerYearText != initialHoursPerYearText
 
-    val canSave: Boolean get() = name.isNotBlank() && !saving && !hoursPerYearTooMany
+    val canSave: Boolean get() = name.isNotBlank() && !saving && !hoursPerYearTooMany && ownershipComplete
 
     companion object {
         const val MAX_HOURS_PER_YEAR = 8_760
+    }
+}
+
+internal fun MutableStateFlow<AddMachineState>.setOwner(kind: MachineOwner) = update { it.copy(owner = kind) }
+internal fun MutableStateFlow<AddMachineState>.setOwnerPerson(personId: String) = update { it.copy(ownerPersonId = personId) }
+internal fun MutableStateFlow<AddMachineState>.setOwnerName(v: String) = update { it.copy(ownerName = v.take(60)) }
+internal fun MutableStateFlow<AddMachineState>.setHireBasis(basis: HireBasis) = update { it.copy(hireBasis = basis) }
+internal fun MutableStateFlow<AddMachineState>.setHireRate(v: String) = update { it.copy(hireRateText = MoneyInput.clean(v)) }
+internal fun MutableStateFlow<AddMachineState>.setHireShare(v: String) = update { it.copy(hireShareText = v.filter { c -> c.isDigit() }.take(3)) }
+
+/** Writes whose machine it is, when that was changed; a refusal must not undo the rest of the save. */
+internal suspend fun saveOwnership(
+    app: FieldFlowApplication,
+    session: com.example.fieldtrack.data.session.Session,
+    machineId: String,
+    s: AddMachineState,
+) {
+    if (!s.canSeeFinance || !s.ownershipChanged) return
+    runCatching {
+        app.directoryRepository.setMachineOwnership(
+            orgId = session.orgId, can = session.can, machineId = machineId, kind = s.owner,
+            ownerPersonId = s.ownerPersonId, ownerName = s.ownerName,
+            basis = s.hireBasis.takeIf { s.owner != MachineOwner.Own },
+            rateMinor = s.hireRateMinor, sharePercent = s.hireSharePercent,
+        )
     }
 }
 
@@ -100,10 +159,24 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setHoursPerYear(v: String) =
         _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
 
+    fun setOwner(kind: MachineOwner) = _state.setOwner(kind)
+    fun setOwnerPerson(personId: String) = _state.setOwnerPerson(personId)
+    fun setOwnerName(v: String) = _state.setOwnerName(v)
+    fun setHireBasis(basis: HireBasis) = _state.setHireBasis(basis)
+    fun setHireRate(v: String) = _state.setHireRate(v)
+    fun setHireShare(v: String) = _state.setHireShare(v)
+
     init {
         viewModelScope.launch {
-            val can = app.sessionStore.load()?.can ?: return@launch
-            _state.update { it.copy(canSeeFinance = canEnterFinance(can)) }
+            val session = app.sessionStore.load() ?: return@launch
+            val team = app.teamRepository.observeTeam(session.orgId).first()
+                .filter { it.active }.map { it.personId to it.displayName }
+            _state.update {
+                val opened = it.copy(
+                    canSeeFinance = canEnterFinance(session.can), team = team, landUnit = session.landUnit,
+                )
+                opened.copy(initialOwnership = opened.ownershipSignature)
+            }
         }
     }
 
@@ -130,7 +203,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
         if (current.canSeeFinance && current.financeChanged) {
             // A refusal here must not undo the machine that was just added.
             runCatching {
-                app.directoryRepository.setMachineFinance(
+                app.directoryRepository.setLoan(
                     orgId = s.orgId,
                     can = s.can,
                     machineId = machineId,
@@ -139,6 +212,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 )
             }
         }
+        saveOwnership(app, s, machineId, current)
         _state.update { it.copy(saving = false) }
         onSaved()
     }
@@ -148,6 +222,16 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
 internal fun canEnterFinance(can: com.example.fieldtrack.data.session.Capabilities) =
     com.example.fieldtrack.data.session.Capability.EditMachines in can &&
         com.example.fieldtrack.data.session.Capability.SeePeopleCost in can
+
+/** The editors for whose machine it is, grouped so they travel as one argument. */
+class OwnerActions(
+    val onOwner: (MachineOwner) -> Unit,
+    val onPerson: (String) -> Unit,
+    val onName: (String) -> Unit,
+    val onBasis: (HireBasis) -> Unit,
+    val onRate: (String) -> Unit,
+    val onShare: (String) -> Unit,
+)
 
 /**
  * The machine form, used both to add and to correct.
@@ -172,6 +256,7 @@ fun AddMachineScreen(
     titleRes: Int = R.string.machines_new_title,
     saveLabelRes: Int = R.string.machines_save,
     readOnlyNotice: String? = null,
+    owner: OwnerActions? = null,
 ) {
     val dimens = FieldTrackTheme.dimens
 
@@ -251,7 +336,10 @@ fun AddMachineScreen(
             }
             // Only for somebody who may see what the business pays: a driver adding
             // a machine is not asked, and is not told there is a question to skip.
-            if (state.canSeeFinance) {
+            if (state.canSeeFinance && owner != null) {
+                OwnershipSection(state, owner)
+            }
+            if (state.canSeeFinance && state.owner == MachineOwner.Own) {
                 FtSectionLabel(
                     stringResource(R.string.machines_own_title),
                     Modifier.padding(top = 4.dp),
@@ -336,4 +424,96 @@ fun MachineKind.labelRes(): Int = when (this) {
     MachineKind.Ridger -> R.string.machine_ridger
     MachineKind.GrainCart -> R.string.machine_grain_cart
     MachineKind.Pump -> R.string.machine_pump
+}
+
+
+/**
+ * Whose machine it is, and for somebody else's, how they are paid.
+ *
+ * Kept to one question until the answer is "somebody else's": most machines are the
+ * business's own and never see the rest.
+ */
+@Composable
+private fun OwnershipSection(state: AddMachineState, actions: OwnerActions) {
+    val colors = FieldTrackTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        FtPick(
+            options = MachineOwner.entries.filter { it != MachineOwner.Member || state.team.isNotEmpty() },
+            selected = state.owner,
+            text = {
+                stringResource(
+                    when (it) {
+                        MachineOwner.Own -> R.string.owner_own
+                        MachineOwner.Member -> R.string.owner_member
+                        MachineOwner.Outsider -> R.string.owner_outsider
+                    }
+                )
+            },
+            onPick = actions.onOwner,
+            label = stringResource(R.string.owner_title),
+        )
+        if (state.owner == MachineOwner.Member) {
+            FtPick(
+                options = state.team.map { it.first },
+                selected = state.ownerPersonId,
+                text = { id -> state.team.firstOrNull { it.first == id }?.second.orEmpty() },
+                onPick = actions.onPerson,
+                label = stringResource(R.string.owner_which_member),
+                searchHint = stringResource(R.string.pick_search),
+            )
+        }
+        if (state.owner == MachineOwner.Outsider) {
+            FtTextField(
+                label = stringResource(R.string.owner_their_name),
+                value = state.ownerName,
+                onValueChange = actions.onName,
+            )
+        }
+        if (state.owner != MachineOwner.Own) {
+            FtPick(
+                options = HireBasis.entries,
+                selected = state.hireBasis,
+                text = {
+                    stringResource(
+                        when (it) {
+                            HireBasis.PerHour -> R.string.hire_by_hour
+                            HireBasis.PerDay -> R.string.hire_by_day
+                            HireBasis.PerAcre -> R.string.hire_by_land
+                            HireBasis.Share -> R.string.hire_by_share
+                        }
+                    )
+                },
+                onPick = actions.onBasis,
+                label = stringResource(R.string.hire_basis_label),
+            )
+            if (state.hireBasis == HireBasis.Share) {
+                FtTextField(
+                    label = stringResource(R.string.hire_share_label),
+                    value = state.hireShareText,
+                    onValueChange = actions.onShare,
+                    suffix = "%",
+                    keyboardType = KeyboardType.Number,
+                )
+            } else {
+                val per = when (state.hireBasis) {
+                    HireBasis.PerHour -> com.example.fieldtrack.data.db.MeasureUnit.Hour
+                    HireBasis.PerDay -> com.example.fieldtrack.data.db.MeasureUnit.Day
+                    else -> state.landUnit
+                }
+                FtTextField(
+                    label = stringResource(R.string.hire_rate_label),
+                    value = state.hireRateText,
+                    onValueChange = actions.onRate,
+                    prefix = Money.style.symbol,
+                    suffix = stringResource(R.string.start_rate_per, com.example.fieldtrack.feature.unitInPhrase(per)),
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+                )
+            }
+            Text(
+                text = stringResource(R.string.hire_note),
+                style = FieldTrackTheme.type.bodySmall,
+                color = colors.inkTertiary,
+            )
+        }
+    }
 }

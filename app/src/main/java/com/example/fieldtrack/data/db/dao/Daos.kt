@@ -130,6 +130,10 @@ interface OrgDao {
     @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 200")
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>>
 
+    /** Every payment for the use of somebody's machine, so what is still owed is what was earned less this. */
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND covers = 'Hire' ORDER BY atMillis DESC")
+    fun observeHirePayouts(orgId: String): Flow<List<PayoutEntity>>
+
     /**
      * What a team member has been advanced and not yet settled: advances given, less what
      * later pay has taken off them. Never below nothing.
@@ -195,7 +199,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND jobCostId IS NULL
+        WHERE orgId = :orgId AND jobCostId IS NULL AND covers != 'Hire'
         """
     )
     fun observeUnattributablePayouts(orgId: String): Flow<Long>
@@ -204,7 +208,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
+        WHERE orgId = :orgId AND jobCostId IS NULL AND covers != 'Hire' AND atMillis BETWEEN :from AND :to
         """
     )
     suspend fun paidOutUnattributable(orgId: String, from: Long, to: Long): Long
@@ -741,6 +745,32 @@ interface MachineDao {
         """
     )
     suspend fun findWithWork(orgId: String, id: String): MachineWithWork?
+
+    /**
+     * For each machine that is somebody else's: what it has done since the hire began.
+     * [offsetMillis] is the business's time zone, so a day is the business's day.
+     */
+    @Query(
+        """
+        SELECT f.id AS machineId,
+            COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
+                WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to), 0) AS seconds,
+            COALESCE((SELECT SUM(j.quantity) FROM jobs j
+                WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to
+                  AND j.unit IN ('Acre','Bigha','Kanal','Guntha','Katha','Hectare','SquareMetre')), 0.0) AS landQuantity,
+            (SELECT COUNT(DISTINCT (j.workedAt + :offsetMillis) / 86400000) FROM jobs j
+                WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to) AS days,
+            COALESCE((SELECT SUM($JOB_AMOUNT_J_SQL) FROM jobs j
+                WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to), 0) AS amountMinor
+        FROM machine_finance f
+        WHERE f.orgId = :orgId AND f.ownerKind IN ('Member', 'Outsider') AND f.hireFrom IS NOT NULL
+        """
+    )
+    fun observeHireFacts(orgId: String, offsetMillis: Long, from: Long, to: Long): Flow<List<HireFacts>>
 
     @Upsert suspend fun upsertFinance(finance: MachineFinanceEntity)
 
@@ -1428,6 +1458,21 @@ data class MachineWithWork(
         lastServiceAtHours = machine.lastServiceAtHours ?: machine.hoursUsed,
     )
 }
+
+/**
+ * What a hired machine did since its hire began, as the figures a rate is applied to.
+ * Only finished work counts, and only work that finished after the hire was agreed.
+ */
+data class HireFacts(
+    val machineId: String,
+    val seconds: Long,
+    /** Land covered, in whatever land unit each job was measured in. */
+    val landQuantity: Double,
+    /** Distinct days the machine did any work. */
+    val days: Int,
+    /** What the finished work was billed at, for a share of it. */
+    val amountMinor: Long,
+)
 
 /** What went into running one machine, all told. */
 data class RunningFacts(

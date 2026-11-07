@@ -117,6 +117,7 @@ import com.example.fieldtrack.feature.jobs.JobDetailViewModel
 import com.example.fieldtrack.feature.jobs.JobsScreen
 import com.example.fieldtrack.feature.jobs.JobsViewModel
 import com.example.fieldtrack.feature.machine.AddMachineScreen
+import com.example.fieldtrack.feature.machine.OwnerActions
 import com.example.fieldtrack.feature.machine.AddMachineViewModel
 import com.example.fieldtrack.feature.machine.EditMachineViewModel
 import com.example.fieldtrack.feature.machine.MachinesScreen
@@ -2013,6 +2014,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onMoveChoose = vm::chooseForBooked,
                     onMovePick = vm::moveBookedTo,
                     onMoveCancel = vm::cancelMove,
+                    hire = vm.hire.collectAsStateWithLifecycle().value,
+                    onHire = { navController.navigate(Routes.MONEY_OUT) },
                     onDismissReport = vm::dismissReport,
                     onServiceDescription = vm::setServiceDescription,
                     onServiceCost = vm::setServiceCost,
@@ -2055,6 +2058,10 @@ private fun MainNavHost(navController: NavHostController) {
                     onServiceEvery = vm::setServiceEvery,
                     onMonthly = vm::setMonthly,
                     onHoursPerYear = vm::setHoursPerYear,
+                    owner = OwnerActions(
+                        onOwner = vm::setOwner, onPerson = vm::setOwnerPerson, onName = vm::setOwnerName,
+                        onBasis = vm::setHireBasis, onRate = vm::setHireRate, onShare = vm::setHireShare,
+                    ),
                     onSave = { vm.save { navController.popBackStack() } },
                 )
             }
@@ -2077,6 +2084,10 @@ private fun MainNavHost(navController: NavHostController) {
                     onServiceEvery = vm::setServiceEvery,
                     onMonthly = vm::setMonthly,
                     onHoursPerYear = vm::setHoursPerYear,
+                    owner = OwnerActions(
+                        onOwner = vm::setOwner, onPerson = vm::setOwnerPerson, onName = vm::setOwnerName,
+                        onBasis = vm::setHireBasis, onRate = vm::setHireRate, onShare = vm::setHireShare,
+                    ),
                     onSave = { vm.save { navController.popBackStack() } },
                     titleRes = R.string.edit_machine_title,
                     saveLabelRes = R.string.edit_save,
@@ -2214,6 +2225,11 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onBack = { navController.popBackStack() },
                     onPay = { navController.navigate(Routes.PAY_OUT) },
+                    onStartHirePay = vm::startHirePay,
+                    onHireAmount = vm::setHireAmount,
+                    onHireMethod = vm::setHireMethod,
+                    onSaveHirePay = vm::saveHirePay,
+                    onDismissHirePay = vm::dismissHirePay,
                 )
             }
 

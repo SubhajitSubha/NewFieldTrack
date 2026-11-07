@@ -82,6 +82,14 @@ fun MachineProfitScreen(
                     amount = "−" + money(state.serviceMinor),
                     cost = true,
                 )
+                if (state.seesPeopleCost && state.hireMinor > 0) {
+                    Spacer(Modifier.height(9.dp))
+                    MoneyLine(
+                        label = stringResource(R.string.income_hire),
+                        amount = "−" + money(state.hireMinor),
+                        cost = true,
+                    )
+                }
                 if (state.seesPeopleCost) {
                     Spacer(Modifier.height(9.dp))
                     MoneyLine(

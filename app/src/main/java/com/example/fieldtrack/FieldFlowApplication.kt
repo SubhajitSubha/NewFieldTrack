@@ -87,6 +87,11 @@ class FieldFlowApplication : Application() {
         DirectoryRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository, gate = planGate)
     }
 
+    /** What is owed for machines that belong to somebody else. */
+    val hireRepository: com.example.fieldtrack.data.repository.HireRepository by lazy {
+        com.example.fieldtrack.data.repository.HireRepository(db)
+    }
+
     val planRepository: PlanRepository by lazy {
         PlanRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository)
     }

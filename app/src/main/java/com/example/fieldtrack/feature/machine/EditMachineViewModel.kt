@@ -9,6 +9,7 @@ import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -45,6 +46,22 @@ class EditMachineViewModel(
             val hours = machine.hoursUsed.toLong().toString()
             val monthly = finance?.monthlyMinor?.let { MoneyInput.text(it) }.orEmpty()
             val perYear = finance?.hoursPerYear?.toString().orEmpty()
+            val team = app.teamRepository.observeTeam(s.orgId).first()
+                .filter { it.active || it.personId == finance?.ownerPersonId }
+                .map { it.personId to it.displayName }
+            _state.update {
+                val opened = it.copy(
+                    owner = finance?.ownerKind ?: com.example.fieldtrack.data.db.MachineOwner.Own,
+                    ownerPersonId = finance?.ownerPersonId,
+                    ownerName = finance?.ownerName.orEmpty(),
+                    hireBasis = finance?.hireBasis ?: com.example.fieldtrack.data.db.HireBasis.PerHour,
+                    hireRateText = finance?.hireRateMinor?.let { r -> MoneyInput.text(r) }.orEmpty(),
+                    hireShareText = finance?.hireSharePercent?.toString().orEmpty(),
+                    team = team,
+                    landUnit = s.landUnit,
+                )
+                opened.copy(initialOwnership = opened.ownershipSignature)
+            }
             _state.update {
                 it.copy(
                     kind = machine.kind,
@@ -75,6 +92,12 @@ class EditMachineViewModel(
         _state.update { it.copy(monthlyText = MoneyInput.clean(v)) }
     fun setHoursPerYear(v: String) =
         _state.update { it.copy(hoursPerYearText = v.filter { c -> c.isDigit() }.take(4)) }
+    fun setOwner(kind: com.example.fieldtrack.data.db.MachineOwner) = _state.setOwner(kind)
+    fun setOwnerPerson(personId: String) = _state.setOwnerPerson(personId)
+    fun setOwnerName(v: String) = _state.setOwnerName(v)
+    fun setHireBasis(basis: com.example.fieldtrack.data.db.HireBasis) = _state.setHireBasis(basis)
+    fun setHireRate(v: String) = _state.setHireRate(v)
+    fun setHireShare(v: String) = _state.setHireShare(v)
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
@@ -101,7 +124,7 @@ class EditMachineViewModel(
                 serviceIntervalHours = current.serviceEveryText.toDoubleOrNull()?.takeIf { it > 0 },
             )
             if (current.canSeeFinance && current.financeChanged) {
-                app.directoryRepository.setMachineFinance(
+                app.directoryRepository.setLoan(
                     orgId = s.orgId,
                     can = s.can,
                     machineId = machineId,
@@ -110,6 +133,7 @@ class EditMachineViewModel(
                 )
             }
         }.onFailure { _allowed.value = false }
+        saveOwnership(app, s, machineId, current)
         _state.update { it.copy(saving = false) }
         onSaved()
     }

@@ -21,6 +21,8 @@ data class MachineProfitState(
     val serviceMinor: Long = 0,
     /** What this machine's jobs cost in people, whether or not the cash has gone. */
     val peopleMinor: Long = 0,
+    /** What the owner of this machine has earned from its work, when it is not the business's own. */
+    val hireMinor: Long = 0,
     /** Of that, what is still owed. Shown, never taken off the figure. */
     val owedMinor: Long = 0,
     /** Paid out for a stretch of time, so no machine can carry it. */
@@ -38,7 +40,7 @@ data class MachineProfitState(
     /** Whether this person may fill in the loan, for the link that offers to. */
     val canEditMachine: Boolean = false,
 ) {
-    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor
+    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor + hireMinor
     val leftMinor: Long get() = earnedMinor - costsMinor
 }
 
@@ -109,8 +111,9 @@ class MachineProfitViewModel(
                 leftOutMinor = if (seesPeople) people.third else 0,
                 seesPeopleCost = seesPeople,
             )
-        }, costs) { base, (running, kinds) ->
+        }, costs, app.hireRepository.observe(s.orgId)) { base, (running, kinds), hire ->
             base.copy(
+                hireMinor = if (seesPeople) hire.flatMap { it.machines }.firstOrNull { it.machineId == machineId }?.owedMinor ?: 0 else 0,
                 running = if (seesPeople) running else null,
                 kinds = if (seesPeople) kinds else emptyList(),
                 canEditMachine = Capability.EditMachines in s.can,

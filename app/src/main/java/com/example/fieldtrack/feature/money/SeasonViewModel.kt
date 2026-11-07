@@ -55,13 +55,15 @@ data class SeasonState(
      * over a stretch of days, not a record of payments made.
      */
     val loanMinor: Long = 0,
+    /** What the machines that belong to somebody else earned their owners in these months. */
+    val hireMinor: Long = 0,
     /** Jobs that cost more than they were billed for, and how much between them. */
     val lostJobs: Int = 0,
     val lostMinor: Long = 0,
 ) {
     val peopleMinor: Long get() = jobPeopleMinor + loosePeopleMinor
 
-    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor + loanMinor
+    val costsMinor: Long get() = fuelMinor + serviceMinor + peopleMinor + loanMinor + hireMinor
 
     val leftMinor: Long get() = earnedMinor - costsMinor
 
@@ -177,8 +179,11 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     canSeeMoney = s.canSeeMoney,
                     seesPeopleCost = seesPeople,
                 )
-            }, extras) { base, (loan, lostJobs, lostMinor) ->
-                base.copy(loanMinor = loan, lostJobs = lostJobs, lostMinor = lostMinor)
+            }, extras,
+                if (seesPeople) app.hireRepository.observeOwedBetween(s.orgId, from, asked)
+                else kotlinx.coroutines.flow.flowOf(0L),
+            ) { base, (loan, lostJobs, lostMinor), hire ->
+                base.copy(loanMinor = loan, lostJobs = lostJobs, lostMinor = lostMinor, hireMinor = hire)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SeasonState())

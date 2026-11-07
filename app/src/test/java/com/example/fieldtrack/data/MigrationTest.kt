@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(26, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(27, c.getInt(0))
         }
     }
 
@@ -521,5 +521,21 @@ class MigrationTest {
         create(25) { }
         val db = open().openHelper.writableDatabase
         db.query("SELECT COUNT(*) FROM entitlements").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
+    }
+
+    @Test
+    fun `every machine is still the business's own after machines can belong to somebody else`() {
+        create(26) {
+            it.execSQL(
+                "INSERT INTO machine_finance (id, orgId, monthlyMinor, hoursPerYear, updatedAt, syncState) " +
+                    "VALUES ('m1', 'o1', 500000, 600, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT monthlyMinor, ownerKind, ownerPersonId, ownerName, hireBasis, hireRateMinor, hireSharePercent, hireFrom FROM machine_finance").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(500_000L, c.getLong(0))
+            for (i in 1..7) assertTrue("column $i is empty, meaning the business's own", c.isNull(i))
+        }
     }
 }

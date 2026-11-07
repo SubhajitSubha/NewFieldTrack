@@ -113,6 +113,7 @@ class IncomeStatementViewModel(private val app: FieldFlowApplication) : ViewMode
         val onJobs = dao.observeJobCostBetween(orgId, from, asked).first()
         val loose = dao.observeLooseWagesBetween(orgId, from, asked).first()
         val unpriced = dao.observeUnpricedBetween(orgId, from, asked).first()
+        val hire = app.hireRepository.observeOwedBetween(orgId, from, asked).first()
         val loan = Costing.instalmentsBetween(app.db.machineDao().observeMonthlyLoans(orgId).first(), from, to, style.stepMinor)
         val ledger = app.db.ledgerDao().observeAll(orgId).first()
         val received = ledger.filter { it.kind == LedgerKind.Payment && it.atMillis in from..to }.sumOf { it.amountMinor }
@@ -130,6 +131,7 @@ class IncomeStatementViewModel(private val app: FieldFlowApplication) : ViewMode
             add(StatementRow(context.getString(R.string.income_fuel), fuel))
             add(StatementRow(context.getString(R.string.income_repairs), service))
             add(StatementRow(context.getString(R.string.income_people), people))
+            if (hire > 0) add(StatementRow(context.getString(R.string.income_hire), hire, context.getString(R.string.income_hire_note)))
             if (loan > 0) add(StatementRow(context.getString(R.string.income_loans), loan, context.getString(R.string.income_loans_note)))
         }
         val notes = buildList {

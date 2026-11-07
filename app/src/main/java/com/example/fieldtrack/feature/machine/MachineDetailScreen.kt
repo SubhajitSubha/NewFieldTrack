@@ -97,6 +97,8 @@ fun MachineDetailScreen(
     onMoveChoose: () -> Unit = {},
     onMovePick: (String) -> Unit = {},
     onMoveCancel: () -> Unit = {},
+    hire: com.example.fieldtrack.data.repository.HireBalance? = null,
+    onHire: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -199,6 +201,27 @@ fun MachineDetailScreen(
             }
 
             ServiceBanner(state, onService)
+
+            // Somebody else's machine: whose, and what is owed for its work so far.
+            hire?.let { balance ->
+                FtCard(modifier = Modifier.clickable(onClick = onHire)) {
+                    Text(
+                        text = stringResource(R.string.hire_machine_card, balance.name),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.ink,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.hire_owed_paid,
+                            com.example.fieldtrack.designsystem.format.money(balance.owedMinor),
+                            com.example.fieldtrack.designsystem.format.money(balance.paidMinor),
+                        ),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.inkSecondary,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
+                }
+            }
 
             // A broken machine with work booked on it: say so, and offer the one-tap fix.
             if (move.canPlan && state.status == MachineStatus.Down && move.booked > 0) {

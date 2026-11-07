@@ -189,6 +189,20 @@ fun SeasonScreen(
                         color = colors.inkTertiary,
                         modifier = Modifier.padding(top = 3.dp),
                     )
+                    if (state.hireMinor > 0) {
+                        Spacer(Modifier.height(9.dp))
+                        SeasonLine(
+                            label = stringResource(R.string.income_hire),
+                            amount = "−" + money(state.hireMinor),
+                            cost = true,
+                        )
+                        Text(
+                            text = stringResource(R.string.income_hire_note),
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.inkTertiary,
+                            modifier = Modifier.padding(top = 3.dp),
+                        )
+                    }
                     if (state.loanMinor > 0) {
                         Spacer(Modifier.height(9.dp))
                         SeasonLine(

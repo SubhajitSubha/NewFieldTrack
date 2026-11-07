@@ -142,7 +142,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
   own hours, diesel and earnings); flat-price and by-the-day work stays one job and the machine changes. The timeline says
   "work went on with B" and "carried on with A's work". When a machine goes down,
   the app lists its booked work for the next days and offers a free machine of the same kind in one tap.
-- [ ] **N6. Machines that belong to someone else** (case 6, first half). A machine can be: ours, a team member's, or hired in from an
+- [x] **N6. Machines that belong to someone else** (case 6, first half). A machine can be: ours, a team member's, or hired in from an
   outside person. For the last two: who owns it, how they are paid (per hour, per day, per acre or a share of what the job earned),
   and the amount owed builds up by itself from the work done on it. Reports count it as hire cost, not as our own wear.
   Needs N5 (hours per machine).

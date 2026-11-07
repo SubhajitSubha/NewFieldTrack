@@ -147,6 +147,9 @@ enum class PayoutCovers {
 
     /** Money given to a team member ahead of the work, to be taken off later pay. */
     Advance,
+
+    /** What is owed for the use of somebody else's machine. Added after release, so last. */
+    Hire,
 }
 
 /**
@@ -172,6 +175,19 @@ enum class MachineKind {
 }
 
 enum class MachineStatus { Idle, Working, Down }
+
+/**
+ * Whose machine it is. [Own] is the business's own, the usual case and the one nobody has
+ * to say; [Member] belongs to somebody on the team, who is paid for its use; [Outsider]
+ * is hired in from a person who is not in the business at all.
+ */
+enum class MachineOwner { Own, Member, Outsider }
+
+/**
+ * How the owner of a machine that is not the business's own is paid for it: by the hour
+ * on the clock, by the day worked, by the land covered, or a share of what the work earned.
+ */
+enum class HireBasis { PerHour, PerDay, PerAcre, Share }
 
 /** The part of a day a booking is for. Farm work does not keep to the clock, so no finer. */
 enum class DayPart { Morning, Afternoon, WholeDay }

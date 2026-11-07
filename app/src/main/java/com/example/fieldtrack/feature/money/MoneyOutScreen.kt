@@ -1,6 +1,9 @@
 package com.example.fieldtrack.feature.money
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.feature.labelRes
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +44,11 @@ fun MoneyOutScreen(
     onBack: () -> Unit,
     onPay: () -> Unit,
     modifier: Modifier = Modifier,
+    onStartHirePay: (com.example.fieldtrack.data.repository.HireBalance) -> Unit = {},
+    onHireAmount: (String) -> Unit = {},
+    onHireMethod: (com.example.fieldtrack.data.db.PaymentMethod) -> Unit = {},
+    onSaveHirePay: () -> Unit = {},
+    onDismissHirePay: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -149,6 +157,41 @@ fun MoneyOutScreen(
                 }
             }
 
+            // What is owed to the people whose machines are in use, with what has been paid.
+            if (state.hire.isNotEmpty()) {
+                item(key = "hire-title") { FtSectionLabel(stringResource(R.string.hire_section)) }
+                items(state.hire, key = { "hire-" + it.payeeKey }) { balance ->
+                    FtCard {
+                        Text(text = balance.name, style = FieldTrackTheme.type.sectionTitle, color = colors.ink)
+                        Text(
+                            text = balance.machines.joinToString(", ") { it.name },
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.inkTertiary,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.hire_owed_paid, money(balance.owedMinor), money(balance.paidMinor)),
+                            style = FieldTrackTheme.type.bodySmall,
+                            color = colors.inkSecondary,
+                        )
+                        Text(
+                            text = stringResource(R.string.hire_left, money(balance.balanceMinor.coerceAtLeast(0))),
+                            style = FieldTrackTheme.type.rowTitle,
+                            color = if (balance.balanceMinor > 0) colors.dueInk else colors.ink,
+                        )
+                        if (state.mayPay && balance.balanceMinor > 0) {
+                            Spacer(Modifier.height(8.dp))
+                            FtButton(
+                                text = stringResource(R.string.hire_pay),
+                                onClick = { onStartHirePay(balance) },
+                                tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary,
+                                height = 48.dp,
+                            )
+                        }
+                    }
+                }
+            }
+
             if (state.loaded && state.rows.isEmpty()) {
                 item {
                     FtCard {
@@ -175,6 +218,60 @@ fun MoneyOutScreen(
                 FtButton(text = stringResource(R.string.money_out_pay), onClick = onPay)
             }
         }
+        state.paying?.let { pay ->
+            HirePaySheet(pay, onHireAmount, onHireMethod, onSaveHirePay, onDismissHirePay)
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun HirePaySheet(
+    pay: HirePay,
+    onAmount: (String) -> Unit,
+    onMethod: (com.example.fieldtrack.data.db.PaymentMethod) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = FieldTrackTheme.colors
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = colors.paper,
+        contentColor = colors.ink,
+    ) {
+        Column(
+            Modifier
+                .padding(horizontal = 18.dp)
+                .padding(bottom = 10.dp)
+                .navigationBarsPadding()
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.hire_pay_title, pay.balance.name),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.ink,
+            )
+            com.example.fieldtrack.designsystem.component.FtTextField(
+                label = stringResource(R.string.hire_pay_amount),
+                value = pay.amountText,
+                onValueChange = onAmount,
+                prefix = com.example.fieldtrack.designsystem.format.Money.style.symbol,
+                keyboardType = if (com.example.fieldtrack.designsystem.format.Money.style.showsDecimals)
+                    androidx.compose.ui.text.input.KeyboardType.Decimal else androidx.compose.ui.text.input.KeyboardType.Number,
+                focused = true,
+            )
+            com.example.fieldtrack.designsystem.component.FtPick(
+                options = com.example.fieldtrack.designsystem.format.Money.methods,
+                selected = pay.method,
+                text = { stringResource(it.labelRes) },
+                onPick = onMethod,
+                label = stringResource(R.string.hire_pay_method),
+                searchHint = stringResource(R.string.pick_search),
+            )
+            FtButton(text = stringResource(R.string.hire_pay_save), onClick = onSave, enabled = pay.canSave)
+        }
     }
 }
 
@@ -199,6 +296,7 @@ private fun PaidRow(row: Row_) {
                         PayoutCovers.Day -> stringResource(R.string.money_out_for_day)
                         PayoutCovers.Period -> stringResource(R.string.money_out_for_period)
                         PayoutCovers.Advance -> stringResource(R.string.money_out_for_advance)
+                        PayoutCovers.Hire -> stringResource(R.string.money_out_for_hire)
                     },
                     style = FieldTrackTheme.type.caption,
                     color = colors.inkSecondary,

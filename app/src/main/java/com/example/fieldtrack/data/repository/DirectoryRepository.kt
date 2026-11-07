@@ -1,6 +1,8 @@
 package com.example.fieldtrack.data.repository
 
 import androidx.room.withTransaction
+import com.example.fieldtrack.data.db.MachineOwner
+import com.example.fieldtrack.data.db.HireBasis
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.FieldTrackDatabase
@@ -331,9 +333,18 @@ class DirectoryRepository(
         }
         db.withTransaction {
             if (machines.find(orgId, machineId) == null) return@withTransaction
+            // Whose machine it is lives on the same record and is not this call's to change.
+            val existing = machines.findFinance(orgId, machineId)
             val finance = MachineFinanceEntity(
                 id = machineId,
                 orgId = orgId,
+                ownerKind = existing?.ownerKind,
+                ownerPersonId = existing?.ownerPersonId,
+                ownerName = existing?.ownerName,
+                hireBasis = existing?.hireBasis,
+                hireRateMinor = existing?.hireRateMinor,
+                hireSharePercent = existing?.hireSharePercent,
+                hireFrom = existing?.hireFrom,
                 monthlyMinor = monthlyMinor?.takeIf { it > 0 },
                 hoursPerYear = hoursPerYear?.takeIf { it > 0 },
                 purchasedDay = purchasedDay,
@@ -346,6 +357,102 @@ class DirectoryRepository(
             syncQueue.enqueueUpsert(
                 orgId, SyncQueue.TABLE_MACHINE_FINANCE, finance.id,
                 OutboxJson.encodeToString(finance),
+            )
+        }
+    }
+
+    /**
+     * Change only the loan and the hours it is spread over, leaving what the machine is worth
+     * and whose it is exactly as they were. Editing a machine's instalment must not blank
+     * the price somebody entered on its worth page.
+     */
+    suspend fun setLoan(
+        orgId: String,
+        can: Capabilities,
+        machineId: String,
+        monthlyMinor: Long?,
+        hoursPerYear: Int?,
+    ) {
+        can.require(Capability.EditMachines)
+        can.require(Capability.SeePeopleCost)
+        require(monthlyMinor == null || monthlyMinor >= 0) { "A loan instalment is not negative" }
+        require(hoursPerYear == null || hoursPerYear in 0..MAX_HOURS_PER_YEAR) {
+            "A machine cannot work more hours than there are in a year"
+        }
+        db.withTransaction {
+            if (machines.find(orgId, machineId) == null) return@withTransaction
+            val existing = machines.findFinance(orgId, machineId)
+                ?: MachineFinanceEntity(id = machineId, orgId = orgId, updatedAt = clock.now())
+            val changed = existing.copy(
+                monthlyMinor = monthlyMinor?.takeIf { it > 0 },
+                hoursPerYear = hoursPerYear?.takeIf { it > 0 },
+                updatedAt = clock.now(),
+            )
+            machines.upsertFinance(changed)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_MACHINE_FINANCE, changed.id, OutboxJson.encodeToString(changed),
+            )
+        }
+    }
+
+    /**
+     * Say whose machine this is and how its owner is paid.
+     *
+     * [MachineOwner.Own] is the business's own and clears the rest. For somebody else's,
+     * the way of paying is needed: a rate for the hour, the day or the land, or a share
+     * of what the work earns. What is owed builds up from the work finished since the
+     * hire began, and the loan and the worth of the machine are left as they were.
+     */
+    suspend fun setMachineOwnership(
+        orgId: String,
+        can: Capabilities,
+        machineId: String,
+        kind: MachineOwner,
+        ownerPersonId: String? = null,
+        ownerName: String? = null,
+        basis: HireBasis? = null,
+        rateMinor: Long? = null,
+        sharePercent: Int? = null,
+    ) {
+        can.require(Capability.EditMachines)
+        can.require(Capability.SeePeopleCost)
+        if (kind != MachineOwner.Own) {
+            requireNotNull(basis) { "Somebody else's machine needs a way of paying for it" }
+            if (basis == HireBasis.Share) {
+                require(sharePercent != null && sharePercent in 1..100) { "A share is between 1 and 100 percent" }
+            } else {
+                require(rateMinor != null && rateMinor > 0) { "A rate is more than nothing" }
+            }
+            if (kind == MachineOwner.Member) require(!ownerPersonId.isNullOrBlank()) { "Say which team member owns it" }
+            if (kind == MachineOwner.Outsider) require(!ownerName.isNullOrBlank()) { "Say whose machine it is" }
+        }
+        db.withTransaction {
+            if (machines.find(orgId, machineId) == null) return@withTransaction
+            val existing = machines.findFinance(orgId, machineId)
+                ?: MachineFinanceEntity(id = machineId, orgId = orgId, updatedAt = clock.now())
+            val now = clock.now()
+            val changed = if (kind == MachineOwner.Own) {
+                existing.copy(
+                    ownerKind = null, ownerPersonId = null, ownerName = null, hireBasis = null,
+                    hireRateMinor = null, hireSharePercent = null, hireFrom = null, updatedAt = now,
+                )
+            } else {
+                existing.copy(
+                    ownerKind = kind,
+                    ownerPersonId = ownerPersonId?.takeIf { kind == MachineOwner.Member },
+                    ownerName = ownerName?.trim()?.takeIf { kind == MachineOwner.Outsider },
+                    hireBasis = basis,
+                    hireRateMinor = rateMinor?.takeIf { basis != HireBasis.Share },
+                    hireSharePercent = sharePercent?.takeIf { basis == HireBasis.Share },
+                    // Kept when the machine was already hired, so a new rate re-works the same
+                    // stretch of work rather than quietly dropping what was already earned.
+                    hireFrom = existing.hireFrom?.takeIf { existing.ownerKind != null } ?: now,
+                    updatedAt = now,
+                )
+            }
+            machines.upsertFinance(changed)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_MACHINE_FINANCE, changed.id, OutboxJson.encodeToString(changed),
             )
         }
     }

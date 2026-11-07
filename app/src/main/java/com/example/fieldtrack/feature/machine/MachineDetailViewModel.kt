@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -168,6 +169,12 @@ class MachineDetailViewModel(
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MachineDetailState())
+
+    /** Whose machine this is and what is still owed for it, for those who may see what the business pays. */
+    val hire: StateFlow<com.example.fieldtrack.data.repository.HireBalance?> = app.sessionStore.session.flatMapLatest { s ->
+        if (Capability.SeePeopleCost !in s.can) kotlinx.coroutines.flow.flowOf(null)
+        else app.hireRepository.observe(s.orgId).map { list -> list.firstOrNull { b -> b.machines.any { it.machineId == machineId } } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val choosing = MutableStateFlow(false)
     private val moveResult = MutableStateFlow<com.example.fieldtrack.data.repository.PlanRepository.MoveResult?>(null)

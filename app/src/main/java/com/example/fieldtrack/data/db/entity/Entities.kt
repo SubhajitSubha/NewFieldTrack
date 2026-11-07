@@ -420,6 +420,24 @@ data class MachineFinanceEntity(
     val purchaseMinor: Long? = null,
     val resaleMinor: Long? = null,
     val lifeYears: Int? = null,
+    /**
+     * Whose machine this is; null is the same as [com.example.fieldtrack.data.db.MachineOwner.Own].
+     * For a machine that is not the business's own, the rest says who is paid for it and how.
+     * Filed here with the other private costs of a machine, for the same reason: what the
+     * business pays somebody for a tractor is not a driver's to read.
+     */
+    val ownerKind: com.example.fieldtrack.data.db.MachineOwner? = null,
+    /** The team member who owns it, when [ownerKind] is Member. */
+    val ownerPersonId: String? = null,
+    /** The name of the person it is hired from, when [ownerKind] is Outsider. */
+    val ownerName: String? = null,
+    val hireBasis: com.example.fieldtrack.data.db.HireBasis? = null,
+    /** The rate in minor units per hour, per day or per land unit, by [hireBasis]. */
+    val hireRateMinor: Long? = null,
+    /** Whole percent of what the work earned, when [hireBasis] is a share. */
+    val hireSharePercent: Int? = null,
+    /** From when the hire counts: work finished before this is not owed for. */
+    val hireFrom: Long? = null,
 )
 
 /**
