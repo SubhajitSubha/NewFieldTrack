@@ -36,6 +36,14 @@ These came back from the translators as the entries they were least sure of.
 - **Arabic:** plural forms are all six; "عدّاد" means both the work timer and the machine's hour
   meter (the meter is "عدّاد الساعات"); units `km`/`kg`/`L` stay Latin; check "مُطّلع" for the viewer role.
 
+## Added with the field-feedback round (`strings_10.xml`, Indonesian `strings_11.xml`)
+128 more entries, drafted the same way and equally unread. Read first: the words for **role**
+(`roles_*`, a named bundle of what a team member may do), **hire** (`hire_*`, `owner_*`: money owed to
+the owner of a machine the business does not own), **taken back** (`person_pay_*`: a payment cancelled
+but kept in the record), the **I need help** sheet (`sos_*`) and the notification lines
+(`push_breakdown_*`, `push_sos`, `push_member_joined`, which take a machine's or a person's name, so
+check gender and word order). Arabic uses masculine verbs in the notification lines.
+
 ## Things the translations cannot yet do
 - The amount in words at the foot of a bill is English-only (and only for rupees). A bill in
   another language leaves that line off rather than print English number-words.
