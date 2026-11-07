@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -837,8 +838,12 @@ internal fun PermissionRow(
     enabled: Boolean = true,
 ) {
     val colors = FieldTrackTheme.colors
+    // The whole row is the switch: it is one thing to a screen reader, named by its title, and
+    // a bigger place to press than the little control at the end.
     Row(
-        Modifier.padding(horizontal = 15.dp, vertical = 13.dp),
+        Modifier
+            .toggleable(value = checked, enabled = enabled, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = onChange)
+            .padding(horizontal = 15.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -856,7 +861,7 @@ internal fun PermissionRow(
         }
         Switch(
             checked = checked,
-            onCheckedChange = onChange,
+            onCheckedChange = null,
             enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = colors.onPrimary,
