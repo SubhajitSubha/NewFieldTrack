@@ -1027,6 +1027,7 @@
 
     <string name="profile_title">Profile</string>
     <string name="profile_you">You</string>
+    <string name="profile_edit_all">Edit your details</string>
     <string name="profile_business">Your business</string>
     <string name="profile_measuring">How you measure</string>
     <string name="profile_land_measured_in">Land measured in</string>

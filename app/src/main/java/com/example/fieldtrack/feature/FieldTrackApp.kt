@@ -190,10 +190,9 @@ import com.example.fieldtrack.notify.ReminderKind
 import com.example.fieldtrack.notify.Reminders
 import com.example.fieldtrack.feature.more.ExportScreen
 import com.example.fieldtrack.feature.more.ExportViewModel
-import com.example.fieldtrack.feature.more.EditBusinessViewModel
-import com.example.fieldtrack.feature.more.EditProfileViewModel
-import com.example.fieldtrack.feature.more.EditSettingsScreen
-import com.example.fieldtrack.feature.more.LetterheadFields
+import com.example.fieldtrack.feature.more.EditDetailsActions
+import com.example.fieldtrack.feature.more.EditDetailsScreen
+import com.example.fieldtrack.feature.more.EditDetailsViewModel
 import com.example.fieldtrack.feature.more.ProfileScreen
 import com.example.fieldtrack.feature.more.ProfileViewModel
 import com.example.fieldtrack.feature.more.MoreViewModel
@@ -266,7 +265,8 @@ internal object Routes {
     const val TEAM = "more/team"
     const val MEMBER = "more/team/{membershipId}"
     const val EDIT_PROFILE = "more/profile/name"
-    const val EDIT_BUSINESS = "more/business"
+    /** Same screen as [EDIT_PROFILE]; kept so every old link still lands on the one form. */
+    const val EDIT_BUSINESS = EDIT_PROFILE
     const val BACKUP = "more/backup"
     const val DISPLAY = "more/display"
     const val SECURITY = "more/security"
@@ -2405,39 +2405,23 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            // One form for the person and the business: the old name route and the old
+            // business route both lead here, so nothing that linked to them is lost.
             composable(Routes.EDIT_PROFILE) {
-                val vm: EditProfileViewModel = appViewModel { EditProfileViewModel(it) }
+                val vm: EditDetailsViewModel = appViewModel { EditDetailsViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
-                EditSettingsScreen(
+                EditDetailsScreen(
                     state = state,
-                    titleRes = R.string.edit_profile_title,
-                    nameLabelRes = R.string.onboard_your_name,
-                    nameHintRes = R.string.onboard_your_name_hint,
-                    onBack = { navController.popBackStack() },
-                    onName = vm::setName,
-                    onLandUnit = null,
-                    onSave = { vm.save { navController.popBackStack() } },
-                )
-            }
-
-            composable(Routes.EDIT_BUSINESS) {
-                val vm: EditBusinessViewModel = appViewModel { EditBusinessViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                EditSettingsScreen(
-                    state = state,
-                    titleRes = R.string.edit_business_title,
-                    nameLabelRes = R.string.onboard_business_name,
-                    nameHintRes = R.string.onboard_business_name_hint,
-                    helperRes = R.string.edit_business_name_note,
-                    onBack = { navController.popBackStack() },
-                    onName = vm::setName,
-                    onLandUnit = vm::setLandUnit,
-                    onLetterhead = LetterheadFields(
+                    actions = EditDetailsActions(
+                        onYourName = vm::setYourName,
+                        onBusinessName = vm::setBusinessName,
                         onPhone = vm::setPhone,
                         onAddress = vm::setAddress,
                         onGstin = vm::setGstin,
                         onUpiId = vm::setUpiId,
+                        onLandUnit = vm::setLandUnit,
                     ),
+                    onBack = { navController.popBackStack() },
                     onSave = { vm.save { navController.popBackStack() } },
                 )
             }

@@ -268,6 +268,14 @@ fun ProfileScreen(
                 }
             }
 
+            // One door for everything below: name, business, bill details and land unit.
+            FtButton(
+                text = stringResource(R.string.profile_edit_all),
+                onClick = onEditName,
+                tone = FtButtonTone.Secondary,
+                height = 48.dp,
+            )
+
             FtSectionLabel(stringResource(R.string.profile_you))
             FtCard(padding = 0.dp) {
                 ValueRow(

@@ -127,7 +127,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
   Attachments (plough, harrow, trolley...) are not asked for a plate.
   Built: `FtDropdown`/`FtPick` (5 or fewer = pills, more = list), `MachineChoice`; size/power field left as a suggestion (needs a migration).
   New English strings from N-series are translated in one wave at N10 (TranslationsTest is red until then).
-- [ ] **N2. One profile edit screen** (case 8). Name and business details edit on one form with one Save; money/region, seasons and
+- [x] **N2. One profile edit screen** (case 8). Name and business details edit on one form with one Save; money/region, seasons and
   plan stay as their own short screens because they need pickers.
 - [ ] **N3. Menu, profile icon, search; same places for every role** (cases 4, 5, 7). The More tab goes. Top bar on the main screens:
   profile icon (opens a side menu with profile, business switcher, settings, help) and a search icon. Same four bottom tabs and the
