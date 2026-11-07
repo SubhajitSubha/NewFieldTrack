@@ -58,6 +58,8 @@ fun TeamScreen(
     onMergeDuplicate: ((DuplicatePair) -> Unit)?,
     onNotDuplicate: ((DuplicatePair) -> Unit)?,
     modifier: Modifier = Modifier,
+    /** The owner's own roles. Null for anybody but an owner. */
+    onRoles: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -228,6 +230,20 @@ fun TeamScreen(
                 }
                 items(state.idle, key = { it.membershipId }) { member ->
                     MemberCard(member, onOpenMember)
+                }
+            }
+
+            if (onRoles != null) {
+                item {
+                    FtCard(padding = 0.dp) {
+                        FtListRow(
+                            title = stringResource(R.string.roles_title),
+                            subtitle = stringResource(R.string.roles_row_note),
+                            leading = { FtIconTile(FieldTrackIcons.Check, size = 40.dp) },
+                            showChevron = true,
+                            onClick = onRoles,
+                        )
+                    }
                 }
             }
 

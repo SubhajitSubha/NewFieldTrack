@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(28, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(29, c.getInt(0))
         }
     }
 
@@ -550,6 +550,20 @@ class MigrationTest {
         val db = open().openHelper.writableDatabase
         db.query("SELECT amountMinor, voidedAt FROM payouts").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0)); assertTrue(c.isNull(1))
+        }
+    }
+
+    @Test
+    fun `a business has made no roles of its own until it does`() {
+        create(28) { }
+        val db = open().openHelper.writableDatabase
+        db.query("PRAGMA table_info(organisations)").use { c ->
+            val columns = mutableSetOf<String>()
+            while (c.moveToNext()) columns += c.getString(c.getColumnIndexOrThrow("name"))
+            assertTrue("customRoles" in columns)
+        }
+        db.query("SELECT COUNT(*) FROM organisations WHERE customRoles IS NOT NULL").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0))
         }
     }
 }

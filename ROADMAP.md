@@ -152,7 +152,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
 - [x] **N8. One money history** (case 3). A single list of every money movement, newest first: customer payments and bills, pay-outs,
   fuel, service, job costs, hire payments; filter by type, person, machine, customer, date. Each row opens its source. Shown by role:
   customer money needs See money, wages need See people cost. Needs N6 and N7.
-- [ ] **N9. Your own roles** (case 1). The owner makes a named role (Manager, Accountant, Mechanic...) from a list of plain-word
+- [x] **N9. Your own roles** (case 1). The owner makes a named role (Manager, Accountant, Mechanic...) from a list of plain-word
   switches, keeps it, and gives it to any member; changing the role changes everyone who has it. The five built-in roles stay.
 - [ ] **N10. Simplify pass and sign-off.** Walk every main flow as a first-time driver and a first-time owner, cut steps and words,
   full test suite, emulator check at both sizes, light and dark, and the eight translations read again for the new words.

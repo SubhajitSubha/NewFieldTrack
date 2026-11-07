@@ -144,6 +144,14 @@ data class OrgEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
+    /**
+     * Roles the owner has made, as a short list: a name and the switches it stands for.
+     *
+     * Kept on the business's own record rather than in a table of their own: it is a handful
+     * of lines, every member may read it, only the owner may write it, and that is exactly
+     * the rule this record already has. See [com.example.fieldtrack.data.session.CustomRoles].
+     */
+    val customRoles: String? = null,
 )
 
 /**

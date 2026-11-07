@@ -85,6 +85,9 @@ fun MemberScreen(
     modifier: Modifier = Modifier,
     /** Opens what this person has been paid, for somebody who may see what the business pays. */
     onPayHistory: (() -> Unit)? = null,
+    onCustomRole: (com.example.fieldtrack.data.session.CustomRole) -> Unit = {},
+    /** Opens the owner's roles, to make or change one. Null for anybody but an owner. */
+    onRoles: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -294,7 +297,17 @@ fun MemberScreen(
                             },
                         )
                     }
-                    if (state.preset == null) {
+                    // The roles this owner made, offered like the built-in jobs.
+                    state.customRoles.forEach { role ->
+                        FtRowDivider()
+                        RoleRow(
+                            title = role.name,
+                            note = customRoleNote(role),
+                            selected = state.customRole?.id == role.id,
+                            onSelect = { onCustomRole(role) },
+                        )
+                    }
+                    if (state.preset == null && state.customRole == null) {
                         FtRowDivider()
                         // Shown only once it is already true, and not selectable:
                         // there is no set of switches called "by hand" to apply.
@@ -306,6 +319,9 @@ fun MemberScreen(
                             onSelect = null,
                         )
                     }
+                }
+                if (onRoles != null) {
+                    TextButton(onClick = onRoles) { Text(stringResource(R.string.roles_manage)) }
                 }
                 if (!state.editableByOwnerOnly) {
                     Text(
@@ -794,9 +810,26 @@ private fun StatCard(
     }
 }
 
+/** What a role of the owner's own lets somebody do, said in the words of the switches. */
+@Composable
+private fun customRoleNote(role: com.example.fieldtrack.data.session.CustomRole): String {
+    val g = role.toGrants()
+    val parts = buildList {
+        if (g.closeBills) add(stringResource(R.string.team_perm_bills))
+        else if (g.seeMoney) add(stringResource(R.string.team_perm_money))
+        if (g.addCustomers) add(stringResource(R.string.team_perm_customers))
+        if (g.planWork) add(stringResource(R.string.team_perm_plan))
+        if (g.editMachines) add(stringResource(R.string.team_perm_machines))
+        if (g.editTeam) add(stringResource(R.string.team_perm_team))
+        if (g.payOut) add(stringResource(R.string.team_perm_payout))
+        if (g.seePeopleCost) add(stringResource(R.string.team_perm_people_cost))
+    }
+    return if (parts.isEmpty()) stringResource(R.string.team_preset_nothing_more) else parts.joinToString(" · ")
+}
+
 /** One thing a driver may or may not do, with what it means underneath. */
 @Composable
-private fun PermissionRow(
+internal fun PermissionRow(
     title: String,
     note: String,
     checked: Boolean,

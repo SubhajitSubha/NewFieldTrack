@@ -52,6 +52,8 @@ data class MemberState(
     val isYou: Boolean = false,
     /** Whether this person may open what the member has been paid. */
     val canSeePay: Boolean = false,
+    /** Roles the owner has made, offered beside the built-in jobs when the owner is the one editing. */
+    val customRoles: List<com.example.fieldtrack.data.session.CustomRole> = emptyList(),
     val canSeeTheirEarnings: Boolean = true,
     val saving: Boolean = false,
 ) {
@@ -72,6 +74,11 @@ data class MemberState(
 
     /** Which job describes them, or null once an owner has adjusted a switch. */
     val preset: RolePreset? get() = RolePreset.matching(role, grants)
+
+    /** The owner's own role that describes them, if one does. */
+    val customRole: com.example.fieldtrack.data.session.CustomRole?
+        get() = if (preset != null) null
+        else com.example.fieldtrack.data.session.CustomRoles.matching(customRoles, role, grants)
 
     /** What this editor may hand out — a manager may not make a manager. */
     val offeredPresets: List<RolePreset> get() = RolePreset.offeredBy(editableByOwnerOnly)
@@ -167,6 +174,7 @@ class MemberViewModel(
                     // switch off their own permissions would lock themselves out.
                     editable = Capability.EditTeam in s.can && member.personId != s.personId,
                     canSeeTheirEarnings = s.canSeeMoney,
+                    customRoles = app.teamRepository.observeCustomRoles(s.orgId).first(),
                 )
             }
         }
@@ -204,6 +212,19 @@ class MemberViewModel(
             canPlanWork = g.planWork,
             canPayOut = g.payOut,
             canSeePeopleCost = g.seePeopleCost,
+            problem = null,
+        )
+    }
+
+    /** Picks one of the owner's own roles: its switches are written, as a built-in job's are. */
+    fun setCustomRole(role: com.example.fieldtrack.data.session.CustomRole) = _state.update { current ->
+        if (!current.editableByOwnerOnly) return@update current
+        val g = role.toGrants()
+        current.copy(
+            role = MemberRole.Operator,
+            canSeeMoney = g.seeMoney, canAddCustomers = g.addCustomers, canCloseBills = g.closeBills,
+            canEditTeam = g.editTeam, canEditMachines = g.editMachines, canPlanWork = g.planWork,
+            canPayOut = g.payOut, canSeePeopleCost = g.seePeopleCost,
             problem = null,
         )
     }

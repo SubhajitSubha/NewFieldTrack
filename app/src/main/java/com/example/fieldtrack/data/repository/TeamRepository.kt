@@ -5,6 +5,7 @@ import com.example.fieldtrack.data.db.Clock
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.IdGenerator
 import com.example.fieldtrack.data.db.MemberRole
+import com.example.fieldtrack.data.session.grants
 import com.example.fieldtrack.data.db.OutboxJson
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -54,6 +55,17 @@ sealed class TeamError(message: String) : Exception(message) {
      */
     class AlreadyInBusiness(val orgId: String) :
         TeamError("You already work for this business")
+
+    /** A role needs a name. */
+    class RoleNeedsName : TeamError("A role needs a name")
+
+    /** Two roles with one name cannot be told apart in a list. */
+    class RoleNameTaken : TeamError("There is already a role with that name")
+
+    /** The switches are exactly those of a built-in job or another role, which would then have two names. */
+    class RoleSameAs(val other: String) : TeamError("Those switches are the same as $other")
+
+    class TooManyRoles : TeamError("That is as many roles as a business can keep")
 }
 
 /**
@@ -91,6 +103,84 @@ class TeamRepository(
     private val secureRandom by lazy { java.security.SecureRandom() }
 
     fun observeTeam(orgId: String): Flow<List<MembershipEntity>> = org.observeTeam(orgId)
+
+    // ---------------------------------------------------------------- roles of your own
+
+    /** The roles the owner has made, as they stand. */
+    fun observeCustomRoles(orgId: String): Flow<List<com.example.fieldtrack.data.session.CustomRole>> =
+        org.observeOrg(orgId).map { com.example.fieldtrack.data.session.CustomRoles.parse(it?.customRoles) }
+
+    /**
+     * Makes a role, or changes one, and carries a change to everybody who holds it.
+     *
+     * Owner only: a role is a bundle of what people may do, and a manager who could write one
+     * could make a peer by another door. Everybody whose switches were exactly the old role's
+     * gets the new switches, so "change the role, change everyone who has it" holds. Somebody an
+     * owner adjusted by hand since is left alone: they no longer match, so they were never "the role".
+     */
+    suspend fun saveCustomRole(
+        orgId: String,
+        can: Capabilities,
+        bySelfPersonId: String,
+        id: String?,
+        name: String,
+        grants: com.example.fieldtrack.data.session.Grants,
+    ): String {
+        can.require(Capability.EditBusiness)
+        val clean = name.trim().take(com.example.fieldtrack.data.session.CustomRoles.MAX_NAME)
+        if (clean.isBlank()) throw TeamError.RoleNeedsName()
+        return db.withTransaction {
+            val current = org.findOrg(orgId) ?: throw TeamError.NoSuchMember(orgId)
+            val roles = com.example.fieldtrack.data.session.CustomRoles.parse(current.customRoles)
+            if (roles.any { it.id != id && it.name.equals(clean, ignoreCase = true) }) throw TeamError.RoleNameTaken()
+            com.example.fieldtrack.data.session.CustomRoles.clashWith(roles, grants, id)?.let { throw TeamError.RoleSameAs(it) }
+            val previous = id?.let { wanted -> roles.firstOrNull { it.id == wanted } }
+            if (previous == null && roles.size >= com.example.fieldtrack.data.session.CustomRoles.MAX_ROLES) throw TeamError.TooManyRoles()
+
+            val roleId = previous?.id ?: ids.newId()
+            val made = com.example.fieldtrack.data.session.CustomRole.of(roleId, clean, grants)
+            val next = if (previous == null) roles + made else roles.map { if (it.id == roleId) made else it }
+            writeRoles(current, next)
+
+            if (previous != null && previous.toGrants() != grants) {
+                val actor = org.membership(orgId, bySelfPersonId)
+                org.observeEveryone(orgId).first()
+                    .filter { it.active && it.role == MemberRole.Operator && it.grants() == previous.toGrants() }
+                    .forEach { member ->
+                        val updated = member.copy(
+                            canSeeMoney = grants.seeMoney, canAddCustomers = grants.addCustomers,
+                            canCloseBills = grants.closeBills, canEditTeam = grants.editTeam,
+                            canEditMachines = grants.editMachines, canPlanWork = grants.planWork,
+                            canPayOut = grants.payOut, canSeePeopleCost = grants.seePeopleCost,
+                            updatedAt = clock.now(),
+                        )
+                        org.upsertMembership(updated)
+                        enqueue(updated)
+                        record(
+                            orgId = orgId, kind = TeamEventKind.PermissionsChanged, by = actor, about = updated,
+                            detail = if (updated.canSeeMoney && !member.canSeeMoney) TEAM_EVENT_MONEY else null,
+                        )
+                    }
+            }
+            roleId
+        }
+    }
+
+    /** Throws a role away. Those who held it keep what they were given, and are simply "set by hand". */
+    suspend fun deleteCustomRole(orgId: String, can: Capabilities, id: String) {
+        can.require(Capability.EditBusiness)
+        db.withTransaction {
+            val current = org.findOrg(orgId) ?: return@withTransaction
+            val roles = com.example.fieldtrack.data.session.CustomRoles.parse(current.customRoles)
+            writeRoles(current, roles.filter { it.id != id })
+        }
+    }
+
+    private suspend fun writeRoles(current: com.example.fieldtrack.data.db.entity.OrgEntity, roles: List<com.example.fieldtrack.data.session.CustomRole>) {
+        val updated = current.copy(customRoles = com.example.fieldtrack.data.session.CustomRoles.encode(roles), updatedAt = clock.now())
+        org.upsertOrg(updated)
+        syncQueue.enqueueUpsert(updated.id, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated))
+    }
 
     // -------------------------------------------------------------------- invites
 

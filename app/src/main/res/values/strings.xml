@@ -1999,6 +1999,30 @@
     <string name="hire_share_label">Their share</string>
     <string name="hire_note">What is owed builds up from the work this machine does, and comes off as you pay. Changing the rate changes what is owed for all of it.</string>
     <string name="hire_machine_card">Belongs to %1$s</string>
+    <string name="roles_title">Your roles</string>
+    <string name="roles_row_note">Roles of your own: Mechanic, Accountant, anything</string>
+    <string name="roles_intro">A role is a name and what it lets somebody do. Give it to anybody on your team, and when you change it, everybody who has it changes with it.</string>
+    <string name="roles_none">You have not made any yet. Manager, Senior driver and the rest are already there.</string>
+    <string name="roles_make">Make a role</string>
+    <string name="roles_edit">Change a role</string>
+    <string name="roles_manage">Make or change your roles</string>
+    <string name="roles_name">What it is called</string>
+    <string name="roles_name_hint">Mechanic</string>
+    <string name="roles_start_from">Start from</string>
+    <plurals name="roles_holders">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <plurals name="roles_change_note">
+        <item quantity="one">%1$d person has this role. If you change it, they change too.</item>
+        <item quantity="other">%1$d people have this role. If you change it, they change too.</item>
+    </plurals>
+    <string name="roles_name_taken">You already have a role with that name.</string>
+    <string name="roles_same_as">Those switches are exactly the same as %1$s. Change one, or use that.</string>
+    <string name="roles_too_many">That is as many roles as a business can keep.</string>
+    <string name="roles_delete">Delete this role</string>
+    <string name="roles_delete_title">Delete %1$s?</string>
+    <string name="roles_delete_body">The people who have it keep what they can do. They just will not have this name any more.</string>
     <string name="mh_title">Money history</string>
     <string name="mh_row_note">Everything that came in and went out</string>
     <string name="mh_all">Everything</string>

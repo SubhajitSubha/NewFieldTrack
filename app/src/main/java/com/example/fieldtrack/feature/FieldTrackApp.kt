@@ -266,6 +266,9 @@ internal object Routes {
     const val PROFILE = "more/profile"
     const val SEASONS_EDIT = "more/profile/seasons"
     const val TEAM = "more/team"
+    const val ROLES = "more/team/roles"
+    const val ROLE = "more/team/roles/{roleId}"
+    fun role(id: String?) = "more/team/roles/${id ?: "new"}"
     const val MEMBER = "more/team/{membershipId}"
     const val EDIT_PROFILE = "more/profile/name"
     /** Same screen as [EDIT_PROFILE]; kept so every old link still lands on the one form. */
@@ -2201,6 +2204,8 @@ private fun MainNavHost(navController: NavHostController) {
                         .takeIf { state.canEditTeam },
                     onChanges = { navController.navigate(Routes.TEAM_CHANGES) }
                         .takeIf { state.canEditTeam },
+                    onRoles = { navController.navigate(Routes.ROLES) }
+                        .takeIf { (startup as? Startup.Ready)?.session?.let { Capability.EditBusiness in it.can } == true },
                     onMergeDuplicate = if (state.canEditTeam) {
                         { pair: DuplicatePair -> vm.merge(pair) {} }
                     } else null,
@@ -2417,6 +2422,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onPlanWork = vm::setPlanWork,
                     onPayOut = vm::setPayOut,
                     onSeePeopleCost = vm::setSeePeopleCost,
+                    onCustomRole = vm::setCustomRole,
+                    onRoles = { navController.navigate(Routes.ROLES) }.takeIf { state.editableByOwnerOnly },
                     onPayHistory = if (state.canSeePay) ({ navController.navigate(Routes.personPay(membershipId)) }) else null,
                     onSave = { vm.save { navController.popBackStack() } },
                     onSetActive = { active ->
@@ -2431,6 +2438,33 @@ private fun MainNavHost(navController: NavHostController) {
                             Unit
                         }
                     },
+                )
+            }
+
+            composable(Routes.ROLES) {
+                val vm: com.example.fieldtrack.feature.team.RolesViewModel = appViewModel { com.example.fieldtrack.feature.team.RolesViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.team.RolesScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onNew = { navController.navigate(Routes.role(null)) },
+                    onOpen = { navController.navigate(Routes.role(it)) },
+                )
+            }
+
+            composable(Routes.ROLE) { entry ->
+                val roleId = entry.arguments?.getString("roleId")?.takeIf { it != "new" }
+                val vm: com.example.fieldtrack.feature.team.RoleEditViewModel =
+                    appViewModel(key = "role-${roleId ?: "new"}") { com.example.fieldtrack.feature.team.RoleEditViewModel(it, roleId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.team.RoleEditScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onStartFrom = vm::startFrom,
+                    onChange = vm::change,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onDelete = { vm.delete { navController.popBackStack() } },
                 )
             }
 
