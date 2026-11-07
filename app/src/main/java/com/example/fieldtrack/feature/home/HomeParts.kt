@@ -907,6 +907,13 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
                 onClick = actions::customers
             }
         }
+        is HomeAlert.Chase -> {
+            tone = Tone.Wait
+            icon = FieldTrackIcons.money()
+            title = stringResource(R.string.home_alert_chase, alert.customerName)
+            note = stringResource(R.string.home_alert_chase_note, money(alert.amountMinor))
+            onClick = { actions.customer(alert.customerId) }
+        }
         is HomeAlert.Unpriced -> {
             tone = Tone.Wait
             icon = FieldTrackIcons.Team

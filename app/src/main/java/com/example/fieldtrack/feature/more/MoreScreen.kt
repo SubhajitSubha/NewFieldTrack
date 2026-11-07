@@ -129,6 +129,7 @@ fun MoreScreen(
     onBackup: () -> Unit,
     onDisplay: () -> Unit,
     onRates: () -> Unit,
+    onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
     onSeason: () -> Unit,
     onMachines: () -> Unit,
@@ -200,6 +201,14 @@ fun MoreScreen(
 
             FtSectionLabel(stringResource(R.string.more_your_work))
             FtCard(padding = 0.dp) {
+                FtListRow(
+                    title = stringResource(R.string.search_title),
+                    subtitle = stringResource(R.string.search_note),
+                    leading = { FtIconTile(FieldTrackIcons.Search, size = 40.dp) },
+                    showChevron = true,
+                    onClick = onSearch,
+                )
+                FtRowDivider()
                 FtListRow(
                     title = stringResource(R.string.machines_title),
                     leading = { FtIconTile(FieldTrackIcons.Tractor, size = 40.dp) },

@@ -286,6 +286,7 @@ private fun WorkStep(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         state.customer?.let { customer ->
+            state.creditWarning?.let { CreditWarningCard(it, customer.name) }
             FtCard(
                 background = FieldTrackTheme.colors.primaryWash,
                 borderColor = FieldTrackTheme.colors.primaryWash,

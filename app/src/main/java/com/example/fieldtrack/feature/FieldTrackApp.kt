@@ -149,6 +149,8 @@ import com.example.fieldtrack.feature.plan.PlanSettingsViewModel
 import com.example.fieldtrack.feature.plan.PlanViewModel
 import com.example.fieldtrack.feature.region.MoneySettingsScreen
 import com.example.fieldtrack.feature.region.MoneySettingsViewModel
+import com.example.fieldtrack.feature.search.SearchScreen
+import com.example.fieldtrack.feature.search.SearchViewModel
 import com.example.fieldtrack.feature.season.SeasonsScreen
 import com.example.fieldtrack.feature.season.SeasonsViewModel
 import com.example.fieldtrack.feature.calculator.PriceViewModel
@@ -229,6 +231,7 @@ internal object Routes {
     const val NEW_MACHINE = "machines/new"
     const val EDIT_MACHINE = "machines/{machineId}/edit"
     const val MORE = "more"
+    const val SEARCH = "search"
     const val PROFILE = "more/profile"
     const val SEASONS_EDIT = "more/profile/seasons"
     const val TEAM = "more/team"
@@ -938,6 +941,20 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
+            composable(Routes.SEARCH) {
+                val vm: SearchViewModel = appViewModel { SearchViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                SearchScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onQuery = vm::setQuery,
+                    onCustomer = { navController.navigate(Routes.ledger(it)) },
+                    onField = { navController.navigate(Routes.fields(it)) },
+                    onMachine = { navController.navigate("machines/$it") },
+                    onJob = { navController.navigate("jobs/$it") },
+                )
+            }
+
             composable(Routes.MONEY_SETTINGS) {
                 val vm: MoneySettingsViewModel = appViewModel { MoneySettingsViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
@@ -1145,11 +1162,8 @@ private fun MainNavHost(navController: NavHostController) {
                 val state by vm.state.collectAsStateWithLifecycle()
                 var tab by rememberSaveable { mutableStateOf(CustomerTab.Khata) }
                 val context = LocalContext.current
-                val reminder = stringResource(
-                    R.string.ledger_reminder_text,
-                    state.businessName.ifBlank { stringResource(R.string.app_name) },
-                    money(state.balanceMinor),
-                )
+                val ledgerScope = rememberCoroutineScope()
+                val fallbackName = stringResource(R.string.app_name)
 
                 LedgerScreen(
                     state = state,
@@ -1174,6 +1188,23 @@ private fun MainNavHost(navController: NavHostController) {
                     },
                     tab = tab,
                     onTab = { tab = it },
+                    onChase = if (state.canSeeMoney) ({ days: Int? -> vm.chaseIn(days); Unit }) else null,
+                    onReceipt = { paymentId ->
+                        val row = state.payments.firstOrNull { it.id == paymentId }
+                        ledgerScope.launch {
+                            vm.receiptFor(
+                                paymentId = paymentId,
+                                methodLabel = context.getString(row?.method.labelRes),
+                                dateLabel = dayMonthYear(row?.atMillis ?: System.currentTimeMillis()),
+                            )?.let {
+                                runCatching {
+                                    com.example.fieldtrack.document.DocumentShare.share(
+                                        context, it, context.getString(R.string.receipt_share_title),
+                                    )
+                                }
+                            }
+                        }
+                    },
                     // Keyed by the JOB's id, which is what a payment points at — a
                     // ledger entry id here would silently match nothing.
                     jobTitles = state.jobs.mapNotNull { job ->
@@ -1189,11 +1220,21 @@ private fun MainNavHost(navController: NavHostController) {
                         { navController.navigate(Routes.editCustomer(customerId)) }
                     } else null,
                     onRemind = {
-                        val send = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, reminder)
-                        }
-                        context.startActivity(Intent.createChooser(send, null))
+                        // In a chat with the customer when WhatsApp is there, with where to
+                        // pay and how old the debt is, in the language they read.
+                        val text = com.example.fieldtrack.document.ReminderText.build(
+                            context = context,
+                            language = state.customerLanguage,
+                            businessName = state.businessName.ifBlank { fallbackName },
+                            balanceMinor = state.balanceMinor,
+                            style = com.example.fieldtrack.designsystem.format.Money.style,
+                            oldestDays = state.oldestDebtMillis?.let {
+                                ((System.currentTimeMillis() - it) / 86_400_000L).toInt()
+                            },
+                            payDetails = state.payDetails,
+                            upiId = state.upiId,
+                        )
+                        com.example.fieldtrack.feature.Sharing.message(context, state.customerPhone, text)
                     },
                 )
             }
@@ -1211,6 +1252,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onName = vm::setName,
                     onPhone = vm::setPhone,
                     onVillage = vm::setVillage,
+                    onCreditLimit = vm::setCreditLimit,
+                    onLanguage = vm::setLanguage,
                     onOpening = null,
                     onSave = { vm.save { navController.popBackStack() } },
                     titleRes = R.string.edit_customer_title,
@@ -1364,6 +1407,8 @@ private fun MainNavHost(navController: NavHostController) {
                 val state by vm.state.collectAsStateWithLifecycle()
                 val context = LocalContext.current
 
+                val summaryMeasure = if (state.billingMode == BillingMode.Fixed) null
+                else measure(state.quantity, state.unit)
                 JobDetailScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
@@ -1389,6 +1434,23 @@ private fun MainNavHost(navController: NavHostController) {
                     },
                     // Offered to anyone who may record work, because the person
                     // who knows how many hands were on it is the one who was there.
+                    onShareSummary = if (state.finished && state.canSeeMoney) {
+                        {
+                            val text = com.example.fieldtrack.document.JobSummaryText.build(
+                                context = context,
+                                language = state.customerLanguage,
+                                businessName = state.businessName,
+                                workTitle = state.workType,
+                                measureLabel = summaryMeasure,
+                                dateLabel = dayMonthYear(state.workedAtMillis),
+                                quote = state.quote,
+                                totalMinor = state.amountMinor,
+                                style = com.example.fieldtrack.designsystem.format.Money.style,
+                                payDetails = state.payDetails,
+                            )
+                            com.example.fieldtrack.feature.Sharing.message(context, state.customerPhone, text)
+                        }
+                    } else null,
                     onAddCost = { navController.navigate(Routes.jobCost(jobId)) }
                         .takeIf { state.canRecordCost },
                     onPayCost = { costId: String ->
@@ -1609,6 +1671,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onDisplay = { navController.navigate(Routes.DISPLAY) },
                     onRates = { navController.navigate(Routes.RATES) },
+                    onSearch = { navController.navigate(Routes.SEARCH) },
                     onPrice = { navController.navigate(Routes.PRICE) },
                     onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
                     onSeason = { navController.navigate(Routes.SEASON) },
@@ -1756,6 +1819,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onHeadcount = vm::setHeadcount,
                     onAmount = vm::setAmount,
                     onCovers = vm::setCovers,
+                    onRecover = vm::setRecover,
                     onJob = vm::setJob,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
@@ -2066,6 +2130,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onName = vm::setName,
                     onPhone = vm::setPhone,
                     onVillage = vm::setVillage,
+                    onCreditLimit = vm::setCreditLimit,
+                    onLanguage = vm::setLanguage,
                     onOpening = vm::setOpening,
                     onSave = { vm.save { navController.popBackStack() } },
                 )

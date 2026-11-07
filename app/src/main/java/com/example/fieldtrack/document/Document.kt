@@ -132,6 +132,25 @@ sealed interface Document {
                 .sanitisedFileName()
     }
 
+    /** One payment received, and what the customer owes after it. */
+    data class Receipt(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val dateLabel: String,
+        /** How it was paid, as a person reads it: "Cash", "UPI", "In kind (grain or produce)". */
+        val methodLabel: String,
+        val amountMinor: Long,
+        /** What the payment was for or what was handed over, when somebody wrote it down. */
+        val note: String?,
+        /** What the customer owes once this payment is counted. Negative is credit. */
+        val balanceAfterMinor: Long,
+        val amountInWords: String?,
+    ) : Document {
+        override val fileName: String
+            get() = "Receipt-$dateLabel-${customer.name}".sanitisedFileName()
+    }
+
     /** Only what has not been paid for, which is what gets sent when chasing money. */
     data class Dues(
         override val letterhead: Letterhead,

@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(20, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(21, c.getInt(0))
         }
     }
 
@@ -430,6 +430,26 @@ class MigrationTest {
             assertTrue(c.moveToFirst())
             assertEquals(0L, c.getLong(0)); assertEquals(0L, c.getLong(1))
             assertEquals("Included", c.getString(2)); assertEquals(0L, c.getLong(3))
+        }
+    }
+
+    @Test
+    fun `customers keep what they were and payouts recover nothing`() {
+        create(20) {
+            it.execSQL("INSERT INTO customers (id, orgId, name, createdAt, updatedAt, syncState) VALUES ('c1', 'o1', 'Ramesh', 1, 1, 'Synced')")
+            it.execSQL(
+                "INSERT INTO payouts (id, orgId, amountMinor, atMillis, covers, headcount, createdAt, syncState) " +
+                    "VALUES ('p1', 'o1', 50000, 1, 'Day', 1, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT name, language, creditLimitMinor, chaseOnDay FROM customers").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Ramesh", c.getString(0))
+            for (i in 1..3) assertTrue(c.isNull(i))
+        }
+        db.query("SELECT amountMinor, recoversAdvanceMinor FROM payouts").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0)); assertEquals(0L, c.getLong(1))
         }
     }
 }

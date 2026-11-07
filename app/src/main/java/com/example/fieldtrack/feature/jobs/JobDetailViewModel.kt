@@ -37,6 +37,10 @@ data class JobDetailState(
     val exists: Boolean = false,
     val customerId: String = "",
     val customerName: String = "",
+    val customerPhone: String? = null,
+    val customerLanguage: String? = null,
+    val businessName: String = "",
+    val payDetails: String? = null,
     val fieldLabel: String? = null,
     val workType: String = "",
     val status: JobStatus = JobStatus.Running,
@@ -153,7 +157,10 @@ class JobDetailViewModel(
         combine(
             app.workRepository.observeJob(s.orgId, jobId),
             app.workRepository.observeEvents(jobId),
-            app.directoryRepository.observeCustomers(s.orgId),
+            combine(
+                app.directoryRepository.observeCustomers(s.orgId),
+                app.db.orgDao().observeOrg(s.orgId),
+            ) { customers, org -> customers to org },
             app.teamRepository.observeEveryone(s.orgId),
             combine(
                 app.directoryRepository.observeMachines(s.orgId),
@@ -164,7 +171,7 @@ class JobDetailViewModel(
             ) { machines, costs, fuelMinor, fuelLitres, running ->
                 Extras(machines, costs, fuelMinor, fuelLitres, running)
             },
-        ) { job, events, customers, team, extra ->
+        ) { job, events, (customers, org), team, extra ->
             val machines = extra.machines
             if (job == null) return@combine JobDetailState(loaded = true, exists = false)
             val names = team.associate { it.personId to it.displayName }
@@ -175,6 +182,10 @@ class JobDetailViewModel(
                 exists = true,
                 customerId = job.customerId,
                 customerName = customers.firstOrNull { it.id == job.customerId }?.name.orEmpty(),
+                customerPhone = customers.firstOrNull { it.id == job.customerId }?.phone,
+                customerLanguage = customers.firstOrNull { it.id == job.customerId }?.language,
+                businessName = org?.name.orEmpty(),
+                payDetails = org?.payDetails,
                 fieldLabel = customers.firstOrNull { it.id == job.customerId }?.village,
                 workType = job.workType,
                 status = job.status,

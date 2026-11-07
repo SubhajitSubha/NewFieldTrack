@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.plan
 
+import com.example.fieldtrack.data.billing.CreditCheck
+import com.example.fieldtrack.data.billing.CreditWarning
 import androidx.lifecycle.ViewModel
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import com.example.fieldtrack.data.db.PaymentMethod
@@ -57,6 +59,8 @@ data class BookingFormState(
     val driverId: String? = null,
     val note: String = "",
     /** A token taken with this booking, as typed. Only asked when somebody may take money. */
+    /** What this farmer already owes, said before more work is booked for them. */
+    val creditWarning: CreditWarning? = null,
     val advanceText: String = "",
     val advanceMethod: PaymentMethod = PaymentMethod.Cash,
     val canTakeMoney: Boolean = false,
@@ -213,10 +217,19 @@ class BookingFormViewModel(
 
     fun setQuery(value: String) = _state.update { it.copy(query = value) }
 
-    fun selectCustomer(customer: CustomerEntity) = _state.update {
-        // The plot belongs to whoever was chosen before; changing the farmer drops it.
-        if (it.customer?.id == customer.id) it.copy(customer = customer, query = "")
-        else it.copy(customer = customer, fieldId = null, query = "")
+    fun selectCustomer(customer: CustomerEntity) {
+        _state.update {
+            // The plot belongs to whoever was chosen before; changing the farmer drops it.
+            if (it.customer?.id == customer.id) it.copy(customer = customer, query = "")
+            else it.copy(customer = customer, fieldId = null, query = "", creditWarning = null)
+        }
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            if (!s.canSeeMoney) return@launch
+            val entries = app.ledgerRepository.observeLedger(s.orgId, customer.id).first()
+            val warning = CreditCheck.warning(entries, customer.creditLimitMinor, System.currentTimeMillis())
+            _state.update { if (it.customer?.id == customer.id) it.copy(creditWarning = warning) else it }
+        }
     }
 
     fun selectField(id: String?) = _state.update { it.copy(fieldId = id) }

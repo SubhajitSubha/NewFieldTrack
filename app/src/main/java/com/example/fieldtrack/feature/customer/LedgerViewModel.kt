@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.customer
 
+import kotlinx.coroutines.flow.first
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
@@ -82,6 +83,13 @@ data class LedgerState(
     val customerPhone: String? = null,
     val village: String? = null,
     val businessName: String = "",
+    /** Where customers pay this business, for the reminder: bank or mobile-money details and a UPI id. */
+    val payDetails: String? = null,
+    val upiId: String? = null,
+    /** The language this customer reads, so a reminder to them is written in it. */
+    val customerLanguage: String? = null,
+    val creditLimitMinor: Long? = null,
+    val chaseOnDay: Long? = null,
     val balanceMinor: Long = 0,
     /** When the oldest unsettled charge was raised, for the "oldest N days" line. */
     val oldestDebtMillis: Long? = null,
@@ -308,6 +316,11 @@ class LedgerViewModel(
                 customerPhone = customer?.phone,
                 village = customer?.village,
                 businessName = org?.name.orEmpty(),
+                payDetails = org?.payDetails,
+                upiId = org?.upiId,
+                customerLanguage = customer?.language,
+                creditLimitMinor = customer?.creditLimitMinor,
+                chaseOnDay = customer?.chaseOnDay,
                 balanceMinor = balance,
                 oldestDebtMillis = oldestUnpaidAt(entries),
                 rows = rows,
@@ -323,5 +336,28 @@ class LedgerViewModel(
 
     init {
         viewModelScope.launch { app.sessionStore.load() }
+    }
+
+    /** Remind the owner to chase this customer in [days] days, or not at all with null. */
+    fun chaseIn(days: Int?) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        val day = days?.let { java.time.LocalDate.now(com.example.fieldtrack.data.region.BusinessClock.zone).toEpochDay() + it }
+        app.directoryRepository.setChaseDay(s.orgId, customerId, day)
+    }
+
+    /**
+     * The receipt for one payment: who paid, how much, how, and what they owe after it.
+     *
+     * "After it" is read off the same running balance the khata shows, so the receipt
+     * and the khata can never give two figures for the same moment.
+     */
+    suspend fun receiptFor(paymentId: String, methodLabel: String, dateLabel: String): com.example.fieldtrack.document.Document.Receipt? {
+        val s = app.sessionStore.load() ?: return null
+        val org = app.db.orgDao().observeOrg(s.orgId).first()
+        val customer = app.directoryRepository.observeCustomer(s.orgId, customerId).first()
+        val entries = app.ledgerRepository.observeLedger(s.orgId, customerId).first()
+        val entry = entries.firstOrNull { it.id == paymentId && it.kind == LedgerKind.Payment } ?: return null
+        val after = buildKhata(entries).firstOrNull { it.id == paymentId }?.balanceAfterMinor ?: return null
+        return com.example.fieldtrack.document.Documents.receipt(org, customer, entry, methodLabel, dateLabel, after)
     }
 }

@@ -121,7 +121,12 @@ enum class PaymentMethod { Cash, Upi, Bank, Cheque, MobileMoney, Card, InKind }
  * it out — and say that it has, rather than quietly reporting a profit that is
  * too high.
  */
-enum class PayoutCovers { Job, Day, Period }
+enum class PayoutCovers {
+    Job, Day, Period,
+
+    /** Money given to a team member ahead of the work, to be taken off later pay. */
+    Advance,
+}
 
 /**
  * What a job cost, other than the machine and its diesel.

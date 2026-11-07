@@ -43,6 +43,18 @@ object AppLanguage {
         else Locale.Builder().setLocale(chosen).setRegion(system.country).build()
     }
 
+    /**
+     * [base] read in [tag]'s language, for text that goes to somebody else: a reminder
+     * for a customer who reads another language than the person sending it. Unlike
+     * [wrap] this changes nothing about the app itself.
+     */
+    fun contextFor(base: Context, tag: String?): Context {
+        if (tag.isNullOrBlank()) return base
+        val configuration = Configuration(base.resources.configuration)
+        configuration.setLocales(android.os.LocaleList(localeFor(tag)))
+        return base.createConfigurationContext(configuration)
+    }
+
     /** What the phone itself is set to, untouched by anything this app has chosen. */
     fun systemLocale(): Locale = Resources.getSystem().configuration.locales[0]
 

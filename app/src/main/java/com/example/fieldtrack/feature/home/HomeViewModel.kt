@@ -192,6 +192,7 @@ internal fun ownerAlerts(books: Books, yard: Yard, canSeeMoney: Boolean, now: Lo
                 books.customers.associate { it.id to it.name },
                 now,
             )?.let(::add)
+            addAll(chaseAlerts(books.customers, debtsByAge(books.entries), now))
         }
         if (yard.unpriced > 0) add(HomeAlert.Unpriced(yard.unpriced))
         uploadAlert(yard.pending, yard.stuck)?.let(::add)

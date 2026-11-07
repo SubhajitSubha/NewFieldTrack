@@ -1,5 +1,9 @@
 package com.example.fieldtrack.feature.customer
 
+import com.example.fieldtrack.designsystem.component.FtSectionLabel
+import com.example.fieldtrack.designsystem.component.FtChip
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import com.example.fieldtrack.designsystem.format.Money
 import com.example.fieldtrack.feature.region.PhoneField
 import androidx.compose.foundation.background
@@ -38,9 +42,16 @@ data class AddCustomerState(
     val phone: String = "",
     val village: String = "",
     val openingText: String = "",
+    /** The most they may owe before work for them is flagged. Empty for no limit. */
+    val creditLimitText: String = "",
+    /** The language they read, for reminders and bills sent to them. Null follows the app. */
+    val language: String? = null,
     val saving: Boolean = false,
 ) {
     val openingMinor: Long get() = MoneyInput.parse(openingText) ?: 0L
+    val creditLimitMinor: Long? get() = MoneyInput.parse(creditLimitText)?.takeIf { it > 0 }
+    val terms: com.example.fieldtrack.data.repository.CustomerTerms
+        get() = com.example.fieldtrack.data.repository.CustomerTerms(language, creditLimitMinor)
     val canSave: Boolean get() = name.isNotBlank() && !saving
 }
 
@@ -53,6 +64,8 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
     fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setVillage(v: String) = _state.update { it.copy(village = v) }
     fun setOpening(v: String) = _state.update { it.copy(openingText = MoneyInput.clean(v)) }
+    fun setCreditLimit(v: String) = _state.update { it.copy(creditLimitText = MoneyInput.clean(v)) }
+    fun setLanguage(tag: String?) = _state.update { it.copy(language = tag) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
@@ -67,6 +80,7 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
             village = current.village.ifBlank { null },
             openingBalanceMinor = current.openingMinor,
             byPersonId = session.personId,
+            terms = current.terms,
         )
         _state.update { it.copy(saving = false) }
         onSaved()
@@ -79,6 +93,7 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
  * [onOpening] is null when editing: an opening balance is a dated line on the khata,
  * not a field on the customer, and offering it again here would double-count.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AddCustomerScreen(
     state: AddCustomerState,
@@ -92,6 +107,8 @@ fun AddCustomerScreen(
     titleRes: Int = R.string.customer_new_title,
     saveLabelRes: Int = R.string.customer_save,
     readOnlyNotice: String? = null,
+    onCreditLimit: ((String) -> Unit)? = null,
+    onLanguage: ((String?) -> Unit)? = null,
 ) {
     val dimens = FieldTrackTheme.dimens
     Column(
@@ -147,6 +164,42 @@ fun AddCustomerScreen(
                     prefix = Money.style.symbol,
                     keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
                     helper = stringResource(R.string.customer_already_owes_note),
+                )
+            }
+            if (onCreditLimit != null) {
+                FtTextField(
+                    label = stringResource(R.string.customer_credit_limit),
+                    value = state.creditLimitText,
+                    onValueChange = onCreditLimit,
+                    prefix = Money.style.symbol,
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+                    helper = stringResource(R.string.customer_credit_limit_note),
+                )
+            }
+            // Only when there is more than English to read in.
+            if (onLanguage != null && com.example.fieldtrack.data.settings.AppLanguage.SUPPORTED.size > 1) {
+                FtSectionLabel(stringResource(R.string.customer_language))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FtChip(
+                        label = stringResource(R.string.language_auto),
+                        selected = state.language == null,
+                        onClick = { onLanguage(null) },
+                    )
+                    com.example.fieldtrack.data.settings.AppLanguage.SUPPORTED.forEach { tag ->
+                        FtChip(
+                            label = com.example.fieldtrack.data.settings.AppLanguage.nativeName(tag),
+                            selected = state.language == tag,
+                            onClick = { onLanguage(tag) },
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.customer_language_note),
+                    style = FieldTrackTheme.type.caption,
+                    color = FieldTrackTheme.colors.inkTertiary,
                 )
             }
             if (readOnlyNotice != null) {

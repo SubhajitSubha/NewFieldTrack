@@ -48,6 +48,7 @@ object DocumentHtml {
                     is Document.Bill -> bill(document)
                     is Document.Statement -> statement(document)
                     is Document.Dues -> dues(document)
+                    is Document.Receipt -> receipt(document)
                 }
             )
         } finally {
@@ -58,7 +59,9 @@ object DocumentHtml {
     // ----------------------------------------------------------------- documents
 
     private fun bill(d: Document.Bill): String = buildString {
-        append(letterhead(d.letterhead, "BILL", d.billNumber ?: "", d.dateLabel))
+        // A business that charges a tax and gives its registration number prints a tax invoice.
+        val kind = if (d.letterhead.taxName != null && d.letterhead.gstin != null) "TAX INVOICE" else "BILL"
+        append(letterhead(d.letterhead, kind, d.billNumber ?: "", d.dateLabel))
         append("<div class='body'>")
 
         append("<div class='row'>")
@@ -248,6 +251,36 @@ object DocumentHtml {
         append(footer("${d.lines.size} jobs"))
     }
 
+    private fun receipt(d: Document.Receipt): String = buildString {
+        append(letterhead(d.letterhead, "RECEIPT", d.dateLabel, ""))
+        append("<div class='body'>")
+        append(label("RECEIVED FROM"))
+        append("<h1>${esc(d.customer.name)}</h1>")
+        append(
+            "<div class='sub'>${listOfNotNull(d.customer.addressLine, d.customer.phone).joinToString(" &middot; ") { esc(it) }}</div>"
+        )
+        append("<div class='gap'></div>")
+        append(paidBand("PAYMENT RECEIVED", d.amountInWords, d.amountMinor))
+        append("<div class='gap'></div><div class='totals'>")
+        append(textRow("Paid by", d.methodLabel))
+        d.note?.takeIf { it.isNotBlank() }?.let {
+            append(textRow("For", it))
+        }
+        append("<div class='hr'></div>")
+        if (d.balanceAfterMinor > 0) {
+            append(totalRow("Still due after this", d.balanceAfterMinor, strong = true))
+        } else if (d.balanceAfterMinor < 0) {
+            append(totalRow("Paid ahead", -d.balanceAfterMinor, strong = true))
+        } else {
+            append("<div class='total-row'><span class='strong'>Account settled</span><span class='num strong'>${money(0)}</span></div>")
+        }
+        append("</div>")
+        append("<div class='spacer'></div>")
+        append(signature(d.letterhead.businessName))
+        append("</div>")
+        append(footer("Receipt"))
+    }
+
     // -------------------------------------------------------------- shared parts
 
     private fun letterhead(l: Letterhead, kind: String, line1: String, line2: String): String {
@@ -270,6 +303,10 @@ object DocumentHtml {
 
     private fun label(text: String, color: String = INK_2) =
         "<div class='label' style='color:$color'>${esc(text)}</div>"
+
+    /** A label and a word or two, laid out like a total row. */
+    private fun textRow(label: String, value: String) =
+        "<div class='total-row'><span style='color:$INK_2'>${esc(label)}</span><span class='semi'>${esc(value)}</span></div>"
 
     private fun totalRow(label: String, amount: Long, strong: Boolean = false) =
         "<div class='total-row'><span${if (strong) " class='strong'" else " style='color:$INK_2'"}>" +

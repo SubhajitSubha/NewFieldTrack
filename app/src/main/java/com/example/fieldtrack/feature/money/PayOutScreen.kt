@@ -54,6 +54,7 @@ fun PayOutScreen(
     onHeadcount: (Int) -> Unit,
     onAmount: (String) -> Unit,
     onCovers: (PayoutCovers) -> Unit,
+    onRecover: (String) -> Unit = {},
     onJob: (String?) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -187,6 +188,28 @@ fun PayOutScreen(
                     note = stringResource(R.string.payout_for_period_note),
                     selected = state.covers == PayoutCovers.Period,
                     onSelect = { onCovers(PayoutCovers.Period) },
+                )
+                // An advance is money given to somebody on the team ahead of the work.
+                if (!state.payingLabourers) {
+                    FtRowDivider()
+                    PickRow(
+                        title = stringResource(R.string.payout_for_advance),
+                        note = stringResource(R.string.payout_for_advance_note),
+                        selected = state.covers == PayoutCovers.Advance,
+                        onSelect = { onCovers(PayoutCovers.Advance) },
+                    )
+                }
+            }
+
+            // Pay that has an advance behind it: say so, and offer to take it off.
+            if (!state.payingLabourers && state.advanceOutstandingMinor > 0 && state.covers != PayoutCovers.Advance) {
+                FtTextField(
+                    label = stringResource(R.string.payout_recover_label),
+                    value = state.recoverText,
+                    onValueChange = onRecover,
+                    prefix = Money.style.symbol,
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+                    helper = stringResource(R.string.payout_recover_note, money(state.advanceOutstandingMinor)),
                 )
             }
 

@@ -72,6 +72,8 @@ fun JobDetailScreen(
     onAddCost: (() -> Unit)?,
     onPayCost: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
+    /** Sends the farmer a short summary of this job. Null where there is nothing to say yet. */
+    onShareSummary: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -167,11 +169,18 @@ fun JobDetailScreen(
             }
         })
 
-        if (state.live || (state.finished && onAmend != null)) {
+        if (state.live || (state.finished && (onAmend != null || onShareSummary != null))) {
             Row(
                 Modifier.padding(dimens.screenPadding),
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
             ) {
+                if (state.finished && onShareSummary != null) {
+                    FtButton(
+                        text = stringResource(R.string.job_share_summary),
+                        onClick = onShareSummary,
+                        height = 54.dp,
+                    )
+                }
                 if (state.live) {
                     FtButton(
                         text = stringResource(R.string.job_detail_open),

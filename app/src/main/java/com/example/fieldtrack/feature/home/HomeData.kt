@@ -3,6 +3,7 @@ package com.example.fieldtrack.feature.home
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
+import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
 import com.example.fieldtrack.data.db.MeasureUnit
@@ -89,6 +90,15 @@ sealed interface HomeAlert {
         val customerId: String?,
         val customerName: String?,
         val sinceMillis: Long,
+    ) : HomeAlert {
+        override val rank get() = 2
+    }
+
+    /** A customer the owner asked to be reminded to chase, now that the day has come. */
+    data class Chase(
+        val customerId: String,
+        val customerName: String,
+        val amountMinor: Long,
     ) : HomeAlert {
         override val rank get() = 2
     }
@@ -184,6 +194,22 @@ fun debtsByAge(entries: List<LedgerEntryEntity>): List<Debt> =
             oldestMillis = dues.minOf { it.entry.atMillis },
         )
     }
+
+/**
+ * Customers the owner said to chase from a given day, once that day has come and they
+ * still owe. Gone as soon as they pay: a reminder to ask for money already received
+ * would be the app nagging about its own bookkeeping.
+ */
+fun chaseAlerts(customers: List<CustomerEntity>, debts: List<Debt>, now: Long): List<HomeAlert.Chase> {
+    val today = java.time.LocalDate.now(BusinessClock.zone).toEpochDay()
+    val owing = debts.associateBy { it.customerId }
+    return customers.mapNotNull { customer ->
+        val day = customer.chaseOnDay ?: return@mapNotNull null
+        val debt = owing[customer.id] ?: return@mapNotNull null
+        if (day > today) return@mapNotNull null
+        HomeAlert.Chase(customer.id, customer.name, debt.amountMinor)
+    }.sortedByDescending { it.amountMinor }.take(3)
+}
 
 /** The late debts as one alert, or nothing when nobody is late. */
 fun overdueAlert(

@@ -257,6 +257,12 @@ data class CustomerEntity(
     val phone: String? = null,
     val village: String? = null,
     val note: String? = null,
+    /** The language this customer reads, as a tag, for reminders and bills sent to them. Null follows the app. */
+    val language: String? = null,
+    /** The most this customer may owe before the app says so when work is booked or started. Null for no limit. */
+    val creditLimitMinor: Long? = null,
+    /** A day the owner asked to be reminded to chase this customer for money, as a plan-style epoch day. */
+    val chaseOnDay: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
     /** Soft delete: a customer with history is hidden, never removed. */
@@ -426,6 +432,13 @@ data class PayoutEntity(
     val method: PaymentMethod? = null,
     val note: String? = null,
     val byPersonId: String? = null,
+    /**
+     * How much of an advance this settles, when the payment is a wage that has an advance
+     * taken against it. The cash is [amountMinor]; this is value that never moves again,
+     * because it was counted as a cost when the advance was given.
+     */
+    @androidx.room.ColumnInfo(defaultValue = "0")
+    val recoversAdvanceMinor: Long = 0,
     val createdAt: Long,
     val syncState: SyncState = SyncState.Pending,
     val deviceId: String? = null,

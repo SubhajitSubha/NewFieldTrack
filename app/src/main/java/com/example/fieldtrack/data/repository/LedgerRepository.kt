@@ -224,8 +224,12 @@ class LedgerRepository(
         jobCostId: String? = null,
         method: PaymentMethod? = null,
         note: String? = null,
+        /** How much of the person's outstanding advance this pay takes off, on top of the cash. */
+        recoversAdvanceMinor: Long = 0,
     ): PayoutEntity {
         can.require(Capability.PayOut)
+        require(covers != PayoutCovers.Advance || toPersonId != null) { "An advance is given to somebody on the team" }
+        require(recoversAdvanceMinor >= 0) { "Taking an advance off pay cannot be negative" }
         require(amountMinor > 0) { "A payment out is money leaving, so it is positive" }
         require(headcount >= 1) { "A payment covers at least one person" }
         // The invariant the machine-profit figures rest on. A job's costs are
@@ -250,6 +254,7 @@ class LedgerRepository(
             method = method,
             note = note,
             byPersonId = byPersonId,
+            recoversAdvanceMinor = recoversAdvanceMinor,
             createdAt = now,
             deviceId = deviceId,
         )
@@ -264,6 +269,10 @@ class LedgerRepository(
 
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>> =
         db.orgDao().observePayouts(orgId)
+
+    /** What this person has been advanced and not yet settled. */
+    fun observeAdvanceOutstanding(orgId: String, personId: String): Flow<Long> =
+        db.orgDao().observeAdvanceOutstanding(orgId, personId)
 
     /**
      * Sends a job cost up as two documents, not one.

@@ -198,6 +198,7 @@ private fun PaidRow(row: Row_) {
                         PayoutCovers.Job -> stringResource(R.string.money_out_for_job)
                         PayoutCovers.Day -> stringResource(R.string.money_out_for_day)
                         PayoutCovers.Period -> stringResource(R.string.money_out_for_period)
+                        PayoutCovers.Advance -> stringResource(R.string.money_out_for_advance)
                     },
                     style = FieldTrackTheme.type.caption,
                     color = colors.inkSecondary,

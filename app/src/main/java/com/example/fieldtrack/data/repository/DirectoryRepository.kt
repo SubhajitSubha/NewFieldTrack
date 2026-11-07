@@ -35,6 +35,12 @@ import kotlinx.serialization.encodeToString
  * moment someone is setting up a job, and splitting them would mean three objects
  * threaded through the same screen for no gain.
  */
+/** What an owner knows about how a customer deals: the language they read and what they may owe. */
+data class CustomerTerms(
+    val language: String? = null,
+    val creditLimitMinor: Long? = null,
+)
+
 class DirectoryRepository(
     private val db: FieldTrackDatabase,
     private val syncQueue: SyncQueue,
@@ -92,6 +98,7 @@ class DirectoryRepository(
         village: String?,
         openingBalanceMinor: Long = 0,
         byPersonId: String? = null,
+        terms: CustomerTerms = CustomerTerms(),
     ): String {
         val now = clock.now()
         val customer = CustomerEntity(
@@ -100,6 +107,8 @@ class DirectoryRepository(
             name = name.trim(),
             phone = phone?.trim()?.ifBlank { null },
             village = village?.trim()?.ifBlank { null },
+            language = terms.language,
+            creditLimitMinor = terms.creditLimitMinor?.takeIf { it > 0 },
             createdAt = now,
             updatedAt = now,
         )
@@ -128,6 +137,8 @@ class DirectoryRepository(
         name: String,
         phone: String?,
         village: String?,
+        /** The terms on the customer's form, or null to leave the ones they have. */
+        terms: CustomerTerms? = null,
     ) {
         can.require(Capability.EditCustomers)
         db.withTransaction {
@@ -136,8 +147,26 @@ class DirectoryRepository(
                 name = name.trim(),
                 phone = phone?.trim()?.ifBlank { null },
                 village = village?.trim()?.ifBlank { null },
+                language = if (terms != null) terms.language else existing.language,
+                creditLimitMinor = if (terms != null) terms.creditLimitMinor?.takeIf { it > 0 } else existing.creditLimitMinor,
                 updatedAt = clock.now(),
             )
+            customers.upsert(updated)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_CUSTOMERS, updated.id, OutboxJson.encodeToString(updated)
+            )
+        }
+    }
+
+    /**
+     * Asks to be reminded to chase this customer for money from [day] (a business-zone epoch
+     * day), or clears the reminder with null.
+     */
+    suspend fun setChaseDay(orgId: String, customerId: String, day: Long?) {
+        db.withTransaction {
+            val existing = customers.find(orgId, customerId) ?: return@withTransaction
+            if (existing.chaseOnDay == day) return@withTransaction
+            val updated = existing.copy(chaseOnDay = day, updatedAt = clock.now())
             customers.upsert(updated)
             syncQueue.enqueueUpsert(
                 orgId, SyncQueue.TABLE_CUSTOMERS, updated.id, OutboxJson.encodeToString(updated)

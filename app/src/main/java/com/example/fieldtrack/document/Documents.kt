@@ -36,6 +36,26 @@ object Documents {
         phone = customer?.phone?.ifBlank { null }?.let { formatPhone(it) },
     )
 
+    /** One payment, as a receipt the customer can keep. */
+    fun receipt(
+        org: OrgEntity?,
+        customer: CustomerEntity?,
+        entry: LedgerEntryEntity,
+        methodLabel: String,
+        dateLabel: String,
+        balanceAfterMinor: Long,
+    ): Document.Receipt = Document.Receipt(
+        letterhead = letterheadOf(org),
+        style = org.moneyStyle(),
+        customer = partyOf(customer),
+        dateLabel = dateLabel,
+        methodLabel = methodLabel,
+        amountMinor = entry.amountMinor,
+        note = entry.note,
+        balanceAfterMinor = balanceAfterMinor,
+        amountInWords = amountInWords(entry.amountMinor, org.moneyStyle()),
+    )
+
     /**
      * One job's bill.
      *

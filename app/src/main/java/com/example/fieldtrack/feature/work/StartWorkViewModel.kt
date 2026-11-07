@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.work
 
+import com.example.fieldtrack.data.billing.CreditCheck
+import com.example.fieldtrack.data.billing.CreditWarning
 import androidx.lifecycle.ViewModel
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
@@ -99,6 +101,8 @@ data class StartWorkState(
      */
     val machineCost: Costing.RunningCost? = null,
     val machineKinds: List<WorkKindFacts> = emptyList(),
+    /** Something to say about what this customer already owes, or null. Informs, never blocks. */
+    val creditWarning: CreditWarning? = null,
     /** The booking this work is being started from, which is what makes that booking started. */
     val bookingId: String? = null,
     /** What this customer has booked and not started, offered as "is this that work?". */
@@ -305,12 +309,22 @@ class StartWorkViewModel(
         _state.update {
             if (it.customer?.id == customer.id) it.copy(customer = customer)
             // Nor does a booking made for them.
-            else it.copy(customer = customer, fieldId = null, bookingId = null)
+            else it.copy(customer = customer, fieldId = null, bookingId = null, creditWarning = null)
         }
         refreshSuggestedRate()
+        warnAboutDebt(customer)
     }
 
     fun selectField(id: String?) = _state.update { it.copy(fieldId = id) }
+
+    /** What they already owe, said before the work starts, for somebody who may see money. */
+    private fun warnAboutDebt(customer: CustomerEntity) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        if (!s.canSeeMoney) return@launch
+        val entries = app.ledgerRepository.observeLedger(s.orgId, customer.id).first()
+        val warning = CreditCheck.warning(entries, customer.creditLimitMinor, System.currentTimeMillis())
+        _state.update { if (it.customer?.id == customer.id) it.copy(creditWarning = warning) else it }
+    }
 
     /** Fills the job in from a booking and ties the two together. */
     fun useBooking(row: BookingRow) = applyBooking(row.booking, _state.value.machines)

@@ -115,6 +115,19 @@ interface OrgDao {
     @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 200")
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>>
 
+    /**
+     * What a team member has been advanced and not yet settled: advances given, less what
+     * later pay has taken off them. Never below nothing.
+     */
+    @Query(
+        """
+        SELECT MAX(0, COALESCE(SUM(CASE WHEN covers = 'Advance' THEN amountMinor ELSE 0 END), 0) -
+                      COALESCE(SUM(recoversAdvanceMinor), 0))
+        FROM payouts WHERE orgId = :orgId AND toPersonId = :personId
+        """
+    )
+    fun observeAdvanceOutstanding(orgId: String, personId: String): Flow<Long>
+
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
@@ -571,6 +584,28 @@ interface CustomerDao {
     )
     fun search(orgId: String, term: String): Flow<List<CustomerEntity>>
 
+    /** Customers whose name, village or phone contains the term, for the search box. */
+    @Query(
+        """
+        SELECT * FROM customers
+        WHERE orgId = :orgId AND deletedAt IS NULL
+          AND (name LIKE :like OR village LIKE :like OR phone LIKE :like)
+        ORDER BY name LIMIT 20
+        """
+    )
+    suspend fun findByTerm(orgId: String, like: String): List<CustomerEntity>
+
+    @Query("SELECT * FROM customers WHERE orgId = :orgId AND id IN (:ids)")
+    suspend fun findByIds(orgId: String, ids: List<String>): List<CustomerEntity>
+
+    @Query(
+        """
+        SELECT * FROM fields WHERE orgId = :orgId AND deletedAt IS NULL AND name LIKE :like
+        ORDER BY name LIMIT 20
+        """
+    )
+    suspend fun findFieldsByTerm(orgId: String, like: String): List<FieldEntity>
+
     @Upsert suspend fun upsertField(field: FieldEntity)
 
     @Query("SELECT * FROM fields WHERE orgId = :orgId AND customerId = :customerId AND deletedAt IS NULL ORDER BY name")
@@ -620,6 +655,17 @@ data class FieldWorkTotals(
 @Dao
 interface MachineDao {
     @Upsert suspend fun upsert(machine: MachineEntity)
+
+    /** Machines whose name, plate or own kind-name contains the term. */
+    @Query(
+        """
+        SELECT * FROM machines
+        WHERE orgId = :orgId AND deletedAt IS NULL
+          AND (name LIKE :like OR plate LIKE :like OR typeLabel LIKE :like OR kind LIKE :like)
+        ORDER BY name LIMIT 20
+        """
+    )
+    suspend fun findByTerm(orgId: String, like: String): List<MachineEntity>
 
     @Query("SELECT * FROM machines WHERE orgId = :orgId AND deletedAt IS NULL ORDER BY name")
     fun observeAll(orgId: String): Flow<List<MachineEntity>>
@@ -851,6 +897,18 @@ interface MachineDao {
 @Dao
 interface JobDao {
     @Upsert suspend fun upsert(job: JobEntity)
+
+    /** Jobs whose kind of work, note or customer's name contains the term, newest first. */
+    @Query(
+        """
+        SELECT j.* FROM jobs j
+        LEFT JOIN customers c ON c.id = j.customerId
+        WHERE j.orgId = :orgId AND j.deletedAt IS NULL AND j.status != 'Discarded'
+          AND (j.workType LIKE :like OR j.note LIKE :like OR c.name LIKE :like)
+        ORDER BY j.workedAt DESC LIMIT 20
+        """
+    )
+    suspend fun findByTerm(orgId: String, like: String): List<JobEntity>
 
     /**
      * Jobs still open on this machine. A paused job counts: the machine is sitting in

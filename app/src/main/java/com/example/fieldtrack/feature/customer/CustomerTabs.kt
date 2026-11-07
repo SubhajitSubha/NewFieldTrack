@@ -212,7 +212,7 @@ private fun CustomerJobRow.statusLabel(): String = when {
 
 /** One payment, with what it was put against when that is known. */
 @Composable
-fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?) {
+fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?, onReceipt: (() -> Unit)? = null) {
     val colors = FieldTrackTheme.colors
     FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
         FtListRow(
@@ -240,6 +240,8 @@ fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?) {
                     color = colors.primaryPressed,
                 )
             },
+            // A tap makes the receipt, which can be sent to the customer as it stands.
+            onClick = onReceipt,
         )
     }
 }

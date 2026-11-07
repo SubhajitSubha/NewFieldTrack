@@ -306,6 +306,11 @@ fun BookingFormScreen(
             }
 
             Warnings(state)
+            if (state.editable) {
+                state.creditWarning?.let { warning ->
+                    com.example.fieldtrack.feature.work.CreditWarningCard(warning, state.customer?.name.orEmpty())
+                }
+            }
 
             FtTextField(
                 label = stringResource(R.string.plan_form_note),

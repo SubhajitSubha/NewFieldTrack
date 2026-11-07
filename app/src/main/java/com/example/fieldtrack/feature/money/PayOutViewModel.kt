@@ -1,5 +1,8 @@
 package com.example.fieldtrack.feature.money
 
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.lifecycle.ViewModel
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
@@ -36,14 +39,25 @@ data class PayOutState(
     val covers: PayoutCovers = PayoutCovers.Day,
     val jobId: String? = null,
     val method: PaymentMethod = PaymentMethod.Cash,
+    /** What the chosen person has been advanced and not yet settled. */
+    val advanceOutstandingMinor: Long = 0,
+    /** How much of it this pay takes off, as typed. */
+    val recoverText: String = "",
     val mayPay: Boolean = false,
     val busy: Boolean = false,
 ) {
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
     val payingLabourers: Boolean get() = toPersonId == null
+
+    /** The part of the outstanding advance this pay settles: never more than is owed back. */
+    val recoverMinor: Long
+        get() = if (covers == PayoutCovers.Advance) 0L
+        else (MoneyInput.parse(recoverText) ?: 0L).coerceIn(0L, advanceOutstandingMinor)
+
     val canSave: Boolean
         get() = mayPay && !busy && amountMinor > 0 &&
-            (covers != PayoutCovers.Job || jobId != null)
+            (covers != PayoutCovers.Job || jobId != null) &&
+            (covers != PayoutCovers.Advance || toPersonId != null)
 }
 
 /**
@@ -64,9 +78,14 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.teamRepository.observeTeam(s.orgId),
             app.workRepository.observeRecent(s.orgId),
             form,
-        ) { members, recentJobs, typed ->
+            form.map { it.toPersonId }.distinctUntilChanged().flatMapLatest { personId ->
+                if (personId == null) flowOf(0L)
+                else app.ledgerRepository.observeAdvanceOutstanding(s.orgId, personId)
+            },
+        ) { members, recentJobs, typed, advanceOutstanding ->
             typed.copy(
                 loaded = true,
+                advanceOutstandingMinor = advanceOutstanding,
                 people = members.map { PayablePerson(it.personId, it.displayName) },
                 jobs = recentJobs.map {
                     PayableJob(it.id, it.workType)
@@ -82,6 +101,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setCovers(covers: PayoutCovers) = form.update { it.copy(covers = covers) }
     fun setJob(jobId: String?) = form.update { it.copy(jobId = jobId) }
     fun setMethod(method: PaymentMethod) = form.update { it.copy(method = method) }
+    fun setRecover(text: String) = form.update { it.copy(recoverText = MoneyInput.clean(text)) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val now = state.value
@@ -123,6 +143,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     toName = toName,
                     headcount = if (now.payingLabourers) now.headcount else 1,
                     method = now.method,
+                    recoversAdvanceMinor = now.recoverMinor,
                 )
             }
         }.onSuccess { onSaved() }

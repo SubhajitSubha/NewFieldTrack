@@ -65,6 +65,10 @@ fun LedgerScreen(
     /** Job titles for payments that were taken against a particular job. */
     jobTitles: Map<String, String>,
     modifier: Modifier = Modifier,
+    /** Makes and shares the receipt for a payment. Null where there is nothing to make it with. */
+    onReceipt: ((String) -> Unit)? = null,
+    /** Asks to be reminded to chase this customer in this many days, or clears it with null. Null where it cannot be set. */
+    onChase: ((Int?) -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -164,6 +168,8 @@ fun LedgerScreen(
                 }
         }
         val fieldsRow: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                if (owes && onChase != null) ChaseRow(state.chaseOnDay, onChase)
                 FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
                     FtListRow(
                         title = stringResource(R.string.fields_title),
@@ -179,8 +185,9 @@ fun LedgerScreen(
                         onClick = onFields,
                     )
                 }
+            }
         }
-        val list: @Composable (Modifier) -> Unit = { listModifier ->
+val list: @Composable (Modifier) -> Unit = { listModifier ->
         LazyColumn(
             modifier = listModifier,
             contentPadding = PaddingValues(
@@ -238,6 +245,7 @@ fun LedgerScreen(
                     CustomerPaymentCard(
                         row = payment,
                         againstLabel = payment.jobId?.let { jobTitles[it] },
+                        onReceipt = onReceipt?.let { open -> { open(payment.id) } },
                     )
                 }
                 item { Box(Modifier.height(dimens.space4)) }
@@ -378,5 +386,44 @@ private fun CustomerStatsFor(tab: CustomerTab, state: LedgerState) {
                 ?: stringResource(R.string.customer_none)) to
                 stringResource(R.string.customer_stat_last),
         )
+    }
+}
+
+/**
+ * "Ask them again": a reminder, for a day the owner picks, that comes up on the home screen
+ * if the money is still owed. Three common gaps and a way to clear it, because the
+ * question is nearly always "tomorrow", "in a few days" or "next week".
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun ChaseRow(chaseOnDay: Long?, onChase: (Int?) -> Unit) {
+    val colors = FieldTrackTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = if (chaseOnDay != null) {
+                stringResource(R.string.chase_set, com.example.fieldtrack.feature.plan.dayDate(chaseOnDay))
+            } else stringResource(R.string.chase_title),
+            style = FieldTrackTheme.type.caption,
+            color = colors.inkTertiary,
+        )
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(1 to R.string.chase_tomorrow, 3 to R.string.chase_three, 7 to R.string.chase_week).forEach { (days, label) ->
+                com.example.fieldtrack.designsystem.component.FtChip(
+                    label = stringResource(label),
+                    selected = false,
+                    onClick = { onChase(days) },
+                )
+            }
+            if (chaseOnDay != null) {
+                com.example.fieldtrack.designsystem.component.FtChip(
+                    label = stringResource(R.string.chase_clear),
+                    selected = false,
+                    onClick = { onChase(null) },
+                )
+            }
+        }
     }
 }

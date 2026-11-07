@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature.customer
 
+import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
@@ -40,6 +41,8 @@ class EditCustomerViewModel(
                     name = customer.name,
                     phone = customer.phone.orEmpty(),
                     village = customer.village.orEmpty(),
+                    creditLimitText = customer.creditLimitMinor?.let { m -> MoneyInput.text(m) }.orEmpty(),
+                    language = customer.language,
                 )
             }
         }
@@ -48,6 +51,8 @@ class EditCustomerViewModel(
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setVillage(v: String) = _state.update { it.copy(village = v) }
+    fun setCreditLimit(v: String) = _state.update { it.copy(creditLimitText = MoneyInput.clean(v)) }
+    fun setLanguage(tag: String?) = _state.update { it.copy(language = tag) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
@@ -65,6 +70,7 @@ class EditCustomerViewModel(
                 name = current.name,
                 phone = current.phone,
                 village = current.village,
+                terms = current.terms,
             )
         }.onFailure { _allowed.value = false }
         _state.update { it.copy(saving = false) }

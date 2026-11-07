@@ -36,34 +36,27 @@ Done first because it touches every screen and every table.
 - [ ] Bills, statements and receipts are still written in English (their labels live in the document builder). They move to string resources with the translations in M9, so a bill can be in the business's language.
 - [ ] Every screen re-checked at large text and in the longer languages (done together with the translations).
 
-## M2. Charging that matches real life
-- [ ] Minimum charge (minimum hours, acres or amount).
-- [ ] Fuel: "diesel included" versus "customer supplies diesel", and billing fuel to the customer when it is ours.
-- [ ] Arrival / transport charge to reach a far field.
-- [ ] Token advance taken at booking time, carried onto the job.
-- [ ] Discount or round-off at settlement.
-- [ ] Per-day and flat season contract charging.
-- [ ] Per bale, per tonne, per bushel (follows from the new units in M1).
-- [ ] Waiting or idle time: billed or not, per job.
-- [ ] Payment in kind, simple version now: a payment whose method is "In kind" with what was given, the quantity, and the value the owner types on the day. It reuses the existing payment and khata, so it adds little. The bigger version (charging as a share of the crop, tracking grain stock) waits until real users ask.
-- [ ] Tractor plus implement as one job: which machine earns, which one wears.
-- [ ] More than one operator on a job (harvester plus driver plus helper).
-- [ ] **Machine types the owner can create** (name, default charging mode and unit, picture) with a starter catalogue by region. Catalogue to add: excavator/JCB, seed drill / Happy Seeder / planter, mulcher / straw reaper, plough, harrow, drone sprayer, water tanker / pump, sugarcane and forage harvesters, potato digger, ridger, grain cart.
-- [ ] Rate card learns from all of these.
+## M2. Charging that matches real life (done)
+- [x] Minimum charge, arrival charge, who pays for the diesel (in the rate, customer gives it, billed extra at cost), waiting time billed from the time a job sits paused, discount or round-off at settlement. One formula in Kotlin and SQL, held together by a test.
+- [x] Per-day work; per bale, tonne, bushel and the other units come from M1.
+- [x] Token advance at booking, on the farmer's account at once and off the bill when the work is done.
+- [x] Payment in kind: a payment that records what was handed over (the amount is its value that day); crop-share charging and grain stock stay for when users ask.
+- [x] Tractor plus implement: the implement gets the hours and its service comes round, the tractor earns. More people on a job see it in their own work.
+- [x] Twelve more machines (excavator, seed drill, mulcher, plough, harrow, drone sprayer, water tanker, sugarcane harvester, potato digger, ridger, grain cart, pump), six more kinds of work, and the owner's own name for a machine the list lacks. They use the nearest existing icon until drawn.
+- [x] The rate card remembers the terms a price comes with, and a job starts from them.
 
-## M3. Getting paid faster
-- [ ] Share a payment reminder (WhatsApp or any app) with the balance owed, in the customer's language.
-- [ ] Payment details on statements and reminders: the owner's own UPI id / bank / mobile money text, plus a real UPI pay link where it exists.
-- [ ] Receipt for every payment, shareable as an image or PDF.
-- [ ] Job summary card to share with the farmer (area, hours, rate, amount) so disputes end early.
-- [ ] Credit limit and "owes for N days" warning when booking or starting work for a customer.
-- [ ] Reminder to chase a customer on a date the owner picks.
-- [ ] Tap to call or message a customer; search across customers, fields, jobs and machines.
-- [ ] Optional invoice numbering and tax invoice for those who need them.
-- [ ] Driver advances and deductions: a driver's own khata.
+## M3. Getting paid faster (done)
+- [x] Payment reminder: opens a WhatsApp chat with the customer when it can (the share sheet otherwise), says how much, how old, where to pay, with a UPI link for rupee businesses, in the customer's language once translations exist.
+- [x] Payment details printed on bills and reminders; receipt for every payment (tap a payment, share as PDF); job summary to send the farmer.
+- [x] Credit limit per farmer and "owed for N days" warning when booking or starting work; informs, never blocks.
+- [x] "Remind me to ask for the money" on a day the owner picks, shown on the home screen while still owed.
+- [x] Search across farmers, fields, machines and jobs (More > Search).
+- [x] A bill is a TAX INVOICE when the business names a tax and gives its registration number; bills were already numbered by accounting year.
+- [x] Driver advances: an advance is money given to a team member, taken off later pay on the pay screen, with what is still owed back shown there.
+- [ ] Tap to call is on the khata; message goes through the reminder. Calling from the customer list row is not added.
 
 ## M4. Business and team
-- [ ] Invite by one tap share (message with the code and the app link), not just reading a code aloud.
+- [x] Invite by one tap share (already built: the invite code goes out through the share sheet).
 - [ ] Co-owner and ownership transfer.
 - [ ] Changing a phone number or losing a phone: a safe way to attach the same person to a new number.
 - [ ] Fix the duplicate owner row left behind when an anonymous owner becomes a signed-in one.
