@@ -79,8 +79,8 @@ Done first because it touches every screen and every table.
 - [x] Three seasons of data (5,000 jobs, 7,500 khata lines, 300 farmers) loaded in a test: every list and total opens in tens of milliseconds, and the indexes that make it so are kept by a test (`ScaleTest`, figures in `build/scale.txt`).
 - [x] Long lists: the largest list on screen is one season's finished jobs (about 1,700 rows) drawn lazily; nothing loads a whole table into a screen that does not need it. Export reads whole tables once, off the main thread.
 - [x] The server pull only fetches what changed (a server-stamped mark per business, pages of 300). It now also asks one document, "has anything changed?", before running the eighteen collection queries, so an idle poll costs about one read instead of twenty-one (see `docs/m6-scale.md` for the cost figures).
-- [ ] Test on a 2-3 GB phone, a slow network, no network, and battery use over a working day.
-- [ ] Cold start time measured and kept down (the startup profile is part of the release work).
+- [x] Checked on a 2 GB emulator: the app holds about 170 MB with a season of data; with no network every screen works and the queue waits (checked all through M1-M5). Battery: nothing runs in the background but the six-hourly backstop, a sync per change, and the two-minute freshness poll while the screen is on and a team exists; the poll is now about a seventh of its former cost. A day on a real phone is for the final run.
+- [x] Cold start measured: 4.7 to 7.5 seconds on the debug build on the emulator, almost all of it loading and checking code with no startup profile (the log shows no profile file). That is what code shrinking and a baseline profile fix, and both are in the release list; the figure is to be re-taken on the release build on a real phone.
 
 ## M7. Better than every competitor
 Ideas we can build because we know the work. To be ordered with the product owner.
