@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
@@ -23,10 +24,12 @@ data class SearchResults(
     val fields: List<FieldEntity> = emptyList(),
     val machines: List<MachineEntity> = emptyList(),
     val jobs: List<JobEntity> = emptyList(),
+    /** The people on the team, for somebody who looks after the team. */
+    val team: List<com.example.fieldtrack.data.db.entity.MembershipEntity> = emptyList(),
     /** Customer names for the jobs and fields found, so a row can say whose it is. */
     val customerNames: Map<String, String> = emptyMap(),
 ) {
-    val isEmpty: Boolean get() = customers.isEmpty() && fields.isEmpty() && machines.isEmpty() && jobs.isEmpty()
+    val isEmpty: Boolean get() = customers.isEmpty() && fields.isEmpty() && machines.isEmpty() && jobs.isEmpty() && team.isEmpty()
 }
 
 data class SearchState(
@@ -66,12 +69,19 @@ class SearchViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val names = (customers + app.db.customerDao().findByIds(s.orgId,
                 (fields.map { it.customerId } + jobs.map { it.customerId }).distinct()))
                 .associate { it.id to it.name }
+            // Only for somebody who may open a team member: a driver is not shown a way into
+            // a colleague's page by typing their name.
+            val team = if (com.example.fieldtrack.data.session.Capability.EditTeam in s.can) {
+                val plain = term.lowercase()
+                app.teamRepository.observeTeam(s.orgId).first()
+                    .filter { it.active && it.displayName.lowercase().contains(plain) }
+            } else emptyList()
             emit(
                 SearchState(
                     query = text,
                     searched = true,
                     canSeeMoney = s.canSeeMoney,
-                    results = SearchResults(customers, fields, machines, jobs, names),
+                    results = SearchResults(customers, fields, machines, jobs, team, names),
                 )
             )
         }

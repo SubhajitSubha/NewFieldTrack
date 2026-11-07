@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -116,11 +118,15 @@ class MoreViewModel(app: FieldFlowApplication) : ViewModel() {
 }
 
 /**
- * The catch-all tab.
+ * The side menu: everything that is not one of the four tabs, in three groups.
  *
- * Shows only what exists. Rows for settings that have not been built would be a list
- * of doors opening onto nothing, which is a worse answer than saying plainly that
- * backup is not switched on yet.
+ * Work (the people and machines you deal with), Money (what comes in, goes out and is
+ * left), Settings. A group with nothing in it for this person is not drawn, so a driver
+ * is shown a short list and an owner a longer one, in the same order, with each thing in
+ * the same place. Rows are hidden, never moved, when a person may not use them.
+ *
+ * Shows only what exists: a row for a setting that has not been built would be a door
+ * opening onto nothing.
  */
 @Composable
 fun MoreScreen(
@@ -131,7 +137,6 @@ fun MoreScreen(
     onEditBusiness: (() -> Unit)?,
     onBackup: () -> Unit,
     onDisplay: () -> Unit,
-    /** Null where the phone has nothing to lock with is not a case: the screen explains it. */
     onSecurity: (() -> Unit)? = null,
     onExport: (() -> Unit)? = null,
     onReminders: (() -> Unit)? = null,
@@ -151,11 +156,13 @@ fun MoreScreen(
     onPrice: () -> Unit,
     /**
      * Opens the customers, for somebody who has them as a tab. Null for a driver
-     * who has no customer list to open — the row then only states the count, as it
-     * always did, rather than leading to a list they were never meant to have.
+     * who has no customer list to open: the row then only states the count rather
+     * than leading to a list they were never meant to have.
      */
     onCustomers: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /** In the side menu the screen's own title bar is dropped: the menu already has a header. */
+    inDrawer: Boolean = false,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -165,13 +172,14 @@ fun MoreScreen(
             .fillMaxSize()
             .background(colors.paper)
     ) {
-        FtTopBar(title = stringResource(R.string.more_title))
+        if (!inDrawer) FtTopBar(title = stringResource(R.string.more_title))
 
         Column(
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
+                .padding(horizontal = dimens.screenPadding)
+                .padding(top = if (inDrawer) 12.dp else 0.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
             FtCard(padding = 16.dp, onClick = onEditProfile) {
@@ -182,7 +190,7 @@ fun MoreScreen(
                         background = colors.primary,
                         contentColor = colors.onPrimary,
                     )
-                    Column(Modifier.padding(start = 14.dp)) {
+                    Column(Modifier.padding(start = 14.dp).weight(1f)) {
                         Text(
                             text = state.displayName,
                             style = FieldTrackTheme.type.sectionTitle,
@@ -206,7 +214,6 @@ fun MoreScreen(
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                    Box(Modifier.weight(1f))
                     FtIconTile(
                         icon = FieldTrackIcons.Edit,
                         size = 38.dp,
@@ -216,264 +223,107 @@ fun MoreScreen(
                 }
             }
 
-            FtSectionLabel(stringResource(R.string.more_your_work))
-            FtCard(padding = 0.dp) {
-                FtListRow(
-                    title = stringResource(R.string.search_title),
-                    subtitle = stringResource(R.string.search_note),
-                    leading = { FtIconTile(FieldTrackIcons.Search, size = 40.dp) },
-                    showChevron = true,
-                    onClick = onSearch,
+            // ---- Work
+            MenuGroup(stringResource(R.string.more_your_work), inDrawer, buildList {
+                row(
+                    stringResource(R.string.machines_title), FieldTrackIcons.Tractor, onMachines,
+                    value = pluralStringResource(R.plurals.count_machines, state.machineCount, state.machineCount),
                 )
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.machines_title),
-                    leading = { FtIconTile(FieldTrackIcons.Tractor, size = 40.dp) },
-                    trailing = {
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.count_machines, state.machineCount, state.machineCount
-                            ),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkTertiary,
-                        )
-                    },
-                    // Was a dead row: it named a count and did nothing when pressed,
-                    // on a screen where every row beside it goes somewhere.
-                    showChevron = true,
-                    onClick = onMachines,
+                if (state.canSeeTeam) row(
+                    stringResource(R.string.more_team), FieldTrackIcons.Team, onTeam,
+                    value = pluralStringResource(R.plurals.count_members, state.memberCount, state.memberCount),
                 )
-                if (state.canSeeTeam) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.more_team),
-                        leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
-                        trailing = {
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.count_members, state.memberCount, state.memberCount
-                                ),
-                                style = FieldTrackTheme.type.bodySmall,
-                                color = colors.inkTertiary,
-                            )
-                        },
-                        showChevron = true,
-                        onClick = onTeam,
-                    )
-                }
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.customers_title),
-                    leading = { FtIconTile(FieldTrackIcons.Customer, size = 40.dp) },
-                    trailing = {
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.count_customers, state.customerCount, state.customerCount
-                            ),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkTertiary,
-                        )
-                    },
-                    showChevron = onCustomers != null,
-                    onClick = onCustomers,
+                row(
+                    stringResource(R.string.customers_title), FieldTrackIcons.Customer, onCustomers,
+                    value = pluralStringResource(R.plurals.count_customers, state.customerCount, state.customerCount),
                 )
-                // Hidden outright, not merely unopenable. A rate card is nothing
-                // but the prices this business charges, so showing it to somebody
-                // explicitly denied money would hand over the whole price list
-                // through a door marked "settings".
+                if (onRequests != null) row(
+                    stringResource(R.string.requests_title), FieldTrackIcons.Calendar, onRequests,
+                    subtitle = stringResource(R.string.requests_row_note),
+                )
+                if (onBookingLink != null) row(
+                    stringResource(R.string.link_title), FieldTrackIcons.WhatsApp, onBookingLink,
+                    subtitle = stringResource(R.string.link_row_note),
+                )
+            })
+
+            // ---- Money. Each row behind its own switch: a rate card is nothing but the
+            // prices this business charges, and what a colleague earns is not the same
+            // kind of secret as a customer balance.
+            MenuGroup(stringResource(R.string.menu_money), inDrawer, buildList {
                 if (state.canSeeMoney) {
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.more_rates),
-                    leading = {
-                        FtIconTile(
-                            icon = FieldTrackIcons.Bill,
-                            size = 40.dp,
-                            background = colors.dueWash,
-                            tint = colors.due,
-                        )
-                    },
-                    trailing = {
-                        Text(
-                            text = if (state.rateCount == 0) {
-                                stringResource(R.string.more_rates_none)
-                            } else {
-                                pluralStringResource(
-                                    R.plurals.more_rates_count, state.rateCount, state.rateCount
-                                )
-                            },
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkTertiary,
-                        )
-                    },
-                    showChevron = true,
-                    onClick = onRates,
-                )
-                FtRowDivider()
-                // Beside the rates it starts from, and behind the same switch: a
-                // price is money, and what a rate card holds is exactly what this
-                // multiplies.
-                FtListRow(
-                    title = stringResource(R.string.more_price),
-                    subtitle = stringResource(R.string.more_price_note),
-                    leading = { FtIconTile(FieldTrackIcons.money(), size = 40.dp) },
-                    showChevron = true,
-                    onClick = onPrice,
-                )
+                    row(
+                        stringResource(R.string.more_rates), FieldTrackIcons.Bill, onRates,
+                        value = if (state.rateCount == 0) stringResource(R.string.more_rates_none)
+                        else pluralStringResource(R.plurals.more_rates_count, state.rateCount, state.rateCount),
+                        tile = colors.dueWash to colors.due,
+                    )
+                    row(
+                        stringResource(R.string.more_price), FieldTrackIcons.money(), onPrice,
+                        subtitle = stringResource(R.string.more_price_note),
+                    )
                 }
-
-                // Behind its own switch, not the money one. Customer balances
-                // and what a colleague earns are not the same kind of secret.
                 if (state.canSeePeopleCost) {
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.more_money_out),
-                    subtitle = stringResource(R.string.more_money_out_note),
-                    leading = {
-                        FtIconTile(
-                            icon = FieldTrackIcons.Bill,
-                            size = 40.dp,
-                        )
-                    },
-                    showChevron = true,
-                    onClick = onMoneyOut,
-                )
-                FtRowDivider()
-                // Above money out in importance but below it on the list, because
-                // this one is read once a season and that one is read weekly.
-                FtListRow(
-                    title = stringResource(R.string.season_title),
-                    subtitle = stringResource(R.string.more_season_note),
-                    leading = { FtIconTile(icon = FieldTrackIcons.Report, size = 40.dp) },
-                    showChevron = true,
-                    onClick = onSeason,
-                )
+                    row(
+                        stringResource(R.string.more_money_out), FieldTrackIcons.Bill, onMoneyOut,
+                        subtitle = stringResource(R.string.more_money_out_note),
+                    )
+                    row(
+                        stringResource(R.string.season_title), FieldTrackIcons.Report, onSeason,
+                        subtitle = stringResource(R.string.more_season_note),
+                    )
                 }
-            }
+                if (onIncome != null) row(
+                    stringResource(R.string.income_title), FieldTrackIcons.Bill, onIncome,
+                    subtitle = stringResource(R.string.income_row_note),
+                )
+                if (onAssets != null) row(
+                    stringResource(R.string.assets_title), FieldTrackIcons.Tractor, onAssets,
+                    subtitle = stringResource(R.string.assets_row_note),
+                )
+            })
 
-            FtSectionLabel(stringResource(R.string.more_settings))
-            FtCard(padding = 0.dp) {
-                // The business now lives on the profile screen, reached from the
-                // card above; a second door to the same room is just confusing.
-                FtListRow(
-                    title = stringResource(R.string.more_language),
-                    subtitle = stringResource(R.string.more_language_note),
-                    leading = { FtIconTile(FieldTrackIcons.More, size = 40.dp) },
-                    onClick = onDisplay,
-                    trailing = {
-                        Text(
-                            text = com.example.fieldtrack.data.settings.AppLanguage.nativeName(
-                                androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0].toLanguageTag()
-                            ),
-                            style = FieldTrackTheme.type.label,
-                            color = colors.ink,
-                        )
-                    },
+            // ---- Settings
+            MenuGroup(stringResource(R.string.more_settings), inDrawer, buildList {
+                row(
+                    stringResource(R.string.more_language), FieldTrackIcons.More, onDisplay,
+                    value = com.example.fieldtrack.data.settings.AppLanguage.nativeName(
+                        androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0].toLanguageTag()
+                    ),
                 )
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.display_title),
+                row(
+                    stringResource(R.string.display_title), FieldTrackIcons.Edit, onDisplay,
                     subtitle = stringResource(R.string.display_row_note),
-                    leading = { FtIconTile(FieldTrackIcons.Edit, size = 40.dp) },
-                    showChevron = true,
-                    onClick = onDisplay,
                 )
-                if (onPlan != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.pricing_title),
-                        subtitle = stringResource(R.string.plan_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Check, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onPlan,
-                    )
-                }
-                if (onRequests != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.requests_title),
-                        subtitle = stringResource(R.string.requests_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Calendar, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onRequests,
-                    )
-                }
-                if (onBookingLink != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.link_title),
-                        subtitle = stringResource(R.string.link_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.WhatsApp, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onBookingLink,
-                    )
-                }
-                if (onIncome != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.income_title),
-                        subtitle = stringResource(R.string.income_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Bill, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onIncome,
-                    )
-                }
-                if (onAssets != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.assets_title),
-                        subtitle = stringResource(R.string.assets_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Tractor, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onAssets,
-                    )
-                }
-                if (onHelp != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.help_title),
-                        subtitle = stringResource(R.string.help_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Search, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onHelp,
-                    )
-                }
-                if (onReminders != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.remind_title),
-                        subtitle = stringResource(R.string.remind_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Bell, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onReminders,
-                    )
-                }
-                if (onSecurity != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.security_title),
-                        subtitle = stringResource(R.string.security_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Lock, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onSecurity,
-                    )
-                }
-                if (onExport != null) {
-                    FtRowDivider()
-                    FtListRow(
-                        title = stringResource(R.string.export_title),
-                        subtitle = stringResource(R.string.export_row_note),
-                        leading = { FtIconTile(FieldTrackIcons.Report, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onExport,
-                    )
-                }
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.more_backup),
-                    // What is actually true right now, rather than a fixed label.
-                    // This row is the one place most people will ever look to find
-                    // out whether their records exist anywhere but this phone.
+                if (onPlan != null) row(
+                    stringResource(R.string.pricing_title), FieldTrackIcons.Check, onPlan,
+                    subtitle = stringResource(R.string.plan_row_note),
+                )
+                if (onReminders != null) row(
+                    stringResource(R.string.remind_title), FieldTrackIcons.Bell, onReminders,
+                    subtitle = stringResource(R.string.remind_row_note),
+                )
+                if (onSecurity != null) row(
+                    stringResource(R.string.security_title), FieldTrackIcons.Lock, onSecurity,
+                    subtitle = stringResource(R.string.security_row_note),
+                )
+                if (onHelp != null) row(
+                    stringResource(R.string.help_title), FieldTrackIcons.Search, onHelp,
+                    subtitle = stringResource(R.string.help_row_note),
+                )
+                if (onExport != null) row(
+                    stringResource(R.string.export_title), FieldTrackIcons.Report, onExport,
+                    subtitle = stringResource(R.string.export_row_note),
+                )
+                row(
+                    stringResource(R.string.more_backup), if (state.pendingUploads == 0 && state.lastBackupAt != null) {
+                        FieldTrackIcons.Check
+                    } else {
+                        FieldTrackIcons.Offline
+                    }, onBackup,
+                    // What is actually true right now, rather than a fixed label. This
+                    // row is the one place most people will ever look to find out
+                    // whether their records exist anywhere but this phone.
                     subtitle = when {
                         state.pendingUploads > 0 -> stringResource(
                             R.string.more_backup_waiting,
@@ -487,36 +337,25 @@ fun MoreScreen(
                         state.lastBackupAt == null -> stringResource(R.string.sync_never)
                         else -> stringResource(R.string.sync_all_safe)
                     },
-                    leading = {
-                        FtIconTile(
-                            icon = if (state.pendingUploads == 0 && state.lastBackupAt != null) {
-                                FieldTrackIcons.Check
-                            } else {
-                                FieldTrackIcons.Offline
-                            },
-                            size = 40.dp,
-                            background = colors.moneyWash,
-                            tint = colors.money,
-                        )
-                    },
-                    showChevron = true,
-                    onClick = onBackup,
+                    tile = colors.moneyWash to colors.money,
                 )
-            }
+            })
 
-            FtSectionLabel(stringResource(R.string.more_help))
-            FtCard {
-                Text(
-                    text = stringResource(R.string.more_help_offline_title),
-                    style = FieldTrackTheme.type.rowTitle,
-                    color = colors.ink,
-                )
-                Text(
-                    text = stringResource(R.string.more_help_offline_body),
-                    style = FieldTrackTheme.type.bodySmall,
-                    color = colors.inkTertiary,
-                    modifier = Modifier.padding(top = 5.dp),
-                )
+            if (!inDrawer) {
+                FtSectionLabel(stringResource(R.string.more_help))
+                FtCard {
+                    Text(
+                        text = stringResource(R.string.more_help_offline_title),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.ink,
+                    )
+                    Text(
+                        text = stringResource(R.string.more_help_offline_body),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.inkTertiary,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                }
             }
 
             Text(
@@ -527,6 +366,57 @@ fun MoreScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Box(Modifier.padding(bottom = dimens.space4))
+        }
+    }
+}
+
+/** One line of the menu, as plain data so a change to the numbers always redraws it. */
+private data class MenuItem(
+    val title: String,
+    val icon: ImageVector,
+    val onClick: (() -> Unit)?,
+    val subtitle: String?,
+    /** A short fact at the end of the line: how many, or which. */
+    val value: String?,
+    val tile: Pair<Color, Color>?,
+)
+
+private fun MutableList<MenuItem>.row(
+    title: String,
+    icon: ImageVector,
+    onClick: (() -> Unit)?,
+    subtitle: String? = null,
+    value: String? = null,
+    tile: Pair<Color, Color>? = null,
+) {
+    add(MenuItem(title, icon, onClick, subtitle, value, tile))
+}
+
+/** A labelled card of menu rows; drawn only if it has any row to show. */
+@Composable
+private fun MenuGroup(label: String, valueUnderTitle: Boolean, items: List<MenuItem>) {
+    if (items.isEmpty()) return
+    val colors = FieldTrackTheme.colors
+    FtSectionLabel(label)
+    FtCard(padding = 0.dp) {
+        items.forEachIndexed { index, item ->
+            if (index > 0) FtRowDivider()
+            FtListRow(
+                title = item.title,
+                // The side menu is too narrow to hold a title and a fact on one line, so the
+                // fact goes under the title there instead of squeezing it to "My ra…".
+                subtitle = if (valueUnderTitle) item.value ?: item.subtitle else item.subtitle,
+                leading = {
+                    val tile = item.tile
+                    if (tile == null) FtIconTile(item.icon, size = 40.dp)
+                    else FtIconTile(icon = item.icon, size = 40.dp, background = tile.first, tint = tile.second)
+                },
+                trailing = item.value?.takeIf { !valueUnderTitle }?.let {
+                    { Text(text = it, style = FieldTrackTheme.type.bodySmall, color = colors.inkTertiary) }
+                },
+                showChevron = item.onClick != null,
+                onClick = item.onClick,
+            )
         }
     }
 }

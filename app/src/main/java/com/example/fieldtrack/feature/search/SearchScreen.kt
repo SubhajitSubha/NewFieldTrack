@@ -38,6 +38,7 @@ fun SearchScreen(
     onMachine: (String) -> Unit,
     onJob: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onMember: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -98,6 +99,19 @@ fun SearchScreen(
                             subtitle = r.customerNames[f.customerId],
                             showChevron = true,
                             onClick = { onField(f.customerId) },
+                        )
+                    }
+                }
+            }
+            if (r.team.isNotEmpty()) {
+                FtSectionLabel(stringResource(R.string.more_team))
+                FtCard(padding = 0.dp) {
+                    r.team.forEachIndexed { i, m ->
+                        if (i > 0) FtRowDivider()
+                        FtListRow(
+                            title = m.displayName,
+                            showChevron = true,
+                            onClick = { onMember(m.id) },
                         )
                     }
                 }

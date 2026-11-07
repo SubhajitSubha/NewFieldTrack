@@ -306,6 +306,10 @@ internal object Routes {
     /**
      * The tabs the bottom bar switches between.
      *
+     * The same four places in the same order for everybody (Home, Jobs, Customers, Machines),
+     * and a person who may not use one simply does not have it: nothing is moved to make
+     * room. What used to be the More tab is the menu behind the picture at the top.
+     *
      * Three tracks, not two. A solo owner has no drivers to watch and no fleet to
      * speak of, so those tabs would be a dashboard of one. A business owner gets
      * them and reaches individual machines through Fleet.
@@ -323,14 +327,15 @@ internal object Routes {
      * that tab rather than showing a list of names with nothing behind them.
      */
     fun roots(kind: HomeKind, can: Capabilities) = when (kind) {
-        HomeKind.Field ->
-            listOf(HOME, JOBS, if (dealsWithCustomers(can)) CUSTOMERS else MACHINES, MORE)
+        HomeKind.Field -> listOfNotNull(
+            HOME, JOBS, CUSTOMERS.takeIf { dealsWithCustomers(can) }, MACHINES,
+        )
         HomeKind.Yard -> listOfNotNull(
             HOME, JOBS,
             CUSTOMERS.takeIf { Capability.SeeMoney in can || Capability.EditCustomers in can },
-            FLEET, MORE,
+            FLEET,
         )
-        HomeKind.Solo -> listOf(HOME, CUSTOMERS, MACHINES, MORE)
+        HomeKind.Solo -> listOf(HOME, JOBS, CUSTOMERS, MACHINES)
     }
     const val LEDGER = "customer/{customerId}"
     const val PAY = "customer/{customerId}/pay"
@@ -636,6 +641,33 @@ private fun MainGraph(
     val host = remember(navController) { movableContentOf { MainNavHost(navController) } }
     val route = entry?.destination?.route
 
+    val drawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
+    val drawerScope = rememberCoroutineScope()
+    val closeMenu: () -> Unit = { drawerScope.launch { drawerState.close() } }
+    // The menu's numbers are read fresh each time it is opened, not once when the app began.
+    var menuOpens by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
+    val openMenu: () -> Unit = { menuOpens += 1; drawerScope.launch { drawerState.open() } }
+    BackHandler(enabled = drawerState.isOpen) { closeMenu() }
+    val startupNow by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val initials = initialsOf((startupNow as? Startup.Ready)?.session?.displayName.orEmpty())
+
+    // The menu is for the main screens: on a job in progress or a bill being written it
+    // stays shut, because anything that invites you to wander off is a way to lose work.
+    androidx.compose.material3.ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = tab >= 0 || drawerState.isOpen,
+        drawerContent = {
+            androidx.compose.material3.ModalDrawerSheet(
+                drawerContainerColor = FieldTrackTheme.colors.paper,
+                modifier = Modifier.widthIn(max = androidx.compose.ui.unit.Dp(340f)),
+            ) {
+                if (menuOpens > 0) SideMenu(
+                    navController, roots, inDrawer = true, onClose = closeMenu,
+                    key = "menu-$menuOpens",
+                )
+            }
+        },
+    ) {
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
@@ -662,6 +694,13 @@ private fun MainGraph(
             // written, anything that invites you to wander off is a way to lose work.
             if (!width.wide) {
                 Column(Modifier.fillMaxSize()) {
+                    if (tab >= 0) RootBar(
+                        initials = initials,
+                        menuContentDescription = stringResource(R.string.menu_open_cd),
+                        searchContentDescription = stringResource(R.string.menu_search_cd),
+                        onMenu = openMenu,
+                        onSearch = { navController.navigate(Routes.SEARCH) },
+                    )
                     Box(Modifier.weight(1f)) { content() }
                     if (tab >= 0) {
                         FtBottomBar(
@@ -682,10 +721,20 @@ private fun MainGraph(
                             onSelect = { index -> navController.switchTab(roots[index]) },
                         )
                     }
-                    Box(Modifier.weight(1f)) { content() }
+                    Column(Modifier.weight(1f)) {
+                        if (tab >= 0) RootBar(
+                            initials = initials,
+                            menuContentDescription = stringResource(R.string.menu_open_cd),
+                            searchContentDescription = stringResource(R.string.menu_search_cd),
+                            onMenu = openMenu,
+                            onSearch = { navController.navigate(Routes.SEARCH) },
+                        )
+                        Box(Modifier.weight(1f)) { content() }
+                    }
                 }
             }
         }
+    }
     }
 }
 
@@ -754,6 +803,50 @@ internal fun NavHostController.switchTab(route: String) {
  */
 internal fun NavHostController.openScreen(route: String, tabs: List<String>) {
     if (route in tabs) switchTab(route) else navigate(route)
+}
+
+/**
+ * What was the More tab, now the menu behind the picture at the top. One copy of the
+ * wiring serves the drawer and the old screen, so a row cannot lead somewhere different
+ * depending on how the menu was opened. [onClose] shuts the drawer before going on.
+ */
+@Composable
+private fun SideMenu(
+    navController: NavHostController,
+    roots: List<String>,
+    inDrawer: Boolean,
+    onClose: () -> Unit,
+    key: String? = null,
+) {
+    val vm: MoreViewModel = appViewModel(key = key) { MoreViewModel(it) }
+    val state by vm.state.collectAsStateWithLifecycle()
+    fun go(route: String): () -> Unit = { onClose(); navController.navigate(route) }
+    fun open(route: String): () -> Unit = { onClose(); navController.openScreen(route, roots) }
+    MoreScreen(
+        state = state,
+        inDrawer = inDrawer,
+        onEditProfile = go(Routes.PROFILE),
+        onTeam = go(Routes.TEAM),
+        onEditBusiness = if (state.canEditBusiness) go(Routes.EDIT_BUSINESS) else null,
+        onBackup = go(Routes.BACKUP),
+        onDisplay = go(Routes.DISPLAY),
+        onSecurity = go(Routes.SECURITY),
+        onExport = go(Routes.EXPORT),
+        onReminders = go(Routes.REMINDERS),
+        onHelp = go(Routes.HELP),
+        onPlan = if (state.canEditBusiness) go(Routes.planPrice()) else null,
+        onRequests = if (state.canPlan) go(Routes.REQUESTS) else null,
+        onBookingLink = if (state.canEditBusiness) go(Routes.BOOKING_LINK) else null,
+        onIncome = if (state.canSeePeopleCost && state.canSeeMoney) go(Routes.INCOME) else null,
+        onAssets = if (state.canSeePeopleCost) go(Routes.ASSETS) else null,
+        onRates = go(Routes.RATES),
+        onSearch = go(Routes.SEARCH),
+        onPrice = go(Routes.PRICE),
+        onMoneyOut = go(Routes.MONEY_OUT),
+        onSeason = go(Routes.SEASON),
+        onMachines = open(Routes.MACHINES),
+        onCustomers = if (Routes.CUSTOMERS in roots) open(Routes.CUSTOMERS) else null,
+    )
 }
 
 @Composable
@@ -1215,6 +1308,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onField = { navController.navigate(Routes.fields(it)) },
                     onMachine = { navController.navigate("machines/$it") },
                     onJob = { navController.navigate("jobs/$it") },
+                    onMember = { navController.navigate("more/team/$it") },
                 )
             }
 
@@ -1930,36 +2024,7 @@ private fun MainNavHost(navController: NavHostController) {
             }
 
             composable(Routes.MORE) {
-                val vm: MoreViewModel = appViewModel { MoreViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                MoreScreen(
-                    state = state,
-                    onEditProfile = { navController.navigate(Routes.PROFILE) },
-                    onTeam = { navController.navigate(Routes.TEAM) },
-                    onEditBusiness = if (state.canEditBusiness) {
-                        { navController.navigate(Routes.EDIT_BUSINESS) }
-                    } else null,
-                    onBackup = { navController.navigate(Routes.BACKUP) },
-                    onDisplay = { navController.navigate(Routes.DISPLAY) },
-                    onSecurity = { navController.navigate(Routes.SECURITY) },
-                    onExport = { navController.navigate(Routes.EXPORT) },
-                    onReminders = { navController.navigate(Routes.REMINDERS) },
-                    onHelp = { navController.navigate(Routes.HELP) },
-                    onPlan = if (state.canEditBusiness) ({ navController.navigate(Routes.planPrice()) }) else null,
-                    onRequests = if (state.canPlan) ({ navController.navigate(Routes.REQUESTS) }) else null,
-                    onBookingLink = if (state.canEditBusiness) ({ navController.navigate(Routes.BOOKING_LINK) }) else null,
-                    onIncome = if (state.canSeePeopleCost && state.canSeeMoney) ({ navController.navigate(Routes.INCOME) }) else null,
-                    onAssets = if (state.canSeePeopleCost) ({ navController.navigate(Routes.ASSETS) }) else null,
-                    onRates = { navController.navigate(Routes.RATES) },
-                    onSearch = { navController.navigate(Routes.SEARCH) },
-                    onPrice = { navController.navigate(Routes.PRICE) },
-                    onMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
-                    onSeason = { navController.navigate(Routes.SEASON) },
-                    onMachines = { open(Routes.MACHINES) },
-                    onCustomers = if (Routes.CUSTOMERS in roots) {
-                        { open(Routes.CUSTOMERS) }
-                    } else null,
-                )
+                SideMenu(navController, roots, inDrawer = false, onClose = {})
             }
 
             composable(Routes.PRICE) {

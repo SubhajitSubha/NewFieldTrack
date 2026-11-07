@@ -98,14 +98,18 @@ class HomeTest {
     }
 
     @Test
-    fun `the customer tab goes to whoever deals at the gate`() {
+    fun `the customer tab goes to whoever deals at the gate, in the same order for everyone`() {
         val senior = Routes.roots(HomeKind.Field, can(RolePreset.SeniorDriver))
         val plain = Routes.roots(HomeKind.Field, can(RolePreset.Driver))
 
         assertTrue(Routes.CUSTOMERS in senior)
-        assertFalse(Routes.MACHINES in senior)
+        assertTrue("machines stay for the senior driver too", Routes.MACHINES in senior)
         assertFalse("a plain driver has no customer book", Routes.CUSTOMERS in plain)
         assertTrue(Routes.MACHINES in plain)
+        // Nothing is moved to make room: a missing tab is just missing.
+        assertEquals(listOf(Routes.HOME, Routes.JOBS, Routes.CUSTOMERS, Routes.MACHINES), senior)
+        assertEquals(listOf(Routes.HOME, Routes.JOBS, Routes.MACHINES), plain)
+        assertFalse(Routes.MORE in senior)
     }
 
     @Test

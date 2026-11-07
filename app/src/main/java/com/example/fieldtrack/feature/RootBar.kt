@@ -1,0 +1,69 @@
+package com.example.fieldtrack.feature
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.example.fieldtrack.designsystem.component.FtAvatar
+import com.example.fieldtrack.designsystem.component.FtIconButton
+import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
+import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+
+/**
+ * The strip along the top of the four main screens, the same on every one of them and for
+ * every role: your picture, which opens the menu with your profile and settings, and the
+ * magnifier, which searches everything. The two things people reach for from anywhere sit
+ * where people have learned to look for them in other apps.
+ */
+@Composable
+fun RootBar(
+    initials: String,
+    menuContentDescription: String,
+    searchContentDescription: String,
+    onMenu: () -> Unit,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = FieldTrackTheme.colors
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = FieldTrackTheme.dimens.screenPadding - 4.dp)
+            .padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Box(
+            Modifier
+                .defaultMinSize(48.dp, 48.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onMenu)
+                .semantics { contentDescription = menuContentDescription },
+            contentAlignment = Alignment.Center,
+        ) {
+            FtAvatar(
+                initials = initials,
+                size = 38.dp,
+                background = colors.primary,
+                contentColor = colors.onPrimary,
+            )
+        }
+        FtIconButton(
+            icon = FieldTrackIcons.Search,
+            contentDescription = searchContentDescription,
+            onClick = onSearch,
+        )
+    }
+}
