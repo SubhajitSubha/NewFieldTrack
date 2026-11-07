@@ -67,6 +67,9 @@ data class PaymentLine(
     val amountMinor: Long,
 )
 
+/** One line of an income statement: what it is, any word of explanation, and the amount. */
+data class StatementRow(val label: String, val amountMinor: Long, val note: String? = null)
+
 /**
  * The three documents this app produces.
  *
@@ -149,6 +152,33 @@ sealed interface Document {
     ) : Document {
         override val fileName: String
             get() = "Receipt-$dateLabel-${customer.name}".sanitisedFileName()
+    }
+
+    /**
+     * What the business made over a period, for a bank, an accountant or a licence.
+     *
+     * [customer] is the business itself, since the document is nobody else's; it is there
+     * because every document has a party. Every figure is the business's own record, and the
+     * notes say plainly which are estimates.
+     */
+    data class IncomeStatement(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val periodLabel: String,
+        val printedLabel: String,
+        val income: List<StatementRow>,
+        val costs: List<StatementRow>,
+        /** What is left once the costs are taken off. */
+        val netMinor: Long,
+        /** Plain facts under the figures: jobs done, land worked, what the machines are worth. */
+        val facts: List<Pair<String, String>>,
+        val notes: List<String>,
+    ) : Document {
+        val incomeMinor: Long get() = income.sumOf { it.amountMinor }
+        val costsMinor: Long get() = costs.sumOf { it.amountMinor }
+        override val fileName: String
+            get() = "Income-statement-$periodLabel-${letterhead.businessName}".sanitisedFileName()
     }
 
     /** Only what has not been paid for, which is what gets sent when chasing money. */

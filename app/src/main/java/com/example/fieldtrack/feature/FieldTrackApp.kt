@@ -166,6 +166,8 @@ import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
 import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.money.IncomeStatementScreen
+import com.example.fieldtrack.feature.money.IncomeStatementViewModel
 import com.example.fieldtrack.feature.machine.AssetRegisterScreen
 import com.example.fieldtrack.feature.machine.AssetRegisterViewModel
 import com.example.fieldtrack.feature.machine.PaperEditScreen
@@ -266,6 +268,7 @@ internal object Routes {
     const val REMINDERS = "more/reminders"
     const val HELP = "more/help"
     const val ASSETS = "more/assets"
+    const val INCOME = "more/income"
     const val PAPER = "machines/{machineId}/papers/{paperId}"
     const val WORTH = "machines/{machineId}/worth"
     const val TOUR = "tour"
@@ -943,6 +946,18 @@ private fun MainNavHost(navController: NavHostController) {
                     onHour = vm::stepHour,
                     onDriversSeeAll = vm::setDriversSeeAll,
                     onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.INCOME) {
+                val vm: IncomeStatementViewModel = appViewModel { IncomeStatementViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                IncomeStatementScreen(
+                    state = state,
+                    onPeriod = vm::choose,
+                    onShare = { vm.share(context) },
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -1867,6 +1882,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onExport = { navController.navigate(Routes.EXPORT) },
                     onReminders = { navController.navigate(Routes.REMINDERS) },
                     onHelp = { navController.navigate(Routes.HELP) },
+                    onIncome = if (state.canSeePeopleCost && state.canSeeMoney) ({ navController.navigate(Routes.INCOME) }) else null,
                     onAssets = if (state.canSeePeopleCost) ({ navController.navigate(Routes.ASSETS) }) else null,
                     onRates = { navController.navigate(Routes.RATES) },
                     onSearch = { navController.navigate(Routes.SEARCH) },

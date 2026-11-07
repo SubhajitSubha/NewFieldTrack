@@ -135,6 +135,7 @@ fun MoreScreen(
     onHelp: (() -> Unit)? = null,
     /** For somebody who may see what the business pays: what the machines are worth. */
     onAssets: (() -> Unit)? = null,
+    onIncome: (() -> Unit)? = null,
     onRates: () -> Unit,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
@@ -368,6 +369,16 @@ fun MoreScreen(
                     showChevron = true,
                     onClick = onDisplay,
                 )
+                if (onIncome != null) {
+                    FtRowDivider()
+                    FtListRow(
+                        title = stringResource(R.string.income_title),
+                        subtitle = stringResource(R.string.income_row_note),
+                        leading = { FtIconTile(FieldTrackIcons.Bill, size = 40.dp) },
+                        showChevron = true,
+                        onClick = onIncome,
+                    )
+                }
                 if (onAssets != null) {
                     FtRowDivider()
                     FtListRow(

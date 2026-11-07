@@ -844,6 +844,7 @@ abstract class ScreenMatrix(
         "paper-new" to "machines/${ids.machineId}/papers/new",
         "worth" to "machines/${ids.machineId}/worth",
         "assets" to Routes.ASSETS,
+        "income" to Routes.INCOME,
         "fuel" to "machines/${ids.machineId}/fuel",
         "machine-profit" to "machines/${ids.machineId}/made",
         "loss-job" to "jobs/${ids.lossJobId}",

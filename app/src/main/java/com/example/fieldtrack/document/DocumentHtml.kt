@@ -49,6 +49,7 @@ object DocumentHtml {
                     is Document.Statement -> statement(document)
                     is Document.Dues -> dues(document)
                     is Document.Receipt -> receipt(document)
+                    is Document.IncomeStatement -> income(document)
                 }
             )
         } finally {
@@ -249,6 +250,42 @@ object DocumentHtml {
         )
         append("</div>")
         append(footer("${d.lines.size} jobs"))
+    }
+
+    private fun income(d: Document.IncomeStatement): String = buildString {
+        append(letterhead(d.letterhead, "INCOME STATEMENT", d.periodLabel, d.printedLabel))
+        append("<div class='body'>")
+        fun rows(list: List<StatementRow>) {
+            append("<table class='plain'><tbody>")
+            list.forEach { row ->
+                append("<tr><td><div class='strong'>${esc(row.label)}</div>")
+                row.note?.let { append("<div class='cell-sub'>${esc(it)}</div>") }
+                append("</td><td class='r num strong'>${money(row.amountMinor)}</td></tr>")
+            }
+            append("</tbody></table>")
+        }
+        append(label("WORK BILLED AND MONEY IN"))
+        rows(d.income)
+        append("<div class='totals'>${totalRow("Total income", d.incomeMinor, strong = true)}</div>")
+        append("<div class='gap'></div>")
+        append(label("WHAT IT COST"))
+        rows(d.costs)
+        append("<div class='totals'>${totalRow("Total costs", d.costsMinor, strong = true)}</div>")
+        append("<div class='gap'></div>")
+        append("<div class='totals'><div class='hr'></div>${totalRow("Left after costs", d.netMinor, strong = true)}</div>")
+        if (d.facts.isNotEmpty()) {
+            append("<div class='gap'></div>")
+            append(label("THE BUSINESS IN FIGURES"))
+            d.facts.forEach { (k, v) -> append(textRow(k, v)) }
+        }
+        d.notes.forEach { append("<div class='cell-sub' style='padding-top:8px'>${esc(it)}</div>") }
+        append("<div class='spacer'></div>")
+        append(
+            "<div class='foot-row'><div class='note'>Prepared from the business's own records kept in FieldTrack. " +
+                "It has not been audited.</div>${signatureBox(d.letterhead.businessName)}</div>"
+        )
+        append("</div>")
+        append(footer(d.periodLabel))
     }
 
     private fun receipt(d: Document.Receipt): String = buildString {

@@ -2187,4 +2187,35 @@
     <string name="assets_per_year">%1$s a year</string>
     <string name="assets_add_cost">Add what it cost</string>
     <string name="home_alert_paper">%1$s for %2$s</string>
+    <string name="income_title">Income statement</string>
+    <string name="income_row_note">For a bank loan, an accountant or a licence</string>
+    <string name="income_intro">A page of what the business made and what it cost over a year or a season, from your own records.</string>
+    <string name="income_not_allowed">An income statement needs the money and the wages, which you are not set up to see.</string>
+    <string name="income_this_year">This accounting year</string>
+    <string name="income_last_year">Last accounting year</string>
+    <string name="income_this_season">This season</string>
+    <string name="income_last_season">Last season</string>
+    <string name="income_left">Left after costs</string>
+    <string name="income_in_out">%1$s in, %2$s out</string>
+    <string name="income_costs">What it cost</string>
+    <string name="income_billed">Work billed</string>
+    <string name="income_fuel">Diesel</string>
+    <string name="income_repairs">Repairs and service</string>
+    <string name="income_people">Wages and labour</string>
+    <string name="income_loans">Loan instalments</string>
+    <string name="income_loans_note">The monthly figure you gave for each machine, spread over these months. An estimate, not a record of payments.</string>
+    <plurals name="income_unpriced_note">
+        <item quantity="one">%d crew cost has no amount yet and is not counted.</item>
+        <item quantity="other">%d crew costs have no amount yet and are not counted.</item>
+    </plurals>
+    <string name="income_billed_note">Income is the work billed in the period, whether or not it has been paid yet.</string>
+    <string name="income_f_jobs">Jobs finished</string>
+    <string name="income_f_land">Land worked</string>
+    <string name="income_f_customers">Farmers served</string>
+    <string name="income_f_received">Money received</string>
+    <string name="income_f_owed">Still owed by farmers</string>
+    <string name="income_f_machines">Machines</string>
+    <string name="income_f_worth">What the machines are worth</string>
+    <string name="income_share_button">Share as PDF</string>
+    <string name="income_share">Send the income statement</string>
 </resources>
