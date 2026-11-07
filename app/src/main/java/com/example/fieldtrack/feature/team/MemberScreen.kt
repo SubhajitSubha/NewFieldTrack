@@ -83,6 +83,8 @@ fun MemberScreen(
     onSetActive: (Boolean) -> Unit,
     onCall: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /** Opens what this person has been paid, for somebody who may see what the business pays. */
+    onPayHistory: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -172,6 +174,22 @@ fun MemberScreen(
                         label = stringResource(R.string.team_stat_brought_in),
                         valueColor = colors.primaryPressed,
                         modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            if (onPayHistory != null) {
+                FtCard(padding = 0.dp) {
+                    com.example.fieldtrack.designsystem.component.FtListRow(
+                        title = stringResource(R.string.person_pay_title),
+                        subtitle = stringResource(R.string.person_pay_row_note),
+                        leading = {
+                            com.example.fieldtrack.designsystem.component.FtIconTile(
+                                com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Banknote, size = 40.dp,
+                            )
+                        },
+                        showChevron = true,
+                        onClick = onPayHistory,
                     )
                 }
             }

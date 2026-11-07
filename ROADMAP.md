@@ -146,7 +146,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
   outside person. For the last two: who owns it, how they are paid (per hour, per day, per acre or a share of what the job earned),
   and the amount owed builds up by itself from the work done on it. Reports count it as hire cost, not as our own wear.
   Needs N5 (hours per machine).
-- [ ] **N7. Paying people, with history** (case 2). Every team member gets one pay screen: what was paid, when, how, for what, notes,
+- [x] **N7. Paying people, with history** (a member seeing their own pay is NOT built: see Suggestions) (case 2). Every team member gets one pay screen: what was paid, when, how, for what, notes,
   advances and what is still to recover, plus what is owed for their machine (N6). Payments can be corrected with a reversing line
   (never deleted). A member sees their own pay only. Needs N6.
 - [ ] **N8. One money history** (case 3). A single list of every money movement, newest first: customer payments and bills, pay-outs,
@@ -157,7 +157,10 @@ Order is chosen so each step builds on the one before (dependencies noted).
 - [ ] **N10. Simplify pass and sign-off.** Walk every main flow as a first-time driver and a first-time owner, cut steps and words,
   full test suite, emulator check at both sizes, light and dark, and the eight translations read again for the new words.
 
-Suggestions kept for later (not built unless asked): a wage rate per person that adds up what is owed each month; a lender's
+Suggestions kept for later (not built unless asked):
+- A team member seeing their own pay. Needs three things together: `payouts` rule allowing a read when `resource.data.toPersonId`
+  is the signed-in person, a Firestore composite index (`toPersonId` + `serverAt`) in `firestore.indexes.json`, and a second
+  restore query for people who may not read all payouts. Small on the phone, but it cannot be tried from here. a wage rate per person that adds up what is owed each month; a lender's
 share of a hired machine's earnings across several jobs as a statement; sharing a machine's pay slip on WhatsApp.
 
 ---

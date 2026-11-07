@@ -23,6 +23,8 @@ data class MoneyOutRow(
     val headcount: Int,
     val covers: PayoutCovers,
     val amountMinor: Long,
+    /** Taken back: still listed, struck through, and counted in nothing. */
+    val voided: Boolean = false,
 )
 
 data class MoneyOutState(
@@ -135,9 +137,10 @@ class MoneyOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         headcount = it.headcount,
                         covers = it.covers,
                         amountMinor = it.amountMinor,
+                        voided = it.voidedAt != null,
                     )
                 },
-                totalMinor = payouts.sumOf { it.amountMinor },
+                totalMinor = payouts.filter { it.voidedAt == null }.sumOf { it.amountMinor },
                 // Anything with no job behind it, not only the month-long
                 // ones: a day's pay cannot be laid against a machine either.
                 // Keyed on settling no job cost, to match what the machine
@@ -146,7 +149,7 @@ class MoneyOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 // Money paid for the use of a machine is the exception: it settles what the
                 // machine's own work earned its owner, so it is laid against that machine.
                 unattributableMinor = payouts
-                    .filter { it.jobCostId == null && it.covers != PayoutCovers.Hire }
+                    .filter { it.voidedAt == null && it.jobCostId == null && it.covers != PayoutCovers.Hire }
                     .sumOf { it.amountMinor },
                 owedMinor = owed,
                 unpricedCount = unpriced,

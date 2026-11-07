@@ -130,8 +130,15 @@ interface OrgDao {
     @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 200")
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>>
 
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND id = :id")
+    suspend fun findPayout(orgId: String, id: String): PayoutEntity?
+
+    /** Everything paid to one person, newest first, including what was taken back: the history. */
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND toPersonId = :personId ORDER BY atMillis DESC, createdAt DESC")
+    fun observePayoutsTo(orgId: String, personId: String): Flow<List<PayoutEntity>>
+
     /** Every payment for the use of somebody's machine, so what is still owed is what was earned less this. */
-    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND covers = 'Hire' ORDER BY atMillis DESC")
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND covers = 'Hire' AND voidedAt IS NULL ORDER BY atMillis DESC")
     fun observeHirePayouts(orgId: String): Flow<List<PayoutEntity>>
 
     /**
@@ -142,7 +149,7 @@ interface OrgDao {
         """
         SELECT MAX(0, COALESCE(SUM(CASE WHEN covers = 'Advance' THEN amountMinor ELSE 0 END), 0) -
                       COALESCE(SUM(recoversAdvanceMinor), 0))
-        FROM payouts WHERE orgId = :orgId AND toPersonId = :personId
+        FROM payouts WHERE orgId = :orgId AND toPersonId = :personId AND voidedAt IS NULL
         """
     )
     fun observeAdvanceOutstanding(orgId: String, personId: String): Flow<Long>
@@ -150,7 +157,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND atMillis BETWEEN :from AND :to
+        WHERE orgId = :orgId AND voidedAt IS NULL AND atMillis BETWEEN :from AND :to
         """
     )
     fun observePaidOutBetween(orgId: String, from: Long, to: Long): Flow<Long>
@@ -199,7 +206,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND jobCostId IS NULL AND covers != 'Hire'
+        WHERE orgId = :orgId AND voidedAt IS NULL AND jobCostId IS NULL AND covers != 'Hire'
         """
     )
     fun observeUnattributablePayouts(orgId: String): Flow<Long>
@@ -208,7 +215,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND jobCostId IS NULL AND covers != 'Hire' AND atMillis BETWEEN :from AND :to
+        WHERE orgId = :orgId AND voidedAt IS NULL AND jobCostId IS NULL AND covers != 'Hire' AND atMillis BETWEEN :from AND :to
         """
     )
     suspend fun paidOutUnattributable(orgId: String, from: Long, to: Long): Long
@@ -257,7 +264,7 @@ interface OrgDao {
     @Query(
         """
         SELECT c.*, COALESCE(
-            (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+            (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id AND p.voidedAt IS NULL), 0
         ) AS paidMinor
         FROM job_costs c
         WHERE c.orgId = :orgId AND c.jobId = :jobId
@@ -285,10 +292,10 @@ interface OrgDao {
         """
         SELECT COALESCE(SUM(
             CASE WHEN c.amountMinor - COALESCE(
-                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id AND p.voidedAt IS NULL), 0
             ) > 0
             THEN c.amountMinor - COALESCE(
-                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id AND p.voidedAt IS NULL), 0
             )
             ELSE 0 END
         ), 0)
@@ -303,10 +310,10 @@ interface OrgDao {
         """
         SELECT COALESCE(SUM(
             CASE WHEN c.amountMinor - COALESCE(
-                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id AND p.voidedAt IS NULL), 0
             ) > 0
             THEN c.amountMinor - COALESCE(
-                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id), 0
+                (SELECT SUM(p.amountMinor) FROM payouts p WHERE p.jobCostId = c.id AND p.voidedAt IS NULL), 0
             )
             ELSE 0 END
         ), 0)
@@ -421,7 +428,7 @@ interface OrgDao {
     @Query(
         """
         SELECT COALESCE(SUM(amountMinor), 0) FROM payouts
-        WHERE orgId = :orgId AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
+        WHERE orgId = :orgId AND voidedAt IS NULL AND covers != 'Hire' AND jobCostId IS NULL AND atMillis BETWEEN :from AND :to
         """
     )
     fun observeLooseWagesBetween(orgId: String, from: Long, to: Long): Flow<Long>

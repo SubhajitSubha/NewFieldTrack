@@ -295,7 +295,10 @@ internal object Routes {
     const val HAND_OVER = "more/team/handover"
     const val TEAM_CHANGES = "more/team/changes"
     const val MONEY_OUT = "more/money-out"
-    const val PAY_OUT = "more/money-out/pay"
+    const val PAY_OUT = "more/money-out/pay?person={person}"
+    const val PERSON_PAY = "more/team/{membershipId}/pay"
+    fun payOut(personId: String? = null) = "more/money-out/pay?person=${personId.orEmpty()}"
+    fun personPay(membershipId: String) = "more/team/$membershipId/pay"
     const val MACHINE_PROFIT = "machines/{machineId}/made"
     const val MACHINE = "machines/{machineId}"
     const val FUEL = "machines/{machineId}/fuel"
@@ -2224,7 +2227,7 @@ private fun MainNavHost(navController: NavHostController) {
                 MoneyOutScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
-                    onPay = { navController.navigate(Routes.PAY_OUT) },
+                    onPay = { navController.navigate(Routes.payOut()) },
                     onStartHirePay = vm::startHirePay,
                     onHireAmount = vm::setHireAmount,
                     onHireMethod = vm::setHireMethod,
@@ -2233,11 +2236,21 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.PAY_OUT) {
+            composable(
+                Routes.PAY_OUT,
+                arguments = listOf(androidx.navigation.navArgument("person") {
+                    type = androidx.navigation.NavType.StringType
+                    defaultValue = ""
+                }),
+            ) { entry ->
                 val vm: PayOutViewModel = appViewModel { PayOutViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
+                // From a person's own page the person is already chosen.
+                val person = entry.arguments?.getString("person").orEmpty()
+                LaunchedEffect(person) { if (person.isNotBlank()) vm.setPerson(person) }
                 PayOutScreen(
                     state = state,
+                    onNote = vm::setNote,
                     onBack = { navController.popBackStack() },
                     onPerson = vm::setPerson,
                     onHeadcount = vm::setHeadcount,
@@ -2246,6 +2259,19 @@ private fun MainNavHost(navController: NavHostController) {
                     onRecover = vm::setRecover,
                     onJob = vm::setJob,
                     onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.PERSON_PAY) { entry ->
+                val membershipId = entry.arguments?.getString("membershipId").orEmpty()
+                val vm: com.example.fieldtrack.feature.money.PersonPayViewModel =
+                    appViewModel(key = "pay-$membershipId") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, membershipId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.money.PersonPayScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onPay = { navController.navigate(Routes.payOut(membershipId.substringAfterLast('_'))) },
+                    onTakeBack = vm::takeBack,
                 )
             }
 
@@ -2369,6 +2395,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onPlanWork = vm::setPlanWork,
                     onPayOut = vm::setPayOut,
                     onSeePeopleCost = vm::setSeePeopleCost,
+                    onPayHistory = if (state.canSeePay) ({ navController.navigate(Routes.personPay(membershipId)) }) else null,
                     onSave = { vm.save { navController.popBackStack() } },
                     onSetActive = { active ->
                         vm.setActive(active) { navController.popBackStack() }

@@ -270,6 +270,31 @@ class LedgerRepository(
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>> =
         db.orgDao().observePayouts(orgId)
 
+    fun observePayoutsTo(orgId: String, personId: String): Flow<List<PayoutEntity>> =
+        db.orgDao().observePayoutsTo(orgId, personId)
+
+    /**
+     * Takes a payment back: entered wrongly, or paid twice.
+     *
+     * The record stays, marked, so the history still tells what was written and what was done
+     * about it, as a customer's ledger does. From then on the payment counts for nothing: not in
+     * what was paid out, not against an advance, not against what is owed for a machine. A
+     * payment that settles a job's cost stops settling it, so the cost reads as owed again.
+     * Taking back something already taken back changes nothing.
+     */
+    suspend fun voidPayout(orgId: String, can: Capabilities, payoutId: String) {
+        can.require(Capability.PayOut)
+        db.withTransaction {
+            val payout = db.orgDao().findPayout(orgId, payoutId) ?: return@withTransaction
+            if (payout.voidedAt != null) return@withTransaction
+            val voided = payout.copy(voidedAt = clock.now())
+            db.orgDao().upsertPayout(voided)
+            syncQueue.enqueueUpsert(
+                orgId, SyncQueue.TABLE_PAYOUTS, voided.id, OutboxJson.encodeToString(voided)
+            )
+        }
+    }
+
     /** What this person has been advanced and not yet settled. */
     fun observeAdvanceOutstanding(orgId: String, personId: String): Flow<Long> =
         db.orgDao().observeAdvanceOutstanding(orgId, personId)

@@ -517,6 +517,14 @@ data class PayoutEntity(
     val createdAt: Long,
     val syncState: SyncState = SyncState.Pending,
     val deviceId: String? = null,
+    /**
+     * When this payment was taken back, if it was: entered by mistake, or paid twice.
+     *
+     * Like a customer's ledger the record is never deleted, so the history still shows what
+     * was written and what was done about it; but a voided payment counts for nothing in any
+     * total, in what is owed, or against an advance.
+     */
+    val voidedAt: Long? = null,
 )
 
 /**

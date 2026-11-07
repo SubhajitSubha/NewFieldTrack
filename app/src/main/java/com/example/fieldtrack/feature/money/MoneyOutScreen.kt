@@ -287,8 +287,10 @@ private fun PaidRow(row: Row_) {
                             R.plurals.money_out_heads, row.headcount, row.headcount,
                         )
                     },
-                    style = FieldTrackTheme.type.body,
-                    color = colors.ink,
+                    style = FieldTrackTheme.type.body.copy(
+                        textDecoration = if (row.voided) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                    ),
+                    color = if (row.voided) colors.inkTertiary else colors.ink,
                 )
                 Text(
                     text = when (row.covers) {
@@ -304,8 +306,10 @@ private fun PaidRow(row: Row_) {
             }
             Text(
                 text = money(row.amountMinor),
-                style = FieldTrackTheme.type.sectionTitle,
-                color = colors.ink,
+                style = FieldTrackTheme.type.sectionTitle.copy(
+                    textDecoration = if (row.voided) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                ),
+                color = if (row.voided) colors.inkTertiary else colors.ink,
             )
         }
     }

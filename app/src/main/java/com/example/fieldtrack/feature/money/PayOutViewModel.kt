@@ -43,6 +43,8 @@ data class PayOutState(
     val advanceOutstandingMinor: Long = 0,
     /** How much of it this pay takes off, as typed. */
     val recoverText: String = "",
+    /** A line to remember it by: what the day was, why a different amount. Optional. */
+    val note: String = "",
     val mayPay: Boolean = false,
     val busy: Boolean = false,
 ) {
@@ -102,6 +104,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setJob(jobId: String?) = form.update { it.copy(jobId = jobId) }
     fun setMethod(method: PaymentMethod) = form.update { it.copy(method = method) }
     fun setRecover(text: String) = form.update { it.copy(recoverText = MoneyInput.clean(text)) }
+    fun setNote(text: String) = form.update { it.copy(note = text.take(120)) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val now = state.value
@@ -143,6 +146,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     toName = toName,
                     headcount = if (now.payingLabourers) now.headcount else 1,
                     method = now.method,
+                    note = now.note.trim().ifBlank { null },
                     recoversAdvanceMinor = now.recoverMinor,
                 )
             }

@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(27, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(28, c.getInt(0))
         }
     }
 
@@ -536,6 +536,20 @@ class MigrationTest {
             assertTrue(c.moveToFirst())
             assertEquals(500_000L, c.getLong(0))
             for (i in 1..7) assertTrue("column $i is empty, meaning the business's own", c.isNull(i))
+        }
+    }
+
+    @Test
+    fun `every payment stands after payments can be taken back`() {
+        create(27) {
+            it.execSQL(
+                "INSERT INTO payouts (id, orgId, amountMinor, atMillis, covers, headcount, recoversAdvanceMinor, createdAt, syncState) " +
+                    "VALUES ('p1', 'o1', 50000, 1, 'Day', 1, 0, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT amountMinor, voidedAt FROM payouts").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0)); assertTrue(c.isNull(1))
         }
     }
 }

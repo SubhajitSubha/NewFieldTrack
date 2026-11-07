@@ -57,6 +57,7 @@ fun PayOutScreen(
     onRecover: (String) -> Unit = {},
     onJob: (String?) -> Unit,
     onSave: () -> Unit,
+    onNote: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
@@ -166,6 +167,13 @@ fun PayOutScreen(
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
+
+            FtTextField(
+                label = stringResource(R.string.payout_note),
+                value = state.note,
+                onValueChange = onNote,
+                placeholder = stringResource(R.string.payout_note_hint),
+            )
 
             FtSectionLabel(stringResource(R.string.payout_what_for))
             FtCard(padding = 0.dp) {

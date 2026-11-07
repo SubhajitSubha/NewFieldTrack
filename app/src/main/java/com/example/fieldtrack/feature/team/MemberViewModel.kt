@@ -50,6 +50,8 @@ data class MemberState(
     /** False for anyone who may not manage the team, and for your own record. */
     val editable: Boolean = false,
     val isYou: Boolean = false,
+    /** Whether this person may open what the member has been paid. */
+    val canSeePay: Boolean = false,
     val canSeeTheirEarnings: Boolean = true,
     val saving: Boolean = false,
 ) {
@@ -160,6 +162,7 @@ class MemberViewModel(
                         .sumOf { job -> job.amountMinor },
                     advanceOwedMinor = app.ledgerRepository.observeAdvanceOutstanding(s.orgId, member.personId).first(),
                     isYou = member.personId == s.personId,
+                    canSeePay = Capability.SeePeopleCost in s.can,
                     // Your own access is not editable from here: an owner who could
                     // switch off their own permissions would lock themselves out.
                     editable = Capability.EditTeam in s.can && member.personId != s.personId,
