@@ -122,7 +122,6 @@ fun formatPhone(stored: String): String {
     val text = PhoneNumbers.display(stored) ?: stored
     // A number is read left to right even in a right-to-left sentence: without this the plus sign
     // and the country code jump to the wrong end of it.
-    val rightToLeft = android.text.TextUtils.getLayoutDirectionFromLocale(java.util.Locale.getDefault()) ==
-        android.view.View.LAYOUT_DIRECTION_RTL
+    val rightToLeft = java.util.Locale.getDefault().language in setOf("ar", "he", "iw", "fa", "ur")
     return if (rightToLeft) "\u2066$text\u2069" else text
 }
