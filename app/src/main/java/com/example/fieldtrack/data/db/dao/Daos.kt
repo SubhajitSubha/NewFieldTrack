@@ -130,6 +130,9 @@ interface OrgDao {
     @Query("SELECT * FROM payouts WHERE orgId = :orgId ORDER BY atMillis DESC LIMIT 200")
     fun observePayouts(orgId: String): Flow<List<PayoutEntity>>
 
+    @Query("SELECT * FROM payouts WHERE orgId = :orgId AND atMillis >= :from ORDER BY atMillis DESC, createdAt DESC LIMIT 3000")
+    fun observePayoutsSince(orgId: String, from: Long): Flow<List<PayoutEntity>>
+
     @Query("SELECT * FROM payouts WHERE orgId = :orgId AND id = :id")
     suspend fun findPayout(orgId: String, id: String): PayoutEntity?
 
@@ -897,6 +900,12 @@ interface MachineDao {
 
     @Upsert suspend fun upsertFuel(entry: FuelEntryEntity)
 
+    @Query("SELECT * FROM fuel_entries WHERE orgId = :orgId AND atMillis >= :from ORDER BY atMillis DESC LIMIT 3000")
+    fun observeFuelSince(orgId: String, from: Long): Flow<List<FuelEntryEntity>>
+
+    @Query("SELECT * FROM service_records WHERE orgId = :orgId AND costMinor IS NOT NULL AND atMillis >= :from ORDER BY atMillis DESC LIMIT 3000")
+    fun observeServiceSince(orgId: String, from: Long): Flow<List<ServiceRecordEntity>>
+
     @Query("SELECT * FROM fuel_entries WHERE orgId = :orgId AND machineId = :machineId ORDER BY atMillis DESC")
     fun observeFuel(orgId: String, machineId: String): Flow<List<FuelEntryEntity>>
 
@@ -1360,6 +1369,10 @@ interface LedgerDao {
 
     @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId AND customerId = :customerId ORDER BY atMillis DESC, createdAt DESC")
     fun observeFor(orgId: String, customerId: String): Flow<List<LedgerEntryEntity>>
+
+    /** The book since a day, newest first: what the money history lists. */
+    @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId AND atMillis >= :from ORDER BY atMillis DESC, createdAt DESC LIMIT 3000")
+    fun observeSince(orgId: String, from: Long): Flow<List<LedgerEntryEntity>>
 
     /** Every line in the book, for working out how old each customer's debt is. */
     @Query("SELECT * FROM ledger_entries WHERE orgId = :orgId")

@@ -149,7 +149,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
 - [x] **N7. Paying people, with history** (a member seeing their own pay is NOT built: see Suggestions) (case 2). Every team member gets one pay screen: what was paid, when, how, for what, notes,
   advances and what is still to recover, plus what is owed for their machine (N6). Payments can be corrected with a reversing line
   (never deleted). A member sees their own pay only. Needs N6.
-- [ ] **N8. One money history** (case 3). A single list of every money movement, newest first: customer payments and bills, pay-outs,
+- [x] **N8. One money history** (case 3). A single list of every money movement, newest first: customer payments and bills, pay-outs,
   fuel, service, job costs, hire payments; filter by type, person, machine, customer, date. Each row opens its source. Shown by role:
   customer money needs See money, wages need See people cost. Needs N6 and N7.
 - [ ] **N9. Your own roles** (case 1). The owner makes a named role (Manager, Accountant, Mechanic...) from a list of plain-word

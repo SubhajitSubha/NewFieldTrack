@@ -148,6 +148,8 @@ fun MoreScreen(
     onBookingLink: (() -> Unit)? = null,
     onPlan: (() -> Unit)? = null,
     onRates: () -> Unit,
+    /** Every movement of money in one list, for somebody who sees any of it. */
+    onHistory: (() -> Unit)? = null,
     onSearch: () -> Unit = {},
     onMoneyOut: () -> Unit,
     onSeason: () -> Unit,
@@ -251,6 +253,10 @@ fun MoreScreen(
             // prices this business charges, and what a colleague earns is not the same
             // kind of secret as a customer balance.
             MenuGroup(stringResource(R.string.menu_money), inDrawer, buildList {
+                if (onHistory != null) row(
+                    stringResource(R.string.mh_title), FieldTrackIcons.Banknote, onHistory,
+                    subtitle = stringResource(R.string.mh_row_note),
+                )
                 if (state.canSeeMoney) {
                     row(
                         stringResource(R.string.more_rates), FieldTrackIcons.Bill, onRates,

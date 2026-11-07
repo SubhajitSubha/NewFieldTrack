@@ -262,6 +262,7 @@ internal object Routes {
     const val MORE = "more"
     const val SEARCH = "search"
     const val NOTICES = "notices"
+    const val MONEY_HISTORY = "more/money-history"
     const val PROFILE = "more/profile"
     const val SEASONS_EDIT = "more/profile/seasons"
     const val TEAM = "more/team"
@@ -867,6 +868,7 @@ private fun SideMenu(
         onBookingLink = if (state.canEditBusiness) go(Routes.BOOKING_LINK) else null,
         onIncome = if (state.canSeePeopleCost && state.canSeeMoney) go(Routes.INCOME) else null,
         onAssets = if (state.canSeePeopleCost) go(Routes.ASSETS) else null,
+        onHistory = if (state.canSeeMoney || state.canSeePeopleCost) go(Routes.MONEY_HISTORY) else null,
         onRates = go(Routes.RATES),
         onSearch = go(Routes.SEARCH),
         onPrice = go(Routes.PRICE),
@@ -1323,6 +1325,26 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onWindow = vm::setWindow,
                     onChangeSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                )
+            }
+
+            composable(Routes.MONEY_HISTORY) {
+                val vm: com.example.fieldtrack.feature.money.MoneyHistoryViewModel =
+                    appViewModel { com.example.fieldtrack.feature.money.MoneyHistoryViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.money.MoneyHistoryScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onFilter = vm::setFilter,
+                    onPeriod = vm::setPeriod,
+                    onQuery = vm::setQuery,
+                    onOpen = { target ->
+                        when (target) {
+                            is com.example.fieldtrack.feature.money.HistoryOpen.Customer -> navController.navigate(Routes.ledger(target.customerId))
+                            is com.example.fieldtrack.feature.money.HistoryOpen.Person -> navController.navigate(Routes.personPay(target.membershipId))
+                            is com.example.fieldtrack.feature.money.HistoryOpen.Machine -> navController.navigate("machines/${target.machineId}")
+                        }
+                    },
                 )
             }
 
