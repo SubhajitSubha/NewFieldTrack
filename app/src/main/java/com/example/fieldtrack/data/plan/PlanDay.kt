@@ -1,6 +1,7 @@
 package com.example.fieldtrack.data.plan
 
 import com.example.fieldtrack.data.db.BookingStatus
+import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.data.db.DayPart
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.MachineStatus
@@ -47,7 +48,7 @@ object PlanDay {
      * The plan's "today" at [now]: the calendar date, held back by [dayStartHour] so
      * that the early hours still belong to the day before.
      */
-    fun today(now: Long, dayStartHour: Int, zone: ZoneId = ZoneId.systemDefault()): Long =
+    fun today(now: Long, dayStartHour: Int, zone: ZoneId = BusinessClock.zone): Long =
         Instant.ofEpochMilli(now).atZone(zone).minusHours(dayStartHour.toLong()).toLocalDate().toEpochDay()
 
     fun date(day: Long): LocalDate = LocalDate.ofEpochDay(day)

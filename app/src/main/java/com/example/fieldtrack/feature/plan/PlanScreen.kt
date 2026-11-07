@@ -51,6 +51,7 @@ import com.example.fieldtrack.designsystem.layout.LocalWidthClass
 import com.example.fieldtrack.designsystem.layout.WidthClass
 import com.example.fieldtrack.feature.home.HeardLine
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.data.region.BusinessClock
 import java.text.DateFormat
 import java.util.Date
 
@@ -370,7 +371,8 @@ private fun StaleNotice(updatedAt: Long?) {
             } else {
                 stringResource(
                     R.string.plan_stale_since,
-                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(updatedAt)),
+                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                        .apply { timeZone = BusinessClock.timeZone }.format(Date(updatedAt)),
                 )
             },
             style = FieldTrackTheme.type.bodySmall,

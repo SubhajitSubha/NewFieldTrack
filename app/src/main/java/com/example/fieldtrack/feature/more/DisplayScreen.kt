@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.selection.toggleable
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.settings.GroupingChoice
+import com.example.fieldtrack.data.settings.WeekStartChoice
 import com.example.fieldtrack.data.settings.ThemeChoice
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -47,9 +48,11 @@ fun DisplayScreen(
     theme: ThemeChoice,
     biggerText: Boolean,
     grouping: GroupingChoice,
+    weekStart: WeekStartChoice,
     onTheme: (ThemeChoice) -> Unit,
     onBiggerText: (Boolean) -> Unit,
     onGrouping: (GroupingChoice) -> Unit,
+    onWeekStart: (WeekStartChoice) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -157,6 +160,30 @@ fun DisplayScreen(
             }
             Text(
                 text = stringResource(R.string.money_grouping_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+
+            FtSectionLabel(stringResource(R.string.week_starts), Modifier.padding(top = 8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(
+                    WeekStartChoice.Auto to R.string.week_auto,
+                    WeekStartChoice.Monday to R.string.week_monday,
+                    WeekStartChoice.Sunday to R.string.week_sunday,
+                    WeekStartChoice.Saturday to R.string.week_saturday,
+                ).forEach { (choice, label) ->
+                    FtChip(
+                        label = stringResource(label),
+                        selected = weekStart == choice,
+                        onClick = { onWeekStart(choice) },
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.week_starts_note),
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
             )

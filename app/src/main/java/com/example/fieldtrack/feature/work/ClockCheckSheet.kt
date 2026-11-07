@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.compose.foundation.layout.Arrangement
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -212,7 +213,7 @@ private fun dayLabel(dayStart: Long, now: Long): String {
 private fun daysBetween(since: Long, now: Long): List<Long> {
     val last = ClockCheck.midnightOf(now)
     val days = mutableListOf<Long>()
-    val cursor = Calendar.getInstance().apply { timeInMillis = ClockCheck.midnightOf(since) }
+    val cursor = Calendar.getInstance(BusinessClock.timeZone).apply { timeInMillis = ClockCheck.midnightOf(since) }
     while (cursor.timeInMillis <= last && days.size < 62) {
         days += cursor.timeInMillis
         cursor.add(Calendar.DAY_OF_YEAR, 1)

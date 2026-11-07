@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature
 
 import androidx.compose.runtime.Composable
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
@@ -105,7 +106,7 @@ fun spokenDuration(context: android.content.Context, totalSeconds: Long): String
 fun isSameDay(a: Long, b: Long): Boolean = startOfToday(a) == startOfToday(b)
 
 /** Day boundaries, used for "today" on the home screen. */
-fun startOfToday(now: Long): Long = Calendar.getInstance().apply {
+fun startOfToday(now: Long): Long = Calendar.getInstance(BusinessClock.timeZone).apply {
     timeInMillis = now
     set(Calendar.HOUR_OF_DAY, 0)
     set(Calendar.MINUTE, 0)
@@ -115,7 +116,7 @@ fun startOfToday(now: Long): Long = Calendar.getInstance().apply {
 
 @Composable
 fun greetingFor(now: Long): String {
-    val hour = Calendar.getInstance().apply { timeInMillis = now }.get(Calendar.HOUR_OF_DAY)
+    val hour = Calendar.getInstance(BusinessClock.timeZone).apply { timeInMillis = now }.get(Calendar.HOUR_OF_DAY)
     val res = when {
         hour < 12 -> R.string.home_greeting_morning
         hour < 17 -> R.string.home_greeting_afternoon
@@ -124,22 +125,18 @@ fun greetingFor(now: Long): String {
     return androidx.compose.ui.res.stringResource(res)
 }
 
-fun clockTime(millis: Long): String = java.text.SimpleDateFormat("h:mm a", Locale.getDefault())
-    .format(java.util.Date(millis))
+fun clockTime(millis: Long): String = formatDate(datePattern("jmm"), millis)
 
 /** "9 Oct" — dates on a khata line, where the year is almost never in question. */
-fun dayMonth(millis: Long): String = java.text.SimpleDateFormat("d MMM", Locale.getDefault())
-    .format(java.util.Date(millis))
+fun dayMonth(millis: Long): String = formatDate(datePattern("dMMM"), millis)
 
 /** "October 2026" — the heading over a month's worth of rows. */
 fun monthYear(millis: Long): String =
-    java.text.SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-        .format(java.util.Date(millis))
+    formatDate(datePattern("MMMMy"), millis)
 
 /** "10 Oct 2026" — on a bill, where the year is part of the record. */
 fun dayMonthYear(millis: Long): String =
-    java.text.SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-        .format(java.util.Date(millis))
+    formatDate(datePattern("dMMMy"), millis)
 
 /**
  * How long a debt has been outstanding.
@@ -184,12 +181,12 @@ fun measure(amount: Double, unit: MeasureUnit): String =
 /** "10" — the day, for a list read down its dates. */
 @Composable
 fun dayOfMonth(millis: Long): String =
-    java.text.SimpleDateFormat("d", Locale.getDefault()).format(java.util.Date(millis))
+    formatDate("d", millis)
 
 /** "Oct" — the month, under the day. */
 @Composable
 fun monthShort(millis: Long): String =
-    java.text.SimpleDateFormat("MMM", Locale.getDefault()).format(java.util.Date(millis))
+    formatDate(datePattern("MMM"), millis)
 
 /**
  * Seven bars, Monday first, with today picked out.
@@ -203,10 +200,14 @@ fun WeekBars(hours: List<Double>, modifier: Modifier = Modifier) {
     val colors = FieldTrackTheme.colors
     val peak = hours.maxOrNull()?.takeIf { it > 0 } ?: 1.0
     val today = weekdayIndex(System.currentTimeMillis())
-    val labels = listOf(
-        R.string.day_mon, R.string.day_tue, R.string.day_wed, R.string.day_thu,
-        R.string.day_fri, R.string.day_sat, R.string.day_sun,
+    val byDay = mapOf(
+        java.util.Calendar.MONDAY to R.string.day_mon, java.util.Calendar.TUESDAY to R.string.day_tue,
+        java.util.Calendar.WEDNESDAY to R.string.day_wed, java.util.Calendar.THURSDAY to R.string.day_thu,
+        java.util.Calendar.FRIDAY to R.string.day_fri, java.util.Calendar.SATURDAY to R.string.day_sat,
+        java.util.Calendar.SUNDAY to R.string.day_sun,
     )
+    // The week is drawn from whichever day this person starts it on.
+    val labels = com.example.fieldtrack.data.settings.WeekRules.order().map { byDay.getValue(it) }
 
     Row(
         modifier.fillMaxWidth(),
@@ -332,6 +333,13 @@ val MeasureUnit.labelRes: Int
         MeasureUnit.Bag -> R.string.unit_bag
         MeasureUnit.Piece -> R.string.unit_piece
         MeasureUnit.Kilometre -> R.string.unit_km
+        MeasureUnit.Hectare -> R.string.unit_hectare
+        MeasureUnit.SquareMetre -> R.string.unit_sqm
+        MeasureUnit.Bale -> R.string.unit_bale
+        MeasureUnit.Tonne -> R.string.unit_tonne
+        MeasureUnit.Bushel -> R.string.unit_bushel
+        MeasureUnit.Kilogram -> R.string.unit_kg
+        MeasureUnit.Litre -> R.string.unit_litre
     }
 
 val BillingMode.labelRes: Int
@@ -407,11 +415,15 @@ fun iconForWork(workType: String, machineKind: MachineKind): ImageVector =
 /** The units that make sense for a billing mode. */
 fun unitsFor(mode: BillingMode): List<MeasureUnit> = when (mode) {
     BillingMode.PerAcre -> listOf(
-        MeasureUnit.Acre, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha, MeasureUnit.Katha
+        MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal,
+        MeasureUnit.Guntha, MeasureUnit.Katha, MeasureUnit.SquareMetre,
     )
     BillingMode.PerHour -> listOf(MeasureUnit.Hour)
     BillingMode.PerTrip -> listOf(MeasureUnit.Trip)
-    BillingMode.PerUnit -> listOf(MeasureUnit.Quintal, MeasureUnit.Bag, MeasureUnit.Piece)
+    BillingMode.PerUnit -> listOf(
+        MeasureUnit.Quintal, MeasureUnit.Bag, MeasureUnit.Piece, MeasureUnit.Bale,
+        MeasureUnit.Tonne, MeasureUnit.Bushel, MeasureUnit.Kilogram, MeasureUnit.Litre,
+    )
     BillingMode.PerKm -> listOf(MeasureUnit.Kilometre)
     BillingMode.Fixed -> listOf(MeasureUnit.Piece)
 }

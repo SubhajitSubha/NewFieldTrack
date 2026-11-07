@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.home
 
 import com.example.fieldtrack.data.db.MachineKind
+import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.db.entity.JobEntity
@@ -212,7 +213,7 @@ fun overdueAlert(
  */
 fun <T> lastSevenDays(items: List<T>, now: Long, at: (T) -> Long, value: (T) -> Double): List<Double> {
     val today = startOfToday(now)
-    val first = Calendar.getInstance().apply {
+    val first = Calendar.getInstance(BusinessClock.timeZone).apply {
         timeInMillis = today
         add(Calendar.DAY_OF_YEAR, -6)
     }.timeInMillis
@@ -230,7 +231,7 @@ fun <T> lastSevenDays(items: List<T>, now: Long, at: (T) -> Long, value: (T) -> 
 
 private fun dayIndexFrom(first: Long, millis: Long): Int {
     val start = startOfToday(millis)
-    val cursor = Calendar.getInstance().apply { timeInMillis = first }
+    val cursor = Calendar.getInstance(BusinessClock.timeZone).apply { timeInMillis = first }
     var index = 0
     while (cursor.timeInMillis < start && index < 8) {
         cursor.add(Calendar.DAY_OF_YEAR, 1)

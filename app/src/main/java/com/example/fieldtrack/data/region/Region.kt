@@ -24,6 +24,7 @@ object Region {
         val country: String?,
         val currencyCode: String,
         val landUnit: MeasureUnit,
+        val fiscalStartMonth: Int = 1,
     )
 
     /**
@@ -41,12 +42,15 @@ object Region {
         return runCatching { Currency.getInstance(Locale("", country)).currencyCode }.getOrNull()
     }
 
-    /** What land is usually measured in where the guess lands. Settable: it is a habit, not a law. */
-    fun landUnitOf(country: String?): MeasureUnit = when (country) {
-        // Hectares are added with the other units; until a business picks, the acre is the
-        // measure most of the countries that still use one of their own agree on.
-        else -> MeasureUnit.Acre
-    }
+    /** Where land is still sold by the acre. Everywhere else it is the hectare. */
+    private val ACRE_COUNTRIES = setOf("US", "GB", "IE", "CA", "LR", "MM", "IN", "PK", "BD", "NP", "LK")
+
+    /**
+     * What land is usually measured in where the guess lands. Settable: it is a habit,
+     * not a law, and a bigha or a kanal is something only a person can say.
+     */
+    fun landUnitOf(country: String?): MeasureUnit =
+        if (country == null || country in ACRE_COUNTRIES) MeasureUnit.Acre else MeasureUnit.Hectare
 
     fun guess(simCountry: String?, networkCountry: String?, locale: Locale = Locale.getDefault()): Guess {
         val country = countryOf(simCountry, networkCountry, locale)
@@ -54,6 +58,7 @@ object Region {
             country = country,
             currencyCode = currencyOf(country) ?: "USD",
             landUnit = landUnitOf(country),
+            fiscalStartMonth = fiscalStartMonthOf(country),
         )
     }
 
@@ -93,6 +98,46 @@ object Region {
         val front = (listOfNotNull(first) + COMMON).distinct().mapNotNull { byCode[it] }
         val frontCodes = front.map { it.code }.toSet()
         return front + all.filter { it.code !in frontCodes }.sortedBy { it.name.lowercase(locale) }
+    }
+
+    /** A time zone as a person picks it: the city, and where it sits against UTC. */
+    data class ZoneOption(val id: String, val city: String, val offset: String, val offsetSeconds: Int)
+
+    private val ZONE_AREAS = setOf(
+        "Africa", "America", "Antarctica", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific",
+    )
+
+    /** "UTC+05:30" for a zone right now (daylight saving included, because that is the clock people live by). */
+    fun offsetLabel(zone: java.time.ZoneId, at: java.time.Instant = java.time.Instant.now()): String {
+        val total = zone.rules.getOffset(at).totalSeconds
+        val sign = if (total < 0) "-" else "+"
+        val a = kotlin.math.abs(total)
+        return "UTC%s%02d:%02d".format(sign, a / 3600, (a % 3600) / 60)
+    }
+
+    /** Every zone the platform knows by a city, in the order the sun reaches them. */
+    fun timeZones(at: java.time.Instant = java.time.Instant.now()): List<ZoneOption> =
+        java.time.ZoneId.getAvailableZoneIds()
+            .filter { id -> id.substringBefore('/') in ZONE_AREAS && '/' in id }
+            .mapNotNull { id ->
+                runCatching {
+                    val zone = java.time.ZoneId.of(id)
+                    ZoneOption(
+                        id = id,
+                        city = id.substringAfterLast('/').replace('_', ' '),
+                        offset = offsetLabel(zone, at),
+                        offsetSeconds = zone.rules.getOffset(at).totalSeconds,
+                    )
+                }.getOrNull()
+            }
+            .sortedWith(compareBy({ it.offsetSeconds }, { it.id }))
+
+    /** The accounting year most countries keep, as the month it begins. Settable. */
+    fun fiscalStartMonthOf(country: String?): Int = when (country) {
+        "IN", "GB", "NZ", "JP", "HK", "SG" -> 4
+        "PK", "BD", "NP", "AU", "KE", "EG", "TZ", "UG" -> 7
+        "ZA" -> 3
+        else -> 1
     }
 
     private val COMMON = listOf(

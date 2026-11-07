@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.work
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.designsystem.format.Money
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.lifecycle.viewModelScope
@@ -274,7 +275,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
         onSaved(jobId)
     }
 
-    private fun startOfDay(millis: Long): Long = Calendar.getInstance().apply {
+    private fun startOfDay(millis: Long): Long = Calendar.getInstance(BusinessClock.timeZone).apply {
         timeInMillis = millis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)

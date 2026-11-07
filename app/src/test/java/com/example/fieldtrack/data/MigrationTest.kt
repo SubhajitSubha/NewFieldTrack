@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(17, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(18, c.getInt(0))
         }
     }
 
@@ -371,6 +371,22 @@ class MigrationTest {
         )
         db.query("SELECT amountMinor FROM ledger_entries WHERE id = 'l9'").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(12_345L, c.getLong(0))
+        }
+    }
+
+    @Test
+    fun `every business keeps its April year and follows the phone's zone`() {
+        create(17) {
+            it.execSQL(
+                "INSERT INTO organisations (id, name, defaultLandUnit, currencyCode, moneyStepMinor, driversSeeAll, " +
+                    "createdAt, updatedAt, syncState) VALUES ('o1', 'Singh Agro', 'Acre', 'INR', 100, 0, 1, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT fiscalStartMonth, timeZoneId FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("every business so far was Indian", 4, c.getInt(0))
+            assertTrue("nothing back-filled: no zone is a choice, it follows the phone", c.isNull(1))
         }
     }
 }

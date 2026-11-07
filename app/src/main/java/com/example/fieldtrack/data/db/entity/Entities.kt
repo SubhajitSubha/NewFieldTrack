@@ -84,6 +84,19 @@ data class OrgEntity(
     @ColumnInfo(defaultValue = "100")
     val moneyStepMinor: Long = 100,
     /**
+     * The month the business's accounting year begins, 1 to 12. Bills are numbered
+     * within it and a statement can cover it. Rows from before this existed were all
+     * Indian, which is why April is the default and not January.
+     */
+    @ColumnInfo(defaultValue = "4")
+    val fiscalStartMonth: Int = 4,
+    /**
+     * The time zone the business's days are counted in, as a platform zone id such as
+     * `Asia/Kolkata`. Null follows the phone, which is right until a phone is set to
+     * the wrong zone or carried across one.
+     */
+    val timeZoneId: String? = null,
+    /**
      * When this business's seasons begin, as [com.example.fieldtrack.data.season.SeasonCalendar]
      * writes them. Null until somebody sets them, which reads as the usual June and
      * November — and stays null rather than being filled in with those, so that the

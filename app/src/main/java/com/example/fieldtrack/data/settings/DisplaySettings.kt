@@ -71,6 +71,23 @@ class DisplaySettings(context: Context) {
         applyGrouping(choice)
     }
 
+    private val _weekStart by lazy {
+        MutableStateFlow(
+            prefs.getString(KEY_WEEK_START, null)
+                ?.let { saved -> WeekStartChoice.entries.firstOrNull { it.name == saved } }
+                ?: WeekStartChoice.Auto
+        )
+    }
+    val weekStart: StateFlow<WeekStartChoice> get() = _weekStart.asStateFlow()
+
+    init { WeekRules.apply(_weekStart.value) }
+
+    fun setWeekStart(choice: WeekStartChoice) {
+        prefs.edit().putString(KEY_WEEK_START, choice.name).apply()
+        _weekStart.value = choice
+        WeekRules.apply(choice)
+    }
+
     private val _biggerText by lazy { MutableStateFlow(prefs.getBoolean(KEY_BIGGER_TEXT, false)) }
     val biggerText: StateFlow<Boolean> get() = _biggerText.asStateFlow()
 
@@ -89,6 +106,7 @@ class DisplaySettings(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_BIGGER_TEXT = "biggerText"
         const val KEY_GROUPING = "grouping"
+        const val KEY_WEEK_START = "weekStart"
 
         /**
          * How much bigger "bigger text" is. On top of the phone's own font size,

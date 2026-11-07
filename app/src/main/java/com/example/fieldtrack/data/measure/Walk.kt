@@ -104,6 +104,8 @@ object Land {
         MeasureUnit.Acre -> 1.0
         MeasureUnit.Kanal -> 8.0
         MeasureUnit.Guntha -> 40.0
+        MeasureUnit.Hectare -> ACRE_SQUARE_METRES / 10_000.0
+        MeasureUnit.SquareMetre -> ACRE_SQUARE_METRES
         else -> null
     }
 

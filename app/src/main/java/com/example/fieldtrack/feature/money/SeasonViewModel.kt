@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.money
 
 import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
@@ -100,7 +101,7 @@ class SeasonViewModel(private val app: FieldFlowApplication) : ViewModel() {
     ) { sessionAndSeasons, chosen -> sessionAndSeasons to chosen }
         .flatMapLatest { (sessionAndSeasons, chosen) ->
             val (s, seasons) = sessionAndSeasons
-            val zone = ZoneId.systemDefault()
+            val zone = BusinessClock.zone
             val now = System.currentTimeMillis()
             val thisSeason = seasons.current(now, zone)
             val shown = when (chosen) {

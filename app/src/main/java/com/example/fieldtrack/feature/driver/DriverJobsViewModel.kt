@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.driver
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.EntryMethod
@@ -134,19 +135,14 @@ class DriverJobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     private fun DriverPeriod.startMillis(now: Long, seasons: SeasonCalendar): Long = when (this) {
         DriverPeriod.Week -> startOfWeek(now)
-        DriverPeriod.Month -> Calendar.getInstance().apply {
+        DriverPeriod.Month -> Calendar.getInstance(BusinessClock.timeZone).apply {
             timeInMillis = startOfToday(now)
             set(Calendar.DAY_OF_MONTH, 1)
         }.timeInMillis
         DriverPeriod.Season -> seasons.current(now).startMillis()
     }
 
-    private fun startOfWeek(now: Long): Long = Calendar.getInstance().apply {
-        timeInMillis = startOfToday(now)
-        // Monday first: the week a contractor is paid by, not the calendar's Sunday.
-        firstDayOfWeek = Calendar.MONDAY
-        set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-    }.timeInMillis
+    private fun startOfWeek(now: Long): Long = com.example.fieldtrack.feature.fleet.startOfWeek(now)
 
     private companion object {
         const val DAY_MILLIS = 24L * 60 * 60 * 1000

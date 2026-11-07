@@ -21,7 +21,7 @@ fun monthName(month: Int): String =
  * may begin, and a date that exists in every year is the only kind that can.
  */
 fun dayMonthOf(month: Int, day: Int): String =
-    DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()).format(LocalDate.of(2001, month, day))
+    DateTimeFormatter.ofPattern(com.example.fieldtrack.feature.datePattern("dMMM"), Locale.getDefault()).format(LocalDate.of(2001, month, day))
 
 /** "Kharif 1 Jun", or just "1 Jun" when the season has no name. */
 @Composable

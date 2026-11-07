@@ -895,13 +895,16 @@ private fun MainNavHost(navController: NavHostController) {
                 val theme by settings.theme.collectAsStateWithLifecycle()
                 val bigger by settings.biggerText.collectAsStateWithLifecycle()
                 val grouping by settings.grouping.collectAsStateWithLifecycle()
+                val weekStart by settings.weekStart.collectAsStateWithLifecycle()
                 DisplayScreen(
                     theme = theme,
                     biggerText = bigger,
                     grouping = grouping,
+                    weekStart = weekStart,
                     onTheme = settings::setTheme,
                     onBiggerText = settings::setBiggerText,
                     onGrouping = settings::setGrouping,
+                    onWeekStart = settings::setWeekStart,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -925,6 +928,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onCurrency = vm::setCurrency,
                     onWholeUnits = vm::setWholeUnits,
+                    onFiscalStartMonth = vm::setFiscalStartMonth,
+                    onTimeZone = vm::setTimeZone,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
             }

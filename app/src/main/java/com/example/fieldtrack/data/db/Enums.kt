@@ -24,7 +24,10 @@ enum class BillingMode {
 /** How land or output is measured. Regional, so the business picks its own default. */
 enum class MeasureUnit {
     Acre, Bigha, Kanal, Guntha, Katha,
-    Hour, Trip, Quintal, Bag, Piece, Kilometre;
+    Hour, Trip, Quintal, Bag, Piece, Kilometre,
+
+    /** Added with the worldwide units: ground in the metric system, and the loads and weights sold by it. */
+    Hectare, SquareMetre, Bale, Tonne, Bushel, Kilogram, Litre;
 
     /**
      * Whether this measures ground.
@@ -35,7 +38,7 @@ enum class MeasureUnit {
      */
     val isLand: Boolean
         get() = this == Acre || this == Bigha || this == Kanal ||
-            this == Guntha || this == Katha
+            this == Guntha || this == Katha || this == Hectare || this == SquareMetre
 }
 
 enum class JobStatus { Running, Paused, Completed, Discarded }

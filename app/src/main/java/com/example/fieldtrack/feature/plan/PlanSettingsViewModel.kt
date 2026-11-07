@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.plan
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.plan.PlanDay
@@ -30,7 +31,7 @@ data class PlanSettingsState(
 
     /** True when it is earlier than the day starts, so the plan is still on the day before. */
     val stillYesterday: Boolean
-        get() = planDay < LocalDate.now().toEpochDay()
+        get() = planDay < LocalDate.now(BusinessClock.zone).toEpochDay()
 }
 
 /** How this business reads its plan: when the day turns over, and what drivers see. */

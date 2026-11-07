@@ -147,6 +147,13 @@
     <string name="unit_quintal">Quintal</string>
     <string name="unit_bag">Bag</string>
     <string name="unit_km">km</string>
+    <string name="unit_hectare">Hectare</string>
+    <string name="unit_sqm">Sq m</string>
+    <string name="unit_bale">Bale</string>
+    <string name="unit_tonne">Tonne</string>
+    <string name="unit_bushel">Bushel</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_litre">Litre</string>
 
     <plurals name="field_earned_jobs">
         <item quantity="one">from %d job</item>
@@ -1784,9 +1791,9 @@
     <string name="onboard_region_title">How you count</string>
     <string name="onboard_region_caption">We guessed these from your phone. Change anything that is wrong. You can change them later in Profile.</string>
     <string name="onboard_money_in">You keep your accounts in</string>
-    <string name="profile_money">Money</string>
+    <string name="profile_money">Money and region</string>
     <string name="profile_money_summary">%1$s · %2$s</string>
-    <string name="money_title">Money</string>
+    <string name="money_title">Money and region</string>
     <string name="money_currency">Currency</string>
     <string name="money_locked_title">The currency is locked</string>
     <string name="money_locked_body">This business already has amounts in its books. Changing the currency would read every one of them in a different money, so it stays as it is. To keep books in another currency, start another business.</string>
@@ -1802,4 +1809,17 @@
     <string name="money_grouping_indian">1,00,000</string>
     <string name="money_grouping_international">100,000</string>
     <string name="money_grouping_note">How big numbers are written on this phone. Only this phone; it changes no bill.</string>
+    <string name="week_starts">The week starts on</string>
+    <string name="week_auto">Like my phone</string>
+    <string name="week_monday">Monday</string>
+    <string name="week_sunday">Sunday</string>
+    <string name="week_saturday">Saturday</string>
+    <string name="week_starts_note">Where the week begins for the week\'s bars and weekly totals. Only this phone.</string>
+    <string name="money_fiscal">Accounting year starts in</string>
+    <string name="money_fiscal_note">Bills are numbered within this year, and a statement can cover it. Bills already made keep their number.</string>
+    <string name="zone_title">Time zone</string>
+    <string name="zone_phone">Like my phone</string>
+    <string name="zone_pick_title">Pick a time zone</string>
+    <string name="zone_search_hint">Search by city</string>
+    <string name="zone_note">A booking, a day\'s work and "today" are counted in this zone, wherever the phone is.</string>
 </resources>

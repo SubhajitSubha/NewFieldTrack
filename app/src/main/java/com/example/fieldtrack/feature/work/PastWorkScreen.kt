@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.work
 
 import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.compose.foundation.background
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.clickable
@@ -428,7 +429,7 @@ private fun clockOf(minutes: Int): String {
 /** Midnight today, computed once per composition. */
 @Composable
 private fun remember0(): Long = androidx.compose.runtime.remember {
-    java.util.Calendar.getInstance().apply {
+    java.util.Calendar.getInstance(BusinessClock.timeZone).apply {
         set(java.util.Calendar.HOUR_OF_DAY, 0)
         set(java.util.Calendar.MINUTE, 0)
         set(java.util.Calendar.SECOND, 0)

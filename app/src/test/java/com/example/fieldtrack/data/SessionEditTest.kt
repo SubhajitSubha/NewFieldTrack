@@ -310,4 +310,49 @@ class SessionEditTest {
         assertEquals(1L, store.current()!!.moneyStepMinor)
         assertEquals("INR", store.current()!!.currencyCode)
     }
+
+    // --------------------------------------------------------------- calendar
+
+    @Test
+    fun `the accounting year and the zone are kept, queued, and followed by the screens`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(7, "Australia/Sydney")
+        val session = store.current()!!
+        assertEquals(7, session.fiscalStartMonth)
+        assertEquals("Australia/Sydney", session.timeZoneId)
+        val org = h.db.orgDao().observeOrg(session.orgId).first()!!
+        assertEquals(7, org.fiscalStartMonth)
+        assertEquals("Australia/Sydney", org.timeZoneId)
+        assertEquals("what counts the day follows the business", java.time.ZoneId.of("Australia/Sydney"), com.example.fieldtrack.data.region.BusinessClock.zone)
+        assertEquals(7, com.example.fieldtrack.data.region.BusinessClock.fiscalStartMonth)
+        assertTrue("it reaches the other phones", "organisations" in outboxTables())
+        com.example.fieldtrack.data.region.BusinessClock.use(null, 4)
+    }
+
+    @Test
+    fun `a zone the phone does not know is not saved`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(4, "Mars/Olympus")
+        assertEquals(null, store.current()!!.timeZoneId)
+        assertEquals(null, h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!.timeZoneId)
+    }
+
+    @Test
+    fun `a bill is numbered in the year of the business it belongs to`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(1, "UTC")
+        val orgId = store.current()!!.orgId
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(id = "c1", orgId = orgId, name = "Ramesh", createdAt = 1, updatedAt = 1)
+        )
+        val job = h.work.startJob(
+            orgId = orgId, customerId = "c1", workType = "Rotavator",
+            billingMode = com.example.fieldtrack.data.db.BillingMode.PerAcre, unit = MeasureUnit.Acre, rateMinor = 100_000,
+        )
+        h.work.setQuantity(orgId, job, 2.0)
+        h.work.complete(orgId, job)
+        val year = h.work.observeJob(orgId, job).first()!!.billFy
+        assertEquals("a calendar-year business numbers from January", java.time.Instant.ofEpochMilli(h.nowMillis).atZone(java.time.ZoneId.of("UTC")).year.toString(), year)
+        com.example.fieldtrack.data.region.BusinessClock.use(null, 4)
+    }
 }

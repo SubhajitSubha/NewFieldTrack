@@ -354,7 +354,7 @@ private fun ColumnScope.LandUnitPicker(state: OnboardingState, onLandUnit: (Meas
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         listOf(
-            MeasureUnit.Acre, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha
+            MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha
         ).forEach { unit ->
             FtChip(
                 label = stringResource(unit.labelRes),

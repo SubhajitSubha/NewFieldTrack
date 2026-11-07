@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.home
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -268,7 +269,7 @@ private fun SyncMark(pending: Int, stuck: Boolean, onClick: () -> Unit, modifier
 
 /** "Monday, 26 October". */
 fun longDate(millis: Long): String =
-    SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date(millis))
+    com.example.fieldtrack.feature.formatDate(com.example.fieldtrack.feature.datePattern("EEEEdMMMM"), millis)
 
 /** A section heading with an optional way to see the rest. */
 @Composable
@@ -727,7 +728,7 @@ private fun lastSevenDayLetters(now: Long): List<Int> {
         Calendar.SATURDAY to R.string.day_sat,
         Calendar.SUNDAY to R.string.day_sun,
     )
-    val calendar = Calendar.getInstance().apply {
+    val calendar = Calendar.getInstance(BusinessClock.timeZone).apply {
         timeInMillis = now
         add(Calendar.DAY_OF_YEAR, -6)
     }

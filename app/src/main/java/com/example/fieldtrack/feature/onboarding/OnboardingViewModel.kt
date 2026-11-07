@@ -28,6 +28,8 @@ data class OnboardingState(
     val currencyCode: String = "INR",
     /** The country the phone guessed, which puts that country's currency first in the picker. */
     val guessedCurrency: String? = null,
+    /** From the phone's country, used without asking; changeable in Profile. */
+    val fiscalStartMonth: Int = 4,
     val machineKind: MachineKind = MachineKind.Tractor,
     val machineName: String = "",
     val saving: Boolean = false,
@@ -60,6 +62,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 currencyCode = guess.currencyCode,
                 guessedCurrency = guess.currencyCode,
                 landUnit = guess.landUnit,
+                fiscalStartMonth = guess.fiscalStartMonth,
             )
         }
     )
@@ -99,6 +102,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
             isBusiness = current.ownerKind == OwnerKind.Business,
             currencyCode = current.currencyCode,
             moneyStepMinor = MoneyStyle.defaultStepMinor(current.currencyCode),
+            fiscalStartMonth = current.fiscalStartMonth,
         )
 
         if (current.machineName.isNotBlank()) {

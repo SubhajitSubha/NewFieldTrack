@@ -33,6 +33,7 @@ import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.format.MoneyStyle
+import com.example.fieldtrack.feature.season.monthName
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,9 @@ data class MoneySettingsState(
     /** True once amounts have been written, after which the currency cannot be changed. */
     val locked: Boolean = false,
     val stepMinor: Long = 100,
+    val fiscalStartMonth: Int = 4,
+    /** Null follows the phone. */
+    val timeZoneId: String? = null,
     val saving: Boolean = false,
 ) {
     val digits: Int get() = MoneyStyle.digitsOf(currencyCode)
@@ -88,6 +92,8 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
                     guessedCurrency = Region.detect(app).currencyCode,
                     locked = locked,
                     stepMinor = org?.moneyStepMinor ?: s.moneyStepMinor,
+                    fiscalStartMonth = org?.fiscalStartMonth ?: s.fiscalStartMonth,
+                    timeZoneId = org?.timeZoneId ?: s.timeZoneId,
                 )
             }
         }
@@ -102,6 +108,10 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
         it.copy(stepMinor = if (whole) MoneyStyle.pow10(it.digits) else 1L)
     }
 
+    fun setFiscalStartMonth(month: Int) = _state.update { if (it.allowed) it.copy(fiscalStartMonth = month) else it }
+
+    fun setTimeZone(id: String?) = _state.update { if (it.allowed) it.copy(timeZoneId = id) else it }
+
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
         if (!current.canSave) return@launch
@@ -109,6 +119,9 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
         val result = runCatching {
             app.sessionStore.updateMoney(current.currencyCode, current.stepMinor)
         }.getOrNull()
+        if (result == SessionStore.MoneyChange.Saved) {
+            runCatching { app.sessionStore.updateCalendar(current.fiscalStartMonth, current.timeZoneId) }
+        }
         _state.update {
             it.copy(
                 saving = false,
@@ -126,12 +139,15 @@ fun MoneySettingsScreen(
     onBack: () -> Unit,
     onCurrency: (String) -> Unit,
     onWholeUnits: (Boolean) -> Unit,
+    onFiscalStartMonth: (Int) -> Unit,
+    onTimeZone: (String?) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
     var picking by rememberSaveable { mutableStateOf(false) }
+    var pickingZone by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize().background(colors.paper)) {
         FtTopBar(
@@ -195,6 +211,43 @@ fun MoneySettingsScreen(
                 )
             }
 
+            FtSectionLabel(stringResource(R.string.money_fiscal), Modifier.padding(top = 4.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                (1..12).forEach { month ->
+                    FtChip(
+                        label = monthName(month),
+                        selected = state.fiscalStartMonth == month,
+                        onClick = { if (state.allowed) onFiscalStartMonth(month) },
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.money_fiscal_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+
+            FtSectionLabel(stringResource(R.string.zone_title), Modifier.padding(top = 4.dp))
+            FtCard(padding = 0.dp) {
+                val zone = state.timeZoneId
+                FtListRow(
+                    title = if (zone == null) stringResource(R.string.zone_phone)
+                    else zone.substringAfterLast('/').replace('_', ' '),
+                    subtitle = (zone ?: java.time.ZoneId.systemDefault().id) + " · " +
+                        Region.offsetLabel(com.example.fieldtrack.data.region.BusinessClock.zoneOf(zone)),
+                    showChevron = state.allowed,
+                    onClick = { pickingZone = true }.takeIf { state.allowed },
+                )
+            }
+            Text(
+                text = stringResource(R.string.zone_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+
             if (!state.allowed) {
                 Text(
                     text = stringResource(R.string.edit_not_allowed),
@@ -215,6 +268,13 @@ fun MoneySettingsScreen(
         }
     }
 
+    if (pickingZone) {
+        TimeZonePickerSheet(
+            currentId = state.timeZoneId,
+            onPick = { onTimeZone(it); pickingZone = false },
+            onDismiss = { pickingZone = false },
+        )
+    }
     if (picking) {
         CurrencyPickerSheet(
             current = state.currencyCode,

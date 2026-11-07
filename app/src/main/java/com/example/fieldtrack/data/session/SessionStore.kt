@@ -1,5 +1,6 @@
 package com.example.fieldtrack.data.session
 
+import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.designsystem.format.Money
 import com.example.fieldtrack.designsystem.format.MoneyStyle
 import android.content.Context
@@ -53,6 +54,9 @@ data class Session(
     /** The business's currency, and how its bills are rounded. */
     val currencyCode: String = "INR",
     val moneyStepMinor: Long = 100,
+    /** When the business's accounting year begins, and the zone its days are counted in. */
+    val fiscalStartMonth: Int = 4,
+    val timeZoneId: String? = null,
 ) {
     val canSeeMoney: Boolean get() = Capability.SeeMoney in can
 
@@ -87,6 +91,7 @@ sealed interface Startup {
             // business with its own currency shows in it from the first frame, and
             // switching business changes every figure at once.
             Money.style = session.money
+            BusinessClock.use(session.timeZoneId, session.fiscalStartMonth)
         }
     }
 }
@@ -187,6 +192,8 @@ class SessionStore(
             can = Capabilities.of(membership),
             currencyCode = org?.currencyCode ?: "INR",
             moneyStepMinor = org?.moneyStepMinor ?: 100L,
+            fiscalStartMonth = org?.fiscalStartMonth ?: 4,
+            timeZoneId = org?.timeZoneId,
         )
         _startup.value = Startup.Ready(session)
         return session
@@ -207,6 +214,7 @@ class SessionStore(
         isBusiness: Boolean,
         currencyCode: String = "INR",
         moneyStepMinor: Long = 100,
+        fiscalStartMonth: Int = 4,
     ): Session {
         val now = clock.now()
         val personId = prefs.getString(KEY_PERSON, null) ?: ids.newId()
@@ -218,6 +226,7 @@ class SessionStore(
             defaultLandUnit = landUnit,
             currencyCode = currencyCode,
             moneyStepMinor = moneyStepMinor,
+            fiscalStartMonth = fiscalStartMonth,
             createdAt = now,
             updatedAt = now,
         )
@@ -269,6 +278,7 @@ class SessionStore(
             can = Capabilities.of(membership),
             currencyCode = currencyCode,
             moneyStepMinor = moneyStepMinor,
+            fiscalStartMonth = fiscalStartMonth,
         )
     }
 
@@ -374,6 +384,27 @@ class SessionStore(
             session.copy(currencyCode = currencyCode, moneyStepMinor = step)
         )
         return MoneyChange.Saved
+    }
+
+    /**
+     * Sets when the business's accounting year begins and which zone its days are counted in.
+     *
+     * Free to change at any time. Bills already made keep the year they were numbered in;
+     * the next one is numbered in the new calendar, from one.
+     */
+    suspend fun updateCalendar(fiscalStartMonth: Int, timeZoneId: String?) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        val month = fiscalStartMonth.coerceIn(1, 12)
+        val zone = timeZoneId?.takeIf { it.isNotBlank() && runCatching { java.time.ZoneId.of(it) }.isSuccess }
+        if (month == org.fiscalStartMonth && zone == org.timeZoneId) return
+        val updated = org.copy(fiscalStartMonth = month, timeZoneId = zone, updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+        _startup.value = Startup.Ready(session.copy(fiscalStartMonth = month, timeZoneId = zone))
     }
 
     /**
@@ -896,6 +927,8 @@ class SessionStore(
             can = Capabilities.of(membership),
             currencyCode = org?.currencyCode ?: session.currencyCode,
             moneyStepMinor = org?.moneyStepMinor ?: session.moneyStepMinor,
+            fiscalStartMonth = org?.fiscalStartMonth ?: session.fiscalStartMonth,
+            timeZoneId = org?.timeZoneId ?: session.timeZoneId,
         )
         if (fresh == session) return
         // Only if nothing moved while the rows were being read: a switch of business

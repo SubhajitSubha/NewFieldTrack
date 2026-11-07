@@ -1,5 +1,7 @@
 package com.example.fieldtrack.feature.fleet
 
+import com.example.fieldtrack.data.settings.WeekRules
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
@@ -104,17 +106,15 @@ class FleetViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 }
 
-/** Midnight on the Monday of the week containing [now]. */
-fun startOfWeek(now: Long): Long {
-    val calendar = Calendar.getInstance().apply { timeInMillis = startOfToday(now) }
-    // Calendar weeks start on Sunday in many locales; the chart reads Monday first.
-    val shift = (calendar.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
-    calendar.add(Calendar.DAY_OF_YEAR, -shift)
+/** Midnight on the first day of the week containing [now], as this person counts the week. */
+fun startOfWeek(now: Long, firstDay: Int = WeekRules.firstDay): Long {
+    val calendar = Calendar.getInstance(BusinessClock.timeZone).apply { timeInMillis = startOfToday(now) }
+    calendar.add(Calendar.DAY_OF_YEAR, -WeekRules.indexOf(calendar.get(Calendar.DAY_OF_WEEK), firstDay))
     return calendar.timeInMillis
 }
 
-/** 0 for Monday through 6 for Sunday. */
-fun weekdayIndex(millis: Long): Int {
-    val day = Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.DAY_OF_WEEK)
-    return (day - Calendar.MONDAY + 7) % 7
+/** 0 for the first day of the week through 6 for the last. */
+fun weekdayIndex(millis: Long, firstDay: Int = WeekRules.firstDay): Int {
+    val day = Calendar.getInstance(BusinessClock.timeZone).apply { timeInMillis = millis }.get(Calendar.DAY_OF_WEEK)
+    return WeekRules.indexOf(day, firstDay)
 }

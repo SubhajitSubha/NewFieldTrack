@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.driver
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.feature.plan.PlanSummary
@@ -99,7 +100,7 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
     private val core: Flow<DriverHomeState> = app.sessionStore.session.flatMapLatest { s ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
-        val weekStart = Calendar.getInstance().apply {
+        val weekStart = Calendar.getInstance(BusinessClock.timeZone).apply {
             timeInMillis = dayStart
             add(Calendar.DAY_OF_YEAR, -6)
         }.timeInMillis

@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.customer
 
 import com.example.fieldtrack.data.db.LedgerKind
+import com.example.fieldtrack.data.region.BusinessClock
 import com.example.fieldtrack.data.db.entity.LedgerEntryEntity
 import com.example.fieldtrack.data.season.SeasonCalendar
 import java.time.Instant
@@ -13,11 +14,15 @@ enum class StatementPeriod { Season, FinancialYear, ThreeMonths, SinceSettled, C
 /** What goes on it. */
 enum class StatementContent { Everything, UnpaidOnly, PaymentsOnly, PickedJobs }
 
-/** The first day of the financial year in progress, which starts in April. */
-fun financialYearStart(now: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
+/** The first day of the financial year in progress, which starts in the business's own month. */
+fun financialYearStart(
+    now: Long,
+    zone: ZoneId = BusinessClock.zone,
+    startMonth: Int = BusinessClock.fiscalStartMonth,
+): LocalDate {
     val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-    return if (today.monthValue >= 4) LocalDate.of(today.year, 4, 1)
-    else LocalDate.of(today.year - 1, 4, 1)
+    return if (today.monthValue >= startMonth) LocalDate.of(today.year, startMonth, 1)
+    else LocalDate.of(today.year - 1, startMonth, 1)
 }
 
 /**
@@ -60,7 +65,7 @@ fun periodStart(
      */
     seasons: SeasonCalendar,
     customStart: Long? = null,
-    zone: ZoneId = ZoneId.systemDefault(),
+    zone: ZoneId = BusinessClock.zone,
 ): Long? = when (period) {
     StatementPeriod.Season -> seasons.current(now, zone).startMillis(zone)
     StatementPeriod.FinancialYear ->

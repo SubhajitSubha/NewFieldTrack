@@ -1,17 +1,25 @@
 package com.example.fieldtrack.data.db
 
 import java.time.Instant
+import com.example.fieldtrack.data.region.BusinessClock
 import java.time.ZoneId
 
 /**
- * Which financial year a date falls in, Indian style: 1 April to 31 March.
+ * Which financial year a date falls in, in the business's own accounting calendar.
  *
- * Returned as "2026-27". A bill raised on 31 March 2027 belongs to 2026-27; one
- * raised the next morning starts 2027-28 at number one.
+ * With the year starting in April, returned as "2026-27": a bill raised on 31 March
+ * 2027 belongs to 2026-27 and one raised the next morning starts 2027-28 at number
+ * one. A business whose year is the calendar year gets plain "2026", because two
+ * years joined by a dash would imply a year that straddles New Year when it does not.
  */
-fun financialYear(atMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+fun financialYear(
+    atMillis: Long,
+    zone: ZoneId = BusinessClock.zone,
+    startMonth: Int = BusinessClock.fiscalStartMonth,
+): String {
     val date = Instant.ofEpochMilli(atMillis).atZone(zone).toLocalDate()
-    val startYear = if (date.monthValue >= 4) date.year else date.year - 1
+    if (startMonth == 1) return date.year.toString()
+    val startYear = if (date.monthValue >= startMonth) date.year else date.year - 1
     return "$startYear-${((startYear + 1) % 100).toString().padStart(2, '0')}"
 }
 

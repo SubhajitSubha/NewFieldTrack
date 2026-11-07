@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.home
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.feature.plan.PlanSummary
@@ -94,7 +95,7 @@ class YardHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
     private val core: Flow<YardHomeState> = app.seasonedSession.flatMapLatest { (s, seasons) ->
         val now = System.currentTimeMillis()
         val dayStart = startOfToday(now)
-        val zone = ZoneId.systemDefault()
+        val zone = BusinessClock.zone
         val season = seasons.current(now, zone)
         val seasonFrom = season.startMillis(zone)
 

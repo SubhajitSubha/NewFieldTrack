@@ -101,7 +101,8 @@ data class PriceState(
 
 /** Units that only come in whole numbers: nobody carries 2.5 trips or sells 1.5 bags. */
 val MeasureUnit.countsWhole: Boolean
-    get() = this == MeasureUnit.Trip || this == MeasureUnit.Bag || this == MeasureUnit.Piece
+    get() = this == MeasureUnit.Trip || this == MeasureUnit.Bag || this == MeasureUnit.Piece ||
+        this == MeasureUnit.Bale
 
 /**
  * The price calculator: work, how it is charged, how much, at what rate.

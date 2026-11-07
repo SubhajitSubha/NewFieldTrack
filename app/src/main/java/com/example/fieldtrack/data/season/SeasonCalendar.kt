@@ -1,6 +1,7 @@
 package com.example.fieldtrack.data.season
 
 import kotlinx.serialization.Serializable
+import com.example.fieldtrack.data.region.BusinessClock
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -24,7 +25,7 @@ import java.time.ZoneId
 class SeasonCalendar private constructor(val starts: List<SeasonStart>) {
 
     /** The season that includes [now]. */
-    fun current(now: Long, zone: ZoneId = ZoneId.systemDefault()): Season {
+    fun current(now: Long, zone: ZoneId = BusinessClock.zone): Season {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         // This year's starts and last year's: the latest one not after today. Last
         // year's are always before it, so there is always one — which is what makes
@@ -44,7 +45,7 @@ class SeasonCalendar private constructor(val starts: List<SeasonStart>) {
      * length (June to November is five months, November to June is seven) and
      * arithmetic on months would land in the wrong one.
      */
-    fun previous(now: Long, zone: ZoneId = ZoneId.systemDefault()): Season {
+    fun previous(now: Long, zone: ZoneId = BusinessClock.zone): Season {
         val dayBefore = current(now, zone).start.minusDays(1)
         return current(dayBefore.atStartOfDay(zone).toInstant().toEpochMilli(), zone)
     }
@@ -144,6 +145,6 @@ data class SeasonStart(val month: Int, val day: Int, val name: String? = null) {
 /** One season of one year: the day it began and its name. */
 data class Season(val start: LocalDate, val name: String?) {
     /** The first moment of it, in the phone's own time: what a query for "since the season began" takes. */
-    fun startMillis(zone: ZoneId = ZoneId.systemDefault()): Long =
+    fun startMillis(zone: ZoneId = BusinessClock.zone): Long =
         start.atStartOfDay(zone).toInstant().toEpochMilli()
 }

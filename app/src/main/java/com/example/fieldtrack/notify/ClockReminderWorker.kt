@@ -1,6 +1,7 @@
 package com.example.fieldtrack.notify
 
 import android.content.Context
+import com.example.fieldtrack.data.region.BusinessClock
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -59,7 +60,7 @@ class ClockReminderWorker(
         }
 
         internal fun millisUntilNext(hour: Int, now: Long = System.currentTimeMillis()): Long {
-            val next = Calendar.getInstance().apply {
+            val next = Calendar.getInstance(BusinessClock.timeZone).apply {
                 timeInMillis = now
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, 0)

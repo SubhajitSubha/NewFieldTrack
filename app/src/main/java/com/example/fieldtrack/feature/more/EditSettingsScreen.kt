@@ -250,7 +250,7 @@ fun EditSettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         listOf(
-                            MeasureUnit.Acre, MeasureUnit.Bigha,
+                            MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha,
                             MeasureUnit.Kanal, MeasureUnit.Guntha,
                         ).forEach { unit ->
                             FtChip(

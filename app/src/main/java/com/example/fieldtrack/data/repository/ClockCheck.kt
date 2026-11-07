@@ -1,6 +1,7 @@
 package com.example.fieldtrack.data.repository
 
 import android.content.Context
+import com.example.fieldtrack.data.region.BusinessClock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +34,7 @@ object ClockCheck {
     }
 
     /** Local midnight at the start of the day [millis] falls in. */
-    fun midnightOf(millis: Long): Long = Calendar.getInstance().apply {
+    fun midnightOf(millis: Long): Long = Calendar.getInstance(BusinessClock.timeZone).apply {
         timeInMillis = millis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)

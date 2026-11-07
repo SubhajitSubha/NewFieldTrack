@@ -1,5 +1,6 @@
 package com.example.fieldtrack.data.repository
 
+import com.example.fieldtrack.data.region.BusinessClock
 import androidx.room.withTransaction
 import com.example.fieldtrack.data.billing.Billing
 import com.example.fieldtrack.data.db.BillingMode
@@ -499,7 +500,12 @@ class WorkRepository(
             // The bill gets its number as it is raised, from the financial year it
             // falls in. Allocated inside this transaction so two jobs finished at the
             // same moment cannot be given the same one.
-            val financialYear = financialYear(now)
+            val org = db.orgDao().findOrg(orgId)
+            val financialYear = financialYear(
+                now,
+                zone = BusinessClock.zoneOf(org?.timeZoneId),
+                startMonth = org?.fiscalStartMonth ?: 4,
+            )
             val billSeq = jobs.lastBillSeq(orgId, financialYear) + 1
 
             val finished = job.copy(
