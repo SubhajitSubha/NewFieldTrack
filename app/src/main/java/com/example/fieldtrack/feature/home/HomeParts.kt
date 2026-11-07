@@ -174,6 +174,8 @@ fun HomeHeader(
     /** The server refused a change; the mark turns red and says so. */
     stuck: Boolean = false,
     now: Long = System.currentTimeMillis(),
+    /** What the speaker button reads out: the figures on this screen, as sentences. Null for no speaker. */
+    readAloud: String? = null,
 ) {
     val colors = FieldTrackTheme.colors
     Row(
@@ -212,7 +214,15 @@ fun HomeHeader(
             }
             HeardLine(Modifier.padding(top = 2.dp))
         }
-        SyncMark(pendingUploads, stuck, onOpenSync, Modifier.padding(start = 12.dp, top = 2.dp))
+        Column(horizontalAlignment = Alignment.End) {
+            SyncMark(pendingUploads, stuck, onOpenSync, Modifier.padding(start = 12.dp, top = 2.dp))
+            if (readAloud != null) {
+                com.example.fieldtrack.feature.voice.ReadAloudButton(
+                    text = readAloud,
+                    contentDescription = stringResource(R.string.say_cd),
+                )
+            }
+        }
     }
 }
 

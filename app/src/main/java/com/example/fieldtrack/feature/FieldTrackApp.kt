@@ -1288,8 +1288,13 @@ private fun MainNavHost(navController: NavHostController) {
                 var pickingFrom by remember { mutableStateOf(false) }
                 var pickingTo by remember { mutableStateOf(false) }
 
+                val pastContext = LocalContext.current
                 PastWorkScreen(
                     state = state,
+                    onSpoken = { text ->
+                        val (workWords, unitWords) = com.example.fieldtrack.feature.work.spokenWords(pastContext)
+                        vm.applySpoken(vm.understand(text, workWords, unitWords))
+                    },
                     onBack = { navController.popBackStack() },
                     onDay = vm::setDay,
                     onPickDate = { pickingDate = true },

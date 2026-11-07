@@ -137,6 +137,9 @@ fun YardHomeScreen(
                 pendingUploads = state.pendingUploads,
                 onOpenSync = onOpenBackup,
                 stuck = state.uploadsStuck,
+                readAloud = if (state.loaded) stringResource(
+                    R.string.say_yard, state.crew.size + if (state.ownJob != null) 1 else 0, state.machinesWorking, state.machinesDown,
+                ) else null,
             )
         },
         blocks = blocks,

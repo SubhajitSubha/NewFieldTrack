@@ -115,6 +115,7 @@ fun HomeScreen(
                 pendingUploads = state.pendingUploads,
                 onOpenSync = onOpenBackup,
                 stuck = state.uploadsStuck,
+                readAloud = ownerSpeech(state),
             )
         },
         blocks = blocks,
@@ -319,6 +320,25 @@ internal fun TodayList(
                 // at the headland and counted properly over tea an hour later.
                 onClick = onOpenJob?.let { open -> { open(row.jobId) } },
             )
+        }
+    }
+}
+
+
+/** The owner's home as sentences, for the speaker button. Money only for somebody who may see it. */
+@Composable
+private fun ownerSpeech(state: HomeState): String? {
+    if (!state.loaded) return null
+    return buildString {
+        append(
+            if (state.canSeeMoney) pluralStringResource(R.plurals.say_earned_today, state.jobsToday, money(state.earnedTodayMinor), state.jobsToday)
+            else pluralStringResource(R.plurals.say_jobs_today, state.jobsToday, state.jobsToday)
+        )
+        if (state.canSeeMoney && state.owedMinor > 0) {
+            append(" ").append(pluralStringResource(R.plurals.say_owed, state.owingCustomers, money(state.owedMinor), state.owingCustomers))
+        }
+        if (state.alerts.isNotEmpty()) {
+            append(" ").append(pluralStringResource(R.plurals.say_attention, state.alerts.size, state.alerts.size))
         }
     }
 }

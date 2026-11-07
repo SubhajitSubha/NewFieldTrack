@@ -2220,4 +2220,29 @@
     <string name="income_share">Send the income statement</string>
     <string name="field_last_done">Last done here</string>
     <string name="field_season_from">Season from %1$s</string>
+    <string name="past_say">Say it instead</string>
+    <string name="past_say_prompt">Say the work, the farmer and how much</string>
+    <string name="past_say_note">For example: rotavator, Harjit, 3 acre, yesterday. You check it before it is saved.</string>
+    <string name="say_cd">Read this screen aloud</string>
+    <plurals name="say_earned_today">
+        <item quantity="one">Today you earned %1$s from %2$d job.</item>
+        <item quantity="other">Today you earned %1$s from %2$d jobs.</item>
+    </plurals>
+    <plurals name="say_jobs_today">
+        <item quantity="one">Today there is %1$d job.</item>
+        <item quantity="other">Today there are %1$d jobs.</item>
+    </plurals>
+    <plurals name="say_owed">
+        <item quantity="one">%1$s is owed to you by %2$d farmer.</item>
+        <item quantity="other">%1$s is owed to you by %2$d farmers.</item>
+    </plurals>
+    <plurals name="say_attention">
+        <item quantity="one">%1$d thing needs you.</item>
+        <item quantity="other">%1$d things need you.</item>
+    </plurals>
+    <string name="say_yard">%1$d people are out. %2$d machines are working. %3$d machines are down.</string>
+    <plurals name="say_driver_today">
+        <item quantity="one">Today you worked %1$s, on %2$d job.</item>
+        <item quantity="other">Today you worked %1$s, on %2$d jobs.</item>
+    </plurals>
 </resources>

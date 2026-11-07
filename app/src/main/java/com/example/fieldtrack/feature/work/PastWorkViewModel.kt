@@ -15,6 +15,7 @@ import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.repository.OverlapWarning
 import com.example.fieldtrack.feature.WorkTypeOption
+import com.example.fieldtrack.feature.unitsFor
 import com.example.fieldtrack.feature.workTypeOptions
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,6 +132,25 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 
     fun setQuery(value: String) = _state.update { it.copy(query = value) }
+
+    /**
+     * Fills the form from what was said. Only what was understood; the rest stays as it was,
+     * and nothing is saved. The person looks at the boxes and fixes what is off.
+     */
+    fun applySpoken(said: SpokenWork) {
+        said.workType?.let { selectWorkType(it) }
+        said.customer?.let { selectCustomer(it) }
+        said.day?.let { day ->
+            val today = startOfDay(System.currentTimeMillis())
+            setDay(if (day == SpokenDay.Today) today else today - DAY_MILLIS)
+        }
+        said.unit?.takeIf { it in unitsFor(_state.value.billingMode) }?.let { setUnit(it) }
+        said.quantity?.let { setQuantity(it.toString().removeSuffix(".0")) }
+    }
+
+    /** What was said, understood against this business's own farmers and the words for work and units. */
+    fun understand(text: String, workWords: Map<String, WorkTypeOption>, unitWords: Map<String, MeasureUnit>): SpokenWork =
+        SpokenWorkParser.parse(text, _state.value.customers, workWords, unitWords)
 
     fun selectCustomer(customer: CustomerEntity) {
         _state.update { it.copy(customer = customer, query = "") }

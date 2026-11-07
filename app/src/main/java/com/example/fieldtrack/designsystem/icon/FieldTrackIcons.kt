@@ -231,6 +231,12 @@ object FieldTrackIcons {
         circle(12f, 10.5f, 3f)
     }
 
+    val Speaker: ImageVector by chrome("Speaker") {
+        moveTo(11f, 5f); lineTo(6f, 9f); horizontalLineTo(3f); verticalLineTo(15f); horizontalLineTo(6f); lineTo(11f, 19f); close()
+        moveTo(15.5f, 8.5f); arcToRelative(5f, 5f, 0f, false, true, 0f, 7f)
+        moveTo(18.5f, 5.5f); arcToRelative(9f, 9f, 0f, false, true, 0f, 13f)
+    }
+
     val Mic: ImageVector by chrome("Mic") {
         roundRect(9f, 2.5f, 6f, 11f, 3f)
         moveTo(5f, 11f); arcToRelative(7f, 7f, 0f, false, false, 14f, 0f)

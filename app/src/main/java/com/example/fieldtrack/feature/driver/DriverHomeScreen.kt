@@ -15,6 +15,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
+import androidx.compose.ui.res.pluralStringResource
+import com.example.fieldtrack.feature.spokenDuration
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtEmphasisCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
@@ -249,6 +251,9 @@ fun DriverHomeScreen(
                 pendingUploads = state.pendingUploads,
                 onOpenSync = onOpenBackup,
                 stuck = state.uploadsStuck,
+                readAloud = if (state.loaded) pluralStringResource(
+                    R.plurals.say_driver_today, state.jobsToday, spokenDuration(state.secondsToday), state.jobsToday,
+                ) else null,
             )
         },
         blocks = blocks,

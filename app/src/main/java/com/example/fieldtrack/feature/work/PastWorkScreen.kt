@@ -67,6 +67,8 @@ fun PastWorkScreen(
     onQuantity: (String) -> Unit,
     onRate: (String) -> Unit,
     onTerms: (TermsDraft) -> Unit = {},
+    /** What was said, to be understood and put in the form. Null hides the microphone. */
+    onSpoken: ((String) -> Unit)? = null,
     onPickFrom: () -> Unit,
     onPickTo: () -> Unit,
     onForgetTimes: () -> Unit,
@@ -98,6 +100,25 @@ fun PastWorkScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (onSpoken != null) {
+                val voice = com.example.fieldtrack.feature.voice.rememberVoiceInput(
+                    prompt = stringResource(R.string.past_say_prompt), onText = onSpoken,
+                )
+                if (voice.available) {
+                    com.example.fieldtrack.designsystem.component.FtButton(
+                        text = stringResource(R.string.past_say),
+                        onClick = voice.start,
+                        tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary,
+                        icon = com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Mic,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = stringResource(R.string.past_say_note),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                    )
+                }
+            }
             FtCard(background = colors.moneyWash, borderColor = colors.moneyWash) {
                 Text(
                     text = stringResource(R.string.past_why),
