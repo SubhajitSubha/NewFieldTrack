@@ -113,6 +113,8 @@ data class ProfileState(
     /** How the plan is read: the hour its day turns over, and whether drivers see everybody's work. */
     val plan: PlanSettings = PlanSettings(),
     val businessMode: Boolean = false,
+    /** The business asks its crew for proof of work. */
+    val proofOfWork: Boolean = false,
     /** False for a driver, who may not change the business they work for. */
     val canEditBusiness: Boolean = false,
 )
@@ -143,6 +145,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
                 plan = PlanSettings(PlanSettings.cleanHour(org?.planDayStartHour), org?.driversSeeAll ?: false),
                 businessMode = businessMode,
+                proofOfWork = org?.proofOfWork == true,
                 canEditBusiness = Capability.EditBusiness in s.can,
                 orgId = s.orgId,
                 personId = s.personId,
@@ -166,6 +169,8 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 
     fun setBusinessMode(enabled: Boolean) = app.sessionStore.setBusinessMode(enabled)
+
+    fun setProofOfWork(on: Boolean) = viewModelScope.launch { runCatching { app.sessionStore.setProofOfWork(on) } }
 }
 
 /**
@@ -188,6 +193,7 @@ fun ProfileScreen(
     /** Null when this build cannot offer Google, so there is nothing to show. */
     google: GoogleLink? = null,
     onBusinessMode: (Boolean) -> Unit,
+    onProofOfWork: (Boolean) -> Unit = {},
     onSignOut: () -> Unit,
     /** Deletes the account. Null where there is no way to ask the server. */
     onDeleteAccount: (() -> Unit)? = null,
@@ -372,6 +378,39 @@ fun ProfileScreen(
                             uncheckedTrackColor = colors.line,
                         ),
                     )
+                }
+                if (state.canEditBusiness) {
+                    FtRowDivider()
+                    Row(
+                        Modifier
+                            .toggleable(value = state.proofOfWork, role = Role.Switch, onValueChange = onProofOfWork)
+                            .padding(horizontal = 15.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.proof_setting),
+                                style = FieldTrackTheme.type.rowTitle,
+                                color = colors.ink,
+                            )
+                            Text(
+                                text = stringResource(R.string.proof_setting_note),
+                                style = FieldTrackTheme.type.caption,
+                                color = colors.inkTertiary,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+                        Switch(
+                            checked = state.proofOfWork,
+                            onCheckedChange = null,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = colors.onPrimary,
+                                checkedTrackColor = colors.primary,
+                                uncheckedThumbColor = colors.surface,
+                                uncheckedTrackColor = colors.line,
+                            ),
+                        )
+                    }
                 }
             }
 

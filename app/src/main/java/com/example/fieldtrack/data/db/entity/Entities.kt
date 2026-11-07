@@ -128,6 +128,12 @@ data class OrgEntity(
     val planDayStartHour: Int? = null,
     /** Whether a driver sees everybody's bookings, or only their own and the unassigned ones. */
     val driversSeeAll: Boolean = false,
+    /**
+     * Whether the crew is asked for proof of work: the hour meter's reading and a photo of it,
+     * and a mark of where they were, at the start and at the finish. Off until the owner
+     * asks for it, and asked of nobody who is not set up to be.
+     */
+    val proofOfWork: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
     val syncState: SyncState = SyncState.Pending,
@@ -765,6 +771,17 @@ data class JobEntity(
     val lastWriterDeviceId: String? = null,
     /** Bumped on every local write, so a stale server copy is recognisable. */
     val revision: Long = 1,
+    /** What the hour meter read when the work began and when it ended, if anybody noted it. */
+    val meterStart: Double? = null,
+    val meterEnd: Double? = null,
+    /** Where the phone was when the work began and when it ended, if it could say. */
+    val startLat: Double? = null,
+    val startLng: Double? = null,
+    val endLat: Double? = null,
+    val endLng: Double? = null,
+    /** Photos of the meter, by their id in the photo store; see [com.example.fieldtrack.data.photo.PhotoStore]. */
+    val startPhotoId: String? = null,
+    val endPhotoId: String? = null,
 ) {
     /**
      * Whether the hours on the clock are what this job is billed for.

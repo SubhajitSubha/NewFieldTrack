@@ -109,6 +109,6 @@ class RecordsExportTest {
         assertFalse("pay.csv" in names)
         assertFalse("fuel.csv" in names)
         assertEquals("Name,Phone,Village,Note", read(zip, "customers.csv").lines().first())
-        assertEquals("Date,Customer,Field,Machine,Driver,Work,Charged by,Quantity,Unit,Note", read(zip, "jobs.csv").lines().first())
+        assertEquals("Date,Customer,Field,Machine,Driver,Work,Charged by,Quantity,Unit,Meter at start,Meter at end,Note", read(zip, "jobs.csv").lines().first())
     }
 }

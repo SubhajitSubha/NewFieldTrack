@@ -1,0 +1,28 @@
+// Proof-of-work photos, filed under the business: orgs/{orgId}/photos/{id}.jpg
+//
+// Only the business's own members may read or write them, decided against the same
+// membership documents the Firestore rules use, and only small pictures: the app shrinks
+// every photo to about 150 KB before sending, so anything much bigger is not from the app.
+// Needs "Firestore access from Storage rules" to be allowed for the project, which the
+// console asks about the first time these rules are published.
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function memberOf(orgId) {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/orgs/$(orgId)/memberships/$(orgId + '_' + request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/orgs/$(orgId)/memberships/$(orgId + '_' + request.auth.uid)).data.active == true;
+    }
+
+    match /orgs/{orgId}/photos/{photoId} {
+      allow read: if memberOf(orgId);
+      allow create: if memberOf(orgId) && request.resource.size < 600 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

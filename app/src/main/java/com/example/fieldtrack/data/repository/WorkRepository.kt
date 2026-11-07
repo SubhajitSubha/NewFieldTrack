@@ -228,6 +228,38 @@ class WorkRepository(
         }
 
     /**
+     * What the crew noted to prove the work: the meter's reading, a photo of it, and where the
+     * phone was, at the start or at the finish. Only what is given is written; anything left
+     * null keeps what was there, so a photo added later does not blank the reading.
+     */
+    suspend fun recordProof(
+        orgId: String,
+        jobId: String,
+        atFinish: Boolean,
+        meter: Double? = null,
+        photoId: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+    ) = mutate(orgId, jobId) { job ->
+        val changed = if (atFinish) {
+            job.copy(
+                meterEnd = meter ?: job.meterEnd,
+                endPhotoId = photoId ?: job.endPhotoId,
+                endLat = latitude ?: job.endLat,
+                endLng = if (latitude != null) longitude else job.endLng,
+            )
+        } else {
+            job.copy(
+                meterStart = meter ?: job.meterStart,
+                startPhotoId = photoId ?: job.startPhotoId,
+                startLat = latitude ?: job.startLat,
+                startLng = if (latitude != null) longitude else job.startLng,
+            )
+        }
+        changed to if (photoId != null) Event(JobEventType.PhotoAdded, textValue = photoId) else null
+    }
+
+    /**
      * Nudge the billable figure up or down by one step.
      *
      * The step is half a unit for measured work and a whole one for counted work:

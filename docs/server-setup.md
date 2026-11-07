@@ -19,3 +19,7 @@ bottom of ROADMAP.md.
    `google-services.json`.
 6. **Support address.** Fill `support_email` in `app/src/main/res/values/config.xml`.
    While it is empty, the "Write to us" rows are not shown.
+7. **Photo storage.** Proof-of-work photos are held in Firebase Storage. Turn Storage on for the
+   project, then publish `storage.rules` (the console asks to allow the rules to read Firestore
+   the first time). Until it is published, photos stay on the phone that took them and the owner
+   sees the readings and the place but not the picture.

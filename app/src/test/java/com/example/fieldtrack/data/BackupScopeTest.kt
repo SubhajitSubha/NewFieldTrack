@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class BackupScopeTest {
 
-    private val installOnly = listOf("fieldtrack.device.xml", "fieldtrack.sync.xml", "fieldtrack.pull.xml", "clock_check.xml", "field_walk.xml", "clock_notifications.xml", "fieldtrack.push.xml")
+    private val installOnly = listOf("fieldtrack.device.xml", "fieldtrack.sync.xml", "fieldtrack.pull.xml", "clock_check.xml", "field_walk.xml", "clock_notifications.xml", "fieldtrack.push.xml", "fieldtrack.photos.xml")
 
     private fun xml(name: String) = File("src/main/res/xml/$name").readText()
 

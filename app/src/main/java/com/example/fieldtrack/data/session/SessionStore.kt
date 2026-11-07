@@ -466,6 +466,19 @@ class SessionStore(
         _startup.value = Startup.Ready(session.copy(fiscalStartMonth = month, timeZoneId = zone))
     }
 
+    /** Whether the crew is asked for proof of work: the meter, a photo and a mark of where they were. */
+    suspend fun setProofOfWork(on: Boolean) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        if (org.proofOfWork == on) return
+        val updated = org.copy(proofOfWork = on, updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+    }
+
     /**
      * Sets when this business's seasons begin.
      *

@@ -133,7 +133,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
         )
         files["jobs.csv"] = table(
             buildList {
-                addAll(listOf("Date", "Customer", "Field", "Machine", "Driver", "Work", "Charged by", "Quantity", "Unit"))
+                addAll(listOf("Date", "Customer", "Field", "Machine", "Driver", "Work", "Charged by", "Quantity", "Unit", "Meter at start", "Meter at end"))
                 if (scope.money) addAll(listOf("Rate", "Amount", "Bill number"))
                 add("Note")
             },
@@ -142,6 +142,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
                     add(day(j.workedAt)); add(customerName[j.customerId]); add(fieldName[j.fieldId]); add(machineName[j.machineId])
                     add(personName[j.operatorPersonId]); add(j.workType); add(j.billingMode.name)
                     add(j.quantity.toString()); add(j.unit.name)
+                    add(j.meterStart?.toString()); add(j.meterEnd?.toString())
                     if (scope.money) {
                         add(money(j.rateMinor)); add(money(j.amountMinor))
                         add(if (j.billFy != null && j.billSeq != null) formatBillNumber(j.billFy, j.billSeq) else "")

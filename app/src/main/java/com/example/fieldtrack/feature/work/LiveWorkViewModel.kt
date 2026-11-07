@@ -56,6 +56,10 @@ data class LiveWorkState(
     val lastEntryAt: Long? = null,
     /** The clock has run on past what a working day looks like, and nobody has said why. */
     val askAboutClock: Boolean = false,
+    val orgId: String = "",
+    /** The business asks its crew for proof of work. */
+    val proofOn: Boolean = false,
+    val proof: JobProof = JobProof(),
 )
 
 /** Kinds of event that only say the clock is going, which prove no work was done. */
@@ -88,6 +92,7 @@ class LiveWorkViewModel(
         val job: JobEntity?,
         val events: List<JobEventEntity>,
         val confirmed: Int,
+        val proofOn: Boolean = false,
     )
 
     val state: StateFlow<LiveWorkState> = app.sessionStore.session.flatMapLatest { s ->
@@ -95,7 +100,8 @@ class LiveWorkViewModel(
             app.workRepository.observeJob(s.orgId, jobId),
             app.workRepository.observeEvents(jobId),
             app.clockConfirmations.changes,
-        ) { job, events, confirmed -> Clocked(job, events, confirmed) }
+            app.db.orgDao().observeOrg(s.orgId),
+        ) { job, events, confirmed, org -> Clocked(job, events, confirmed, org?.proofOfWork == true) }
 
         combine(
             clocked,
@@ -140,6 +146,12 @@ class LiveWorkViewModel(
                 },
                 askAboutClock = ClockCheck.looksForgotten(since, now) &&
                     !app.clockConfirmations.isConfirmed(job.id, since),
+                orgId = s.orgId,
+                proofOn = c.proofOn,
+                proof = JobProof(
+                    start = ProofEnd(job.meterStart, job.startPhotoId, job.startLat != null),
+                    end = ProofEnd(job.meterEnd, job.endPhotoId, job.endLat != null),
+                ),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveWorkState())
@@ -193,6 +205,13 @@ class LiveWorkViewModel(
     /** The clock stops where the work did, and the job waits paused to be finished. */
     fun stopClockAt(stoppedAt: Long) = withSession {
         runCatching { app.workRepository.stopClockAt(it.orgId, jobId, stoppedAt, it.personId) }
+    }
+
+    /** One note of proof, written on the job the moment it is made. */
+    fun noteProof(note: ProofNote) = withSession {
+        app.workRepository.recordProof(
+            it.orgId, jobId, note.atFinish, note.meter, note.photoId, note.latitude, note.longitude,
+        )
     }
 
     fun handOver(personId: String) = withSession {

@@ -641,8 +641,21 @@ val MIGRATION_22_23 = object : Migration(22, 23) {
     }
 }
 
+/**
+ * 23 to 24: proof of work. The meter's reading, a mark of where the phone was, and a photo,
+ * at the start and the finish of a job; and the business's switch for asking for them.
+ */
+val MIGRATION_23_24 = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        for (column in listOf("meterStart REAL", "meterEnd REAL", "startLat REAL", "startLng REAL", "endLat REAL", "endLng REAL", "startPhotoId TEXT", "endPhotoId TEXT")) {
+            db.execSQL("ALTER TABLE jobs ADD COLUMN $column")
+        }
+        db.execSQL("ALTER TABLE organisations ADD COLUMN proofOfWork INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
 )

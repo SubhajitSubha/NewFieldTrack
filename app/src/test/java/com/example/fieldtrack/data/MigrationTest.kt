@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(23, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(24, c.getInt(0))
         }
     }
 
@@ -483,5 +483,24 @@ class MigrationTest {
             assertTrue(c.isNull(2) && c.isNull(3) && c.isNull(4) && c.isNull(5))
         }
         db.query("SELECT COUNT(*) FROM machine_papers").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
+    }
+
+    @Test
+    fun `jobs and businesses gain the proof of work columns without losing anything`() {
+        create(23) { }
+        val db = open().openHelper.writableDatabase
+        db.query("PRAGMA table_info(organisations)").use { c ->
+            var found = false
+            while (c.moveToNext()) {
+                if (c.getString(c.getColumnIndexOrThrow("name")) == "proofOfWork") {
+                    found = true
+                    assertEquals("off until asked for", "0", c.getString(c.getColumnIndexOrThrow("dflt_value")))
+                }
+            }
+            assertTrue(found)
+        }
+        db.query("SELECT meterStart, meterEnd, startLat, startLng, endLat, endLng, startPhotoId, endPhotoId FROM jobs").use { c ->
+            assertEquals(8, c.columnCount)
+        }
     }
 }

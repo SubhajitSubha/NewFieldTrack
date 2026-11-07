@@ -71,6 +71,7 @@ fun LiveWorkScreen(
     onAmount: (Double) -> Unit,
     onStopClockAt: (Long) -> Unit,
     onClockIsRight: () -> Unit,
+    onProof: (ProofNote) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Which extra panel is open. Local to the screen because it is where the driver
@@ -293,6 +294,7 @@ fun LiveWorkScreen(
         onHandOver = onHandOver,
         onDiscard = onDiscard,
         onAmount = onAmount,
+        onProof = onProof,
     )
 
     if (state.askAboutClock && !clockQuestionSetAside && sheet == WorkSheet.None) {

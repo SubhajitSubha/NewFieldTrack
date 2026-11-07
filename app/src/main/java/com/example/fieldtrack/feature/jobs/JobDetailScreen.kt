@@ -150,6 +150,8 @@ fun JobDetailScreen(
                 CostCard(state = state, onAddCost = onAddCost, onPayCost = onPayCost)
             }
 
+            ProofCard(state)
+
             FtSectionLabel(stringResource(R.string.job_detail_what_happened))
             FtCard(padding = 16.dp) {
                 if (state.events.isEmpty()) {
@@ -751,3 +753,61 @@ private fun CostLine(
 /** Litres without a trailing ".0" on the whole numbers people actually say. */
 private fun formatLitres(litres: Double): String =
     if (litres % 1.0 == 0.0) litres.toLong().toString() else "%.1f".format(litres)
+
+
+/** What was noted to prove the work, if anything: the meter at both ends, where, and the photos. */
+@Composable
+private fun ProofCard(state: JobDetailState) {
+    val p = state.proof
+    val any = p.start.meter != null || p.end.meter != null || p.start.photoId != null || p.end.photoId != null ||
+        state.startPlace != null || state.endPlace != null
+    if (!any) return
+    val colors = FieldTrackTheme.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    FtSectionLabel(stringResource(R.string.proof_title))
+    FtCard(padding = 16.dp) {
+        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+            if (p.start.meter != null || p.end.meter != null) {
+                val from = p.start.meter?.let { com.example.fieldtrack.designsystem.format.quantity(it) } ?: "—"
+                val to = p.end.meter?.let { com.example.fieldtrack.designsystem.format.quantity(it) } ?: "—"
+                Text(stringResource(R.string.proof_meter_line, from, to), style = FieldTrackTheme.type.rowTitle, color = colors.ink)
+                if (p.start.meter != null && p.end.meter != null && p.end.meter >= p.start.meter) {
+                    Text(
+                        stringResource(R.string.proof_meter_diff, com.example.fieldtrack.designsystem.format.quantity(p.end.meter - p.start.meter)),
+                        style = FieldTrackTheme.type.caption, color = colors.inkSecondary,
+                    )
+                }
+            }
+            listOf(
+                R.string.proof_at_start to state.startPlace,
+                R.string.proof_at_finish to state.endPlace,
+            ).forEach { (label, place) ->
+                if (place != null) {
+                    com.example.fieldtrack.designsystem.component.FtButton(
+                        text = stringResource(R.string.proof_open_map, stringResource(label)),
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse("geo:${place.first},${place.second}?q=${place.first},${place.second}"),
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
+                        },
+                        tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            p.start.photoId?.let {
+                Text(stringResource(R.string.proof_at_start), style = FieldTrackTheme.type.caption, color = colors.inkSecondary)
+                com.example.fieldtrack.feature.work.PhotoImage(state.orgId, it)
+            }
+            p.end.photoId?.let {
+                Text(stringResource(R.string.proof_at_finish), style = FieldTrackTheme.type.caption, color = colors.inkSecondary)
+                com.example.fieldtrack.feature.work.PhotoImage(state.orgId, it)
+            }
+        }
+    }
+}

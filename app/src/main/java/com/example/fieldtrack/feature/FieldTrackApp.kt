@@ -2273,6 +2273,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onEditPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
                     onEditMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
                     onBusinessMode = vm::setBusinessMode,
+                    onProofOfWork = vm::setProofOfWork,
                     onBusinesses = { navController.navigate(Routes.ORGS) },
                     onSignOut = {
                         scope.launch {
@@ -2413,6 +2414,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onAmount = vm::setQuantity,
                     onStopClockAt = { vm.stopClockAt(it) },
                     onClockIsRight = vm::confirmClock,
+                    onProof = vm::noteProof,
                 )
             }
 

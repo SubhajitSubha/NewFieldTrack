@@ -399,6 +399,18 @@ abstract class ScreenMatrix(
         runCatching { compose.onNode(hasText("More")).performClick() }
         settle()
         capture("sheets", "work-menu")
+        // With proof of work asked for: the row in the menu, and the sheet behind it.
+        runBlocking { app.sessionStore.setProofOfWork(true) }
+        compose.runOnUiThread { nav.popBackStack() }
+        settle()
+        compose.runOnUiThread { nav.navigate(Routes.live(ids.ownJobId)) }
+        settle()
+        runCatching { compose.onNode(hasText("More")).performClick() }
+        settle()
+        capture("sheets", "work-menu-proof")
+        runCatching { compose.onNode(hasText("Proof of work")).performClick() }
+        settle()
+        capture("sheets", "proof-sheet")
     }
 
     /** A business set up this morning: every list empty, every total nought. */

@@ -2245,4 +2245,24 @@
         <item quantity="one">Today you worked %1$s, on %2$d job.</item>
         <item quantity="other">Today you worked %1$s, on %2$d jobs.</item>
     </plurals>
+    <string name="proof_title">Proof of work</string>
+    <string name="proof_caption">The meter, a photo of it, and where you are</string>
+    <string name="proof_intro">Each of these is optional and saved the moment you do it. They sit on the job, so the owner and the farmer can see what was done.</string>
+    <string name="proof_at_start">When the work began</string>
+    <string name="proof_at_finish">When the work ended</string>
+    <string name="proof_meter">Hour meter reading</string>
+    <string name="proof_meter_note">What the meter on the machine says</string>
+    <string name="proof_save_meter">Save the reading</string>
+    <string name="proof_take_photo">Photograph the meter</string>
+    <string name="proof_retake_photo">Take it again</string>
+    <string name="proof_mark_place">Mark where I am</string>
+    <string name="proof_place_done">Place marked. Mark it again</string>
+    <string name="proof_place_missing">The phone could not find where it is. Try again outside, with location switched on.</string>
+    <string name="proof_photo_cd">Photograph of the machine\'s meter</string>
+    <string name="proof_photo_loading">Fetching the photo…</string>
+    <string name="proof_setting">Ask for proof of work</string>
+    <string name="proof_setting_note">The crew can note the meter, photograph it and mark where they are, at the start and finish of a job.</string>
+    <string name="proof_meter_line">Meter: %1$s to %2$s</string>
+    <string name="proof_meter_diff">%1$s hours on the meter</string>
+    <string name="proof_open_map">Show on the map: %1$s</string>
 </resources>

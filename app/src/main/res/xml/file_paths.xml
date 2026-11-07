@@ -6,5 +6,7 @@
        files: a sent bill can always be made again from the job.
     -->
     <cache-path name="documents" path="documents/" />
+    <!-- A picture the camera is asked to take, before it is shrunk and filed. -->
+    <cache-path name="captures" path="captures/" />
     <external-files-path name="my_images" path="Pictures" />
 </paths>

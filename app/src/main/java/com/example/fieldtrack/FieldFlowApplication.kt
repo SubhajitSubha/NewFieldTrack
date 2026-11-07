@@ -201,6 +201,11 @@ class FieldFlowApplication : Application() {
         com.example.fieldtrack.data.sample.SampleBusiness(this, this)
     }
 
+    /** Photos taken as proof of work: kept here first, sent when there is a signal. */
+    val photoStore: com.example.fieldtrack.data.photo.PhotoStore by lazy {
+        com.example.fieldtrack.data.photo.PhotoStore(this)
+    }
+
     /** Which instant notifications this phone wants. */
     val pushSettings: com.example.fieldtrack.notify.PushSettings by lazy {
         com.example.fieldtrack.notify.PushSettings(this)

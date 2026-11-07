@@ -72,6 +72,11 @@ data class JobDetailState(
     val seesPeopleCost: Boolean = false,
     val canRecordCost: Boolean = false,
     val canPriceCost: Boolean = false,
+    /** What was noted to prove the work, at both ends; empty when nothing was. */
+    val proof: com.example.fieldtrack.feature.work.JobProof = com.example.fieldtrack.feature.work.JobProof(),
+    val startPlace: Pair<Double, Double>? = null,
+    val endPlace: Pair<Double, Double>? = null,
+    val orgId: String = "",
     /**
      * This job's share of the machine's own repairs and loan, for the hours it ran.
      * Null where there is nothing honest to share yet, or this reader may not see
@@ -225,6 +230,13 @@ class JobDetailViewModel(
                 seesPeopleCost = seesPeople,
                 canRecordCost = Capability.RecordWork in s.can,
                 canPriceCost = Capability.PayOut in s.can,
+                proof = com.example.fieldtrack.feature.work.JobProof(
+                    start = com.example.fieldtrack.feature.work.ProofEnd(job.meterStart, job.startPhotoId, job.startLat != null),
+                    end = com.example.fieldtrack.feature.work.ProofEnd(job.meterEnd, job.endPhotoId, job.endLat != null),
+                ),
+                startPlace = job.startLat?.let { la -> job.startLng?.let { ln -> la to ln } },
+                endPlace = job.endLat?.let { la -> job.endLng?.let { ln -> la to ln } },
+                orgId = s.orgId,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), JobDetailState())

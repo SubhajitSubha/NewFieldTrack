@@ -45,7 +45,7 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.labelRes
 
 /** Which panel is open over the running job. */
-enum class WorkSheet { None, Menu, Fuel, Note, Rate, Breakdown, HandOver, Discard, Amount }
+enum class WorkSheet { None, Menu, Fuel, Note, Rate, Breakdown, HandOver, Discard, Amount, Proof }
 
 /**
  * Everything you can do to a job that is already running.
@@ -72,6 +72,7 @@ fun WorkSheets(
     onHandOver: (String) -> Unit,
     onDiscard: () -> Unit,
     onAmount: (Double) -> Unit,
+    onProof: (ProofNote) -> Unit = {},
 ) {
     if (open == WorkSheet.None) return
     val colors = FieldTrackTheme.colors
@@ -106,6 +107,7 @@ fun WorkSheets(
                 WorkSheet.HandOver -> HandOverPanel(state) { id -> onHandOver(id); close() }
                 WorkSheet.Discard -> DiscardPanel(onCancel = close, onConfirm = onDiscard)
                 WorkSheet.Amount -> AmountPanel(state) { amount -> onAmount(amount); close() }
+                WorkSheet.Proof -> ProofPanel(state.orgId, state.proof, onProof)
                 WorkSheet.None -> Unit
             }
         }
@@ -117,6 +119,14 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
     val colors = FieldTrackTheme.colors
     SheetTitle(stringResource(R.string.work_actions_title))
 
+    if (state.proofOn) {
+        ActionRow(
+            icon = FieldTrackIcons.Camera,
+            title = stringResource(R.string.proof_title),
+            subtitle = stringResource(R.string.proof_caption),
+            onClick = { onOpen(WorkSheet.Proof) },
+        )
+    }
     if (state.teammates.isNotEmpty()) {
         ActionRow(
             icon = FieldTrackIcons.Team,
@@ -346,7 +356,7 @@ private fun DiscardPanel(onCancel: () -> Unit, onConfirm: () -> Unit) {
 // ------------------------------------------------------------------ small parts
 
 @Composable
-private fun SheetTitle(text: String) {
+internal fun SheetTitle(text: String) {
     Text(
         text = text,
         style = FieldTrackTheme.type.sectionTitle,
