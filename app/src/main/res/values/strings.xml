@@ -212,6 +212,9 @@
     <string name="method_upi">UPI</string>
     <string name="method_bank">Bank</string>
     <string name="method_cheque">Cheque</string>
+    <string name="method_mobile_money">Mobile money</string>
+    <string name="method_card">Card</string>
+    <string name="method_in_kind">In kind (grain or produce)</string>
 
     <!-- ============================== offline ================================= -->
     <string name="sync_title">Saving &amp; backup</string>
@@ -1381,9 +1384,9 @@
     <string name="edit_business_phone">Phone number</string>
     <string name="edit_business_address">Village and address</string>
     <string name="edit_business_address_hint">Village Kheri, Tehsil Fatehabad</string>
-    <string name="edit_business_gstin">GSTIN</string>
-    <string name="edit_business_gstin_note">Only if you are registered. Most farm work is not.</string>
-    <string name="edit_business_upi">UPI id for payments</string>
+    <string name="edit_business_gstin">Tax registration number</string>
+    <string name="edit_business_gstin_note">GSTIN, VAT number and the like. Only if you are registered; most farm work is not.</string>
+    <string name="edit_business_upi">UPI id (India)</string>
     <string name="edit_business_upi_hint">name@bank</string>
     <string name="edit_business_upi_note">Shown on the bill so a customer can pay you from the field.</string>
     <string name="edit_unit_note">New jobs will be measured in this. Work already recorded keeps the unit it was measured in.</string>
@@ -1822,4 +1825,28 @@
     <string name="zone_pick_title">Pick a time zone</string>
     <string name="zone_search_hint">Search by city</string>
     <string name="zone_note">A booking, a day\'s work and "today" are counted in this zone, wherever the phone is.</string>
+    <string name="phone_country_title">Country code</string>
+    <string name="phone_country_search">Search by country or code</string>
+    <string name="signin_or">or</string>
+    <string name="signin_google">Continue with Google</string>
+    <string name="signin_err_no_google">There is no Google account on this phone. Add one in the phone\'s settings, or use your number.</string>
+    <string name="signin_err_google_taken">That Google account is already used for another sign-in here. Use your number, or pick a different account.</string>
+    <string name="account_google_offer">Add your Google account so you can always get back in, even if you lose this phone or change your number.</string>
+    <string name="account_google_add">Add Google account</string>
+    <string name="account_google_linked">You can also sign in with Google (%1$s).</string>
+    <string name="account_google_taken">That Google account is already used for another sign-in here.</string>
+    <string name="account_google_none">There is no Google account on this phone.</string>
+    <string name="language_title">Language</string>
+    <string name="language_auto">Like my phone</string>
+    <string name="language_note">Only this phone. Anything not yet translated stays in English.</string>
+    <string name="pay_methods_title">Ways customers pay you</string>
+    <string name="pay_methods_note">These are offered when you record a payment. Cash is always there. Payments already recorded keep their way.</string>
+    <string name="pay_details_label">Payment details for bills</string>
+    <string name="pay_details_hint">Bank account, mobile money number…</string>
+    <string name="pay_details_note">Printed on each bill under "Pay to". Leave empty to print nothing.</string>
+    <string name="tax_title">Sales tax</string>
+    <string name="tax_name_label">Name of the tax</string>
+    <string name="tax_name_hint">GST, VAT, sales tax</string>
+    <string name="tax_rate_label">Rate</string>
+    <string name="tax_note">Leave empty if you charge none. Your prices already include it; bills show how much of the total is tax.</string>
 </resources>

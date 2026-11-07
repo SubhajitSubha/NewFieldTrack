@@ -49,7 +49,7 @@ import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.labelRes
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import androidx.compose.foundation.layout.Spacer
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 
@@ -123,7 +123,7 @@ fun JobDetailScreen(
                             Text(
                                 text = listOfNotNull(
                                     stringResource(R.string.job_detail_drove_it),
-                                    state.operatorPhone?.let { formatIndianPhone(it) },
+                                    state.operatorPhone?.let { formatPhone(it) },
                                 ).joinToString(" · "),
                                 style = FieldTrackTheme.type.caption,
                                 color = colors.inkTertiary,

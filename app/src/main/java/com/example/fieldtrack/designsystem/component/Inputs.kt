@@ -46,6 +46,8 @@ fun FtTextField(
     helper: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     prefix: String? = null,
+    /** Makes the prefix something to tap, as a country code is. */
+    onPrefixClick: (() -> Unit)? = null,
     suffix: String? = null,
     focused: Boolean = false,
     onVoiceInput: (() -> Unit)? = null,
@@ -81,7 +83,20 @@ fun FtTextField(
                 )
             }
             if (prefix != null) {
-                Text(prefix, style = FieldTrackTheme.type.body, color = colors.inkTertiary)
+                if (onPrefixClick != null) {
+                    Text(
+                        prefix,
+                        style = FieldTrackTheme.type.body.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.W600,
+                        ),
+                        color = colors.primary,
+                        modifier = Modifier
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onPrefixClick)
+                            .padding(vertical = 14.dp),
+                    )
+                } else {
+                    Text(prefix, style = FieldTrackTheme.type.body, color = colors.inkTertiary)
+                }
             }
             Box(Modifier.weight(1f)) {
                 if (value.isEmpty() && placeholder.isNotEmpty()) {

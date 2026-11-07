@@ -189,7 +189,7 @@ import com.example.fieldtrack.feature.work.PickCustomerSheet
 import com.example.fieldtrack.feature.work.StartWorkScreen
 import com.example.fieldtrack.feature.work.StartWorkViewModel
 import kotlinx.coroutines.launch
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import com.example.fieldtrack.feature.invite.SentCodesScreen
 import com.example.fieldtrack.feature.invite.SentCodesViewModel
 import com.example.fieldtrack.feature.team.HandOverScreen
@@ -366,8 +366,15 @@ fun FieldTrackApp(
                 val vm: SignInViewModel = viewModel {
                     SignInViewModel(
                         auth = FirebasePhoneAuth(activityProvider = { activity }),
+                        google = com.example.fieldtrack.data.auth.FirebaseGoogleAuth(
+                            context = app,
+                            activityProvider = { activity },
+                        ),
+                        defaultDial = com.example.fieldtrack.data.auth.PhoneNumbers.dialOf(
+                            com.example.fieldtrack.data.region.Region.detect(app).country
+                        ) ?: com.example.fieldtrack.data.auth.PhoneNumbers.LEGACY_DIAL,
                         onSignedIn = { user ->
-                            app.sessionStore.recordSignIn(user.uid, user.phone)
+                            app.sessionStore.recordSignIn(user.uid, user.phone, user.email)
                             // An account turned off must not be signed back into
                             // simply by proving the number again. Checked here as
                             // well as on every sync, because sign-in is the one
@@ -396,7 +403,8 @@ fun FieldTrackApp(
                 BackHandler(enabled = state.step == SignInStep.Code) { vm.changeNumber() }
                 SignInScreen(
                     state = state,
-                    onDigits = vm::setDigits,
+                    onPhone = vm::setPhone,
+                    onGoogle = vm::signInWithGoogle,
                     onCode = vm::setCode,
                     onSendCode = vm::sendCode,
                     onVerify = vm::verify,
@@ -896,15 +904,23 @@ private fun MainNavHost(navController: NavHostController) {
                 val bigger by settings.biggerText.collectAsStateWithLifecycle()
                 val grouping by settings.grouping.collectAsStateWithLifecycle()
                 val weekStart by settings.weekStart.collectAsStateWithLifecycle()
+                val language by settings.language.collectAsStateWithLifecycle()
+                val hostActivity = LocalContext.current as? android.app.Activity
                 DisplayScreen(
                     theme = theme,
                     biggerText = bigger,
                     grouping = grouping,
                     weekStart = weekStart,
+                    language = language,
                     onTheme = settings::setTheme,
                     onBiggerText = settings::setBiggerText,
                     onGrouping = settings::setGrouping,
                     onWeekStart = settings::setWeekStart,
+                    onLanguage = { tag ->
+                        settings.setLanguage(tag)
+                        // The text is read from the context the activity was made with.
+                        hostActivity?.recreate()
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -930,6 +946,10 @@ private fun MainNavHost(navController: NavHostController) {
                     onWholeUnits = vm::setWholeUnits,
                     onFiscalStartMonth = vm::setFiscalStartMonth,
                     onTimeZone = vm::setTimeZone,
+                    onToggleMethod = vm::toggleMethod,
+                    onPayDetails = vm::setPayDetails,
+                    onTaxName = vm::setTaxName,
+                    onTaxPercent = vm::setTaxPercent,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
             }
@@ -1935,6 +1955,9 @@ private fun MainNavHost(navController: NavHostController) {
                 LaunchedEffect(Unit) { unsent = app.sessionStore.unsentCount() }
                 val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
+                val googleAuth = remember { com.example.fieldtrack.data.auth.FirebaseGoogleAuth(context = app, activityProvider = { activity }) }
+                var googleEmail by remember { mutableStateOf(googleAuth.linkedEmail() ?: state.signedInEmail) }
+                var googleNote by remember { mutableStateOf<Int?>(null) }
                 ProfileScreen(
                     state = state,
                     onBack = { navController.popBackStack() },
@@ -1965,6 +1988,28 @@ private fun MainNavHost(navController: NavHostController) {
                         }
                     } else null,
                     unsentCount = unsent,
+                    google = if (googleAuth.available) {
+                        com.example.fieldtrack.feature.more.GoogleLink(
+                            email = googleEmail,
+                            note = googleNote?.let { stringResource(it) },
+                            onAdd = {
+                                scope.launch {
+                                    googleNote = null
+                                    when (googleAuth.link()) {
+                                        is com.example.fieldtrack.data.auth.GoogleResult.Done -> {
+                                            googleEmail = googleAuth.linkedEmail()
+                                            app.sessionStore.recordLinkedEmail(googleEmail)
+                                        }
+                                        com.example.fieldtrack.data.auth.GoogleResult.AlreadyUsed ->
+                                            googleNote = R.string.account_google_taken
+                                        com.example.fieldtrack.data.auth.GoogleResult.NoAccount ->
+                                            googleNote = R.string.account_google_none
+                                        else -> Unit
+                                    }
+                                }
+                            },
+                        )
+                    } else null,
                 )
             }
 
@@ -2174,14 +2219,7 @@ private fun billDocumentFor(
 ): Document.Bill {
     val unit = stringResource(state.unit.labelRes)
     val dateLabel = dayMonthYear(state.billedAtMillis ?: System.currentTimeMillis())
-    val methodLabel = stringResource(
-        when (method) {
-            com.example.fieldtrack.data.db.PaymentMethod.Upi -> R.string.method_upi
-            com.example.fieldtrack.data.db.PaymentMethod.Bank -> R.string.method_bank
-            com.example.fieldtrack.data.db.PaymentMethod.Cheque -> R.string.method_cheque
-            else -> R.string.method_cash
-        }
-    )
+    val methodLabel = stringResource((method ?: com.example.fieldtrack.data.db.PaymentMethod.Cash).labelRes)
     return Document.Bill(
         style = com.example.fieldtrack.designsystem.format.Money.style,
         letterhead = Letterhead(
@@ -2190,11 +2228,14 @@ private fun billDocumentFor(
             phone = state.businessPhone?.ifBlank { null },
             gstin = state.businessGstin?.ifBlank { null },
             upiId = state.businessUpiId?.ifBlank { null },
+            payDetails = state.businessPayDetails?.ifBlank { null },
+            taxName = state.businessTaxName?.ifBlank { null },
+            taxPercentBps = state.businessTaxBps,
         ),
         customer = Party(
             name = state.customerName,
             addressLine = state.customerVillage?.ifBlank { null },
-            phone = state.customerPhone?.ifBlank { null }?.let { formatIndianPhone(it) },
+            phone = state.customerPhone?.ifBlank { null }?.let { formatPhone(it) },
         ),
         billNumber = state.billNumber,
         dateLabel = dateLabel,
@@ -2240,7 +2281,7 @@ private fun receiptFor(
         // The letterhead, each line only when the business has filled it in.
         listOfNotNull(
             state.businessAddress?.takeIf { it.isNotBlank() },
-            state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
+            state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatPhone(it) },
         ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
         appendLine()
         appendLine("${state.customerName}")

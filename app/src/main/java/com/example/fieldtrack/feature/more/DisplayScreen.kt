@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.selection.toggleable
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.settings.AppLanguage
 import com.example.fieldtrack.data.settings.GroupingChoice
 import com.example.fieldtrack.data.settings.WeekStartChoice
 import com.example.fieldtrack.data.settings.ThemeChoice
@@ -49,10 +50,12 @@ fun DisplayScreen(
     biggerText: Boolean,
     grouping: GroupingChoice,
     weekStart: WeekStartChoice,
+    language: String?,
     onTheme: (ThemeChoice) -> Unit,
     onBiggerText: (Boolean) -> Unit,
     onGrouping: (GroupingChoice) -> Unit,
     onWeekStart: (WeekStartChoice) -> Unit,
+    onLanguage: (String?) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -163,6 +166,34 @@ fun DisplayScreen(
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
             )
+
+            // Only when there is a language to choose besides English, which is what any
+            // text not yet translated falls back to.
+            if (AppLanguage.SUPPORTED.size > 1) {
+                FtSectionLabel(stringResource(R.string.language_title), Modifier.padding(top = 8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FtChip(
+                        label = stringResource(R.string.language_auto),
+                        selected = language == null,
+                        onClick = { onLanguage(null) },
+                    )
+                    AppLanguage.SUPPORTED.forEach { tag ->
+                        FtChip(
+                            label = AppLanguage.nativeName(tag),
+                            selected = language == tag,
+                            onClick = { onLanguage(tag) },
+                        )
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.language_note),
+                    style = FieldTrackTheme.type.caption,
+                    color = colors.inkTertiary,
+                )
+            }
 
             FtSectionLabel(stringResource(R.string.week_starts), Modifier.padding(top = 8.dp))
             FlowRow(

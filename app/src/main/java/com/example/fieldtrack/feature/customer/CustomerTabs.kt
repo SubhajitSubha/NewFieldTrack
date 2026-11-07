@@ -244,17 +244,12 @@ fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?) {
     }
 }
 
-private fun PaymentMethod?.labelRes(): Int = when (this) {
-    PaymentMethod.Upi -> R.string.method_upi
-    PaymentMethod.Bank -> R.string.method_bank
-    PaymentMethod.Cheque -> R.string.method_cheque
-    else -> R.string.method_cash
-}
-
 private fun PaymentMethod?.icon() = when (this) {
     PaymentMethod.Upi -> FieldTrackIcons.Mic
     PaymentMethod.Bank -> FieldTrackIcons.Report
     PaymentMethod.Cheque -> FieldTrackIcons.Bill
+    PaymentMethod.MobileMoney -> FieldTrackIcons.Mic
+    PaymentMethod.Card -> FieldTrackIcons.Report
     else -> FieldTrackIcons.money()
 }
 

@@ -156,11 +156,11 @@ object FieldTrackIcons {
         moveTo(18f, 6f); lineTo(6f, 18f)
     }
 
-    val Back: ImageVector by chrome("Back") {
+    val Back: ImageVector by chrome("Back", mirrored = true) {
         moveTo(15f, 5f); lineTo(8f, 12f); lineTo(15f, 19f)
     }
 
-    val Forward: ImageVector by chrome("Forward") {
+    val Forward: ImageVector by chrome("Forward", mirrored = true) {
         moveTo(9f, 5f); lineTo(16f, 12f); lineTo(9f, 19f)
     }
 
@@ -327,10 +327,14 @@ private const val MACHINE_VIEWPORT = 32f
 private const val CHROME_VIEWPORT = 24f
 
 private fun machine(name: String, block: PathBuilder.() -> Unit) =
-    strokeIcon(name, MACHINE_VIEWPORT, 34f, block)
+    strokeIcon(name, MACHINE_VIEWPORT, 34f, false, block)
 
-private fun chrome(name: String, block: PathBuilder.() -> Unit) =
-    strokeIcon(name, CHROME_VIEWPORT, 24f, block)
+/**
+ * [mirrored] is for glyphs that point somewhere (back, forward): in a right-to-left
+ * language "back" points right, so the drawing flips with the layout.
+ */
+private fun chrome(name: String, mirrored: Boolean = false, block: PathBuilder.() -> Unit) =
+    strokeIcon(name, CHROME_VIEWPORT, 24f, mirrored, block)
 
 /**
  * Lazily builds a stroke-only [ImageVector]. Lazy because an icon object holds every
@@ -341,6 +345,7 @@ private fun strokeIcon(
     name: String,
     viewport: Float,
     sizeDp: Float,
+    mirrored: Boolean,
     block: PathBuilder.() -> Unit,
 ) = lazy(LazyThreadSafetyMode.NONE) {
     ImageVector.Builder(
@@ -349,6 +354,7 @@ private fun strokeIcon(
         defaultHeight = sizeDp.dp,
         viewportWidth = viewport,
         viewportHeight = viewport,
+        autoMirror = mirrored,
     ).apply {
         path(
             stroke = SolidColor(Color.Black),

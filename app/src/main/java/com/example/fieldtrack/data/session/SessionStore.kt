@@ -57,7 +57,12 @@ data class Session(
     /** When the business's accounting year begins, and the zone its days are counted in. */
     val fiscalStartMonth: Int = 4,
     val timeZoneId: String? = null,
+    /** The ways customers pay, as stored: names joined by commas, or null for the usual ones. */
+    val paymentMethods: String? = null,
 ) {
+    val methodsOffered: List<com.example.fieldtrack.data.db.PaymentMethod>
+        get() = com.example.fieldtrack.data.billing.PaymentMethods.offered(paymentMethods, currencyCode)
+
     val canSeeMoney: Boolean get() = Capability.SeeMoney in can
 
     /** The business's money, written the way this person reads it. */
@@ -92,6 +97,7 @@ sealed interface Startup {
             // switching business changes every figure at once.
             Money.style = session.money
             BusinessClock.use(session.timeZoneId, session.fiscalStartMonth)
+            Money.methods = session.methodsOffered
         }
     }
 }
@@ -194,6 +200,7 @@ class SessionStore(
             moneyStepMinor = org?.moneyStepMinor ?: 100L,
             fiscalStartMonth = org?.fiscalStartMonth ?: 4,
             timeZoneId = org?.timeZoneId,
+            paymentMethods = org?.paymentMethods,
         )
         _startup.value = Startup.Ready(session)
         return session
@@ -387,6 +394,44 @@ class SessionStore(
     }
 
     /**
+     * Sets how customers pay, what to print under "Pay to", and the optional tax line.
+     *
+     * Free to change at any time: the methods only decide what is offered for the next
+     * payment, and a payment already recorded keeps its method.
+     */
+    suspend fun updateBilling(
+        methods: List<com.example.fieldtrack.data.db.PaymentMethod>,
+        payDetails: String?,
+        taxName: String?,
+        taxPercentBps: Int?,
+    ) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        val usual = com.example.fieldtrack.data.billing.PaymentMethods.defaultsFor(org.currencyCode)
+        val chosen = com.example.fieldtrack.data.billing.PaymentMethods.offered(
+            com.example.fieldtrack.data.billing.PaymentMethods.encode(methods), org.currencyCode,
+        )
+        // Stored only when it differs from the usual, so a business that never chose keeps
+        // following its currency's usual ways if the currency is changed before any entry.
+        val stored = if (chosen == usual) null else com.example.fieldtrack.data.billing.PaymentMethods.encode(chosen)
+        val rate = taxPercentBps?.takeIf { it > 0 }
+        val updated = org.copy(
+            paymentMethods = stored,
+            payDetails = payDetails?.trim()?.ifBlank { null },
+            taxName = if (rate == null) null else taxName?.trim()?.ifBlank { null },
+            taxPercentBps = rate,
+            updatedAt = clock.now(),
+        )
+        if (updated == org.copy(updatedAt = updated.updatedAt)) return
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+        _startup.value = Startup.Ready(session.copy(paymentMethods = stored))
+    }
+
+    /**
      * Sets when the business's accounting year begins and which zone its days are counted in.
      *
      * Free to change at any time. Bills already made keep the year they were numbered in;
@@ -486,10 +531,11 @@ class SessionStore(
      * caller a member of this organisation" and get a truthful answer. Two ids with
      * a mapping between them would push that question to a table nobody can check.
      */
-    suspend fun recordSignIn(uid: String, phone: String?) {
+    suspend fun recordSignIn(uid: String, phone: String?, email: String? = null) {
         prefs.edit()
             .putString(KEY_PERSON, uid)
             .apply { phone?.let { putString(KEY_PHONE, it) } }
+            .apply { if (email != null) putString(KEY_EMAIL, email) else remove(KEY_EMAIL) }
             .apply()
         _startup.value = Startup.Loading
         load() ?: run { _startup.value = Startup.NeedsOnboarding }
@@ -872,6 +918,14 @@ class SessionStore(
     /** The number this device signed in with, for screens that show it back. */
     fun signedInPhone(): String? = prefs.getString(KEY_PHONE, null)
 
+    /** The Google account this person signed in with, when that is how they came in. */
+    fun signedInEmail(): String? = prefs.getString(KEY_EMAIL, null)
+
+    /** Remembers a Google account added to an existing sign-in, so Profile can say so. */
+    fun recordLinkedEmail(email: String?) {
+        prefs.edit().apply { if (email != null) putString(KEY_EMAIL, email) else remove(KEY_EMAIL) }.apply()
+    }
+
     /**
      * Signs this person out of the app.
      *
@@ -893,6 +947,7 @@ class SessionStore(
             .remove(KEY_PERSON)
             .remove(KEY_ORG)
             .remove(KEY_PHONE)
+            .remove(KEY_EMAIL)
             .apply()
         _businessMode.value = false
         // The session is derived from startup, so this is the whole of it.
@@ -929,6 +984,7 @@ class SessionStore(
             moneyStepMinor = org?.moneyStepMinor ?: session.moneyStepMinor,
             fiscalStartMonth = org?.fiscalStartMonth ?: session.fiscalStartMonth,
             timeZoneId = org?.timeZoneId ?: session.timeZoneId,
+            paymentMethods = org?.paymentMethods ?: session.paymentMethods,
         )
         if (fresh == session) return
         // Only if nothing moved while the rows were being read: a switch of business
@@ -966,6 +1022,7 @@ class SessionStore(
         const val KEY_IS_BUSINESS = "isBusiness"
         const val KEY_PER_CUSTOMER_RATES = "rememberPerCustomerRates"
         const val KEY_PHONE = "phone"
+        const val KEY_EMAIL = "email"
         const val KEY_REMOVED_FROM = "removedFromOrgId"
         const val KEY_DISABLED = "accountDisabled"
         const val KEY_ADOPTED_AWAY = "adoptedAwayPersonIds"

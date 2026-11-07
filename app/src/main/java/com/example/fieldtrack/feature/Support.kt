@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature
 
+import com.example.fieldtrack.data.db.PaymentMethod
 import androidx.compose.runtime.Composable
 import com.example.fieldtrack.data.region.BusinessClock
 import androidx.compose.ui.res.stringResource
@@ -341,6 +342,21 @@ val MeasureUnit.labelRes: Int
         MeasureUnit.Kilogram -> R.string.unit_kg
         MeasureUnit.Litre -> R.string.unit_litre
     }
+
+/** How a payment is named on screen. One place, so a new way of paying cannot read as "Cash" somewhere. */
+val PaymentMethod?.labelRes: Int
+    get() = when (this ?: PaymentMethod.Cash) {
+        PaymentMethod.Cash -> R.string.method_cash
+        PaymentMethod.Upi -> R.string.method_upi
+        PaymentMethod.Bank -> R.string.method_bank
+        PaymentMethod.Cheque -> R.string.method_cheque
+        PaymentMethod.MobileMoney -> R.string.method_mobile_money
+        PaymentMethod.Card -> R.string.method_card
+        PaymentMethod.InKind -> R.string.method_in_kind
+    }
+
+/** The same, for call sites that read better as a call. */
+fun PaymentMethod?.labelRes(): Int = labelRes
 
 val BillingMode.labelRes: Int
     get() = when (this) {

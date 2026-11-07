@@ -192,6 +192,11 @@ class FieldFlowApplication : Application() {
         getSharedPreferences("field_flow_sync", MODE_PRIVATE)
     }
 
+    /** The chosen language, for text made outside any screen: reminders, notifications. */
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(com.example.fieldtrack.data.settings.AppLanguage.wrap(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
 

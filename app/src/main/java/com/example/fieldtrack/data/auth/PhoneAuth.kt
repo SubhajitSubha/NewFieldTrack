@@ -5,6 +5,8 @@ data class SignedIn(
     val uid: String,
     /** E.164, as the provider verified it: "+919876543210". */
     val phone: String?,
+    /** The Google account's address, for somebody who signed in that way; null otherwise. */
+    val email: String? = null,
 )
 
 /** What came back from asking for a code, or from sending one. */
@@ -46,6 +48,12 @@ enum class AuthFailure {
 
     /** No network, or the provider was unreachable. Worth retrying as-is. */
     Unreachable,
+
+    /** There is no Google account on this phone to sign in with. */
+    NoGoogleAccount,
+
+    /** That Google account is already the sign-in of somebody else here. */
+    GoogleAccountTaken,
 
     /** Anything else, including a project that is not set up for phone sign-in. */
     Unknown,
@@ -106,9 +114,5 @@ fun indianMobileDigits(input: String): String {
 /** "9876543210" as the provider wants it. */
 fun toE164India(digits: String): String = "+91$digits"
 
-/** "+919876543210" as a person reads it: "+91 98765 43210". */
-fun formatIndianPhone(e164: String): String {
-    val digits = e164.removePrefix("+91").filter { it.isDigit() }
-    if (digits.length != 10) return e164
-    return "+91 ${digits.take(5)} ${digits.drop(5)}"
-}
+/** A stored number as a person reads it, with its country code, from any country. */
+fun formatPhone(stored: String): String = PhoneNumbers.display(stored) ?: stored

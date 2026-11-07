@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.signin
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.feature.region.PhoneInput
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.BuildConfig
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.auth.AuthFailure
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
@@ -55,9 +56,10 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 @Composable
 fun SignInScreen(
     state: SignInState,
-    onDigits: (String) -> Unit,
+    onPhone: (dial: String, digits: String) -> Unit,
     onCode: (String) -> Unit,
     onSendCode: () -> Unit,
+    onGoogle: () -> Unit = {},
     onVerify: () -> Unit,
     onResend: () -> Unit,
     onChangeNumber: () -> Unit,
@@ -112,7 +114,7 @@ fun SignInScreen(
             }
 
             when (state.step) {
-                SignInStep.Phone -> PhoneStep(state, onDigits)
+                SignInStep.Phone -> PhoneStep(state, onPhone, onGoogle)
                 SignInStep.Code -> CodeStep(state, onCode, onResend, onChangeNumber)
             }
 
@@ -167,7 +169,7 @@ fun SignInScreen(
 }
 
 @Composable
-private fun PhoneStep(state: SignInState, onDigits: (String) -> Unit) {
+private fun PhoneStep(state: SignInState, onPhone: (String, String) -> Unit, onGoogle: () -> Unit) {
     val colors = FieldTrackTheme.colors
 
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -186,14 +188,32 @@ private fun PhoneStep(state: SignInState, onDigits: (String) -> Unit) {
         }
 
         Column {
-            FtTextField(
-                value = state.digits,
-                onValueChange = onDigits,
+            PhoneInput(
+                dial = state.dial,
+                national = state.digits,
+                onChange = onPhone,
                 label = stringResource(R.string.signin_phone_label),
                 helper = stringResource(R.string.signin_phone_hint),
-                prefix = "+91",
-                keyboardType = KeyboardType.Phone,
                 focused = true,
+            )
+        }
+
+        // A second way in, for somebody whose texts do not arrive or whose number has
+        // changed. Only offered when this build can actually do it.
+        if (state.googleAvailable) {
+            Text(
+                text = stringResource(R.string.signin_or),
+                style = FieldTrackTheme.type.bodySmall,
+                color = FieldTrackTheme.colors.inkTertiary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+            FtButton(
+                text = stringResource(R.string.signin_google),
+                onClick = onGoogle,
+                tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary,
+                enabled = !state.busy,
+                height = 56.dp,
             )
         }
 
@@ -237,7 +257,7 @@ private fun CodeStep(
             )
             Text(
                 text = stringResource(
-                    R.string.signin_code_sent_to, formatIndianPhone(state.phoneE164),
+                    R.string.signin_code_sent_to, formatPhone(state.phoneE164),
                 ),
                 style = FieldTrackTheme.type.body,
                 color = colors.inkSecondary,
@@ -364,6 +384,8 @@ private fun AuthFailure.saidPlainly(): String = when (this) {
     AuthFailure.CodeExpired -> stringResource(R.string.signin_err_expired)
     AuthFailure.TooManyAttempts -> stringResource(R.string.signin_err_too_many)
     AuthFailure.Unreachable -> stringResource(R.string.signin_err_unreachable)
+    AuthFailure.NoGoogleAccount -> stringResource(R.string.signin_err_no_google)
+    AuthFailure.GoogleAccountTaken -> stringResource(R.string.signin_err_google_taken)
     AuthFailure.Unknown -> stringResource(R.string.signin_err_unknown)
 }
 

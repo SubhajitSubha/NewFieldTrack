@@ -3,7 +3,8 @@ package com.example.fieldtrack.document
 import com.example.fieldtrack.designsystem.format.Money
 import com.example.fieldtrack.designsystem.format.MoneyStyle
 import com.example.fieldtrack.designsystem.format.money
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
+import com.example.fieldtrack.data.billing.TaxRate
 
 /**
  * The printed documents, as HTML.
@@ -96,6 +97,16 @@ object DocumentHtml {
             append(totalRow("Balance before this bill", d.previousBalanceMinor))
             append("<div class='hr'></div>")
             append(totalRow("Total", d.totalMinor, strong = true))
+        }
+        // Prices include the tax; the bill says how much of it that is.
+        val bps = d.letterhead.taxPercentBps
+        val taxName = d.letterhead.taxName
+        if (bps != null && taxName != null) {
+            val tax = TaxRate.includedIn(d.totalMinor, bps, d.style.stepMinor)
+            append(
+                "<div class='cell-sub' style='text-align:right;padding-top:6px'>" +
+                    "${esc("Includes $taxName ${TaxRate.text(bps)}%")}: ${money(tax)}</div>"
+            )
         }
         append("</div>")
 
@@ -241,8 +252,8 @@ object DocumentHtml {
 
     private fun letterhead(l: Letterhead, kind: String, line1: String, line2: String): String {
         val contact = listOfNotNull(
-            l.phone?.let { formatIndianPhone(it) },
-            l.gstin?.let { "GSTIN $it" },
+            l.phone?.let { formatPhone(it) },
+            l.gstin?.let { "${l.taxName?.takeIf { n -> n.isNotBlank() } ?: "GSTIN"} $it" },
         ).joinToString(" &middot; ") { esc(it) }
         return buildString {
             append("<div class='head'><div class='mark'>$TRACTOR</div><div class='who'>")
@@ -290,6 +301,12 @@ object DocumentHtml {
         if (words == null) "</div>" else "<div class='due-words'>${esc(words)}</div></div>"
 
     private fun payBlock(l: Letterhead): String {
+        val details = l.payDetails?.takeIf { it.isNotBlank() }
+        if (l.upiId == null && details != null) {
+            return "<div class='gap'></div><div class='pay'><div>" +
+                "<div class='label'>PAY TO</div>" +
+                "<div class='upi'>${details.lines().joinToString("<br>") { esc(it) }}</div></div></div>"
+        }
         val upi = l.upiId ?: return ""
         return "<div class='gap'></div><div class='pay'><div class='qr'>UPI<br>QR</div>" +
             "<div><div class='label'>PAY BY UPI</div><div class='upi'>${esc(upi)}</div>" +

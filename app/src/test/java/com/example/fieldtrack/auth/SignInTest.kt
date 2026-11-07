@@ -4,7 +4,7 @@ import com.example.fieldtrack.data.auth.AuthFailure
 import com.example.fieldtrack.data.auth.AuthResult
 import com.example.fieldtrack.data.auth.PhoneAuth
 import com.example.fieldtrack.data.auth.SignedIn
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import com.example.fieldtrack.data.auth.isPlausibleIndianMobile
 import com.example.fieldtrack.data.auth.toE164India
 import com.example.fieldtrack.feature.signin.SignInStep
@@ -83,7 +83,7 @@ class SignInTest {
     @Test
     fun `numbers are sent in the form the provider wants and shown in the form people read`() {
         assertEquals("+919876543210", toE164India("9876543210"))
-        assertEquals("+91 98765 43210", formatIndianPhone("+919876543210"))
+        assertEquals("+91 98765 43210", formatPhone("+919876543210"))
     }
 
     @Test
@@ -327,9 +327,9 @@ class SignInTest {
         // which arrives in full international form; somebody typed in by hand is
         // ten digits. Both land in the same column and both reach the same screen,
         // and the member screen used to read "+91 +919000000002" for the first.
-        assertEquals("+91 90000 00002", formatIndianPhone("+919000000002"))
-        assertEquals("+91 90000 00002", formatIndianPhone("9000000002"))
-        assertEquals("+91 98765 43210", formatIndianPhone("+91 98765 43210"))
+        assertEquals("+91 90000 00002", formatPhone("+919000000002"))
+        assertEquals("+91 90000 00002", formatPhone("9000000002"))
+        assertEquals("+91 98765 43210", formatPhone("+91 98765 43210"))
     }
 
     @Test

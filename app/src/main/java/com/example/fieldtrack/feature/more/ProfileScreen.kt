@@ -29,7 +29,7 @@ import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.R
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.season.SeasonCalendar
@@ -56,6 +56,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** What the profile needs to offer adding a Google account to the sign-in. */
+data class GoogleLink(val email: String?, val note: String?, val onAdd: () -> Unit)
 
 data class ProfileState(
     val loaded: Boolean = false,
@@ -84,6 +87,8 @@ data class ProfileState(
      * everything else on the screen.
      */
     val signedInPhone: String? = null,
+    /** The Google account they signed in with or added, if any. */
+    val signedInEmail: String? = null,
     /** Businesses they work for today — what the row's subtitle counts. */
     val orgCount: Int = 1,
     /** Including ended ones: decides whether the row is worth showing at all. */
@@ -135,6 +140,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 // else can still run the place.
                 canLeave = s.role != MemberRole.Owner || otherOwners > 0,
                 signedInPhone = app.sessionStore.signedInPhone(),
+                signedInEmail = app.sessionStore.signedInEmail(),
                 orgCount = app.db.orgDao().activeMembershipCountFor(s.personId),
                 everOrgCount = app.db.orgDao().membershipCountFor(s.personId),
             )
@@ -165,6 +171,8 @@ fun ProfileScreen(
     onEditSeasons: () -> Unit,
     onEditPlan: () -> Unit,
     onEditMoney: () -> Unit,
+    /** Null when this build cannot offer Google, so there is nothing to show. */
+    google: GoogleLink? = null,
     onBusinessMode: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onBusinesses: () -> Unit,
@@ -255,7 +263,7 @@ fun ProfileScreen(
                 FtRowDivider()
                 ValueRow(
                     label = stringResource(R.string.edit_business_phone),
-                    value = state.phone?.let { formatIndianPhone(it) } ?: notSet,
+                    value = state.phone?.let { formatPhone(it) } ?: notSet,
                     muted = state.phone == null,
                     onClick = open,
                 )
@@ -372,12 +380,41 @@ fun ProfileScreen(
                 Text(
                     text = stringResource(
                         R.string.account_signed_in_as,
-                        state.signedInPhone?.let { formatIndianPhone(it) }
+                        state.signedInPhone?.let { formatPhone(it) }
+                            ?: state.signedInEmail
                             ?: state.displayName,
                     ),
                     style = FieldTrackTheme.type.bodySmall,
                     color = colors.inkSecondary,
                 )
+                if (google != null) {
+                    // A second way back in, for a lost phone or a number that changed.
+                    Text(
+                        text = if (google.email != null) {
+                            stringResource(R.string.account_google_linked, google.email)
+                        } else stringResource(R.string.account_google_offer),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                        modifier = Modifier.padding(top = 7.dp),
+                    )
+                    if (google.email == null) {
+                        FtButton(
+                            text = stringResource(R.string.account_google_add),
+                            onClick = google.onAdd,
+                            tone = FtButtonTone.Secondary,
+                            height = 46.dp,
+                            modifier = Modifier.padding(top = 9.dp),
+                        )
+                    }
+                    google.note?.let {
+                        Text(
+                            text = it,
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.dueInk,
+                            modifier = Modifier.padding(top = 7.dp),
+                        )
+                    }
+                }
                 // Said before they decide, not after. Somebody signing out of a
                 // shared phone should know what is still sitting on it.
                 if (unsentCount > 0) {

@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.team
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.feature.region.PhoneField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,7 @@ import com.example.fieldtrack.designsystem.format.moneyCompact
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.initialsOf
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import androidx.compose.ui.res.pluralStringResource
 import com.example.fieldtrack.feature.timeAgo
 import androidx.compose.foundation.layout.Spacer
@@ -139,7 +140,7 @@ fun MemberScreen(
                         )
                         Text(
                             text = listOfNotNull(
-                                state.phone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
+                                state.phone?.takeIf { it.isNotBlank() }?.let { formatPhone(it) },
                                 state.joinedAtMillis?.let {
                                     stringResource(R.string.team_joined, dayMonthYear(it))
                                 },
@@ -415,12 +416,10 @@ fun MemberScreen(
                     value = state.displayName,
                     onValueChange = onName,
                 )
-                FtTextField(
+                PhoneField(
                     label = stringResource(R.string.edit_business_phone),
                     value = state.phone.orEmpty(),
                     onValueChange = onPhone,
-                    prefix = "+91",
-                    keyboardType = KeyboardType.Phone,
                 )
             } else {
                 FtCard(background = colors.surfaceMuted, borderColor = colors.line) {

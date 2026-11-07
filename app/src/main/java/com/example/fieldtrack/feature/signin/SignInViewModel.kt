@@ -6,9 +6,9 @@ import com.example.fieldtrack.data.auth.AuthFailure
 import com.example.fieldtrack.data.auth.AuthResult
 import com.example.fieldtrack.data.auth.PhoneAuth
 import com.example.fieldtrack.data.auth.SignedIn
-import com.example.fieldtrack.data.auth.indianMobileDigits
-import com.example.fieldtrack.data.auth.isPlausibleIndianMobile
-import com.example.fieldtrack.data.auth.toE164India
+import com.example.fieldtrack.data.auth.GoogleAuth
+import com.example.fieldtrack.data.auth.GoogleResult
+import com.example.fieldtrack.data.auth.PhoneNumbers
 import com.example.fieldtrack.data.db.Clock
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,17 +22,21 @@ enum class SignInStep { Phone, Code }
 
 data class SignInState(
     val step: SignInStep = SignInStep.Phone,
+    /** The country code the number is in, without the plus. */
+    val dial: String = PhoneNumbers.LEGACY_DIAL,
     val digits: String = "",
     val code: String = "",
     val busy: Boolean = false,
+    /** Whether this build can offer Google as the way in. */
+    val googleAvailable: Boolean = false,
     /** Null when nothing has gone wrong; otherwise what to tell them. */
     val problem: AuthFailure? = null,
     val problemDetail: String? = null,
     /** Seconds until another code may be asked for. Zero means now. */
     val resendInSeconds: Int = 0,
 ) {
-    val phoneE164: String get() = toE164India(digits)
-    val canSendCode: Boolean get() = !busy && isPlausibleIndianMobile(digits)
+    val phoneE164: String get() = PhoneNumbers.e164(dial, digits)
+    val canSendCode: Boolean get() = !busy && PhoneNumbers.isPlausible(dial, digits)
     val canVerify: Boolean get() = !busy && code.length == CODE_LENGTH
     val canResend: Boolean get() = !busy && resendInSeconds == 0
 
@@ -51,18 +55,32 @@ data class SignInState(
 class SignInViewModel(
     private val auth: PhoneAuth,
     private val clock: Clock = Clock.System,
+    /** The code of the country this phone is in, which is where most numbers typed on it are from. */
+    defaultDial: String = PhoneNumbers.LEGACY_DIAL,
+    private val google: GoogleAuth? = null,
     private val onSignedIn: suspend (SignedIn) -> Unit,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SignInState())
+    private val _state = MutableStateFlow(SignInState(dial = defaultDial, googleAvailable = google?.available == true))
     val state: StateFlow<SignInState> = _state.asStateFlow()
 
     private var verificationId: String? = null
     private var resendToken: Any? = null
     private var countdown: Job? = null
 
+    /** Typed, pasted or dictated: a number that brings its own country code changes the code too. */
     fun setDigits(value: String) = _state.update {
-        it.copy(digits = indianMobileDigits(value), problem = null)
+        if (value.trimStart().startsWith("+")) {
+            val (dial, rest) = PhoneNumbers.split(value)
+            it.copy(dial = dial, digits = PhoneNumbers.nationalDigits(rest, dial), problem = null)
+        } else {
+            it.copy(digits = PhoneNumbers.nationalDigits(value, it.dial), problem = null)
+        }
+    }
+
+    /** The country code and the number together, as the phone field reports them. */
+    fun setPhone(dial: String, digits: String) = _state.update {
+        it.copy(dial = dial, digits = PhoneNumbers.nationalDigits(digits, dial), problem = null)
     }
 
     fun setCode(value: String) = _state.update {
@@ -78,6 +96,24 @@ class SignInViewModel(
         verificationId = null
         _state.update {
             it.copy(step = SignInStep.Phone, code = "", problem = null, resendInSeconds = 0)
+        }
+    }
+
+    /** Signs in as the Google account the person picks, in place of a code by SMS. */
+    fun signInWithGoogle() {
+        val provider = google?.takeIf { it.available } ?: return
+        // Marked busy before the work starts, so a second tap before it has begun is refused.
+        val before = _state.value
+        if (before.busy) return
+        if (!_state.compareAndSet(before, before.copy(busy = true, problem = null))) return
+        viewModelScope.launch {
+            when (val result = provider.signIn()) {
+                is GoogleResult.Done -> finish(result.user)
+                GoogleResult.Cancelled -> _state.update { it.copy(busy = false) }
+                GoogleResult.NoAccount -> fail(AuthResult.Failed(AuthFailure.NoGoogleAccount, ""))
+                GoogleResult.AlreadyUsed -> fail(AuthResult.Failed(AuthFailure.GoogleAccountTaken, ""))
+                is GoogleResult.Failed -> fail(AuthResult.Failed(result.reason, result.message))
+            }
         }
     }
 

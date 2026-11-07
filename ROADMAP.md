@@ -21,20 +21,20 @@ Plan and bookings, job calculator, owner/driver home, org switching, freshness l
 ---
 
 ## M1. Worldwide foundation
-Do this first. It touches every screen and every table, it is cheap while there are no real users, and it is very expensive after release.
+Done first because it touches every screen and every table.
 
-- [ ] **Adaptive onboarding: detect, confirm only what matters, change any time.** The phone tells us language, country, time zone, number and date style, first day of the week, and the usual currency. One short "we set you up like this, change anything?" screen confirms only currency and land unit (a wrong currency or a wrong bigha is costly). Everything else is silent and lives in Profile / Business settings. Two levels: *business* settings (currency, time zone, land unit, tax, payment methods) belong to the business and a joining driver adopts them; *person* settings (language, number style, theme) belong to the person and device. Changing the currency once there is history never converts silently (500 rupees is not 500 dollars): lock it after the first entry, with a clear path to convert at a stated rate or start a new business.
-- [~] **Money in minor units (decided: yes). Study and plan done: see `docs/m1-money-plan.md`; build next.** Today every amount is a whole-rupee Long (`amountRupees`, `rateRupees`, `costRupees`, ...) in Room, Firestore and rules. Dollars, euros and pesos have cents. Move to minor units with a per-currency number of decimals. Needs a Room migration, a Firestore data move, new rules checks, and a rounding rule that is a setting.
-- [ ] **Currency per business** (symbol, decimals, where the symbol sits). Replace the hard-coded rupee sign (about 20 files plus the statement documents).
-- [ ] **Number grouping setting** (1,00,000 versus 100,000) and date/time format and week start.
-- [ ] **Business time zone.** Reverses an earlier decision (see memory): "no time zone" was only safe while everyone was in India. A business sets its zone, and the plan day, day roll hour and "today" all follow it.
-- [ ] **Phone numbers worldwide.** Country picker instead of the fixed +91 (sign-in, add member, add customer, edit profile), E.164 storage, and a migration of existing numbers.
-- [ ] **Sign in with Google as a second way in (recommended, pending OK).** Phone stays. Both buttons show, ordered by country. After a phone sign-in the app offers "add Google so you can always get back in", which also solves a lost phone or changed SIM (M4). Phone number becomes optional contact detail, not the identity. Invites stay code-based, so a Google-only driver can still join.
-- [ ] **Land and output units.** Add hectare, square metre, and counting units such as bale, tonne, bushel, kilogram, litre. Each business picks defaults. Keep the regional units (bigha, kanal, guntha, katha).
-- [ ] **Languages framework.** All text already lives in resources. Add language choice inside the app, right-to-left layout (Arabic, Urdu), fonts that cover each script, plural and number rules. The app follows the phone's language by itself, falls back to English, and can be changed in Profile. Translations in waves, so there is no fixed "first language" (proposed wave 1: Hindi, Spanish, Portuguese, French, Indonesian, Swahili, Bengali, Arabic to prove right-to-left; a native speaker reviews each before it ships).
-- [ ] **Payment methods per region.** Cash, bank, cheque stay; UPI becomes one of several. Owner can add their own ("M-Pesa", "Pix", "Zelle") as a name plus the details to show on statements.
-- [ ] **Optional tax line** (GST, VAT, sales tax, or none) with a name and a percent per business. Off by default.
-- [ ] Every screen re-checked at large text and in the longer languages.
+- [x] **Adaptive onboarding: detect, confirm only what matters, change any time.** The phone gives country, language, zone, number and date style, week start and the usual currency; one "How you count" step confirms currency and land unit for every owner. Business settings (currency, rounding, accounting year, time zone, payment methods, tax) live under Profile > Money and region; person settings (language, digit grouping, week start, theme) under Display. The currency locks once an amount exists; the way out is another business (M4 adds "start another business").
+- [x] **Money in minor units.** Every amount is a count of the currency's smallest unit; Room 16 to 17 rebuilt the money tables, queued changes and old server documents are converted; each job keeps the rounding it was made with. Plan: `docs/m1-money-plan.md`.
+- [x] **Currency per business**, symbol, decimals from the platform, whole-unit or exact bills; rupee sign for rupees and a banknote icon otherwise.
+- [x] **Number grouping** (1,00,000 or 100,000), dates and clocks in the region's order, week start (phone, Monday, Sunday, Saturday).
+- [x] **Business time zone** and **accounting year**; every "today", plan day, week, season, bill number and statement uses them (Room 17 to 18).
+- [x] **Phone numbers worldwide.** Country-code picker on sign-in and every phone field; stored as E.164; old ten-digit numbers are read as +91 and never rewritten; one number has one spelling (Phone numbers: `PhoneNumbers`).
+- [x] **Sign in with Google** as the second way in, and "add Google" on the profile so a lost phone or changed SIM can get back in. The button only appears when the project has a Google client configured: **needs the Firebase console step** (enable the Google provider, add the app's SHA-1, download the new `google-services.json`), listed with the release blockers.
+- [x] **Units**: hectare, square metre, bale, tonne, bushel, kilogram, litre; walked fields in hectares.
+- [x] **Languages framework**: follows the phone, chooser appears as soon as a second language is shipped, whole layout mirrors for right-to-left, directional icons mirror, per-app language in Android settings. **Translations run last** (see M9), because every later milestone adds text.
+- [x] **Payment methods per business** (cash, UPI, bank, cheque, mobile money, card, in kind), usual ones by currency, cash always there; **payment details** printed on bills; **optional tax line** (name and rate, prices include it; bills say how much of the total is tax).
+- [ ] Bills, statements and receipts are still written in English (their labels live in the document builder). They move to string resources with the translations in M9, so a bill can be in the business's language.
+- [ ] Every screen re-checked at large text and in the longer languages (done together with the translations).
 
 ## M2. Charging that matches real life
 - [ ] Minimum charge (minimum hours, acres or amount).
@@ -110,6 +110,13 @@ The product owner wants to charge. Build it before release so early users are ne
 - [ ] Never hold data hostage: if a plan lapses the owner can still see everything, export everything, and record work; only the paid extras stop.
 - [ ] Early users keep an early price ("founding users").
 - [ ] Store billing, restoring purchases, and plan checks that work offline.
+
+---
+
+## M9. Translations (last, once the text stops changing)
+- [ ] Translate every string into the first wave (Hindi, Spanish, Portuguese, French, Indonesian, Swahili, Bengali, Arabic), drafted here and marked for a native speaker to read before it ships.
+- [ ] Move the bill, statement and receipt wording into string resources, so a bill is written in the business's language.
+- [ ] Check every screen at large text and in each language, and the right-to-left layout in Arabic.
 
 ---
 

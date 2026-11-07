@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.example.fieldtrack.data.auth.indianMobileDigits
 
 data class MemberState(
     val loaded: Boolean = false,
@@ -134,7 +133,7 @@ class MemberViewModel(
                     // spelling arrives with a country code already attached and
                     // shows as "+91 +9190000...". Saving then writes the tidy one
                     // back, so the row heals the first time anybody opens it.
-                    phone = member.phone?.let { indianMobileDigits(it) }?.ifBlank { null },
+                    phone = member.phone?.ifBlank { null },
                     role = member.role,
                     active = member.active,
                     joinedAtMillis = member.joinedAt.takeIf { at -> at > 0 },
@@ -165,7 +164,7 @@ class MemberViewModel(
     }
 
     fun setName(v: String) = _state.update { it.copy(displayName = v) }
-    fun setPhone(v: String) = _state.update { it.copy(phone = v.filter { c -> c.isDigit() }) }
+    fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setSeeMoney(v: Boolean) = _state.update { it.copy(canSeeMoney = v) }
     /**
      * Promotes or demotes.

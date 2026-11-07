@@ -37,6 +37,9 @@ data class FinishState(
     val businessPhone: String? = null,
     val businessAddress: String? = null,
     val businessUpiId: String? = null,
+    val businessPayDetails: String? = null,
+    val businessTaxName: String? = null,
+    val businessTaxBps: Int? = null,
     val businessGstin: String? = null,
     /** "2026-27/0241". Null until the job is billed. */
     val billNumber: String? = null,
@@ -162,6 +165,9 @@ class FinishViewModel(
                 businessPhone = org?.phone,
                 businessAddress = org?.addressLine,
                 businessUpiId = org?.upiId,
+                businessPayDetails = org?.payDetails,
+                businessTaxName = org?.taxName,
+                businessTaxBps = org?.taxPercentBps,
                 businessGstin = org?.gstin,
                 billNumber = job.billFy?.let { fy ->
                     job.billSeq?.let { seq -> formatBillNumber(fy, seq) }

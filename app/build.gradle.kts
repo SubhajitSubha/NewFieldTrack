@@ -178,6 +178,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.firebase.auth)
+    // Sign in with Google, through the platform's Credential Manager.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play)
+    implementation(libs.google.googleid)
     implementation(libs.firebase.database)
     implementation(libs.firebase.storage)
     ksp(libs.androidx.room.compiler)

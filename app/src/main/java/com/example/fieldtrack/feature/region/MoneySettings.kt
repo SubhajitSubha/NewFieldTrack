@@ -18,11 +18,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.R
+import com.example.fieldtrack.data.billing.PaymentMethods
+import com.example.fieldtrack.data.billing.TaxRate
+import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.data.region.Region
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.session.SessionStore
@@ -31,7 +35,9 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
+import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
+import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.designsystem.format.MoneyStyle
 import com.example.fieldtrack.feature.season.monthName
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
@@ -52,6 +58,12 @@ data class MoneySettingsState(
     val locked: Boolean = false,
     val stepMinor: Long = 100,
     val fiscalStartMonth: Int = 4,
+    /** The ways customers pay, as offered for the next payment. */
+    val methods: List<PaymentMethod> = PaymentMethods.defaultsFor("INR"),
+    val payDetails: String = "",
+    val taxName: String = "",
+    /** The rate as typed: `16`, `7.5`, or empty for no tax. */
+    val taxPercentText: String = "",
     /** Null follows the phone. */
     val timeZoneId: String? = null,
     val saving: Boolean = false,
@@ -93,6 +105,10 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
                     locked = locked,
                     stepMinor = org?.moneyStepMinor ?: s.moneyStepMinor,
                     fiscalStartMonth = org?.fiscalStartMonth ?: s.fiscalStartMonth,
+                    methods = PaymentMethods.offered(org?.paymentMethods ?: s.paymentMethods, org?.currencyCode ?: s.currencyCode),
+                    payDetails = org?.payDetails.orEmpty(),
+                    taxName = org?.taxName.orEmpty(),
+                    taxPercentText = org?.taxPercentBps?.let { TaxRate.text(it) }.orEmpty(),
                     timeZoneId = org?.timeZoneId ?: s.timeZoneId,
                 )
             }
@@ -101,7 +117,24 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
 
     fun setCurrency(code: String) = _state.update {
         if (it.locked || !it.allowed) it
-        else it.copy(currencyCode = code, stepMinor = MoneyStyle.defaultStepMinor(code))
+        else it.copy(
+            currencyCode = code,
+            stepMinor = MoneyStyle.defaultStepMinor(code),
+            // A business that never chose its ways of paying follows its money's usual ones.
+            methods = if (it.methods == PaymentMethods.defaultsFor(it.currencyCode)) PaymentMethods.defaultsFor(code) else it.methods,
+        )
+    }
+
+    /** Cash cannot be switched off: it is where the first payment is nearly always recorded. */
+    fun toggleMethod(method: PaymentMethod) = _state.update {
+        if (!it.allowed || method == PaymentMethod.Cash) it
+        else it.copy(methods = if (method in it.methods) it.methods - method else it.methods + method)
+    }
+
+    fun setPayDetails(v: String) = _state.update { if (it.allowed) it.copy(payDetails = v.take(300)) else it }
+    fun setTaxName(v: String) = _state.update { if (it.allowed) it.copy(taxName = v.take(20)) else it }
+    fun setTaxPercent(v: String) = _state.update {
+        if (it.allowed) it.copy(taxPercentText = v.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(6)) else it
     }
 
     fun setWholeUnits(whole: Boolean) = _state.update {
@@ -121,6 +154,14 @@ class MoneySettingsViewModel(private val app: FieldFlowApplication) : ViewModel(
         }.getOrNull()
         if (result == SessionStore.MoneyChange.Saved) {
             runCatching { app.sessionStore.updateCalendar(current.fiscalStartMonth, current.timeZoneId) }
+            runCatching {
+                app.sessionStore.updateBilling(
+                    methods = current.methods,
+                    payDetails = current.payDetails,
+                    taxName = current.taxName,
+                    taxPercentBps = TaxRate.parse(current.taxPercentText),
+                )
+            }
         }
         _state.update {
             it.copy(
@@ -141,6 +182,10 @@ fun MoneySettingsScreen(
     onWholeUnits: (Boolean) -> Unit,
     onFiscalStartMonth: (Int) -> Unit,
     onTimeZone: (String?) -> Unit,
+    onToggleMethod: (PaymentMethod) -> Unit,
+    onPayDetails: (String) -> Unit,
+    onTaxName: (String) -> Unit,
+    onTaxPercent: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -210,6 +255,48 @@ fun MoneySettingsScreen(
                     color = colors.inkSecondary,
                 )
             }
+
+            FtSectionLabel(stringResource(R.string.pay_methods_title), Modifier.padding(top = 4.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PaymentMethod.entries.forEach { method ->
+                    FtChip(
+                        label = stringResource(method.labelRes),
+                        selected = method in state.methods,
+                        onClick = { onToggleMethod(method) },
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.pay_methods_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+            FtTextField(
+                label = stringResource(R.string.pay_details_label),
+                value = state.payDetails,
+                onValueChange = onPayDetails,
+                placeholder = stringResource(R.string.pay_details_hint),
+                helper = stringResource(R.string.pay_details_note),
+            )
+
+            FtSectionLabel(stringResource(R.string.tax_title), Modifier.padding(top = 4.dp))
+            FtTextField(
+                label = stringResource(R.string.tax_name_label),
+                value = state.taxName,
+                onValueChange = onTaxName,
+                placeholder = stringResource(R.string.tax_name_hint),
+            )
+            FtTextField(
+                label = stringResource(R.string.tax_rate_label),
+                value = state.taxPercentText,
+                onValueChange = onTaxPercent,
+                suffix = "%",
+                keyboardType = KeyboardType.Decimal,
+                helper = stringResource(R.string.tax_note),
+            )
 
             FtSectionLabel(stringResource(R.string.money_fiscal), Modifier.padding(top = 4.dp))
             FlowRow(

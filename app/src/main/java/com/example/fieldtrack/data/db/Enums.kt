@@ -88,7 +88,15 @@ enum class LedgerKind {
     Adjustment,
 }
 
-enum class PaymentMethod { Cash, Upi, Bank, Cheque }
+/**
+ * How a customer paid.
+ *
+ * Which of these a business offers is its own choice, kept on the business: [Upi] is the
+ * instant bank-to-bank transfer of India, [MobileMoney] covers M-Pesa, MTN MoMo, bKash and
+ * their like, [InKind] is grain or produce handed over instead of money.
+ * Stored by name, so new ones are added at the end and none is renamed.
+ */
+enum class PaymentMethod { Cash, Upi, Bank, Cheque, MobileMoney, Card, InKind }
 
 /**
  * What a payment out can be laid against.

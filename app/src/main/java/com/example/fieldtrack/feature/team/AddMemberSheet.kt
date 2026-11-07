@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.team
 
 import androidx.compose.foundation.verticalScroll
+import com.example.fieldtrack.feature.region.PhoneField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -73,12 +74,10 @@ fun AddMemberSheet(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
                 placeholder = stringResource(R.string.team_add_name_hint),
                 focused = true,
             )
-            FtTextField(
+            PhoneField(
                 label = stringResource(R.string.edit_business_phone),
                 value = phone,
-                onValueChange = { v -> phone = v.filter { it.isDigit() } },
-                prefix = "+91",
-                keyboardType = KeyboardType.Phone,
+                onValueChange = { v -> phone = v },
             )
             FtButton(
                 text = stringResource(R.string.team_add_save),

@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(18, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(19, c.getInt(0))
         }
     }
 
@@ -387,6 +387,21 @@ class MigrationTest {
             assertTrue(c.moveToFirst())
             assertEquals("every business so far was Indian", 4, c.getInt(0))
             assertTrue("nothing back-filled: no zone is a choice, it follows the phone", c.isNull(1))
+        }
+    }
+
+    @Test
+    fun `a business offers the usual ways of paying and prints no tax until it says so`() {
+        create(18) {
+            it.execSQL(
+                "INSERT INTO organisations (id, name, defaultLandUnit, currencyCode, moneyStepMinor, fiscalStartMonth, " +
+                    "driversSeeAll, createdAt, updatedAt, syncState) VALUES ('o1', 'Singh Agro', 'Acre', 'INR', 100, 4, 0, 1, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT paymentMethods, payDetails, taxName, taxPercentBps FROM organisations").use { c ->
+            assertTrue(c.moveToFirst())
+            for (i in 0..3) assertTrue("column $i is empty: nothing was chosen", c.isNull(i))
         }
     }
 }

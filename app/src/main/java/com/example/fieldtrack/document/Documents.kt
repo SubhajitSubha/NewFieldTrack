@@ -7,7 +7,7 @@ import com.example.fieldtrack.data.db.entity.OrgEntity
 import com.example.fieldtrack.data.db.entity.moneyStyle
 import com.example.fieldtrack.data.db.formatBillNumber
 import com.example.fieldtrack.designsystem.format.money
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 
 /**
  * Turning rows out of the database into something printable.
@@ -20,6 +20,9 @@ import com.example.fieldtrack.data.auth.formatIndianPhone
 object Documents {
 
     fun letterheadOf(org: OrgEntity?): Letterhead = Letterhead(
+        payDetails = org?.payDetails?.ifBlank { null },
+        taxName = org?.taxName?.ifBlank { null },
+        taxPercentBps = org?.taxPercentBps,
         businessName = org?.name.orEmpty(),
         addressLine = org?.addressLine?.ifBlank { null },
         phone = org?.phone?.ifBlank { null },
@@ -30,7 +33,7 @@ object Documents {
     fun partyOf(customer: CustomerEntity?): Party = Party(
         name = customer?.name.orEmpty(),
         addressLine = customer?.village?.ifBlank { null },
-        phone = customer?.phone?.ifBlank { null }?.let { formatIndianPhone(it) },
+        phone = customer?.phone?.ifBlank { null }?.let { formatPhone(it) },
     )
 
     /**

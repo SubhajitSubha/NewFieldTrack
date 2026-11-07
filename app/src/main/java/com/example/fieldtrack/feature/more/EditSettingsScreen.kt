@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.more
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.feature.region.PhoneField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -45,6 +46,8 @@ data class EditSettingsState(
     val addressLine: String = "",
     val gstin: String = "",
     val upiId: String = "",
+    /** The business's currency, which decides whether the form asks for a UPI id. */
+    val currencyCode: String = "INR",
     /** Null on the profile form, which has no land unit to set. */
     val landUnit: MeasureUnit? = null,
     val allowed: Boolean = true,
@@ -102,6 +105,7 @@ class EditBusinessViewModel(private val app: FieldFlowApplication) : ViewModel()
                     gstin = org?.gstin.orEmpty(),
                     upiId = org?.upiId.orEmpty(),
                     landUnit = s.landUnit,
+                    currencyCode = s.currencyCode,
                     allowed = Capability.EditBusiness in s.can,
                 )
             }
@@ -109,7 +113,7 @@ class EditBusinessViewModel(private val app: FieldFlowApplication) : ViewModel()
     }
 
     fun setName(v: String) = _state.update { it.copy(name = v) }
-    fun setPhone(v: String) = _state.update { it.copy(phone = v.filter { c -> c.isDigit() }) }
+    fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setAddress(v: String) = _state.update { it.copy(addressLine = v) }
     fun setGstin(v: String) = _state.update { it.copy(gstin = v.uppercase()) }
     fun setUpiId(v: String) = _state.update { it.copy(upiId = v) }
@@ -209,12 +213,10 @@ fun EditSettingsScreen(
                         modifier = Modifier.padding(bottom = 14.dp),
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        FtTextField(
+                        PhoneField(
                             label = stringResource(R.string.edit_business_phone),
                             value = state.phone,
                             onValueChange = onLetterhead.onPhone,
-                            prefix = "+91",
-                            keyboardType = KeyboardType.Phone,
                         )
                         FtTextField(
                             label = stringResource(R.string.edit_business_address),
@@ -222,7 +224,9 @@ fun EditSettingsScreen(
                             onValueChange = onLetterhead.onAddress,
                             placeholder = stringResource(R.string.edit_business_address_hint),
                         )
-                        FtTextField(
+                        // UPI is how people pay in India; elsewhere the bank or mobile-money
+                        // details live under Money and region.
+                        if (state.currencyCode == "INR") FtTextField(
                             label = stringResource(R.string.edit_business_upi),
                             value = state.upiId,
                             onValueChange = onLetterhead.onUpiId,

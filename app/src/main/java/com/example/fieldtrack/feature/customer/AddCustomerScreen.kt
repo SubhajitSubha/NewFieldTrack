@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.customer
 
 import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.feature.region.PhoneField
 import androidx.compose.foundation.background
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +50,7 @@ class AddCustomerViewModel(private val app: FieldFlowApplication) : ViewModel() 
     val state: StateFlow<AddCustomerState> = _state.asStateFlow()
 
     fun setName(v: String) = _state.update { it.copy(name = v) }
-    fun setPhone(v: String) = _state.update { it.copy(phone = v.filter { c -> c.isDigit() }) }
+    fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setVillage(v: String) = _state.update { it.copy(village = v) }
     fun setOpening(v: String) = _state.update { it.copy(openingText = MoneyInput.clean(v)) }
 
@@ -127,12 +128,10 @@ fun AddCustomerScreen(
                 onVoiceInput = if (voice.available) voice.start else null,
                 voiceContentDescription = stringResource(R.string.customer_speak_name_cd),
             )
-            FtTextField(
+            PhoneField(
                 label = stringResource(R.string.customer_mobile),
                 value = state.phone,
                 onValueChange = onPhone,
-                prefix = "+91",
-                keyboardType = KeyboardType.Phone,
                 helper = stringResource(R.string.customer_whatsapp_note),
             )
             FtTextField(

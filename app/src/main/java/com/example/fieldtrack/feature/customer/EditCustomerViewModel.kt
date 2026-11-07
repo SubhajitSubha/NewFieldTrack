@@ -46,7 +46,7 @@ class EditCustomerViewModel(
     }
 
     fun setName(v: String) = _state.update { it.copy(name = v) }
-    fun setPhone(v: String) = _state.update { it.copy(phone = v.filter { c -> c.isDigit() }) }
+    fun setPhone(v: String) = _state.update { it.copy(phone = v) }
     fun setVillage(v: String) = _state.update { it.copy(village = v) }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {

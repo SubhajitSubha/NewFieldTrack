@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.customer
 
 import androidx.compose.foundation.background
+import com.example.fieldtrack.feature.labelRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -355,13 +356,6 @@ private fun LedgerRow.title(): String = when (kind) {
     LedgerKind.Charge -> label.ifBlank { stringResource(R.string.finish_this_job) }
 }
 
-@Composable
-private fun PaymentMethod?.labelRes(): Int = when (this) {
-    PaymentMethod.Upi -> R.string.method_upi
-    PaymentMethod.Bank -> R.string.method_bank
-    PaymentMethod.Cheque -> R.string.method_cheque
-    else -> R.string.method_cash
-}
 
 /** The three figures that matter on whichever tab is showing. */
 @Composable

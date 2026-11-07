@@ -97,6 +97,20 @@ data class OrgEntity(
      */
     val timeZoneId: String? = null,
     /**
+     * The ways customers pay this business, as [com.example.fieldtrack.data.db.PaymentMethod]
+     * names joined by commas. Null offers what is usual for the business's currency.
+     */
+    val paymentMethods: String? = null,
+    /** Bank or mobile-money details printed on a bill under "Pay to", one per line. */
+    val payDetails: String? = null,
+    /** What the business calls its sales tax (GST, VAT, sales tax), or null for none. */
+    val taxName: String? = null,
+    /**
+     * The tax rate in hundredths of a percent (1600 is 16%), or null for none. Prices are
+     * taken to include it: a bill shows how much of its total is tax, and nothing is added.
+     */
+    val taxPercentBps: Int? = null,
+    /**
      * When this business's seasons begin, as [com.example.fieldtrack.data.season.SeasonCalendar]
      * writes them. Null until somebody sets them, which reads as the usual June and
      * November — and stays null rather than being filled in with those, so that the

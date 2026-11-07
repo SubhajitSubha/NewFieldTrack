@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.example.fieldtrack.data.auth.indianMobileDigits
+import com.example.fieldtrack.data.auth.PhoneNumbers
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -159,11 +159,11 @@ private fun duplicateAmong(
 ): DuplicatePair? {
     val live = members.filter { it.active }
     for (a in live) {
-        val digits = a.phone?.let { indianMobileDigits(it) }.orEmpty()
+        val digits = a.phone?.let { PhoneNumbers.normalize(it) }.orEmpty()
         if (digits.length < 10) continue
         for (b in live) {
             if (a.id == b.id || a.personId == b.personId) continue
-            if (b.phone?.let { indianMobileDigits(it) }.orEmpty() != digits) continue
+            if (b.phone?.let { PhoneNumbers.normalize(it) }.orEmpty() != digits) continue
 
             // Whichever came in on a code is the provable one.
             val keep = if (a.joinedWithCode != null) a else b

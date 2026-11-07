@@ -51,7 +51,7 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.designsystem.theme.OnPaper
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.labelRes
-import com.example.fieldtrack.data.auth.formatIndianPhone
+import com.example.fieldtrack.data.auth.formatPhone
 import androidx.compose.foundation.selection.selectable
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 
@@ -420,7 +420,7 @@ private fun BillStep(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PaymentMethod.entries.forEach { method ->
+            Money.methods.forEach { method ->
                 FtChip(
                     label = stringResource(method.labelRes),
                     selected = payment.method == method,
@@ -487,7 +487,7 @@ private fun SavedStep(state: FinishState, receivedMinor: Long, finalBalanceMinor
                     )
                     val letterhead = listOfNotNull(
                         state.businessAddress?.takeIf { it.isNotBlank() },
-                        state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatIndianPhone(it) },
+                        state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatPhone(it) },
                     ).joinToString(" · ")
                     if (letterhead.isNotBlank()) {
                         Text(
@@ -609,13 +609,6 @@ private fun AmountLine(label: String, amount: Long, tone: FtMoneyTone = FtMoneyT
     }
 }
 
-private val PaymentMethod.labelRes: Int
-    get() = when (this) {
-        PaymentMethod.Cash -> R.string.method_cash
-        PaymentMethod.Upi -> R.string.method_upi
-        PaymentMethod.Bank -> R.string.method_bank
-        PaymentMethod.Cheque -> R.string.method_cheque
-    }
 
 
 @Composable

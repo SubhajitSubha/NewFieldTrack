@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.customer
 
 import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.feature.labelRes
 import androidx.compose.foundation.background
 import com.example.fieldtrack.designsystem.format.MoneyInput
 import androidx.compose.foundation.layout.Arrangement
@@ -286,7 +287,7 @@ fun RecordPaymentScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    PaymentMethod.entries.forEach { method ->
+                    Money.methods.forEach { method ->
                         FtChip(
                             label = stringResource(method.labelRes()),
                             selected = state.method == method,
@@ -341,13 +342,6 @@ fun RecordPaymentScreen(
     }
 }
 
-@Composable
-private fun PaymentMethod.labelRes(): Int = when (this) {
-    PaymentMethod.Cash -> R.string.method_cash
-    PaymentMethod.Upi -> R.string.method_upi
-    PaymentMethod.Bank -> R.string.method_bank
-    PaymentMethod.Cheque -> R.string.method_cheque
-}
 
 /** Enough to recognise the jobs without turning the card into a list. */
 private const val CLEARS_SHOWN = 4

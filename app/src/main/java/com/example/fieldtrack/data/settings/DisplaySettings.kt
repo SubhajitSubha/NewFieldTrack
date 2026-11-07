@@ -24,10 +24,10 @@ enum class GroupingChoice { Auto, Indian, International }
  * Observable, so a change in settings redraws the whole app at once rather than
  * after the next restart.
  */
-class DisplaySettings(context: Context) {
+class DisplaySettings(private val appContext: Context) {
 
     private val prefs by lazy {
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        appContext.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     }
 
     private val _theme by lazy {
@@ -71,6 +71,16 @@ class DisplaySettings(context: Context) {
         applyGrouping(choice)
     }
 
+    /** The language the person chose, as a tag, or null to follow the phone. */
+    private val _language by lazy { MutableStateFlow(AppLanguage.saved(appContext)) }
+    val language: StateFlow<String?> get() = _language.asStateFlow()
+
+    /** Stored now; the screens pick it up when the activity is made again. */
+    fun setLanguage(tag: String?) {
+        prefs.edit().apply { if (tag == null) remove(KEY_LANGUAGE) else putString(KEY_LANGUAGE, tag) }.apply()
+        _language.value = tag
+    }
+
     private val _weekStart by lazy {
         MutableStateFlow(
             prefs.getString(KEY_WEEK_START, null)
@@ -106,6 +116,7 @@ class DisplaySettings(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_BIGGER_TEXT = "biggerText"
         const val KEY_GROUPING = "grouping"
+        const val KEY_LANGUAGE = "language"
         const val KEY_WEEK_START = "weekStart"
 
         /**

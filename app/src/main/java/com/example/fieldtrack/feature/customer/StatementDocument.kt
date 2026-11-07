@@ -191,14 +191,7 @@ private fun describe(entry: LedgerEntryEntity): String = when (entry.kind) {
     LedgerKind.Opening -> stringResource(R.string.ledger_opening_label)
     LedgerKind.Payment -> stringResource(
         R.string.statement_payment_line,
-        stringResource(
-            when (entry.method) {
-                PaymentMethod.Upi -> R.string.method_upi
-                PaymentMethod.Bank -> R.string.method_bank
-                PaymentMethod.Cheque -> R.string.method_cheque
-                else -> R.string.method_cash
-            }
-        ),
+        stringResource((entry.method ?: PaymentMethod.Cash).labelRes),
     )
     LedgerKind.Adjustment -> entry.note.orEmpty().ifBlank {
         stringResource(R.string.ledger_adjustment_label)

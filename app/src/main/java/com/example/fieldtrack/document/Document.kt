@@ -15,8 +15,14 @@ data class Letterhead(
     val businessName: String,
     val addressLine: String? = null,
     val phone: String? = null,
+    /** The tax registration number, labelled with whatever the business calls its tax. */
     val gstin: String? = null,
     val upiId: String? = null,
+    /** What to print under "Pay to": bank or mobile-money details, one per line. */
+    val payDetails: String? = null,
+    /** The business's tax: "GST", "VAT"... and its rate in hundredths of a percent. Null for none. */
+    val taxName: String? = null,
+    val taxPercentBps: Int? = null,
 )
 
 /** Who the document is for. */

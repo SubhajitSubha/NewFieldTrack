@@ -21,7 +21,7 @@ import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
-import com.example.fieldtrack.data.auth.indianMobileDigits
+import com.example.fieldtrack.data.auth.PhoneNumbers
 import com.example.fieldtrack.data.db.JobStatus
 import kotlinx.coroutines.flow.map
 import com.example.fieldtrack.data.db.TeamEventKind
@@ -248,7 +248,7 @@ class TeamRepository(
             // here is the signed-in identity in full international form, and
             // keeping it that way left two spellings of the same number in one
             // column — which is how a member screen came to read "+91 +9190000...".
-            phone = phone?.let { indianMobileDigits(it) }?.ifBlank { null },
+            phone = phone?.let { PhoneNumbers.normalize(it) }?.ifBlank { null },
             role = invite.role,
             canSeeMoney = invite.canSeeMoney,
             canAddCustomers = invite.canAddCustomers,

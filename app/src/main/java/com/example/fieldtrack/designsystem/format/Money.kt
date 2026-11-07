@@ -156,6 +156,11 @@ object Money {
      * reads the way this person reads.
      */
     var grouping: DigitGrouping by mutableStateOf(DigitGrouping.forLocale(Locale.getDefault()))
+
+    /** The ways of paying the business on screen offers, for the next payment. */
+    var methods: List<com.example.fieldtrack.data.db.PaymentMethod> by mutableStateOf(
+        com.example.fieldtrack.data.billing.PaymentMethods.defaultsFor("INR")
+    )
 }
 
 private const val MINUS = "−" // real minus sign, not a hyphen

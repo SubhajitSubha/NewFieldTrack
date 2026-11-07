@@ -39,6 +39,11 @@ class MainActivity : ComponentActivity() {
      */
     private val openJobRequests = MutableStateFlow<String?>(null)
 
+    /** The chosen language is laid over everything this screen reads its text from. */
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.example.fieldtrack.data.settings.AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super, as the platform requires: this swaps the launch window's
         // theme for the app's own.
