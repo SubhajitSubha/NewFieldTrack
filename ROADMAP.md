@@ -154,8 +154,10 @@ Order is chosen so each step builds on the one before (dependencies noted).
   customer money needs See money, wages need See people cost. Needs N6 and N7.
 - [x] **N9. Your own roles** (case 1). The owner makes a named role (Manager, Accountant, Mechanic...) from a list of plain-word
   switches, keeps it, and gives it to any member; changing the role changes everyone who has it. The five built-in roles stay.
-- [ ] **N10. Simplify pass and sign-off.** Walk every main flow as a first-time driver and a first-time owner, cut steps and words,
+- [x] **N10. Simplify pass and sign-off.** Walk every main flow as a first-time driver and a first-time owner, cut steps and words,
   full test suite, emulator check at both sizes, light and dark, and the eight translations read again for the new words.
+  Done: the pay form asks "who" in one dropdown; the new screens are in the screen matrix (all nine configurations green);
+  full suite 1,137 tests green after one fix (permission rows are named toggles); translations drafted, unread.
 
 Suggestions kept for later (not built unless asked):
 - A team member seeing their own pay. Needs three things together: `payouts` rule allowing a read when `resource.data.toPersonId`
