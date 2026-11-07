@@ -451,7 +451,7 @@ abstract class ScreenMatrix(
         listOf(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
             "more" to Routes.MORE, "price" to Routes.PRICE, "profile" to Routes.PROFILE,
-            "seasons-edit" to Routes.SEASONS_EDIT,
+            "seasons-edit" to Routes.SEASONS_EDIT, "notices" to Routes.NOTICES, "history" to Routes.MONEY_HISTORY,
             "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "money-settings" to Routes.MONEY_SETTINGS, "search" to Routes.SEARCH, "booking-new" to Routes.booking(),
             "booking" to Routes.booking(ids.bookingId), "start-booking" to Routes.startBooking(ids.missedBookingId),
             "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
@@ -847,6 +847,13 @@ abstract class ScreenMatrix(
         "customers" to Routes.CUSTOMERS,
         "fleet" to Routes.FLEET,
         "more" to Routes.MORE,
+        // The screens of the field-feedback round.
+        "history" to Routes.MONEY_HISTORY,
+        "notices" to Routes.NOTICES,
+        "roles" to Routes.ROLES,
+        "role-new" to Routes.role(null),
+        "person-pay" to Routes.personPay(com.example.fieldtrack.data.db.entity.membershipId(ORG, ids.driverPersonId)),
+        "pay-out-person" to Routes.payOut(ids.driverPersonId),
         "start" to Routes.START,
         "start-for" to "start/${ids.customerId}",
         "start-on-field" to Routes.startOnField(ids.fieldId),

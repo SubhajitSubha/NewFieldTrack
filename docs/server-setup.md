@@ -12,7 +12,9 @@ bottom of ROADMAP.md.
    release exists. Raising `minVersionCode` stops older installs from sending, and
    shows them the update page; their records stay on the phone.
 3. **Functions.** `functions/` holds our notification and account-deletion code. Deploy with
-   `firebase deploy --only functions`. Needs the Blaze plan.
+   `firebase deploy --only functions`. Needs the Blaze plan. It now also sends the breakdown,
+   "I need help" and "somebody joined" messages (`onBreakdown`, `onHelp`, `onJoin`), so deploy it
+   again after pulling the field-feedback round. The rules file did not change in that round.
 4. **Cloud Messaging.** Nothing to switch on beyond the project already being linked;
    the new `google-services.json` should be downloaded again after the changes below.
 5. **Google sign-in.** Enable the Google provider, add the app's SHA-1 key, download the new

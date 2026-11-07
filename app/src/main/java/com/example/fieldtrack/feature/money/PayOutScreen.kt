@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.PayoutCovers
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -86,66 +87,54 @@ fun PayOutScreen(
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
 
-            FtSectionLabel(stringResource(R.string.payout_who))
-            FtCard(padding = 0.dp) {
-                state.people.forEach { person ->
-                    PickRow(
-                        title = person.name,
-                        note = stringResource(R.string.payout_on_the_team),
-                        selected = state.toPersonId == person.personId,
-                        onSelect = { onPerson(person.personId) },
-                    )
-                    FtRowDivider()
-                }
+            // One line that opens a list, however big the team: a row for each person made
+            // this the longest form in the app for a business with a crew.
+            FtPick(
+                options = state.people.map { it.personId } + listOf<String?>(null),
+                selected = state.toPersonId,
+                text = { id ->
+                    if (id == null) stringResource(R.string.payout_labourers)
+                    else state.people.firstOrNull { it.personId == id }?.name.orEmpty()
+                },
+                onPick = onPerson,
+                label = stringResource(R.string.payout_who),
+                searchHint = stringResource(R.string.pick_search),
+            )
+            if (state.payingLabourers) {
                 Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = state.payingLabourers,
-                            role = Role.RadioButton,
-                            onClick = { onPerson(null) },
-                        )
-                        .padding(horizontal = 15.dp, vertical = 13.dp),
+                    Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    RadioButton(selected = state.payingLabourers, onClick = null)
-                    Column(Modifier.padding(start = 13.dp).weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.payout_labourers_note),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkSecondary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        FtButton(
+                            text = "−",
+                            onClick = { onHeadcount(state.headcount - 1) },
+                            tone = FtButtonTone.Secondary,
+                            height = 38.dp,
+                            modifier = Modifier.size(38.dp),
+                        )
                         Text(
-                            text = stringResource(R.string.payout_labourers),
-                            style = FieldTrackTheme.type.body,
+                            text = state.headcount.toString(),
+                            style = FieldTrackTheme.type.sectionTitle,
                             color = colors.ink,
                         )
-                        Text(
-                            text = stringResource(R.string.payout_labourers_note),
-                            style = FieldTrackTheme.type.caption,
-                            color = colors.inkSecondary,
+                        FtButton(
+                            text = "+",
+                            onClick = { onHeadcount(state.headcount + 1) },
+                            tone = FtButtonTone.Secondary,
+                            height = 38.dp,
+                            modifier = Modifier.size(38.dp),
                         )
-                    }
-                    if (state.payingLabourers) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            FtButton(
-                                text = "−",
-                                onClick = { onHeadcount(state.headcount - 1) },
-                                tone = FtButtonTone.Secondary,
-                                height = 38.dp,
-                                modifier = Modifier.size(38.dp),
-                            )
-                            Text(
-                                text = state.headcount.toString(),
-                                style = FieldTrackTheme.type.sectionTitle,
-                                color = colors.ink,
-                            )
-                            FtButton(
-                                text = "+",
-                                onClick = { onHeadcount(state.headcount + 1) },
-                                tone = FtButtonTone.Secondary,
-                                height = 38.dp,
-                                modifier = Modifier.size(38.dp),
-                            )
-                        }
                     }
                 }
             }
