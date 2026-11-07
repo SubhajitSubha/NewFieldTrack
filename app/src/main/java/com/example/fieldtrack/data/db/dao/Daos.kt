@@ -629,7 +629,7 @@ interface MachineDao {
         """
         SELECT m.*, COALESCE((
             SELECT SUM(j.elapsedSeconds) FROM jobs j
-            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+            WHERE (j.machineId = m.id OR j.implementMachineId = m.id) AND j.orgId = m.orgId AND j.status = 'Completed'
               AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
         ), 0) AS workedSeconds
         FROM machines m
@@ -643,7 +643,7 @@ interface MachineDao {
         """
         SELECT m.*, COALESCE((
             SELECT SUM(j.elapsedSeconds) FROM jobs j
-            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+            WHERE (j.machineId = m.id OR j.implementMachineId = m.id) AND j.orgId = m.orgId AND j.status = 'Completed'
               AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
         ), 0) AS workedSeconds
         FROM machines m
@@ -656,7 +656,7 @@ interface MachineDao {
         """
         SELECT m.*, COALESCE((
             SELECT SUM(j.elapsedSeconds) FROM jobs j
-            WHERE j.machineId = m.id AND j.orgId = m.orgId AND j.status = 'Completed'
+            WHERE (j.machineId = m.id OR j.implementMachineId = m.id) AND j.orgId = m.orgId AND j.status = 'Completed'
               AND j.deletedAt IS NULL AND j.completedAt > COALESCE(m.hoursAsOf, m.createdAt)
         ), 0) AS workedSeconds
         FROM machines m
@@ -694,14 +694,14 @@ interface MachineDao {
         """
         SELECT m.id AS machineId,
             COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
-                WHERE j.machineId = m.id AND j.orgId = m.orgId
+                WHERE (j.machineId = m.id OR j.implementMachineId = m.id) AND j.orgId = m.orgId
                   AND j.status = 'Completed' AND j.deletedAt IS NULL), 0) AS seconds,
             COALESCE((SELECT SUM(f.costMinor) FROM fuel_entries f
                 WHERE f.machineId = m.id AND f.orgId = m.orgId), 0) AS fuelMinor,
             COALESCE((SELECT SUM(s.costMinor) FROM service_records s
                 WHERE s.machineId = m.id AND s.orgId = m.orgId), 0) AS serviceMinor,
             COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
-                WHERE j.machineId = m.id AND j.orgId = m.orgId
+                WHERE (j.machineId = m.id OR j.implementMachineId = m.id) AND j.orgId = m.orgId
                   AND j.status = 'Completed' AND j.deletedAt IS NULL
                   AND j.completedAt >= :yearAgo), 0) AS yearSeconds
         FROM machines m
@@ -901,7 +901,7 @@ interface JobDao {
     @Query(
         """
         SELECT * FROM jobs
-        WHERE orgId = :orgId AND machineId = :machineId AND deletedAt IS NULL
+        WHERE orgId = :orgId AND (machineId = :machineId OR implementMachineId = :machineId) AND deletedAt IS NULL
           AND status != 'Discarded'
         ORDER BY workedAt DESC LIMIT :limit
         """
@@ -1000,7 +1000,8 @@ interface JobDao {
     @Query(
         """
         SELECT * FROM jobs
-        WHERE orgId = :orgId AND operatorPersonId = :personId AND deletedAt IS NULL
+        WHERE orgId = :orgId AND (operatorPersonId = :personId OR (coOperatorIds IS NOT NULL
+               AND (',' || coOperatorIds || ',') LIKE '%,' || :personId || ',%')) AND deletedAt IS NULL
         ORDER BY workedAt DESC
         """
     )
@@ -1054,7 +1055,8 @@ interface JobDao {
     @Query(
         """
         SELECT * FROM jobs
-        WHERE orgId = :orgId AND operatorPersonId = :personId AND deletedAt IS NULL
+        WHERE orgId = :orgId AND (operatorPersonId = :personId OR (coOperatorIds IS NOT NULL
+               AND (',' || coOperatorIds || ',') LIKE '%,' || :personId || ',%')) AND deletedAt IS NULL
           AND workedAt BETWEEN :from AND :to
         ORDER BY workedAt DESC
         """

@@ -85,7 +85,7 @@ class FieldFlowApplication : Application() {
     }
 
     val planRepository: PlanRepository by lazy {
-        PlanRepository(db = db, syncQueue = syncQueue)
+        PlanRepository(db = db, syncQueue = syncQueue, ledger = ledgerRepository)
     }
 
     val teamRepository: TeamRepository by lazy {

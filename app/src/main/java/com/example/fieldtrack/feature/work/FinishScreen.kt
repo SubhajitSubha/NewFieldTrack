@@ -403,7 +403,7 @@ private fun BillStep(
         JobBillLines(state, stringResource(R.string.finish_this_job))
         if (state.previousBalanceMinor != 0L) {
             AmountLine(
-                stringResource(R.string.money_old_balance),
+                stringResource(if (state.previousBalanceMinor < 0) R.string.money_advance_paid else R.string.money_old_balance),
                 state.previousBalanceMinor,
                 tone = FtMoneyTone.Due,
             )
@@ -551,7 +551,7 @@ private fun SavedStep(state: FinishState, receivedMinor: Long, finalBalanceMinor
             )
             JobBillLines(state, "${state.workType} · ${measure(state.quantity, state.unit)}")
             if (state.previousBalanceMinor != 0L) {
-                AmountLine(stringResource(R.string.money_old_balance), state.previousBalanceMinor)
+                AmountLine(stringResource(if (state.previousBalanceMinor < 0) R.string.money_advance_paid else R.string.money_old_balance), state.previousBalanceMinor)
             }
             if (receivedMinor > 0) {
                 AmountLine(stringResource(R.string.money_paid_today), -receivedMinor, tone = FtMoneyTone.Received)

@@ -273,6 +273,23 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                         color = colors.onDark,
                         modifier = Modifier.padding(top = 2.dp),
                     )
+                    state.quote?.takeIf { it.hasExtras }?.let { q ->
+                        // Where the figure comes from, when it is more than quantity times rate.
+                        val parts = listOfNotNull(
+                            stringResource(R.string.job_quote_work, money(q.workMinor)),
+                            q.minimumTopUpMinor.takeIf { it > 0 }?.let { stringResource(R.string.job_quote_minimum, money(it)) },
+                            q.arrivalMinor.takeIf { it > 0 }?.let { stringResource(R.string.job_quote_arrival, money(it)) },
+                            q.waitingMinor.takeIf { it > 0 }?.let { stringResource(R.string.job_quote_waiting, money(it)) },
+                            q.fuelMinor.takeIf { it > 0 }?.let { stringResource(R.string.job_quote_diesel, money(it)) },
+                            q.discountMinor.takeIf { it > 0 }?.let { stringResource(R.string.job_quote_discount, money(it)) },
+                        )
+                        Text(
+                            text = parts.joinToString(" · "),
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.onDarkMuted,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 } else {
                     // A driver who may not see money still needs the measure.
                     Text(

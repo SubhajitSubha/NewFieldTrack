@@ -48,6 +48,7 @@ class EditMachineViewModel(
             _state.update {
                 it.copy(
                     kind = machine.kind,
+                    typeLabel = machine.typeLabel.orEmpty(),
                     name = machine.name,
                     plate = machine.plate.orEmpty(),
                     hoursText = hours,
@@ -64,6 +65,7 @@ class EditMachineViewModel(
     }
 
     fun setKind(kind: MachineKind) = _state.update { it.copy(kind = kind) }
+    fun setTypeLabel(v: String) = _state.update { it.copy(typeLabel = v.take(40)) }
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setPlate(v: String) = _state.update { it.copy(plate = v) }
     fun setHours(v: String) = _state.update { it.copy(hoursText = v.filter { c -> c.isDigit() }) }
@@ -89,6 +91,7 @@ class EditMachineViewModel(
                 machineId = machineId,
                 name = current.name,
                 kind = current.kind,
+                typeLabel = current.typeLabel.takeIf { current.kind == MachineKind.Other },
                 plate = current.plate,
                 // Only a reading somebody typed. The form opens on today's hours;
                 // saving a corrected name must not turn them into a new reading.

@@ -1,5 +1,10 @@
 package com.example.fieldtrack.feature.plan
 
+import androidx.compose.ui.text.input.KeyboardType
+import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.designsystem.format.money
+import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.data.db.PaymentMethod
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +64,8 @@ class BookingFormActions(
     val onMachine: (String?) -> Unit,
     val onDriver: (String?) -> Unit,
     val onNote: (String) -> Unit,
+    val onAdvance: (String) -> Unit = {},
+    val onAdvanceMethod: (PaymentMethod) -> Unit = {},
     val onSave: () -> Unit,
     val onCancel: (CancelReason) -> Unit,
     val onDone: () -> Unit,
@@ -306,6 +313,38 @@ fun BookingFormScreen(
                 onValueChange = { if (state.editable) actions.onNote(it) },
                 placeholder = stringResource(R.string.plan_form_note_hint),
             )
+            // A token taken with the booking, which goes on the farmer's account at once.
+            if (state.id == null && state.editable && state.canTakeMoney) {
+                FtTextField(
+                    label = stringResource(R.string.plan_form_advance),
+                    value = state.advanceText,
+                    onValueChange = actions.onAdvance,
+                    prefix = Money.style.symbol,
+                    keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+                    helper = stringResource(R.string.plan_form_advance_note),
+                )
+                if (state.advanceText.isNotBlank()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Money.methods.forEach { method ->
+                            FtChip(
+                                label = stringResource(method.labelRes),
+                                selected = state.advanceMethod == method,
+                                onClick = { actions.onAdvanceMethod(method) },
+                            )
+                        }
+                    }
+                }
+            }
+            state.advanceTakenMinor?.let { taken ->
+                Text(
+                    text = stringResource(R.string.plan_form_advance_taken, money(taken)),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = FieldTrackTheme.colors.inkSecondary,
+                )
+            }
             Box(Modifier.padding(bottom = dimens.space4))
         }
 

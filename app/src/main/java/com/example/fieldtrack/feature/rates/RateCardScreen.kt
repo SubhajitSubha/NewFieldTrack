@@ -78,6 +78,7 @@ fun RateCardScreen(
     onDraftUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
     onDraftAmount: (String) -> Unit,
     onDraftLabel: (String) -> Unit,
+    onDraftTerms: (com.example.fieldtrack.feature.work.TermsDraft) -> Unit = {},
     onDraftSave: () -> Unit,
     onDraftDismiss: () -> Unit,
     onAskDelete: (RateRow) -> Unit,
@@ -232,6 +233,7 @@ fun RateCardScreen(
             onUnit = onDraftUnit,
             onAmount = onDraftAmount,
             onLabel = onDraftLabel,
+            onTerms = onDraftTerms,
             onSave = onDraftSave,
             onDismiss = onDraftDismiss,
             onDelete = state.rates.firstOrNull { it.id == draft.id }?.let { row ->
@@ -320,6 +322,7 @@ private fun RateSheet(
     onUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
     onAmount: (String) -> Unit,
     onLabel: (String) -> Unit,
+    onTerms: (com.example.fieldtrack.feature.work.TermsDraft) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)?,
@@ -412,6 +415,10 @@ private fun RateSheet(
                 label = stringResource(R.string.rates_label),
                 helper = stringResource(R.string.rates_label_hint),
             )
+
+            // Terms that usually come with this price: a minimum, an arrival charge,
+            // who pays for the diesel, waiting. A new job at this rate starts from them.
+            com.example.fieldtrack.feature.work.TermsSection(draft = draft.terms, onChange = onTerms)
 
             FtButton(
                 text = stringResource(R.string.rates_save),

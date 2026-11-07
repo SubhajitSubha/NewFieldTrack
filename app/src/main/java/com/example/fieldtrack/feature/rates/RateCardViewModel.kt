@@ -30,6 +30,8 @@ data class RateRow(
     val unit: MeasureUnit,
     val amountMinor: Long,
     val label: String?,
+    /** The rate as stored, for the terms that come with it. */
+    val rate: RateEntity? = null,
 )
 
 data class RateCardState(
@@ -52,6 +54,8 @@ data class RateDraft(
     val unit: MeasureUnit = MeasureUnit.Acre,
     val amountText: String = "",
     val label: String = "",
+    /** The terms this price usually comes with: minimum, arrival, diesel, waiting. */
+    val terms: com.example.fieldtrack.feature.work.TermsDraft = com.example.fieldtrack.feature.work.TermsDraft(),
 ) {
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
     val canSave: Boolean get() = amountMinor > 0
@@ -116,6 +120,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             unit = row.unit,
             amountText = MoneyInput.text(row.amountMinor),
             label = row.label.orEmpty(),
+            terms = com.example.fieldtrack.feature.work.TermsDraft.of(row.rate),
         )
     }
 
@@ -148,6 +153,8 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setLabel(value: String) = _draft.update { it?.copy(label = value) }
 
+    fun setTerms(terms: com.example.fieldtrack.feature.work.TermsDraft) = _draft.update { it?.copy(terms = terms) }
+
     fun saveDraft() = viewModelScope.launch {
         val draft = _draft.value ?: return@launch
         if (!draft.canSave) return@launch
@@ -160,6 +167,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             amountMinor = draft.amountMinor,
             label = draft.label,
             rateId = draft.id,
+            terms = draft.terms.toTerms(),
         )
         _draft.value = null
     }
@@ -198,6 +206,7 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             unit = unit,
             amountMinor = amountMinor,
             label = label,
+            rate = this,
         )
     }
 }

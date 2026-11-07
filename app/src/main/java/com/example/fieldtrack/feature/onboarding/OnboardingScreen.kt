@@ -508,4 +508,16 @@ private fun MachineKind.labelRes(): Int = when (this) {
     MachineKind.Baler -> R.string.machine_baler
     MachineKind.Leveller -> R.string.machine_leveller
     MachineKind.Other -> R.string.machine_other
+    MachineKind.Excavator -> R.string.machine_excavator
+    MachineKind.Seeder -> R.string.machine_seeder
+    MachineKind.Mulcher -> R.string.machine_mulcher
+    MachineKind.Plough -> R.string.machine_plough
+    MachineKind.Harrow -> R.string.machine_harrow
+    MachineKind.DroneSprayer -> R.string.machine_drone_sprayer
+    MachineKind.WaterTanker -> R.string.machine_water_tanker
+    MachineKind.SugarcaneHarvester -> R.string.machine_sugarcane_harvester
+    MachineKind.PotatoDigger -> R.string.machine_potato_digger
+    MachineKind.Ridger -> R.string.machine_ridger
+    MachineKind.GrainCart -> R.string.machine_grain_cart
+    MachineKind.Pump -> R.string.machine_pump
 }

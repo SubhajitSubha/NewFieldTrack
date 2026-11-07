@@ -273,6 +273,18 @@ fun iconFor(kind: MachineKind): ImageVector = when (kind) {
     MachineKind.Baler -> FieldTrackIcons.Baler
     MachineKind.Leveller -> FieldTrackIcons.Leveller
     MachineKind.Other -> FieldTrackIcons.More
+    MachineKind.Excavator -> FieldTrackIcons.Tractor
+    MachineKind.Seeder -> FieldTrackIcons.Cultivator
+    MachineKind.Mulcher -> FieldTrackIcons.Rotavator
+    MachineKind.Plough -> FieldTrackIcons.Cultivator
+    MachineKind.Harrow -> FieldTrackIcons.Cultivator
+    MachineKind.DroneSprayer -> FieldTrackIcons.Sprayer
+    MachineKind.WaterTanker -> FieldTrackIcons.Trolley
+    MachineKind.SugarcaneHarvester -> FieldTrackIcons.Harvester
+    MachineKind.PotatoDigger -> FieldTrackIcons.Harvester
+    MachineKind.Ridger -> FieldTrackIcons.Cultivator
+    MachineKind.GrainCart -> FieldTrackIcons.Trolley
+    MachineKind.Pump -> FieldTrackIcons.PowerTiller
 }
 
 /** The work types the picker offers, each with the glyph and default billing. */
@@ -299,6 +311,7 @@ private val TRIP = BillingMode.PerTrip
 private val LOAD = BillingMode.PerUnit
 private val DISTANCE = BillingMode.PerKm
 private val FIXED = BillingMode.Fixed
+private val DAY = BillingMode.PerDay
 
 /**
  * The work a contractor sells, and how each kind is really charged for.
@@ -310,14 +323,20 @@ private val FIXED = BillingMode.Fixed
  * always possible, and "Other" carries all six for the work this table has not met.
  */
 val workTypeOptions = listOf(
-    WorkTypeOption(R.string.work_type_rotavator, "Rotavator", FieldTrackIcons.Rotavator, listOf(AREA, HOUR, FIXED)),
-    WorkTypeOption(R.string.work_type_ploughing, "Ploughing", FieldTrackIcons.Cultivator, listOf(HOUR, AREA, FIXED)),
-    WorkTypeOption(R.string.work_type_harvesting, "Harvesting", FieldTrackIcons.Harvester, listOf(AREA, HOUR, LOAD, FIXED)),
-    WorkTypeOption(R.string.work_type_levelling, "Levelling", FieldTrackIcons.Leveller, listOf(AREA, HOUR, FIXED)),
-    WorkTypeOption(R.string.work_type_spraying, "Spraying", FieldTrackIcons.Sprayer, listOf(AREA, LOAD, FIXED)),
-    WorkTypeOption(R.string.work_type_hauling, "Hauling", FieldTrackIcons.Trolley, listOf(TRIP, DISTANCE, LOAD, FIXED)),
+    WorkTypeOption(R.string.work_type_rotavator, "Rotavator", FieldTrackIcons.Rotavator, listOf(AREA, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_ploughing, "Ploughing", FieldTrackIcons.Cultivator, listOf(HOUR, AREA, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_harvesting, "Harvesting", FieldTrackIcons.Harvester, listOf(AREA, HOUR, LOAD, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_levelling, "Levelling", FieldTrackIcons.Leveller, listOf(AREA, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_spraying, "Spraying", FieldTrackIcons.Sprayer, listOf(AREA, LOAD, HOUR, FIXED)),
+    WorkTypeOption(R.string.work_type_hauling, "Hauling", FieldTrackIcons.Trolley, listOf(TRIP, DISTANCE, LOAD, DAY, FIXED)),
     WorkTypeOption(R.string.work_type_sowing, "Sowing", FieldTrackIcons.Transplanter, listOf(AREA, HOUR, FIXED)),
-    WorkTypeOption(R.string.work_type_other, "Other", FieldTrackIcons.More, listOf(FIXED, AREA, HOUR, TRIP, LOAD, DISTANCE)),
+    WorkTypeOption(R.string.work_type_planting, "Planting", FieldTrackIcons.Transplanter, listOf(AREA, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_baling, "Baling", FieldTrackIcons.Baler, listOf(LOAD, AREA, HOUR, FIXED)),
+    WorkTypeOption(R.string.work_type_threshing, "Threshing", FieldTrackIcons.Thresher, listOf(LOAD, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_mulching, "Mulching", FieldTrackIcons.Rotavator, listOf(AREA, HOUR, FIXED)),
+    WorkTypeOption(R.string.work_type_digging, "Digging", FieldTrackIcons.Tractor, listOf(HOUR, DAY, LOAD, TRIP, FIXED)),
+    WorkTypeOption(R.string.work_type_pumping, "Pumping", FieldTrackIcons.PowerTiller, listOf(HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_other, "Other", FieldTrackIcons.More, listOf(FIXED, AREA, HOUR, DAY, TRIP, LOAD, DISTANCE)),
 )
 
 /** Label for a unit. Regional land units are the reason these are resources. */

@@ -140,6 +140,14 @@ fun MachineDetailScreen(
                             },
                             label = stringResource(state.status.labelRes()),
                         )
+                        state.typeLabel?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                text = it,
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.inkSecondary,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
                         state.plate?.takeIf { it.isNotBlank() }?.let {
                             Text(
                                 text = it,

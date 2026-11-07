@@ -39,6 +39,9 @@ data class PastWorkState(
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantityText: String = "",
     val rateText: String = "",
+    /** What is agreed beyond the rate. Folded away until somebody opens it. */
+    val terms: TermsDraft = TermsDraft(),
+    val crew: List<Crew> = emptyList(),
     /** Minutes from midnight. Null when they do not remember the times. */
     val fromMinutes: Int? = null,
     val toMinutes: Int? = null,
@@ -50,7 +53,12 @@ data class PastWorkState(
     val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
 
     val amountMinor: Long
-        get() = Billing.amount(billingMode, quantity, rateMinor, Money.style.stepMinor)
+        get() {
+            val work = Billing.amount(billingMode, quantity, rateMinor, Money.style.stepMinor)
+            val t = terms.toTerms()
+            // Work typed in afterwards has no clock to wait on and no diesel log to pass on.
+            return (maxOf(work, t.minimumMinor) + t.arrivalMinor).coerceAtLeast(0)
+        }
 
     /** Minutes between the two times, when both are given and make sense. */
     val workedMinutes: Int?
@@ -173,6 +181,8 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setRate(value: String) =
         _state.update { it.copy(rateText = MoneyInput.clean(value)) }
 
+    fun setTerms(draft: TermsDraft) = _state.update { it.copy(terms = draft) }
+
     fun setFrom(minutes: Int?) {
         _state.update { it.copy(fromMinutes = minutes) }
         checkOverlaps()
@@ -260,6 +270,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             completedAt = completedAt,
             machineId = current.machineId,
             operatorPersonId = s.personId,
+            terms = current.terms.toTerms(),
         )
         app.directoryRepository.rememberRate(
             orgId = s.orgId,
@@ -270,6 +281,7 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             customerId = current.customer.id.takeIf {
                 app.sessionStore.rememberPerCustomer.value
             },
+            terms = current.terms.toTerms(),
         )
         _state.update { it.copy(saving = false) }
         onSaved(jobId)

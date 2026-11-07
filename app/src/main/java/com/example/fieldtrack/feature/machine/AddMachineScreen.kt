@@ -45,6 +45,8 @@ import kotlinx.coroutines.launch
 
 data class AddMachineState(
     val kind: MachineKind = MachineKind.Tractor,
+    /** What the owner calls a machine the list has no name for, asked only when the kind is Other. */
+    val typeLabel: String = "",
     val name: String = "",
     val plate: String = "",
     val hoursText: String = "",
@@ -86,6 +88,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
     val state: StateFlow<AddMachineState> = _state.asStateFlow()
 
     fun setKind(kind: MachineKind) = _state.update { it.copy(kind = kind) }
+    fun setTypeLabel(v: String) = _state.update { it.copy(typeLabel = v.take(40)) }
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setPlate(v: String) = _state.update { it.copy(plate = v) }
     fun setHours(v: String) = _state.update { it.copy(hoursText = v.filter { c -> c.isDigit() }) }
@@ -116,6 +119,7 @@ class AddMachineViewModel(private val app: FieldFlowApplication) : ViewModel() {
             orgId = s.orgId,
             name = current.name,
             kind = current.kind,
+            typeLabel = current.typeLabel.takeIf { current.kind == MachineKind.Other },
             plate = current.plate.ifBlank { null },
             // Zero means "do not remind me", which is a real preference for an old
             // machine that gets serviced when it complains rather than on a schedule.
@@ -155,6 +159,7 @@ fun AddMachineScreen(
     state: AddMachineState,
     onBack: () -> Unit,
     onKind: (MachineKind) -> Unit,
+    onTypeLabel: (String) -> Unit = {},
     onName: (String) -> Unit,
     onPlate: (String) -> Unit,
     onHours: (String) -> Unit,
@@ -196,6 +201,15 @@ fun AddMachineScreen(
                 // Icons first, because a driver picking a machine type recognises the
                 // shape long before they read the word under it.
                 MachineKindGrid(state.kind, onKind)
+            }
+
+            if (state.kind == MachineKind.Other) {
+                FtTextField(
+                    label = stringResource(R.string.machines_type_label),
+                    value = state.typeLabel,
+                    onValueChange = onTypeLabel,
+                    placeholder = stringResource(R.string.machines_type_label_hint),
+                )
             }
 
             FtTextField(
@@ -297,7 +311,12 @@ private fun MachineKindGrid(selected: MachineKind, onKind: (MachineKind) -> Unit
     val kinds = listOf(
         MachineKind.Tractor, MachineKind.Harvester, MachineKind.Rotavator,
         MachineKind.Cultivator, MachineKind.Trolley, MachineKind.Thresher,
-        MachineKind.Sprayer, MachineKind.Transplanter, MachineKind.Other,
+        MachineKind.Sprayer, MachineKind.Transplanter, MachineKind.PowerTiller,
+        MachineKind.Baler, MachineKind.Leveller, MachineKind.Excavator,
+        MachineKind.Seeder, MachineKind.Mulcher, MachineKind.Plough,
+        MachineKind.Harrow, MachineKind.DroneSprayer, MachineKind.WaterTanker,
+        MachineKind.SugarcaneHarvester, MachineKind.PotatoDigger, MachineKind.Ridger,
+        MachineKind.GrainCart, MachineKind.Pump, MachineKind.Other,
     )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         kinds.chunked(3).forEach { row ->
@@ -366,4 +385,16 @@ fun MachineKind.labelRes(): Int = when (this) {
     MachineKind.Baler -> R.string.machine_baler
     MachineKind.Leveller -> R.string.machine_leveller
     MachineKind.Other -> R.string.machine_other
+    MachineKind.Excavator -> R.string.machine_excavator
+    MachineKind.Seeder -> R.string.machine_seeder
+    MachineKind.Mulcher -> R.string.machine_mulcher
+    MachineKind.Plough -> R.string.machine_plough
+    MachineKind.Harrow -> R.string.machine_harrow
+    MachineKind.DroneSprayer -> R.string.machine_drone_sprayer
+    MachineKind.WaterTanker -> R.string.machine_water_tanker
+    MachineKind.SugarcaneHarvester -> R.string.machine_sugarcane_harvester
+    MachineKind.PotatoDigger -> R.string.machine_potato_digger
+    MachineKind.Ridger -> R.string.machine_ridger
+    MachineKind.GrainCart -> R.string.machine_grain_cart
+    MachineKind.Pump -> R.string.machine_pump
 }

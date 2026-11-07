@@ -48,6 +48,8 @@ data class MachineDetailState(
     val name: String = "",
     val kind: MachineKind = MachineKind.Tractor,
     val plate: String? = null,
+    /** What the owner calls this kind of machine, when the list has no name for it. */
+    val typeLabel: String? = null,
     val status: MachineStatus = MachineStatus.Idle,
     val hoursUsed: Double = 0.0,
     val earnedMinor: Long = 0,
@@ -101,6 +103,7 @@ class MachineDetailViewModel(
                 name = machine.name,
                 kind = machine.kind,
                 plate = machine.plate,
+                typeLabel = machine.typeLabel,
                 status = machine.status,
                 hoursUsed = machine.hoursUsed,
                 earnedMinor = earned,

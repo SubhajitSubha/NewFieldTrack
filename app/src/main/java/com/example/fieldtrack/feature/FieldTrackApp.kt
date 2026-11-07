@@ -878,6 +878,8 @@ private fun MainNavHost(navController: NavHostController) {
                         onMachine = vm::selectMachine,
                         onDriver = vm::selectDriver,
                         onNote = vm::setNote,
+                        onAdvance = vm::setAdvance,
+                        onAdvanceMethod = vm::setAdvanceMethod,
                         onSave = { vm.save(leave) },
                         onCancel = { vm.cancel(it, leave) },
                         onDone = { vm.markDone(leave) },
@@ -1075,6 +1077,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onUnit = vm::setUnit,
                     onQuantity = vm::setQuantity,
                     onRate = vm::setRate,
+                    onTerms = vm::setTerms,
                     onPickFrom = { pickingFrom = true },
                     onPickTo = { pickingTo = true },
                     onForgetTimes = vm::forgetTimes,
@@ -1303,6 +1306,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onAmount = vm::setAmount,
                     onTakeAll = vm::takeAll,
                     onMethod = vm::setMethod,
+                    onInKind = vm::setInKind,
                     onSaveAndSend = {
                         vm.save { paid ->
                             val text = context.getString(
@@ -1555,6 +1559,7 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onBack = { navController.popBackStack() },
                     onKind = vm::setKind,
+                    onTypeLabel = vm::setTypeLabel,
                     onName = vm::setName,
                     onPlate = vm::setPlate,
                     onHours = vm::setHours,
@@ -1576,6 +1581,7 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onBack = { navController.popBackStack() },
                     onKind = vm::setKind,
+                    onTypeLabel = vm::setTypeLabel,
                     onName = vm::setName,
                     onPlate = vm::setPlate,
                     onHours = vm::setHours,
@@ -1648,6 +1654,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onDraftUnit = vm::setUnit,
                     onDraftAmount = vm::setAmount,
                     onDraftLabel = vm::setLabel,
+                    onDraftTerms = vm::setTerms,
                     onDraftSave = vm::saveDraft,
                     onDraftDismiss = vm::dismissDraft,
                     onAskDelete = vm::askDelete,

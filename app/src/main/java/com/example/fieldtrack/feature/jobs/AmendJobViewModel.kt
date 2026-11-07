@@ -29,6 +29,8 @@ data class AmendJobState(
     /** The rounding this job was billed with, kept so a correction rounds the same way. */
     val stepMinor: Long = 100,
     val originalAmountMinor: Long = 0,
+    /** The job being corrected, so the preview keeps its minimum, arrival charge and the rest. Null in tests of the arithmetic alone. */
+    val job: com.example.fieldtrack.data.db.entity.JobEntity? = null,
     val quantityText: String = "",
     val rateText: String = "",
     val reason: String = "",
@@ -46,7 +48,17 @@ data class AmendJobState(
      * are the same figure.
      */
     val newAmountMinor: Long
-        get() = Billing.amount(billingMode, quantity, rateMinor, stepMinor)
+        get() {
+            val j = job ?: return Billing.amount(billingMode, quantity, rateMinor, stepMinor)
+            val corrected = j.copy(
+                quantity = quantity,
+                rateMinor = rateMinor,
+                tripTotalMinor = if (billingMode == BillingMode.PerTrip) {
+                    Billing.amount(BillingMode.PerTrip, quantity, rateMinor, j.stepMinor)
+                } else j.tripTotalMinor,
+            )
+            return corrected.amountMinor
+        }
 
     /** Positive when the customer ends up owing more. */
     val deltaMinor: Long get() = newAmountMinor - originalAmountMinor
@@ -101,6 +113,7 @@ class AmendJobViewModel(
                     originalRateMinor = job.rateMinor,
                     stepMinor = job.stepMinor,
                     originalAmountMinor = job.amountMinor,
+                    job = job,
                     quantityText = trimZero(job.quantity),
                     rateText = MoneyInput.text(job.rateMinor),
                     allowed = Capability.AmendBilledWork in s.can,

@@ -67,6 +67,8 @@ data class RecordPaymentState(
     val clears: List<ClearedLine> = emptyList(),
     val amountText: String = "",
     val method: PaymentMethod = PaymentMethod.Cash,
+    /** What was handed over when it was grain or produce, such as "20 bags of wheat". */
+    val inKindNote: String = "",
     val saving: Boolean = false,
 ) {
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
@@ -118,6 +120,8 @@ class RecordPaymentViewModel(
 
     fun setMethod(method: PaymentMethod) = _state.update { it.copy(method = method) }
 
+    fun setInKind(text: String) = _state.update { it.copy(inKindNote = text.take(80)) }
+
     fun save(onDone: (Long) -> Unit) = viewModelScope.launch {
         val current = _state.value
         if (!current.canSave) return@launch
@@ -129,6 +133,8 @@ class RecordPaymentViewModel(
             amountMinor = current.amountMinor,
             method = current.method,
             byPersonId = s.personId,
+            // What was handed over, since the amount is only what it was worth that day.
+            note = current.inKindNote.trim().ifBlank { null }.takeIf { current.method == PaymentMethod.InKind },
         )
         _state.update { it.copy(saving = false) }
         onDone(current.amountMinor)
@@ -143,6 +149,7 @@ fun RecordPaymentScreen(
     onAmount: (String) -> Unit,
     onTakeAll: () -> Unit,
     onMethod: (PaymentMethod) -> Unit,
+    onInKind: (String) -> Unit = {},
     onSaveAndSend: () -> Unit,
     onJustSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -295,6 +302,16 @@ fun RecordPaymentScreen(
                         )
                     }
                 }
+            }
+
+            if (state.method == PaymentMethod.InKind) {
+                FtTextField(
+                    label = stringResource(R.string.payment_in_kind_what),
+                    value = state.inKindNote,
+                    onValueChange = onInKind,
+                    placeholder = stringResource(R.string.payment_in_kind_hint),
+                    helper = stringResource(R.string.payment_in_kind_note),
+                )
             }
 
             Row(

@@ -1,6 +1,8 @@
 package com.example.fieldtrack.feature.plan
 
 import androidx.lifecycle.ViewModel
+import com.example.fieldtrack.designsystem.format.MoneyInput
+import com.example.fieldtrack.data.db.PaymentMethod
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.data.db.BookingStatus
@@ -54,6 +56,12 @@ data class BookingFormState(
     val team: List<MembershipEntity> = emptyList(),
     val driverId: String? = null,
     val note: String = "",
+    /** A token taken with this booking, as typed. Only asked when somebody may take money. */
+    val advanceText: String = "",
+    val advanceMethod: PaymentMethod = PaymentMethod.Cash,
+    val canTakeMoney: Boolean = false,
+    /** What was taken when the booking was made, shown once it exists. */
+    val advanceTakenMinor: Long? = null,
     /** Everything else booked that day, for saying what this one would double-book. */
     val sameDay: List<BookingRow> = emptyList(),
     val saving: Boolean = false,
@@ -122,6 +130,7 @@ class BookingFormViewModel(
                 st.copy(
                     loaded = true,
                     canPlan = Capability.PlanWork in s.can,
+                    canTakeMoney = Capability.TakePayment in s.can,
                     today = today,
                     day = existing?.booking?.day ?: forDay?.takeIf { it >= today } ?: today,
                 ).let { base ->
@@ -138,6 +147,7 @@ class BookingFormViewModel(
                         machineId = b.machineId,
                         driverId = b.operatorPersonId,
                         note = b.note.orEmpty(),
+                        advanceTakenMinor = b.advanceMinor,
                     )
                 }
             }
@@ -218,6 +228,10 @@ class BookingFormViewModel(
     fun selectDriver(id: String?) = _state.update { it.copy(driverId = id) }
     fun setNote(text: String) = _state.update { it.copy(note = text.take(MAX_NOTE)) }
 
+    fun setAdvance(text: String) = _state.update { it.copy(advanceText = MoneyInput.clean(text)) }
+
+    fun setAdvanceMethod(method: PaymentMethod) = _state.update { it.copy(advanceMethod = method) }
+
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
         val customer = current.customer ?: return@launch
@@ -230,6 +244,9 @@ class BookingFormViewModel(
                 fieldId = current.fieldId, workType = current.workType.key, day = current.day,
                 part = current.part, startMinute = current.startMinute, machineId = current.machineId,
                 operatorPersonId = current.driverId, note = current.note,
+                advanceMinor = if (current.id == null && current.canTakeMoney) MoneyInput.parse(current.advanceText) else null,
+                advanceMethod = current.advanceMethod,
+                byPersonId = s.personId,
             )
         }.onSuccess { _state.update { it.copy(saving = false) }; onSaved() }
             // Refused: the permission was taken away while this was open.

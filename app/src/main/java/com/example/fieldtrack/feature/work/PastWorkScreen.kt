@@ -66,6 +66,7 @@ fun PastWorkScreen(
     onUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
     onQuantity: (String) -> Unit,
     onRate: (String) -> Unit,
+    onTerms: (TermsDraft) -> Unit = {},
     onPickFrom: () -> Unit,
     onPickTo: () -> Unit,
     onForgetTimes: () -> Unit,
@@ -247,6 +248,12 @@ fun PastWorkScreen(
                 suffix = if (state.billingMode == BillingMode.Fixed) null
                 else stringResource(R.string.start_rate_per, unitLabel),
                 keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+            )
+
+            TermsSection(
+                draft = state.terms,
+                onChange = onTerms,
+                implements = state.machines.filter { it.id != state.machineId },
             )
 
             TimesSection(state, onPickFrom, onPickTo, onForgetTimes)

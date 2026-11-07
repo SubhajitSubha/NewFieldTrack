@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.CancelReason
 import com.example.fieldtrack.data.db.Clock
+import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.data.db.DayPart
 import com.example.fieldtrack.data.db.FieldTrackDatabase
 import com.example.fieldtrack.data.db.IdGenerator
@@ -36,6 +37,8 @@ class PlanRepository(
     private val syncQueue: SyncQueue,
     private val clock: Clock = Clock.System,
     private val ids: IdGenerator = IdGenerator.Random,
+    /** Takes the token paid at booking onto the customer's account. Null where nothing is taken at booking. */
+    private val ledger: LedgerRepository? = null,
 ) {
     private val bookings = db.bookingDao()
 
@@ -68,6 +71,10 @@ class PlanRepository(
         machineId: String?,
         operatorPersonId: String?,
         note: String?,
+        /** A token taken with a new booking. It goes on the customer's account at once, as a payment. */
+        advanceMinor: Long? = null,
+        advanceMethod: PaymentMethod = PaymentMethod.Cash,
+        byPersonId: String? = null,
     ): String {
         can.require(Capability.PlanWork)
         val now = clock.now()
@@ -103,10 +110,23 @@ class PlanRepository(
                 machineId = machineId,
                 operatorPersonId = operatorPersonId,
                 note = cleanNote,
+                advanceMinor = advanceMinor?.takeIf { it > 0 && ledger != null },
                 createdAt = now,
                 updatedAt = now,
             )
             if (existing == null) write(booking) else writeEdit(booking)
+            // Money taken for a booking is the customer's from that moment: it sits on the
+            // account as a payment and comes off the bill when the work is done.
+            if (existing == null && booking.advanceMinor != null && ledger != null) {
+                ledger.recordPayment(
+                    orgId = orgId,
+                    customerId = customerId,
+                    amountMinor = booking.advanceMinor,
+                    method = advanceMethod,
+                    byPersonId = byPersonId,
+                    note = "Advance for $workType",
+                )
+            }
             booking.id
         }
     }

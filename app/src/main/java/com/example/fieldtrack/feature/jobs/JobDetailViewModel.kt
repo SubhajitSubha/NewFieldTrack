@@ -47,6 +47,8 @@ data class JobDetailState(
     val quantity: Double = 0.0,
     val rateMinor: Long = 0,
     val amountMinor: Long = 0,
+    /** The bill line by line, so a job with a minimum, an arrival charge or a discount says where its figure comes from. */
+    val quote: com.example.fieldtrack.data.billing.Quote? = null,
     val elapsedSeconds: Long = 0,
     val machineName: String? = null,
     val operatorName: String? = null,
@@ -191,7 +193,8 @@ class JobDetailViewModel(
                 },
                 workedAtMillis = job.workedAt,
                 ratesVaried = job.billingMode == BillingMode.PerTrip &&
-                    job.amountMinor != Math.round(job.quantity * job.rateMinor),
+                    job.workAmountMinor != Math.round(job.quantity * job.rateMinor),
+                quote = app.workRepository.quote(job.orgId, job.id),
                 events = timelineOf(events, names),
                 canAmend = Capability.AmendBilledWork in s.can,
                 canSeeMoney = s.canSeeMoney,

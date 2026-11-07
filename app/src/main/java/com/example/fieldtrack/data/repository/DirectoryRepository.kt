@@ -170,6 +170,8 @@ class DirectoryRepository(
         kind: MachineKind,
         plate: String? = null,
         serviceIntervalHours: Double? = 250.0,
+        /** What the owner calls it when [kind] is Other. */
+        typeLabel: String? = null,
         /**
          * What the meter reads now. The form always had a box for it and the add
          * flow never passed it on, so a reading typed here was thrown away.
@@ -182,6 +184,7 @@ class DirectoryRepository(
             orgId = orgId,
             name = name.trim(),
             kind = kind,
+            typeLabel = typeLabel?.trim()?.ifBlank { null },
             plate = plate?.trim()?.ifBlank { null },
             hoursUsed = hoursUsed?.coerceAtLeast(0.0) ?: 0.0,
             hoursAsOf = now,
@@ -212,6 +215,8 @@ class DirectoryRepository(
         name: String,
         kind: MachineKind,
         plate: String?,
+        /** What the owner calls it when [kind] is Other. */
+        typeLabel: String? = null,
         /**
          * A new meter reading, or null to leave the hours alone.
          *
@@ -230,6 +235,7 @@ class DirectoryRepository(
             val updated = existing.copy(
                 name = name.trim(),
                 kind = kind,
+                typeLabel = typeLabel?.trim()?.ifBlank { null },
                 plate = plate?.trim()?.ifBlank { null },
                 hoursUsed = hoursUsed?.coerceAtLeast(0.0) ?: existing.hoursUsed,
                 hoursAsOf = if (hoursUsed != null) now else existing.hoursAsOf,
@@ -447,6 +453,8 @@ class DirectoryRepository(
         label: String? = null,
         customerId: String? = null,
         rateId: String? = null,
+        /** What the price usually comes with: a minimum, an arrival charge, who pays for diesel, waiting. */
+        terms: JobTerms = JobTerms(),
     ): String {
         val rate = RateEntity(
             id = rateId ?: ids.newId(),
@@ -457,6 +465,10 @@ class DirectoryRepository(
             amountMinor = amountMinor,
             customerId = customerId,
             label = label?.trim()?.takeIf { it.isNotEmpty() },
+            minimumMinor = terms.minimumMinor,
+            arrivalMinor = terms.arrivalMinor,
+            fuelTerms = terms.fuelTerms,
+            waitingRateMinor = terms.waitingRateMinor,
             updatedAt = clock.now(),
         )
         save(rate)

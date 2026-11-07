@@ -136,6 +136,10 @@ enum class JobCostKind { Labour, Other }
 enum class MachineKind {
     Tractor, Harvester, Rotavator, Cultivator, Trolley, Thresher,
     Sprayer, Transplanter, PowerTiller, Baler, Leveller, Other,
+
+    // Added with the worldwide list. Stored by name, so these go at the end.
+    Excavator, Seeder, Mulcher, Plough, Harrow, DroneSprayer, WaterTanker,
+    SugarcaneHarvester, PotatoDigger, Ridger, GrainCart, Pump,
 }
 
 enum class MachineStatus { Idle, Working, Down }
