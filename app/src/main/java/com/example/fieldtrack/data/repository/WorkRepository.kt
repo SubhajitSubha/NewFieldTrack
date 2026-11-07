@@ -404,6 +404,104 @@ class WorkRepository(
         }
 
     /**
+     * "I need help here." Written on the job's own timeline, which syncs like everything
+     * else; the server sends the owner and the planners a message the moment it arrives.
+     * The job itself is not changed.
+     */
+    suspend fun askForHelp(orgId: String, jobId: String) =
+        mutate(orgId, jobId) { job -> job to Event(JobEventType.HelpAsked) }
+
+    /**
+     * Another machine takes over an open job: the first one broke, or something else was
+     * brought in. Returns the id of the job the work now carries on in.
+     *
+     * Work charged by the quantity or the hour is closed on the first machine, billed for
+     * what it did, and carried on in a new job on the second with the same farmer, field,
+     * rate and crew, and the clock running. That keeps every machine's hours, diesel and
+     * earnings its own, which one job spread over two machines could not. The timeline of
+     * each says where the work went and came from.
+     *
+     * Work charged as a flat sum or by the day is one price for the whole job, so closing
+     * and reopening it would charge it twice: it stays one job, and the machine changes.
+     */
+    suspend fun changeMachine(
+        orgId: String,
+        jobId: String,
+        newMachineId: String,
+        byPersonId: String? = null,
+    ): String {
+        val old = jobs.find(orgId, jobId) ?: throw WorkError.NoSuchJob(jobId)
+        if (old.status != JobStatus.Running && old.status != JobStatus.Paused) throw WorkError.AlreadyFinished(jobId)
+        if (old.machineId == newMachineId) return jobId
+        val oldName = old.machineId?.let { machines.findMachineName(orgId, it) }.orEmpty()
+        val newName = machines.findMachineName(orgId, newMachineId).orEmpty()
+
+        if (old.billingMode == BillingMode.Fixed || old.billingMode == BillingMode.PerDay) {
+            mutate(orgId, jobId) { job ->
+                job.copy(machineId = newMachineId) to Event(JobEventType.MachineTookOver, textValue = oldName)
+            }
+            db.withTransaction {
+                refreshMachineStatus(orgId, old.machineId)
+                markMachine(orgId, newMachineId, MachineStatus.Working)
+            }
+            return jobId
+        }
+
+        val now = clock.now()
+        val fresh = old.copy(
+            id = ids.newId(),
+            machineId = newMachineId,
+            bookingId = null,
+            quantity = 0.0,
+            tripTotalMinor = 0,
+            // One-off charges belong to the work as a whole and were raised on the first part.
+            minimumMinor = 0,
+            arrivalMinor = 0,
+            fuelBilledMinor = 0,
+            waitingMinor = 0,
+            discountMinor = 0,
+            elapsedSeconds = 0,
+            distanceMetres = null,
+            status = JobStatus.Running,
+            workedAt = now,
+            recordedAt = now,
+            entryMethod = EntryMethod.Timed,
+            startedAt = now,
+            completedAt = null,
+            runningSince = now,
+            billFy = null,
+            billSeq = null,
+            createdAt = now,
+            updatedAt = now,
+            deletedAt = null,
+            syncState = com.example.fieldtrack.data.db.SyncState.Pending,
+            lastWriterDeviceId = deviceId,
+            revision = 1,
+            // The new machine's meter and the place it started are not the old one's.
+            meterStart = null, meterEnd = null,
+            startLat = null, startLng = null, endLat = null, endLng = null,
+            startPhotoId = null, endPhotoId = null,
+        )
+        db.withTransaction {
+            val didAnything = billableMinor(old, now) > 0 || elapsedSeconds(old, now) > 0 || old.quantity > 0
+            // Nothing done on the first machine is not a bill for nothing: it is simply dropped.
+            if (didAnything) {
+                complete(orgId, jobId, byPersonId)
+                addEvent(old, JobEventType.MachineSwappedOut, byPersonId, textValue = newName)
+            } else {
+                discard(orgId, jobId)
+            }
+            jobs.upsert(fresh)
+            addEvent(fresh, JobEventType.Started, fresh.operatorPersonId, at = now)
+            addEvent(fresh, JobEventType.MachineTookOver, byPersonId, textValue = oldName, at = now)
+            enqueue(fresh)
+            refreshMachineStatus(orgId, old.machineId)
+            markMachine(orgId, newMachineId, MachineStatus.Working)
+        }
+        return fresh.id
+    }
+
+    /**
      * Change what an open job is charged at.
      *
      * Safe to do freely because nothing has been billed yet — the charge is worked

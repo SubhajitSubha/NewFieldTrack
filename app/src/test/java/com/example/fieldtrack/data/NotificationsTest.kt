@@ -9,6 +9,7 @@ import com.example.fieldtrack.notify.PushText
 import com.example.fieldtrack.notify.ReminderKind
 import com.example.fieldtrack.notify.ReminderSettings
 import com.example.fieldtrack.notify.ReminderText
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -90,5 +91,59 @@ class NotificationsTest {
         val text = ReminderText.dues(context, 4)!!
         assertNotNull(text)
         assertFalse((text.first + text.second).contains("₹"))
+    }
+
+    @Test fun `a breakdown, a call for help and somebody joining are understood and say what they were about`() {
+        val breakdown = mapOf("event" to "breakdown_new", "orgId" to "o", "what" to "Swaraj 855")
+        assertEquals(PushEvent.BreakdownReported, PushEvent.parse(breakdown))
+        assertEquals("Swaraj 855", PushEvent.what(breakdown))
+        assertEquals(PushEvent.BreakdownFixed, PushEvent.parse(mapOf("event" to "breakdown_fixed")))
+        assertEquals(PushEvent.SosRaised, PushEvent.parse(mapOf("event" to "sos")))
+        assertEquals(PushEvent.MemberJoined, PushEvent.parse(mapOf("event" to "member_joined")))
+        assertNull(PushEvent.what(mapOf("event" to "sos", "what" to "  ")))
+        assertEquals(60, PushEvent.what(mapOf("what" to "x".repeat(200)))!!.length)
+
+        assertTrue(PushText.title(context, PushEvent.BreakdownReported, "Swaraj 855").contains("Swaraj 855"))
+        assertTrue(PushText.title(context, PushEvent.SosRaised, "Gurmeet").contains("Gurmeet"))
+        assertTrue(PushText.title(context, PushEvent.SosRaised).isNotBlank())
+    }
+
+    @Test fun `a call for help cannot be switched off, and everything else still can`() {
+        val settings = PushSettings(context)
+        settings.set(PushKind.Sos, false)
+        assertTrue("an emergency nobody can hear is no emergency", PushSettings(context).isOn(PushKind.Sos))
+        assertFalse(PushKind.Sos.switchable)
+        settings.set(PushKind.Breakdown, false)
+        assertFalse(PushSettings(context).isOn(PushKind.Breakdown))
+        assertTrue(PushSettings(context).isOn(PushKind.Team))
+    }
+
+    @Test fun `what the phone was told is kept newest first, marked read per business, and emptied on sign-out`() {
+        context.getSharedPreferences(com.example.fieldtrack.notify.NoticeInbox.PREFS, Context.MODE_PRIVATE).edit().clear().commit()
+        val inbox = com.example.fieldtrack.notify.NoticeInbox(context)
+        inbox.add("a", "breakdown_new", "Swaraj 855", at = 1_000)
+        inbox.add("a", "sos", "Gurmeet", at = 2_000)
+        inbox.add("b", "job_handed", null, at = 3_000)
+
+        val mine = kotlinx.coroutines.runBlocking { inbox.forOrg("a").first() }
+        assertEquals(listOf("sos", "breakdown_new"), mine.map { it.event })
+        assertEquals(2, kotlinx.coroutines.runBlocking { inbox.unread("a").first() })
+
+        inbox.markAllRead("a")
+        assertEquals(0, kotlinx.coroutines.runBlocking { inbox.unread("a").first() })
+        assertEquals("another business's news is not touched", 1, kotlinx.coroutines.runBlocking { inbox.unread("b").first() })
+
+        // Survives the process, as a phone that was off must still show it.
+        assertEquals(3, com.example.fieldtrack.notify.NoticeInbox(context).all.value.size)
+        inbox.clear()
+        assertTrue(com.example.fieldtrack.notify.NoticeInbox(context).all.value.isEmpty())
+    }
+
+    @Test fun `the list keeps only the most recent`() {
+        context.getSharedPreferences(com.example.fieldtrack.notify.NoticeInbox.PREFS, Context.MODE_PRIVATE).edit().clear().commit()
+        val inbox = com.example.fieldtrack.notify.NoticeInbox(context)
+        repeat(100) { inbox.add("a", "sos", null, at = it.toLong()) }
+        assertEquals(60, inbox.all.value.size)
+        assertEquals(99L, inbox.all.value.first().at)
     }
 }

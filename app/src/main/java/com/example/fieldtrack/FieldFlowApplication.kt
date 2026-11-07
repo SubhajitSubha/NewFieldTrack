@@ -225,6 +225,11 @@ class FieldFlowApplication : Application() {
         com.example.fieldtrack.notify.PushSettings(this)
     }
 
+    /** What this phone was told, kept for the list in the app. */
+    val noticeInbox: com.example.fieldtrack.notify.NoticeInbox by lazy {
+        com.example.fieldtrack.notify.NoticeInbox(this)
+    }
+
     /** Which reminders this phone gives, and at what hour. */
     val reminderSettings: com.example.fieldtrack.notify.ReminderSettings by lazy {
         com.example.fieldtrack.notify.ReminderSettings(this)

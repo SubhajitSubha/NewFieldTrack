@@ -60,6 +60,8 @@ fun RemindersScreen(
     push: Map<PushKind, Boolean>,
     canPayments: Boolean,
     canRequests: Boolean = false,
+    /** Owners and team managers: told when somebody joins. */
+    canTeam: Boolean = false,
     onPush: (PushKind, Boolean) -> Unit,
     paperDays: Int,
     onPaperDays: (Int) -> Unit,
@@ -117,6 +119,8 @@ fun RemindersScreen(
                         add(PushKind.Job to (R.string.push_job_row to R.string.push_job_note))
                         if (canPayments) add(PushKind.Payment to (R.string.push_payment_row to R.string.push_payment_note))
                         if (canRequests) add(PushKind.Request to (R.string.push_request_row to R.string.push_request_note))
+                        add(PushKind.Breakdown to (R.string.push_breakdown_row to R.string.push_breakdown_note))
+                        if (canTeam) add(PushKind.Team to (R.string.push_team_row to R.string.push_team_note))
                     }
                     rows.forEachIndexed { index, (kind, texts) ->
                         if (index > 0) FtRowDivider()

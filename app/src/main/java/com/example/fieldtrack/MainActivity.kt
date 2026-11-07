@@ -59,6 +59,9 @@ class MainActivity : ComponentActivity() {
      */
     private val openJobRequests = MutableStateFlow<String?>(null)
 
+    /** A tap on one of the app's own notifications, which opens the list of what the phone was told. */
+    private val openNoticesRequests = MutableStateFlow(false)
+
     /** The chosen language is laid over everything this screen reads its text from. */
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(com.example.fieldtrack.data.settings.AppLanguage.wrap(newBase))
@@ -153,6 +156,8 @@ class MainActivity : ComponentActivity() {
                                     FieldTrackApp(
                                         openJobRequests = openJobRequests,
                                         onOpenJobHandled = { openJobRequests.value = null },
+                                        openNoticesRequests = openNoticesRequests,
+                                        onOpenNoticesHandled = { openNoticesRequests.value = false },
                                     )
                                 }
                             }
@@ -179,6 +184,9 @@ class MainActivity : ComponentActivity() {
 
     private fun takeOpenJob(intent: Intent?) {
         intent?.getStringExtra(EXTRA_OPEN_JOB)?.let { openJobRequests.value = it }
+        if (intent?.getBooleanExtra(com.example.fieldtrack.notify.Push.EXTRA_OPEN_NOTICES, false) == true) {
+            openNoticesRequests.value = true
+        }
     }
 
     override fun onStart() {

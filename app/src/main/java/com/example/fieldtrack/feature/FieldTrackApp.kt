@@ -260,6 +260,7 @@ internal object Routes {
     const val EDIT_MACHINE = "machines/{machineId}/edit"
     const val MORE = "more"
     const val SEARCH = "search"
+    const val NOTICES = "notices"
     const val PROFILE = "more/profile"
     const val SEASONS_EDIT = "more/profile/seasons"
     const val TEAM = "more/team"
@@ -379,6 +380,9 @@ fun FieldTrackApp(
     /** A job to go straight to, from the clock notification. */
     openJobRequests: StateFlow<String?> = MutableStateFlow(null),
     onOpenJobHandled: () -> Unit = {},
+    /** A tap on one of the app's own notifications: open the list of what the phone was told. */
+    openNoticesRequests: StateFlow<Boolean> = MutableStateFlow(false),
+    onOpenNoticesHandled: () -> Unit = {},
 ) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
     val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
@@ -547,7 +551,7 @@ fun FieldTrackApp(
                 )
             }
 
-            is Startup.Ready -> MainGraph(controller, openJobRequests, onOpenJobHandled)
+            is Startup.Ready -> MainGraph(controller, openJobRequests, onOpenJobHandled, openNoticesRequests, onOpenNoticesHandled)
         }
       }
       }
@@ -600,8 +604,19 @@ private fun MainGraph(
     navController: NavHostController,
     openJobRequests: StateFlow<String?>,
     onOpenJobHandled: () -> Unit,
+    openNoticesRequests: StateFlow<Boolean>,
+    onOpenNoticesHandled: () -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as FieldFlowApplication
+
+    val openNotices by openNoticesRequests.collectAsStateWithLifecycle()
+    LaunchedEffect(openNotices) {
+        if (!openNotices) return@LaunchedEffect
+        if (navController.currentDestination?.route != Routes.NOTICES) {
+            navController.navigate(Routes.NOTICES) { launchSingleTop = true }
+        }
+        onOpenNoticesHandled()
+    }
 
     // On the first screen a signed-in person sees, not only once a clock has started:
     // work booked for them is news the moment it happens.
@@ -650,6 +665,9 @@ private fun MainGraph(
     BackHandler(enabled = drawerState.isOpen) { closeMenu() }
     val startupNow by app.sessionStore.startup.collectAsStateWithLifecycle()
     val initials = initialsOf((startupNow as? Startup.Ready)?.session?.displayName.orEmpty())
+    val noticeOrg = (startupNow as? Startup.Ready)?.session?.orgId
+    val unreadNotices by (if (noticeOrg == null) kotlinx.coroutines.flow.flowOf(0) else app.noticeInbox.unread(noticeOrg))
+        .collectAsStateWithLifecycle(0)
 
     // The menu is for the main screens: on a job in progress or a bill being written it
     // stays shut, because anything that invites you to wander off is a way to lose work.
@@ -700,6 +718,9 @@ private fun MainGraph(
                         searchContentDescription = stringResource(R.string.menu_search_cd),
                         onMenu = openMenu,
                         onSearch = { navController.navigate(Routes.SEARCH) },
+                        unread = unreadNotices,
+                        notificationsContentDescription = stringResource(R.string.notices_title),
+                        onNotifications = { navController.navigate(Routes.NOTICES) },
                     )
                     Box(Modifier.weight(1f)) { content() }
                     if (tab >= 0) {
@@ -728,6 +749,9 @@ private fun MainGraph(
                             searchContentDescription = stringResource(R.string.menu_search_cd),
                             onMenu = openMenu,
                             onSearch = { navController.navigate(Routes.SEARCH) },
+                            unread = unreadNotices,
+                            notificationsContentDescription = stringResource(R.string.notices_title),
+                            onNotifications = { navController.navigate(Routes.NOTICES) },
                         )
                         Box(Modifier.weight(1f)) { content() }
                     }
@@ -1219,6 +1243,7 @@ private fun MainNavHost(navController: NavHostController) {
                     push = PushKind.entries.associateWith { pushOn[it] != false },
                     canPayments = session?.let { Capability.SeeMoney in it.can } == true,
                     canRequests = session?.let { Capability.PlanWork in it.can } == true,
+                    canTeam = session?.let { Capability.EditTeam in it.can } == true,
                     onPush = { kind, enabled ->
                         app.pushSettings.set(kind, enabled)
                         app.runInBackground { PushRegistrar(app).sync() }
@@ -1294,6 +1319,39 @@ private fun MainNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() },
                     onWindow = vm::setWindow,
                     onChangeSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                )
+            }
+
+            composable(Routes.NOTICES) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val orgId = (startup as? Startup.Ready)?.session?.orgId ?: return@composable
+                val notices by app.noticeInbox.forOrg(orgId).collectAsStateWithLifecycle(emptyList())
+                // What was new when the list opened stays marked while it is read, and is
+                // marked as seen once the person leaves; marking at once would show nothing.
+                val newOnes = remember { app.noticeInbox.all.value.filter { it.orgId == orgId && !it.read }.map { it.id }.toSet() }
+                androidx.compose.runtime.DisposableEffect(orgId) {
+                    onDispose { app.noticeInbox.markAllRead(orgId) }
+                }
+                com.example.fieldtrack.feature.more.NoticesScreen(
+                    notices = notices,
+                    unreadIds = newOnes,
+                    onBack = { navController.popBackStack() },
+                    onOpen = { event ->
+                        when (event) {
+                            com.example.fieldtrack.notify.PushEvent.BreakdownReported,
+                            com.example.fieldtrack.notify.PushEvent.BreakdownFixed ->
+                                navController.openScreen(if (Routes.FLEET in roots) Routes.FLEET else Routes.MACHINES, roots)
+                            com.example.fieldtrack.notify.PushEvent.MemberJoined -> navController.navigate(Routes.TEAM)
+                            com.example.fieldtrack.notify.PushEvent.RequestNew -> navController.navigate(Routes.REQUESTS)
+                            com.example.fieldtrack.notify.PushEvent.BookingNew,
+                            com.example.fieldtrack.notify.PushEvent.BookingChanged,
+                            com.example.fieldtrack.notify.PushEvent.BookingCancelled -> navController.navigate(Routes.PLAN)
+                            com.example.fieldtrack.notify.PushEvent.JobHanded -> navController.openScreen(Routes.JOBS, roots)
+                            com.example.fieldtrack.notify.PushEvent.PaymentRecorded -> navController.openScreen(Routes.CUSTOMERS, roots)
+                            com.example.fieldtrack.notify.PushEvent.SosRaised -> navController.openScreen(Routes.JOBS, roots)
+                        }
+                    },
                 )
             }
 
@@ -1951,6 +2009,10 @@ private fun MainNavHost(navController: NavHostController) {
                     onPaper = { paperId -> navController.navigate("machines/$machineId/papers/${paperId ?: "new"}") },
                     onWorth = if (state.canSeeWorth) ({ navController.navigate("machines/$machineId/worth") }) else null,
                     onSaveBreakdown = vm::saveBreakdown,
+                    move = vm.move.collectAsStateWithLifecycle().value,
+                    onMoveChoose = vm::chooseForBooked,
+                    onMovePick = vm::moveBookedTo,
+                    onMoveCancel = vm::cancelMove,
                     onDismissReport = vm::dismissReport,
                     onServiceDescription = vm::setServiceDescription,
                     onServiceCost = vm::setServiceCost,
@@ -2527,6 +2589,15 @@ private fun MainNavHost(navController: NavHostController) {
                     onRate = vm::setRate,
                     onFuel = vm::addFuel,
                     onBreakdown = vm::reportBreakdown,
+                    onAskForHelp = vm::askForHelp,
+                    onSwapMachine = { machineId ->
+                        vm.changeMachine(machineId) { next ->
+                            // The work carries on in a new job: go to it, and leave the finished one behind.
+                            if (next != jobId) navController.navigate(Routes.live(next)) {
+                                popUpTo(Routes.live(jobId)) { inclusive = true }
+                            }
+                        }
+                    },
                     onHandOver = vm::handOver,
                     // The job row is gone, so the screen showing it has to go too.
                     onDiscard = { vm.discard { navController.popBackStack() } },

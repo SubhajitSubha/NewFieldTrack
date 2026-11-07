@@ -129,16 +129,18 @@ Order is chosen so each step builds on the one before (dependencies noted).
   New English strings from N-series are translated in one wave at N10 (TranslationsTest is red until then).
 - [x] **N2. One profile edit screen** (case 8). Name and business details edit on one form with one Save; money/region, seasons and
   plan stay as their own short screens because they need pickers.
-- [ ] **N3. Menu, profile icon, search; same places for every role** (cases 4, 5, 7). The More tab goes. Top bar on the main screens:
+- [x] **N3. Menu, profile icon, search; same places for every role** (cases 4, 5, 7). The More tab goes. Top bar on the main screens:
   profile icon (opens a side menu with profile, business switcher, settings, help) and a search icon. Same four bottom tabs and the
   same positions for everyone (Home, Work, Customers, Machines); a role only hides what it may not use, nothing moves. Search
   also finds team, payments and recent activity, and shows the last things opened.
-- [ ] **N4. Notifications that matter** (case 9). Breakdown tells the owner, planners and whoever is booked on that machine at once,
+- [x] **N4. Notifications that matter** (built; the three new server functions are not deployed or testable from here) (case 9). Breakdown tells the owner, planners and whoever is booked on that machine at once,
   high priority, with the machine and what broke. Also: handed over, job finished, booking request answered, papers/service due,
   a team member joined. An SOS button on a running job (tell the owner "need help here" with the place). A notification list
   in the app so nothing is lost when a phone was off. Every kind has a switch.
-- [ ] **N5. Machine changes during work** (case 6, second half). Change the machine on a running job: the clock splits into
-  segments, each machine gets its own hours, the timeline says "tractor A broke, tractor B took over". When a machine goes down,
+- [x] **N5. Machine changes during work** (case 6, second half). Change the machine on a running job: work charged by quantity
+  or hour is closed and billed on the first machine and carried on in a new linked job on the second (so every machine keeps its
+  own hours, diesel and earnings); flat-price and by-the-day work stays one job and the machine changes. The timeline says
+  "work went on with B" and "carried on with A's work". When a machine goes down,
   the app lists its booked work for the next days and offers a free machine of the same kind in one tap.
 - [ ] **N6. Machines that belong to someone else** (case 6, first half). A machine can be: ours, a team member's, or hired in from an
   outside person. For the last two: who owns it, how they are paid (per hour, per day, per acre or a share of what the job earned),

@@ -66,6 +66,8 @@ fun LiveWorkScreen(
     onRate: (Long) -> Unit,
     onFuel: (Double, Long) -> Unit,
     onBreakdown: (BreakdownCategory, String?) -> Unit,
+    onAskForHelp: () -> Unit = {},
+    onSwapMachine: (String) -> Unit = {},
     onHandOver: (String) -> Unit,
     onDiscard: () -> Unit,
     onAmount: (Double) -> Unit,
@@ -295,6 +297,8 @@ fun LiveWorkScreen(
         onDiscard = onDiscard,
         onAmount = onAmount,
         onProof = onProof,
+        onAskForHelp = onAskForHelp,
+        onSwapMachine = onSwapMachine,
     )
 
     if (state.askAboutClock && !clockQuestionSetAside && sheet == WorkSheet.None) {

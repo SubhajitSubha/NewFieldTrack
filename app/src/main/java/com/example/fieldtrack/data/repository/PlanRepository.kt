@@ -16,6 +16,7 @@ import com.example.fieldtrack.data.session.Capabilities
 import com.example.fieldtrack.data.session.Capability
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -88,6 +89,53 @@ class PlanRepository(
             true
         }
     }
+
+    // ------------------------------------------------------------ a machine that broke
+
+    /** Work booked on this machine for the coming month that nobody has started: what its breakdown puts at risk. */
+    fun observeBookedOn(orgId: String, machineId: String, from: Long): Flow<List<BookingRow>> =
+        bookings.observeDays(orgId, from, from + MOVE_HORIZON_DAYS).map { rows -> rows.filter { holdsOn(it, machineId) } }
+
+    /** What moving a machine's booked work did: how much moved, how much could not for a clash. */
+    data class MoveResult(val moved: Int, val clashed: Int)
+
+    /**
+     * Moves the work booked on one machine to another, in one go, for the coming month.
+     *
+     * A booking the other machine is already booked for at those hours is left where it is and
+     * counted, not double-booked: the planner is told how many stayed and sorts those by hand.
+     * Started work is never touched.
+     */
+    suspend fun moveMachine(
+        can: Capabilities,
+        orgId: String,
+        fromMachineId: String,
+        toMachineId: String,
+        from: Long,
+    ): MoveResult {
+        can.require(Capability.PlanWork)
+        if (fromMachineId == toMachineId) return MoveResult(0, 0)
+        return db.withTransaction {
+            val rows = bookings.observeDays(orgId, from, from + MOVE_HORIZON_DAYS).first().toMutableList()
+            var moved = 0
+            var clashed = 0
+            rows.filter { holdsOn(it, fromMachineId) }.forEach { row ->
+                val b = row.booking
+                if (com.example.fieldtrack.data.plan.PlanDay.clashesFor(b.day, b.part, toMachineId, null, b.id, rows).isNotEmpty()) {
+                    clashed++
+                    return@forEach
+                }
+                val changed = b.copy(machineId = toMachineId, updatedAt = clock.now())
+                writeEdit(changed)
+                rows[rows.indexOf(row)] = row.copy(booking = changed)
+                moved++
+            }
+            MoveResult(moved, clashed)
+        }
+    }
+
+    private fun holdsOn(row: BookingRow, machineId: String) =
+        row.booking.machineId == machineId && row.booking.status == BookingStatus.Planned && row.jobStatus == null
 
     /** Books new work when [id] is null, otherwise changes that booking. Returns its id. */
     suspend fun save(
@@ -243,6 +291,8 @@ class PlanRepository(
     }
 
     private companion object {
+        /** How far ahead moving a broken machine's work looks. */
+        const val MOVE_HORIZON_DAYS = 30L
         const val MINUTES_IN_DAY = 24 * 60
         const val MAX_NOTE = 300
     }

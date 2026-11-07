@@ -45,7 +45,7 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.labelRes
 
 /** Which panel is open over the running job. */
-enum class WorkSheet { None, Menu, Fuel, Note, Rate, Breakdown, HandOver, Discard, Amount, Proof }
+enum class WorkSheet { None, Menu, Fuel, Note, Rate, Breakdown, HandOver, Discard, Amount, Proof, Help, Swap }
 
 /**
  * Everything you can do to a job that is already running.
@@ -73,6 +73,8 @@ fun WorkSheets(
     onDiscard: () -> Unit,
     onAmount: (Double) -> Unit,
     onProof: (ProofNote) -> Unit = {},
+    onAskForHelp: () -> Unit = {},
+    onSwapMachine: (String) -> Unit = {},
 ) {
     if (open == WorkSheet.None) return
     val colors = FieldTrackTheme.colors
@@ -102,12 +104,15 @@ fun WorkSheets(
                 WorkSheet.Rate -> RatePanel(state) { rate -> onRate(rate); close() }
                 WorkSheet.Breakdown -> BreakdownPanel { cat, note ->
                     onBreakdown(cat, note)
-                    close()
+                    // The next thing anybody wants after "it broke" is "carry on with another".
+                    if (state.otherMachines.isNotEmpty()) onOpen(WorkSheet.Swap) else close()
                 }
+                WorkSheet.Swap -> SwapPanel(state.otherMachines, onPick = { onSwapMachine(it); close() }, onCancel = close)
                 WorkSheet.HandOver -> HandOverPanel(state) { id -> onHandOver(id); close() }
                 WorkSheet.Discard -> DiscardPanel(onCancel = close, onConfirm = onDiscard)
                 WorkSheet.Amount -> AmountPanel(state) { amount -> onAmount(amount); close() }
                 WorkSheet.Proof -> ProofPanel(state.orgId, state.proof, onProof)
+                WorkSheet.Help -> HelpPanel(state.helpPhone, onAsk = { onAskForHelp() }, onDone = close)
                 WorkSheet.None -> Unit
             }
         }
@@ -152,6 +157,14 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
         subtitle = stringResource(R.string.work_note_caption),
         onClick = { onOpen(WorkSheet.Note) },
     )
+    if (state.hasMachine && state.otherMachines.isNotEmpty()) {
+        ActionRow(
+            icon = FieldTrackIcons.Swap,
+            title = stringResource(R.string.swap_title),
+            subtitle = stringResource(R.string.swap_caption),
+            onClick = { onOpen(WorkSheet.Swap) },
+        )
+    }
     if (state.hasMachine) {
         ActionRow(
             icon = FieldTrackIcons.Breakdown,
@@ -162,6 +175,14 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
             onClick = { onOpen(WorkSheet.Breakdown) },
         )
     }
+    ActionRow(
+        icon = FieldTrackIcons.Call,
+        title = stringResource(R.string.sos_title),
+        subtitle = stringResource(R.string.sos_caption),
+        tint = colors.due,
+        background = colors.dueWash,
+        onClick = { onOpen(WorkSheet.Help) },
+    )
     ActionRow(
         icon = FieldTrackIcons.Close,
         title = stringResource(R.string.work_discard_title),
@@ -177,6 +198,98 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
         onClick = { onOpen(WorkSheet.None) },
         tone = FtButtonTone.Secondary,
         modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+/**
+ * Which machine carries on with the work. The free ones come first, the same sort of machine
+ * before any other, and one that is broken is still listed but says so.
+ */
+@Composable
+internal fun SwapPanel(
+    choices: List<SwapChoice>,
+    onPick: (String) -> Unit,
+    onCancel: () -> Unit,
+    title: String = stringResource(R.string.swap_pick_title),
+    body: String = stringResource(R.string.swap_pick_body),
+) {
+    SheetTitle(title)
+    Text(
+        text = body,
+        style = FieldTrackTheme.type.bodySmall,
+        color = FieldTrackTheme.colors.inkSecondary,
+    )
+    com.example.fieldtrack.designsystem.component.FtCard(padding = 0.dp) {
+        choices.forEachIndexed { index, choice ->
+            if (index > 0) com.example.fieldtrack.designsystem.component.FtRowDivider()
+            com.example.fieldtrack.designsystem.component.FtListRow(
+                title = choice.name,
+                subtitle = when (choice.status) {
+                    com.example.fieldtrack.data.db.MachineStatus.Idle -> stringResource(R.string.swap_free)
+                    com.example.fieldtrack.data.db.MachineStatus.Working -> stringResource(R.string.swap_busy)
+                    com.example.fieldtrack.data.db.MachineStatus.Down -> stringResource(R.string.swap_down)
+                },
+                leading = {
+                    com.example.fieldtrack.designsystem.component.FtIconTile(
+                        icon = com.example.fieldtrack.feature.iconFor(choice.kind), size = 40.dp,
+                    )
+                },
+                showChevron = true,
+                onClick = { onPick(choice.id) },
+            )
+        }
+    }
+    FtButton(
+        text = stringResource(R.string.work_back_to_work),
+        onClick = onCancel,
+        tone = FtButtonTone.Secondary,
+    )
+}
+
+/**
+ * "I need help here."
+ *
+ * Two ways, because a field with no signal is exactly where help is needed: tell the
+ * owner through the app (which goes the moment there is a signal), or ring them on the
+ * phone's own dialler. The first is one tap and one confirmation; the second needs no
+ * permission and no signal from the app at all.
+ */
+@Composable
+private fun HelpPanel(phone: String?, onAsk: () -> Unit, onDone: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var sent by rememberSaveable { mutableStateOf(false) }
+    SheetTitle(stringResource(R.string.sos_title))
+    Text(
+        text = stringResource(if (sent) R.string.sos_sent else R.string.sos_body),
+        style = FieldTrackTheme.type.body,
+        color = FieldTrackTheme.colors.inkSecondary,
+    )
+    if (!sent) {
+        FtButton(
+            text = stringResource(R.string.sos_send),
+            onClick = { onAsk(); sent = true },
+        )
+    }
+    if (phone != null) {
+        FtButton(
+            text = stringResource(R.string.sos_call),
+            onClick = {
+                runCatching {
+                    context.startActivity(
+                        android.content.Intent(
+                            android.content.Intent.ACTION_DIAL,
+                            android.net.Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' }),
+                        )
+                    )
+                }
+            },
+            tone = FtButtonTone.Secondary,
+        )
+    }
+    FtButton(
+        text = stringResource(if (sent) R.string.sos_done else R.string.work_back_to_work),
+        onClick = onDone,
+        tone = FtButtonTone.Secondary,
     )
 }
 

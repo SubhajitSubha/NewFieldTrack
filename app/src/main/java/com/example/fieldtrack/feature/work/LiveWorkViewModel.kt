@@ -60,6 +60,43 @@ data class LiveWorkState(
     /** The business asks its crew for proof of work. */
     val proofOn: Boolean = false,
     val proof: JobProof = JobProof(),
+    /** The business's number, for the "call the owner" button of the help sheet. */
+    val helpPhone: String? = null,
+    /** Machines that could take the work over, the likeliest first. */
+    val otherMachines: List<SwapChoice> = emptyList(),
+)
+
+/**
+ * The machines that could take work over from [currentId], the likeliest first: free ones
+ * before busy ones before broken ones, and the same sort of machine first within each.
+ */
+fun swapChoicesFor(
+    machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
+    currentId: String?,
+): List<SwapChoice> {
+    val kind = machines.firstOrNull { it.id == currentId }?.kind
+    return machines
+        .filter { it.id != currentId && it.deletedAt == null }
+        .map { SwapChoice(it.id, it.name, it.kind, it.status, sameKind = it.kind == kind) }
+        .sortedWith(
+            compareBy<SwapChoice> {
+                when (it.status) {
+                    com.example.fieldtrack.data.db.MachineStatus.Idle -> 0
+                    com.example.fieldtrack.data.db.MachineStatus.Working -> 1
+                    com.example.fieldtrack.data.db.MachineStatus.Down -> 2
+                }
+            }.thenBy { !it.sameKind }.thenBy { it.name.lowercase() }
+        )
+}
+
+/** One machine offered as the one that takes a job over. */
+data class SwapChoice(
+    val id: String,
+    val name: String,
+    val kind: com.example.fieldtrack.data.db.MachineKind,
+    val status: com.example.fieldtrack.data.db.MachineStatus,
+    /** The same sort of machine as the one being replaced: the one most likely wanted. */
+    val sameKind: Boolean,
 )
 
 /** Kinds of event that only say the clock is going, which prove no work was done. */
@@ -93,6 +130,7 @@ class LiveWorkViewModel(
         val events: List<JobEventEntity>,
         val confirmed: Int,
         val proofOn: Boolean = false,
+        val orgPhone: String? = null,
     )
 
     val state: StateFlow<LiveWorkState> = app.sessionStore.session.flatMapLatest { s ->
@@ -101,7 +139,7 @@ class LiveWorkViewModel(
             app.workRepository.observeEvents(jobId),
             app.clockConfirmations.changes,
             app.db.orgDao().observeOrg(s.orgId),
-        ) { job, events, confirmed, org -> Clocked(job, events, confirmed, org?.proofOfWork == true) }
+        ) { job, events, confirmed, org -> Clocked(job, events, confirmed, org?.proofOfWork == true, org?.phone) }
 
         combine(
             clocked,
@@ -148,6 +186,8 @@ class LiveWorkViewModel(
                     !app.clockConfirmations.isConfirmed(job.id, since),
                 orgId = s.orgId,
                 proofOn = c.proofOn,
+                helpPhone = c.orgPhone,
+                otherMachines = swapChoicesFor(machines, job.machineId),
                 proof = JobProof(
                     start = ProofEnd(job.meterStart, job.startPhotoId, job.startLat != null),
                     end = ProofEnd(job.meterEnd, job.endPhotoId, job.endLat != null),
@@ -195,6 +235,15 @@ class LiveWorkViewModel(
     fun reportBreakdown(category: BreakdownCategory, note: String?) = withSession {
         app.workRepository.reportBreakdown(it.orgId, jobId, category, note, it.personId)
     }
+
+    /** Another machine takes the work over. [onSwitched] gets the job the work now carries on in. */
+    fun changeMachine(machineId: String, onSwitched: (String) -> Unit) = withSession {
+        val next = app.workRepository.changeMachine(it.orgId, jobId, machineId, it.personId)
+        onSwitched(next)
+    }
+
+    /** "I need help here": the owner and the planners are told at once. */
+    fun askForHelp() = withSession { app.workRepository.askForHelp(it.orgId, jobId) }
 
     /** "Yes, still working": not asked again about this stretch of the clock. */
     fun confirmClock() {

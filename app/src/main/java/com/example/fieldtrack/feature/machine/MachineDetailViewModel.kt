@@ -86,6 +86,15 @@ data class MachineDetailState(
     val serviceOverdue: Boolean get() = serviceInHours != null && serviceInHours <= 0
 }
 
+/** What a machine's breakdown puts at risk on the plan, and what moving it did. */
+data class MoveState(
+    val booked: Int = 0,
+    val canPlan: Boolean = false,
+    val options: List<com.example.fieldtrack.feature.work.SwapChoice> = emptyList(),
+    val choosing: Boolean = false,
+    val result: com.example.fieldtrack.data.repository.PlanRepository.MoveResult? = null,
+)
+
 /**
  * Everything about one machine in one place.
  *
@@ -159,6 +168,37 @@ class MachineDetailViewModel(
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MachineDetailState())
+
+    private val choosing = MutableStateFlow(false)
+    private val moveResult = MutableStateFlow<com.example.fieldtrack.data.repository.PlanRepository.MoveResult?>(null)
+
+    private fun today() = java.time.LocalDate.now(com.example.fieldtrack.data.region.BusinessClock.zone).toEpochDay()
+
+    /** The work booked on this machine and not started, and the machines it could go to. */
+    val move: StateFlow<MoveState> = app.sessionStore.session.flatMapLatest { s ->
+        combine(
+            app.planRepository.observeBookedOn(s.orgId, machineId, today()),
+            app.directoryRepository.observeMachines(s.orgId),
+            choosing,
+            moveResult,
+        ) { booked, machines, picking, result ->
+            MoveState(
+                booked = booked.size,
+                canPlan = Capability.PlanWork in s.can,
+                options = com.example.fieldtrack.feature.work.swapChoicesFor(machines, machineId),
+                choosing = picking,
+                result = result,
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoveState())
+
+    fun chooseForBooked() { moveResult.value = null; choosing.value = true }
+    fun cancelMove() { choosing.value = false }
+    fun moveBookedTo(toMachineId: String) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        moveResult.value = app.planRepository.moveMachine(s.can, s.orgId, machineId, toMachineId, today())
+        choosing.value = false
+    }
 
     /** Open when the user is reporting a fault on this machine. */
     private val _reporting = MutableStateFlow(false)

@@ -372,7 +372,7 @@ private fun JobEventRow.dotColour(): Color = when (type) {
     JobEventType.Started, JobEventType.Completed, JobEventType.Resumed ->
         FieldTrackTheme.colors.primary
     JobEventType.Paused, JobEventType.ClockCorrected -> FieldTrackTheme.colors.money
-    JobEventType.BreakdownReported -> FieldTrackTheme.colors.due
+    JobEventType.BreakdownReported, JobEventType.HelpAsked -> FieldTrackTheme.colors.due
     else -> FieldTrackTheme.colors.inkSecondary
 }
 
@@ -428,6 +428,9 @@ private fun JobEventRow.title(state: JobDetailState): String {
                 com.example.fieldtrack.feature.spokenDuration((numericValue ?: 0.0).toLong()),
             )
         }
+        JobEventType.HelpAsked -> stringResource(R.string.event_help)
+        JobEventType.MachineTookOver -> stringResource(R.string.event_took_over, textValue.orEmpty())
+        JobEventType.MachineSwappedOut -> stringResource(R.string.event_swapped_out, textValue.orEmpty())
         JobEventType.RateChanged -> if (state.canSeeMoney) {
             stringResource(R.string.event_rate_changed, money((numericValue ?: 0.0).toLong()))
         } else {

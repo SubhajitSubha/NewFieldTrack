@@ -1,5 +1,6 @@
 package com.example.fieldtrack.feature
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,6 +37,10 @@ fun RootBar(
     onMenu: () -> Unit,
     onSearch: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What the phone was told and has not been shown yet: a dot on the bell when above nought. */
+    unread: Int = 0,
+    notificationsContentDescription: String = "",
+    onNotifications: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     Row(
@@ -60,10 +66,27 @@ fun RootBar(
                 contentColor = colors.onPrimary,
             )
         }
-        FtIconButton(
-            icon = FieldTrackIcons.Search,
-            contentDescription = searchContentDescription,
-            onClick = onSearch,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                FtIconButton(
+                    icon = FieldTrackIcons.Bell,
+                    contentDescription = notificationsContentDescription,
+                    onClick = onNotifications,
+                )
+                if (unread > 0) Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 10.dp, end = 10.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(colors.due)
+                )
+            }
+            FtIconButton(
+                icon = FieldTrackIcons.Search,
+                contentDescription = searchContentDescription,
+                onClick = onSearch,
+            )
+        }
     }
 }

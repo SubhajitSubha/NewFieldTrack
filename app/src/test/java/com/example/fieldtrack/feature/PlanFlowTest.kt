@@ -267,6 +267,35 @@ class PlanFlowTest {
     }
 
     @Test
+    fun `when a machine breaks its booked work moves to another in one go, except where that one is already booked`() {
+        business()
+        runBlocking {
+            val can = com.example.fieldtrack.data.session.Capabilities.ofOwner()
+            val spare = app.directoryRepository.addMachine(org, "Tractor 2", MachineKind.Tractor)
+            suspend fun book(machine: String, day: Long) = app.planRepository.save(
+                can, org, null, app.directoryRepository.findCustomer(org, ramesh)!!.id, null,
+                "Rotavator", day, DayPart.Morning, null, machine, null, null,
+            )
+            book(tractor, today + 1)
+            book(tractor, today + 2)
+            book(spare, today + 1)   // the spare is already out that morning
+            app.db.machineDao().find(org, tractor)!!.let { app.db.machineDao().upsert(it.copy(status = MachineStatus.Down)) }
+
+            val before = app.planRepository.observeBookedOn(org, tractor, today).first()
+            assertEquals("the work its breakdown puts at risk", 2, before.size)
+
+            val result = app.planRepository.moveMachine(can, org, tractor, spare, today)
+            assertEquals(1, result.moved)
+            assertEquals("a clash is left for a person, not double-booked", 1, result.clashed)
+
+            val left = app.planRepository.observeBookedOn(org, tractor, today).first()
+            assertEquals(listOf(today + 1), left.map { it.booking.day })
+            val onSpare = app.planRepository.observeBookedOn(org, spare, today).first().map { it.booking.day }.sorted()
+            assertEquals(listOf(today + 1, today + 2), onSpare)
+        }
+    }
+
+    @Test
     fun `a driver who has left is said so and the booking is kept`() {
         business()
         form { f, _ -> f.fill(driver = driver2); assertTrue(f.saved()) }

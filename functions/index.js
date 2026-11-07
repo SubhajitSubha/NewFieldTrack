@@ -30,12 +30,15 @@ async function devicesFor(personId, kind, writerDevice) {
     .map((d) => ({ id: d.id, token: d.get("token"), personId }));
 }
 
-/** Sends one event to a list of devices, and forgets any phone the system says is gone. */
-async function send(devices, event, orgId) {
+/**
+ * Sends one event to a list of devices, and forgets any phone the system says is gone.
+ * [what] names what it was about (a machine, a person) and is never an amount.
+ */
+async function send(devices, event, orgId, what) {
   if (devices.length === 0) return;
   const result = await admin.messaging().sendEachForMulticast({
     tokens: devices.map((d) => d.token),
-    data: { event, orgId },
+    data: what ? { event, orgId, what: String(what).slice(0, 60) } : { event, orgId },
     android: { priority: "high" },
   });
   const dead = [];
@@ -99,6 +102,83 @@ exports.onPayment = onDocumentCreated("orgs/{orgId}/ledger_entries/{id}", async 
     .filter((m) => (m.role === "Owner" || m.canSeeMoney === true) && m.personId && m.personId !== entry.byPersonId);
   const lists = await Promise.all(keepers.map((m) => devicesFor(m.personId, "payment", entry._device)));
   await send(lists.flat(), "payment_recorded", orgId);
+});
+
+/** The people of a business who are on the books today. */
+async function membersOf(orgId) {
+  const snap = await db.collection("orgs").doc(orgId).collection("memberships").where("active", "==", true).get();
+  return snap.docs.map((d) => d.data()).filter((m) => m.personId);
+}
+
+/** An owner, or somebody who holds any one of these switches. */
+function keeps(member, flags) {
+  return member.role === "Owner" || flags.some((f) => member[f] === true);
+}
+
+/** Tells a set of people, on every phone of theirs that wants this kind, apart from the sender's own. */
+async function tell(personIds, kind, writerDevice, event, orgId, what) {
+  const lists = await Promise.all([...personIds].map((p) => devicesFor(p, kind, writerDevice)));
+  await send(lists.flat(), event, orgId, what);
+}
+
+// A machine broke down, or is working again. News for everybody it touches: the owner and
+// those who look after machines or plan work, and whoever is booked on it or out on it now.
+exports.onBreakdown = onDocumentWritten("orgs/{orgId}/breakdowns/{id}", async (event) => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  if (!after || after.deletedAt) return;
+  const opened = !before;
+  const fixed = !!before && !before.resolvedAt && !!after.resolvedAt;
+  if (!opened && !fixed) return;
+  const orgId = event.params.orgId;
+
+  const machineSnap = after.machineId ? await db.doc(`orgs/${orgId}/machines/${after.machineId}`).get() : null;
+  const what = machineSnap && machineSnap.exists ? machineSnap.get("name") : null;
+
+  const people = new Set(
+    (await membersOf(orgId)).filter((m) => keeps(m, ["canEditMachines", "canPlanWork"])).map((m) => m.personId),
+  );
+  if (after.machineId) {
+    const today = Math.floor(Date.now() / 86400000);
+    const [booked, running] = await Promise.all([
+      db.collection(`orgs/${orgId}/bookings`).where("machineId", "==", after.machineId).where("status", "==", "Planned").get(),
+      db.collection(`orgs/${orgId}/jobs`).where("machineId", "==", after.machineId).where("status", "in", ["Running", "Paused"]).get(),
+    ]);
+    booked.docs.forEach((d) => {
+      const b = d.data();
+      if (!b.deletedAt && b.operatorPersonId && b.day >= today) people.add(b.operatorPersonId);
+    });
+    running.docs.forEach((d) => {
+      const j = d.data();
+      if (!j.deletedAt && j.operatorPersonId) people.add(j.operatorPersonId);
+    });
+  }
+  // The person who reported it already knows.
+  if (after.reportedByPersonId) people.delete(after.reportedByPersonId);
+  await tell(people, "breakdown", after._device, opened ? "breakdown_new" : "breakdown_fixed", orgId, what);
+});
+
+// "I need help": written on a job's timeline by the person on it. The owner and those who
+// plan work are told at once, on the loudest channel the phone has.
+exports.onHelp = onDocumentCreated("orgs/{orgId}/job_events/{id}", async (event) => {
+  const e = event.data.data();
+  if (!e || e.type !== "HelpAsked") return;
+  const orgId = event.params.orgId;
+  const members = await membersOf(orgId);
+  const sender = members.find((m) => m.personId === e.byPersonId);
+  const people = new Set(members.filter((m) => keeps(m, ["canPlanWork", "canEditTeam"])).map((m) => m.personId));
+  if (e.byPersonId) people.delete(e.byPersonId);
+  await tell(people, "sos", e._device, "sos", orgId, sender ? sender.displayName : null);
+});
+
+// Somebody redeemed a code and joined: tell the owners, and whoever looks after the team.
+exports.onJoin = onDocumentCreated("orgs/{orgId}/team_events/{id}", async (event) => {
+  const e = event.data.data();
+  if (!e || e.kind !== "Joined") return;
+  const orgId = event.params.orgId;
+  const people = new Set((await membersOf(orgId)).filter((m) => keeps(m, ["canEditTeam"])).map((m) => m.personId));
+  if (e.byPersonId) people.delete(e.byPersonId);
+  await tell(people, "team", e._device, "member_joined", orgId, e.byName);
 });
 
 // An account deletion request: remove the person's sign-in and the businesses that are

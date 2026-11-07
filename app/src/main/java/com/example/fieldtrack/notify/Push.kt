@@ -32,7 +32,22 @@ enum class PushKind(val key: String) {
     Payment("payment"),
 
     /** A farmer asked for work through the booking link, for those who plan. */
-    Request("request");
+    Request("request"),
+
+    /** A machine broke down, or is working again: news for everyone it touches. */
+    Breakdown("breakdown"),
+
+    /** Somebody joined the business, for the owners. */
+    Team("team"),
+
+    /**
+     * Somebody on a job says they need help. Has no switch: an emergency that a person
+     * has muted is an emergency nobody hears about.
+     */
+    Sos("sos");
+
+    /** Whether a person may turn this kind off. */
+    val switchable: Boolean get() = this != Sos
 
     companion object {
         fun of(key: String?) = entries.firstOrNull { it.key == key }
@@ -46,11 +61,18 @@ enum class PushEvent(val kind: PushKind, val key: String) {
     BookingCancelled(PushKind.Booking, "booking_cancelled"),
     JobHanded(PushKind.Job, "job_handed"),
     PaymentRecorded(PushKind.Payment, "payment_recorded"),
-    RequestNew(PushKind.Request, "request_new");
+    RequestNew(PushKind.Request, "request_new"),
+    BreakdownReported(PushKind.Breakdown, "breakdown_new"),
+    BreakdownFixed(PushKind.Breakdown, "breakdown_fixed"),
+    MemberJoined(PushKind.Team, "member_joined"),
+    SosRaised(PushKind.Sos, "sos");
 
     companion object {
         /** The event a message from the server names, or null for anything this version does not know. */
         fun parse(data: Map<String, String>): PushEvent? = entries.firstOrNull { it.key == data["event"] }
+
+        /** What the news was about (a machine, a person), when the server said. Never an amount. */
+        fun what(data: Map<String, String>): String? = data["what"]?.trim()?.takeIf { it.isNotEmpty() }?.take(60)
     }
 }
 
@@ -65,9 +87,10 @@ class PushSettings(context: Context) {
     private val on = PushKind.entries.associateWith { MutableStateFlow(prefs.getBoolean(it.key, true)) }
 
     fun enabled(kind: PushKind): StateFlow<Boolean> = on.getValue(kind).asStateFlow()
-    fun isOn(kind: PushKind) = on.getValue(kind).value
+    fun isOn(kind: PushKind) = !kind.switchable || on.getValue(kind).value
 
     fun set(kind: PushKind, enabled: Boolean) {
+        if (!kind.switchable) return
         prefs.edit().putBoolean(kind.key, enabled).apply()
         on.getValue(kind).value = enabled
     }
@@ -115,21 +138,29 @@ class PushRegistrar(private val app: FieldFlowApplication) {
     suspend fun forget(personId: String) {
         runCatching { app.syncTransport.registerPush(personId, app.deviceId, null, emptyMap(), System.currentTimeMillis()) }
         app.pushSettings.registered = null
+        // What this phone was told belonged to whoever was signed in.
+        app.noticeInbox.clear()
     }
 }
 
 /** The words for each event. Counted nowhere and priced nowhere: a lock screen is not a ledger. */
 object PushText {
-    fun title(context: Context, event: PushEvent): String = context.getString(
-        when (event) {
-            PushEvent.BookingNew -> R.string.push_booking_new
-            PushEvent.BookingChanged -> R.string.push_booking_changed
-            PushEvent.BookingCancelled -> R.string.push_booking_cancelled
-            PushEvent.JobHanded -> R.string.push_job_handed
-            PushEvent.PaymentRecorded -> R.string.push_payment_recorded
-            PushEvent.RequestNew -> R.string.push_request_new
+    fun title(context: Context, event: PushEvent, what: String? = null): String {
+        val machine = what ?: context.getString(R.string.push_what_machine)
+        val person = what ?: context.getString(R.string.push_what_person)
+        return when (event) {
+            PushEvent.BookingNew -> context.getString(R.string.push_booking_new)
+            PushEvent.BookingChanged -> context.getString(R.string.push_booking_changed)
+            PushEvent.BookingCancelled -> context.getString(R.string.push_booking_cancelled)
+            PushEvent.JobHanded -> context.getString(R.string.push_job_handed)
+            PushEvent.PaymentRecorded -> context.getString(R.string.push_payment_recorded)
+            PushEvent.RequestNew -> context.getString(R.string.push_request_new)
+            PushEvent.BreakdownReported -> context.getString(R.string.push_breakdown_new, machine)
+            PushEvent.BreakdownFixed -> context.getString(R.string.push_breakdown_fixed, machine)
+            PushEvent.MemberJoined -> context.getString(R.string.push_member_joined, person)
+            PushEvent.SosRaised -> context.getString(R.string.push_sos, person)
         }
-    )
+    }
 }
 
 /** Where the server's messages arrive. */
@@ -147,37 +178,57 @@ class PushService : FirebaseMessagingService() {
         // Switched off here as well as at the server: a message in flight when the
         // switch was turned must not still arrive.
         if (!app.pushSettings.isOn(event.kind)) return
-        Push.show(this, event)
+        val what = PushEvent.what(message.data)
+        // Kept even when the notification itself cannot be shown (permission withdrawn,
+        // Do Not Disturb): the list in the app is how nothing gets lost.
+        message.data["orgId"]?.let { app.noticeInbox.add(it, event.key, what, System.currentTimeMillis()) }
+        Push.show(this, event, what)
     }
 }
 
 object Push {
     private const val CHANNEL = "instant_updates"
+    private const val CHANNEL_URGENT = "urgent_help"
+    /** The extra that tells the app a tap came from the news, so it opens the list. */
+    const val EXTRA_OPEN_NOTICES = "open_notices"
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        context.getSystemService(NotificationManager::class.java)?.createNotificationChannel(
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        manager.createNotificationChannel(
             NotificationChannel(CHANNEL, context.getString(R.string.notify_channel_instant), NotificationManager.IMPORTANCE_HIGH).apply {
                 description = context.getString(R.string.notify_channel_instant_note)
             }
         )
+        // Its own channel, so a call for help can be told apart from a booking and the
+        // phone's settings can give it the loudest voice.
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_URGENT, context.getString(R.string.notify_channel_urgent), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = context.getString(R.string.notify_channel_urgent_note)
+                enableVibration(true)
+            }
+        )
     }
 
-    fun show(context: Context, event: PushEvent) {
+    fun show(context: Context, event: PushEvent, what: String? = null) {
         val app = context.applicationContext as? FieldFlowApplication
         if (app?.workClockNotifier?.canPost() == false) return
         createChannel(context)
         val open = PendingIntent.getActivity(
             context, 100 + event.ordinal,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(EXTRA_OPEN_NOTICES, true),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val title = PushText.title(context, event)
-        val builder = NotificationCompat.Builder(context, CHANNEL)
+        val title = PushText.title(context, event, what)
+        val urgent = event == PushEvent.SosRaised
+        val builder = NotificationCompat.Builder(context, if (urgent) CHANNEL_URGENT else CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_clock)
             .setContentTitle(title)
             .setContentText(context.getString(R.string.push_open))
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(if (urgent) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_MESSAGE)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(open)
             .setColor(ContextCompat.getColor(context, R.color.notification_accent))

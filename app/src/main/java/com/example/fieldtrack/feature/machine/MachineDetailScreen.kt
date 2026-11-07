@@ -93,6 +93,10 @@ fun MachineDetailScreen(
     onDismissService: () -> Unit,
     onOpenJob: (String) -> Unit,
     modifier: Modifier = Modifier,
+    move: MoveState = MoveState(),
+    onMoveChoose: () -> Unit = {},
+    onMovePick: (String) -> Unit = {},
+    onMoveCancel: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -196,6 +200,37 @@ fun MachineDetailScreen(
 
             ServiceBanner(state, onService)
 
+            // A broken machine with work booked on it: say so, and offer the one-tap fix.
+            if (move.canPlan && state.status == MachineStatus.Down && move.booked > 0) {
+                FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+                    Text(
+                        text = pluralStringResource(R.plurals.machine_booked_at_risk, move.booked, move.booked),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.dueInk,
+                    )
+                    FtButton(
+                        text = stringResource(R.string.machine_move_work),
+                        onClick = onMoveChoose,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                }
+            }
+            move.result?.let { result ->
+                FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+                    Text(
+                        text = pluralStringResource(R.plurals.machine_moved_result, result.moved, result.moved),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.ink,
+                    )
+                    if (result.clashed > 0) Text(
+                        text = pluralStringResource(R.plurals.machine_moved_clash, result.clashed, result.clashed),
+                        style = FieldTrackTheme.type.bodySmall,
+                        color = colors.inkSecondary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 QuickAction(
                     icon = FieldTrackIcons.Fuel,
@@ -293,6 +328,32 @@ fun MachineDetailScreen(
     }
 
     if (reporting) {
+        if (move.choosing) {
+            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+            androidx.compose.material3.ModalBottomSheet(
+                onDismissRequest = onMoveCancel,
+                sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = colors.paper,
+                contentColor = colors.ink,
+            ) {
+                Column(
+                    Modifier
+                        .padding(horizontal = 18.dp)
+                        .padding(bottom = 10.dp)
+                        .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    com.example.fieldtrack.feature.work.SwapPanel(
+                        choices = move.options,
+                        onPick = onMovePick,
+                        onCancel = onMoveCancel,
+                        title = stringResource(R.string.machine_move_title),
+                        body = stringResource(R.string.machine_move_body),
+                    )
+                }
+            }
+        }
         ReportBreakdownSheet(
             machineName = state.name,
             onSave = onSaveBreakdown,

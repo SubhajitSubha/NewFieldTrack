@@ -461,6 +461,21 @@
         <item quantity="one">%1$d fault still open</item>
         <item quantity="other">%1$d faults still open</item>
     </plurals>
+    <plurals name="machine_booked_at_risk">
+        <item quantity="one">%1$d booked job needs another machine</item>
+        <item quantity="other">%1$d booked jobs need another machine</item>
+    </plurals>
+    <string name="machine_move_work">Move the booked work</string>
+    <string name="machine_move_title">Move the booked work to which machine?</string>
+    <string name="machine_move_body">Jobs booked on this machine for the next month go to the one you pick. A day it is already booked is left as it was.</string>
+    <plurals name="machine_moved_result">
+        <item quantity="one">%1$d job moved</item>
+        <item quantity="other">%1$d jobs moved</item>
+    </plurals>
+    <plurals name="machine_moved_clash">
+        <item quantity="one">%1$d stayed: the other machine is already booked then</item>
+        <item quantity="other">%1$d stayed: the other machine is already booked then</item>
+    </plurals>
     <string name="fuel_title">Diesel</string>
     <string name="fuel_spent_all">Spent on this machine</string>
     <string name="fuel_litres_total">%1$s L</string>
@@ -2079,6 +2094,37 @@
     <string name="push_booking_cancelled">A booking of yours was cancelled</string>
     <string name="push_job_handed">A job was handed to you</string>
     <string name="push_payment_recorded">A payment was recorded</string>
+    <string name="event_help">Asked for help</string>
+    <string name="event_took_over">Carried on from %1$s</string>
+    <string name="event_swapped_out">Work went on with %1$s</string>
+    <string name="swap_title">Another machine took over</string>
+    <string name="swap_caption">The first broke, or you changed machines</string>
+    <string name="swap_pick_title">Which machine carries on?</string>
+    <string name="swap_pick_body">The work so far is kept and billed on the first machine. The clock carries on with the new one.</string>
+    <string name="swap_free">Free</string>
+    <string name="swap_busy">Out on a job</string>
+    <string name="swap_down">Broken down</string>
+    <string name="push_what_machine">A machine</string>
+    <string name="push_what_person">Someone</string>
+    <string name="push_breakdown_new">%1$s has broken down</string>
+    <string name="push_breakdown_fixed">%1$s is working again</string>
+    <string name="push_member_joined">%1$s joined your team</string>
+    <string name="push_sos">%1$s needs help</string>
+    <string name="push_breakdown_row">Breakdowns</string>
+    <string name="push_breakdown_note">When a machine breaks down or is working again</string>
+    <string name="push_team_row">People joining</string>
+    <string name="push_team_note">When somebody joins your business</string>
+    <string name="notify_channel_urgent">Calls for help</string>
+    <string name="notify_channel_urgent_note">When somebody on a job says they need help. Cannot be switched off in the app.</string>
+    <string name="notices_title">What you were told</string>
+    <string name="notices_empty">Nothing yet. Breakdowns, bookings and calls for help will be kept here.</string>
+    <string name="sos_title">I need help</string>
+    <string name="sos_caption">Tell the owner, or ring them</string>
+    <string name="sos_body">The owner and the people who plan work will be told at once. With no signal, ring instead.</string>
+    <string name="sos_send">Tell the owner</string>
+    <string name="sos_call">Ring the owner</string>
+    <string name="sos_sent">They have been told. If there is no signal it goes the moment there is one, so ring if it cannot wait.</string>
+    <string name="sos_done">Done</string>
     <string name="push_open">Open FieldTrack to see it.</string>
     <string name="sample_business_name">Practice business</string>
     <string name="sample_customer_1">Green Valley Farm</string>

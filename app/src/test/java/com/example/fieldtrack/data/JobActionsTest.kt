@@ -184,6 +184,92 @@ class JobActionsTest {
         assertNotNull("the job keeps running through the swap", job(id).runningSince)
     }
 
+    @Test
+    fun `asking for help is written on the job and sent up, and changes nothing else`() = runTest {
+        val id = runningJob()
+        val before = job(id)
+        h.work.askForHelp(TestHarness.ORG_A, id)
+
+        assertTrue(JobEventType.HelpAsked in events(id))
+        assertEquals("the job goes on as it was", before.operatorPersonId, job(id).operatorPersonId)
+        assertNotNull(job(id).runningSince)
+        val tables = h.db.outboxDao().nextBatch(200).map { it.tableName }
+        assertTrue("the server turns this event into the message", SyncQueue.TABLE_JOB_EVENTS in tables)
+    }
+
+    private suspend fun addSecondMachine() = h.db.machineDao().upsert(
+        MachineEntity(
+            id = "machine-2", orgId = TestHarness.ORG_A, name = "Mahindra 575",
+            kind = MachineKind.Tractor, createdAt = 0, updatedAt = 0,
+        )
+    )
+
+    @Test
+    fun `a machine taking over closes the first part, bills it, and carries on in a new job`() = runTest {
+        addSecondMachine()
+        val id = runningJob()
+        h.work.setQuantity(TestHarness.ORG_A, id, 2.0)
+        h.advanceMinutes(60)
+
+        val next = h.work.changeMachine(TestHarness.ORG_A, id, "machine-2", TestHarness.DRIVER)
+
+        assertTrue("a new job carries the work", next != id)
+        assertEquals(JobStatus.Completed, job(id).status)
+        assertEquals("what the first machine did is billed", 2_000L,
+            h.ledger.observeBalance(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first())
+        assertTrue(JobEventType.MachineSwappedOut in events(id))
+
+        val carried = job(next)
+        assertEquals(JobStatus.Running, carried.status)
+        assertEquals("machine-2", carried.machineId)
+        assertEquals("the same farmer, rate and driver", 1_000L, carried.rateMinor)
+        assertEquals(TestHarness.CUSTOMER_A, carried.customerId)
+        assertEquals(TestHarness.DRIVER, carried.operatorPersonId)
+        assertEquals(0.0, carried.quantity, 0.0)
+        assertNotNull("the clock carries on", carried.runningSince)
+        assertTrue(JobEventType.MachineTookOver in events(next))
+    }
+
+    @Test
+    fun `swapping when nothing has been done drops the first part instead of billing nothing`() = runTest {
+        addSecondMachine()
+        val id = runningJob()
+        val next = h.work.changeMachine(TestHarness.ORG_A, id, "machine-2")
+        assertEquals(JobStatus.Discarded, job(id).status)
+        assertEquals(0L, h.ledger.observeBalance(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first())
+        assertEquals("machine-2", job(next).machineId)
+    }
+
+    @Test
+    fun `work at a flat price stays one job when the machine changes, so it is not charged twice`() = runTest {
+        addSecondMachine()
+        val id = h.work.startJob(
+            orgId = TestHarness.ORG_A, customerId = TestHarness.CUSTOMER_A, workType = "Transport",
+            billingMode = BillingMode.Fixed, unit = MeasureUnit.Trip, rateMinor = 5_000,
+            machineId = machineId, operatorPersonId = TestHarness.DRIVER,
+        )
+        val next = h.work.changeMachine(TestHarness.ORG_A, id, "machine-2")
+        assertEquals(id, next)
+        assertEquals("machine-2", job(id).machineId)
+        assertEquals(JobStatus.Running, job(id).status)
+        assertTrue(JobEventType.MachineTookOver in events(id))
+    }
+
+    @Test
+    fun `each machine keeps only its own hours after a swap`() = runTest {
+        addSecondMachine()
+        val id = runningJob()
+        h.advanceMinutes(60)
+        val next = h.work.changeMachine(TestHarness.ORG_A, id, "machine-2")
+        h.advanceMinutes(30)
+        h.work.complete(TestHarness.ORG_A, next)
+
+        val worked = h.db.machineDao().observeAllWithWork(TestHarness.ORG_A).first()
+            .associate { it.machine.id to it.workedSeconds }
+        assertEquals(3_600L, worked["machine-1"])
+        assertEquals(1_800L, worked["machine-2"])
+    }
+
     private suspend fun balance() =
         h.ledger.observeBalance(TestHarness.ORG_A, TestHarness.CUSTOMER_A).first()
 }

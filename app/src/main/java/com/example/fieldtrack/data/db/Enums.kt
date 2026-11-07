@@ -85,6 +85,27 @@ enum class JobEventType {
      * job itself still arrives with its corrected time.
      */
     ClockCorrected,
+
+    /**
+     * The person on the job asked for help. Carries nothing but the fact and the time; the
+     * server turns it into a message to the owner and the planners.
+     *
+     * Added after release, so an older build skips this single event, as with the one above.
+     */
+    HelpAsked,
+
+    /**
+     * Another machine took over this job. [JobEventEntity.textValue] names the machine it
+     * took over from. Written on the job that carries on, so the timeline reads
+     * "took over from the Swaraj" where the work continues.
+     */
+    MachineTookOver,
+
+    /**
+     * This job stopped here because another machine took the work on, in a new job.
+     * [JobEventEntity.textValue] names the machine it passed to. Written on the job that stops.
+     */
+    MachineSwappedOut,
 }
 
 /**
