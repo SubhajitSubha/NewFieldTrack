@@ -966,8 +966,7 @@
     <string name="more_customers_count">%1$s</string>
     <string name="more_settings">Settings</string>
     <string name="more_language">Language</string>
-    <string name="more_language_value">English</string>
-    <string name="more_language_soon">More languages are on the way</string>
+    <string name="more_language_note">Follows your phone, or choose another</string>
     <string name="more_backup">Backup</string>
     <string name="more_help">Help</string>
     <string name="more_help_offline_title">No signal in the field?</string>

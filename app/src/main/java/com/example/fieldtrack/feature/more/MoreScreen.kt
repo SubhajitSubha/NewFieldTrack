@@ -357,11 +357,14 @@ fun MoreScreen(
                 // card above; a second door to the same room is just confusing.
                 FtListRow(
                     title = stringResource(R.string.more_language),
-                    subtitle = stringResource(R.string.more_language_soon),
+                    subtitle = stringResource(R.string.more_language_note),
                     leading = { FtIconTile(FieldTrackIcons.More, size = 40.dp) },
+                    onClick = onDisplay,
                     trailing = {
                         Text(
-                            text = stringResource(R.string.more_language_value),
+                            text = com.example.fieldtrack.data.settings.AppLanguage.nativeName(
+                                androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0].toLanguageTag()
+                            ),
                             style = FieldTrackTheme.type.label,
                             color = colors.ink,
                         )

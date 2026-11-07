@@ -33,8 +33,8 @@ Done first because it touches every screen and every table.
 - [x] **Units**: hectare, square metre, bale, tonne, bushel, kilogram, litre; walked fields in hectares.
 - [x] **Languages framework**: follows the phone, chooser appears as soon as a second language is shipped, whole layout mirrors for right-to-left, directional icons mirror, per-app language in Android settings. **Translations run last** (see M9), because every later milestone adds text.
 - [x] **Payment methods per business** (cash, UPI, bank, cheque, mobile money, card, in kind), usual ones by currency, cash always there; **payment details** printed on bills; **optional tax line** (name and rate, prices include it; bills say how much of the total is tax).
-- [ ] Bills, statements and receipts are still written in English (their labels live in the document builder). They move to string resources with the translations in M9, so a bill can be in the business's language.
-- [ ] Every screen re-checked at large text and in the longer languages (done together with the translations).
+- [x] Bills, statements and receipts are written in the business's language (M9).
+- [x] Every screen re-checked at large text and in the longer languages (M9).
 
 ## M2. Charging that matches real life (done)
 - [x] Minimum charge, arrival charge, who pays for the diesel (in the rate, customer gives it, billed extra at cost), waiting time billed from the time a job sits paused, discount or round-off at settlement. One formula in Kotlin and SQL, held together by a test.
@@ -104,12 +104,13 @@ Details and the lines between free and paid: `docs/pricing.md`.
 - [x] Store billing and plan checks that work offline: Play Billing for payment; our server checks every purchase with the store and writes the entitlement; phones read it like any record, with 14 days of grace after the end date. Restoring a purchase from "I already paid".
 - [ ] To do in the store before anyone pays: create the subscription, base plans and founding offers; give the server's account Play Console access; set the real application id (see the release list). Nothing could be tested against the real store from here.
 
-## M9. Translations (last, once the text stops changing)
-- [ ] Translate every string into the first wave (Hindi, Spanish, Portuguese, French, Indonesian, Swahili, Bengali, Arabic), drafted here and marked for a native speaker to read before it ships.
-- [ ] Move the bill, statement and receipt wording into string resources, so a bill is written in the business's language.
-- [ ] Check every screen at large text and in each language, and the right-to-left layout in Arabic.
-
----
+## M9. Translations (drafted; native reading is the last step)
+Details and what to read first: `docs/translations.md`.
+- [x] Every string translated into the first wave: Hindi, Spanish, Portuguese, French, Indonesian, Swahili, Bengali, Arabic. **Drafts.** A test holds each to the English (same strings, same blanks, every plural form its language needs). Not one has been read by a native speaker yet.
+- [x] Bill, statement, receipt, dues and income statement wording is in string resources (`DocLabels`), and a bill follows the business's language; right-to-left pages are laid out right to left. The amount in words stays English-only and is left off in other languages.
+- [x] The language chooser lists all nine; the phone's language is followed by default; numbers use the digits 0 to 9 everywhere; a phone number stays left to right inside Arabic.
+- [x] Every screen rendered in Arabic (mirrored), French (the longest Latin script) and Hindi at larger text, and looked at; the screens in the other languages are covered by the same matrix runs.
+- [ ] A native speaker reads each language before it is offered to people who speak it.
 
 ## Decisions
 Decided:

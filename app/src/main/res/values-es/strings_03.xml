@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="org_switch_right_now">Ahora mismo</string>
+    <string name="org_switch_also">También trabaja para</string>
+    <string name="org_switch_join_another">Unirse a otro negocio</string>
+    <string name="org_privacy_title">Se mantienen separados</string>
+    <string name="org_privacy_sees">Solo ve los clientes, parcelas y máquinas del negocio para el que trabaja ahora.</string>
+    <string name="org_privacy_hidden">Ningún negocio puede ver su trabajo para otros, ni lo que gana allí.</string>
+    <string name="org_privacy_leaving">Cuando termina una temporada, los registros se quedan con ese negocio. Usted deja de verlos.</string>
+    <string name="org_switch_cd">Cambiar a otro negocio</string>
+
+    <string name="home_greeting_morning">Buenos días</string>
+    <string name="home_greeting_afternoon">Buenas tardes</string>
+    <string name="home_greeting_evening">Buenas noches</string>
+    <string name="home_todays_work">Trabajo de hoy</string>
+    <string name="home_nothing_yet_title">Nada anotado hoy</string>
+    <string name="home_nothing_yet_body">Toque el botón verde cuando empiece a trabajar.</string>
+    <string name="home_from_customers">de %1$s</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="one">%d por enviar</item>
+        <item quantity="many">%d por enviar</item>
+        <item quantity="other">%d por enviar</item>
+    </plurals>
+    <string name="home_sync_done">Todo enviado</string>
+    <string name="home_heard_never">Aún sin actualizar. Toque para actualizar.</string>
+    <string name="home_heard_now">Actualizado justo ahora</string>
+    <string name="home_heard_updating">Actualizando…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="one">Actualizado hace %d min</item>
+        <item quantity="many">Actualizado hace %d min</item>
+        <item quantity="other">Actualizado hace %d min</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="one">Actualizado hace %d hora. Toque para actualizar.</item>
+        <item quantity="many">Actualizado hace %d horas. Toque para actualizar.</item>
+        <item quantity="other">Actualizado hace %d horas. Toque para actualizar.</item>
+    </plurals>
+    <string name="home_sync_stuck">Sin enviar</string>
+    <string name="job_not_sent_short">Aún sin enviar</string>
+    <string name="job_not_sent">Aún sin enviar. Está seguro en este teléfono hasta que se envíe.</string>
+    <string name="home_clock_left_on">En marcha desde %1$s. ¿El trabajo paró antes?</string>
+    <string name="home_job_running">En marcha</string>
+    <string name="home_job_paused">En pausa</string>
+    <string name="home_job_pause">Pausa</string>
+    <string name="home_job_resume">Seguir</string>
+    <string name="home_job_open">Abrir trabajo</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">Listo para trabajar</string>
+    <string name="home_ready_title">Empiece su día</string>
+    <string name="home_field_first_running">Su primer trabajo de hoy está en marcha. Aparecerá aquí cuando termine.</string>
+    <string name="home_stat_on_machine">En la máquina</string>
+    <string name="home_stat_jobs_done">Trabajos hechos</string>
+    <string name="home_stat_covered">Cubierto</string>
+    <string name="home_cash_with_you">Efectivo que lleva</string>
+    <string name="home_cash_with_you_note">Cobrado hoy en efectivo. Entréguelo antes de irse a casa.</string>
+    <string name="home_your_machine">Su máquina</string>
+    <string name="home_last_seven">Últimos 7 días</string>
+    <string name="home_last_seven_hours">Horas de máquina, últimos 7 días</string>
+    <string name="home_hours_on_machine">en la máquina</string>
+    <string name="home_earned_today">Ganado hoy</string>
+    <string name="home_jobs_today">Trabajos de hoy</string>
+    <string name="home_nobody_owes">Nadie le debe</string>
+    <string name="home_this_season">Esta temporada</string>
+    <string name="home_season_since">Ganado desde %1$s</string>
+    <string name="home_season_named_since">%1$s · ganado desde %2$s</string>
+    <string name="home_your_own_work">Su propio trabajo</string>
+    <string name="home_crew_now">En trabajos</string>
+    <string name="home_crew_since">desde %1$s</string>
+    <string name="home_crew_none">Nadie está en un trabajo ahora.</string>
+    <string name="home_someone">Alguien</string>
+    <string name="home_loading">Cargando…</string>
+    <string name="home_done_today">Terminados hoy</string>
+    <string name="home_see_all_jobs">Ver todo</string>
+    <string name="home_right_now">Ahora mismo</string>
+    <string name="home_figure_on_job">en un trabajo</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">máquinas trabajando</string>
+    <string name="home_figure_down">averiadas</string>
+    <string name="home_collected_today">%1$s cobrado</string>
+
+    <string name="notify_channel_clock">Reloj de trabajo</string>
+    <string name="notify_channel_clock_note">El trabajo abierto, con su reloj. Sin sonido.</string>
+    <string name="notify_channel_reminder">Avisos del reloj</string>
+    <string name="notify_channel_reminder_note">Una pregunta por la tarde si un reloj sigue en marcha.</string>
+    <string name="notify_clock_running">%1$s · reloj en marcha</string>
+    <string name="notify_clock_paused">%1$s · en pausa con %2$s en el reloj</string>
+    <string name="notify_reminder_title">¿Sigue trabajando para %1$s?</string>
+    <string name="notify_reminder_body">El reloj lleva %1$s. Páuselo si el trabajo ya paró, para que la factura salga bien.</string>
+
+    <string name="cost_about">unos %1$s</string>
+    <string name="cost_hour_title">Cuánto cuesta una hora</string>
+    <string name="cost_hour_not_enough">Aún no hay suficiente trabajo anotado</string>
+    <string name="cost_hour_need">Se necesitan unas %1$d horas de trabajo terminado para que el costo por hora signifique algo. Hasta ahora: %2$s horas.</string>
+    <string name="cost_hour_diesel">Diésel</string>
+    <string name="cost_hour_repairs">Reparaciones y mantenimiento</string>
+    <string name="cost_hour_loan">Parte del préstamo</string>
+    <string name="cost_hour_loan_none">Préstamo o cuota</string>
+    <string name="cost_hour_loan_not_entered">sin anotar</string>
+    <string name="cost_hour_loan_needs_hours">faltan las horas al año</string>
+    <string name="cost_hour_add_loan">Agregue lo que paga por ella</string>
+    <string name="cost_hour_add_hours">Diga cuántas horas trabaja al año</string>
+    <string name="cost_hour_total">Una hora cuesta</string>
+    <string name="cost_hour_basis">Según %1$s horas de trabajo terminado desde que agregó esta máquina. Es solo la máquina, sin el pago de los trabajadores.</string>
+    <string name="cost_kinds_title">Por tipo de trabajo</string>
+    <string name="cost_kind_title">%1$s · %2$s</string>
+    <string name="cost_kind_line">Cuesta unos %1$s · usted factura unos %2$s</string>
+    <string name="cost_kind_keeps">deja unos %1$s</string>
+    <string name="cost_kind_loses">pierde unos %1$s</string>
+    <string name="cost_kinds_note">Calculado según qué tan rápido avanzó de verdad esta máquina en el trabajo. Antes del pago de los trabajadores.</string>
+
+    <string name="start_cost_unit">En %1$s su costo es de unos %2$s %3$s</string>
+    <string name="start_cost_keep">A %1$s le quedan unos %2$s %3$s.</string>
+    <string name="start_cost_lose">A %1$s pierde unos %2$s %3$s.</string>
+    <string name="start_cost_note">Diésel, reparaciones y préstamo. Antes del pago de los trabajadores.</string>
+    <string name="start_cost_hour">%1$s cuesta unos %2$s por hora de uso</string>
+    <string name="start_cost_hour_note">Todavía no hay suficiente de este trabajo para saber cuánto cuesta cada uno.</string>
+
+    <string name="cost_lost">Este trabajo perdió %1$s</string>
+    <string name="cost_lost_note">Lo que costó fue más de lo que se facturó. Revise la tarifa y lo que se gastó.</string>
+    <string name="cost_share_keeps">Contando las reparaciones y el préstamo propios de la máquina (unos %1$s por las horas que trabajó), este trabajo dejó unos %2$s.</string>
+    <string name="cost_share_loses">Contando las reparaciones y el préstamo propios de la máquina (unos %1$s por las horas que trabajó), este trabajo perdió unos %2$s.</string>
+    <string name="cost_share_note">Es un cálculo aproximado, repartido entre las horas que trabajó la máquina. Las cifras de arriba son lo que de verdad se gastó.</string>
+
+    <string name="job_lost_short">Perdió %1$s</string>
+
+    <string name="season_loan">Cuotas de préstamo, unas</string>
+    <string name="season_loan_note">Lo que anotó en cada máquina, por los meses de esta temporada. No es un registro de pagos hechos.</string>
+    <plurals name="season_lost">
+        <item quantity="one">%1$d trabajo perdió dinero: %2$s</item>
+        <item quantity="many">%1$d trabajos perdieron dinero: %2$s entre todos</item>
+        <item quantity="other">%1$d trabajos perdieron dinero: %2$s entre todos</item>
+    </plurals>
+    <string name="season_lost_note">Cada uno costó más de lo que se facturó. Solo se cuentan los trabajos donde todos los gastos tienen cifra.</string>
+
+    <string name="upkeep_parts">Qué se cambió</string>
+    <string name="upkeep_parts_hint">Filtros, aceite, una correa — para saber la próxima vez qué se hizo</string>
+    <string name="upkeep_parts_changed">Se cambió: %1$s</string>
+
+    <string name="display_title">Pantalla</string>
+    <string name="display_row_note">Claro u oscuro, y letra más grande</string>
+    <string name="display_theme">Colores</string>
+    <string name="display_theme_system">Igual que el teléfono</string>
+    <string name="display_theme_system_note">Claro u oscuro, según lo tenga el teléfono</string>
+    <string name="display_theme_light">Claro</string>
+    <string name="display_theme_light_note">Lo más fácil de leer al aire libre, con sol</string>
+    <string name="display_theme_dark">Oscuro</string>
+    <string name="display_theme_dark_note">Más suave para la vista en la cabina de noche</string>
+    <string name="display_text">Texto</string>
+    <string name="display_bigger_text">Letra más grande</string>
+    <string name="display_bigger_text_note">Agranda un tamaño cada palabra de la app</string>
+    <string name="display_sample">Así se ve</string>
+    <string name="display_sample_line">3 trabajos · 12 bigha</string>
+
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="clock_check_title">¿El reloj está bien?</string>
+    <string name="clock_check_body">El reloj lleva en marcha desde %1$s sin parar. Son %2$s.</string>
+    <string name="clock_check_when">¿Cuándo paró el trabajo?</string>
+    <string name="clock_check_last_entry">En mi último registro, %1$s</string>
+    <string name="clock_check_last_entry_note">Lo último anotado en este trabajo</string>
+    <string name="clock_check_other_time">A otra hora, %1$s</string>
+    <string name="clock_check_other_time_note">Elija el día y la hora</string>
+    <string name="clock_check_pick_time">Hora: %1$s</string>
+    <string name="clock_check_would_read">El reloj marcará %1$s. El tiempo después de eso no se cuenta.</string>
+    <string name="clock_check_out_of_range">Elija una hora posterior a cuando empezó el reloj (%1$s) y anterior a ahora.</string>
+    <string name="clock_check_stop">Detener el reloj a las %1$s</string>
+    <string name="clock_check_still_working">Sigo trabajando, el reloj está bien</string>
+    <string name="clock_moment_yesterday">%1$s de ayer</string>
+    <string name="clock_day_today">Hoy</string>
+    <string name="clock_day_yesterday">Ayer</string>
+
+    <string name="home_attention_title">Requiere atención</string>
+    <string name="home_attention_clear">Nada requiere su atención ahora</string>
+    <string name="home_attention_clear_note">Las máquinas, los pagos y los envíos están en orden.</string>
+    <string name="home_attention_less">Ver menos</string>
+    <plurals name="home_attention_more">
+        <item quantity="one">Ver %d más</item>
+        <item quantity="many">Ver %d más</item>
+        <item quantity="other">Ver %d más</item>
+    </plurals>
+    <string name="home_alert_stuck">El servidor rechazó un cambio</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="one">%d cambio no se está enviando. Abra Respaldo para decidir.</item>
+        <item quantity="many">%d cambios no se están enviando. Abra Respaldo para decidir.</item>
+        <item quantity="other">%d cambios no se están enviando. Abra Respaldo para decidir.</item>
+    </plurals>
+    <string name="home_alert_clock">El reloj de %1$s sigue en marcha</string>
+    <string name="home_alert_clock_note">%1$s, desde %2$s</string>
+    <string name="home_alert_fuel">%1$s gasta más diésel</string>
+    <string name="home_alert_fuel_note">Unos %1$s L por hora últimamente, antes %2$s: %3$d%% más</string>
+    <string name="home_alert_down">%1$s está parada</string>
+    <string name="home_alert_down_note">Avería avisada %1$s</string>
+    <string name="home_alert_down_days">Parada por %1$s</string>
+    <string name="home_alert_service_over">%1$s ya pasó su mantenimiento</string>
+    <string name="home_alert_service_over_note">%1$s h de más</string>
+    <string name="home_alert_service_soon">Pronto toca el mantenimiento de %1$s</string>
+    <string name="home_alert_owes">%1$s debe %2$s</string>
+    <string name="home_alert_owes_note">Sin pagar hace %1$s</string>
+    <plurals name="home_alert_late">
+        <item quantity="one">%d cliente se atrasó en pagar</item>
+        <item quantity="many">%d clientes se atrasaron en pagar</item>
+        <item quantity="other">%d clientes se atrasaron en pagar</item>
+    </plurals>
+    <string name="home_alert_late_note">%1$s sin pagar hace más de %2$d días</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="one">%d gasto de cuadrilla sin monto</item>
+        <item quantity="many">%d gastos de cuadrilla sin monto</item>
+        <item quantity="other">%d gastos de cuadrilla sin monto</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">Agregue lo que se pagó para que cuadre la ganancia</string>
+
+    <string name="start_step">Paso %1$d de 3</string>
+    <string name="start_who_for">¿Para quién es este trabajo?</string>
+    <string name="start_search_customers">Buscar por nombre o pueblo</string>
+    <string name="start_new_customer">Cliente nuevo</string>
+    <string name="start_recent">Recientes</string>
+    <string name="start_no_customers_title">Aún no hay clientes</string>
+    <string name="start_no_customers_body">Agregue al agricultor para quien trabaja y luego empiece el trabajo.</string>
+    <string name="start_what_doing">¿Qué va a hacer?</string>
+    <string name="start_machine">Máquina</string>
+    <string name="start_machine_busy">%1$s · trabajando</string>
+    <string name="start_machine_down">%1$s · averiada</string>
+    <string name="start_machine_busy_note">Se puede elegir una máquina que ya está en un trabajo; pase ese trabajo a otra persona si ya terminó ahí.</string>
+    <string name="start_new_machine">Máquina nueva</string>
+    <string name="start_new_machine_title">Agregar una máquina</string>
+    <string name="start_new_machine_save">Agregarla y seguir</string>
+    <string name="start_no_machine">Sin máquina</string>
+    <string name="start_add_machine">Agregar una máquina</string>
+    <string name="start_machine_name">¿Cómo la llama?</string>
+    <string name="start_work_type">Tipo de trabajo</string>
+    <string name="start_how_charging">¿Cómo cobra?</string>
+    <string name="start_your_rate">Su tarifa</string>
+    <string name="start_counted_in">Se cuenta en</string>
+    <string name="start_usual_rate">Tarifa habitual</string>
+    <string name="start_begin">Iniciar el reloj</string>
+    <string name="start_next">Siguiente</string>
+    <string name="start_rate_per">por %1$s</string>
+
+    <string name="work_type_rotavator">Rotovator</string>
+    <string name="work_type_ploughing">Arado</string>
+    <string name="work_type_harvesting">Cosecha</string>
+    <string name="work_type_levelling">Nivelación</string>
+    <string name="work_type_spraying">Fumigación</string>
+    <string name="work_type_hauling">Acarreo</string>
+    <string name="work_type_sowing">Siembra</string>
+    <string name="work_type_other">Otro</string>
+
+    <string name="live_started_at">Empezó %1$s</string>
+    <string name="live_rate_line">%1$s &#215; %2$s</string>
+    <string name="live_add_cd">Sumar medio %1$s</string>
+    <string name="live_take_cd">Restar medio %1$s</string>
+    <string name="live_add_one_trip">Un viaje más</string>
+    <string name="live_hourly_note">Se cobra por hora: el reloj es la factura.</string>
+    <string name="live_fixed_note">Precio acordado. No hay nada que contar.</string>
+
+    <string name="finish_check_title">Revise antes de guardar</string>
+    <string name="finish_work_done">Trabajo terminado</string>
+    <string name="finish_time_worked">Tiempo trabajado</string>
+    <string name="finish_amount_done">Cantidad hecha</string>
+    <string name="finish_rate">Tarifa</string>
+    <string name="finish_total">Total de este trabajo</string>
+    <string name="finish_make_bill">Hacer la factura</string>
+    <string name="finish_bill_title">La factura</string>
+    <string name="finish_bill_for">Factura para</string>
+    <string name="finish_this_job">Este trabajo</string>
+    <string name="finish_save_and_send">Guardar y enviar</string>
+</resources>

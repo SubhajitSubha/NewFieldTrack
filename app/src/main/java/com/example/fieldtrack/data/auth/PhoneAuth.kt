@@ -118,4 +118,11 @@ fun indianMobileDigits(input: String): String {
 fun toE164India(digits: String): String = "+91$digits"
 
 /** A stored number as a person reads it, with its country code, from any country. */
-fun formatPhone(stored: String): String = PhoneNumbers.display(stored) ?: stored
+fun formatPhone(stored: String): String {
+    val text = PhoneNumbers.display(stored) ?: stored
+    // A number is read left to right even in a right-to-left sentence: without this the plus sign
+    // and the country code jump to the wrong end of it.
+    val rightToLeft = android.text.TextUtils.getLayoutDirectionFromLocale(java.util.Locale.getDefault()) ==
+        android.view.View.LAYOUT_DIRECTION_RTL
+    return if (rightToLeft) "\u2066$text\u2069" else text
+}

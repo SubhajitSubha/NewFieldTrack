@@ -88,4 +88,21 @@ class AppLanguageTest {
         assertEquals(null, AppLanguage.saved(context))
         assertTrue("English is always there", "en" in AppLanguage.SUPPORTED)
     }
+
+    @Test
+    fun `whatever the language, numbers on screen use the digits 0 to 9`() {
+        for (tag in listOf("ar", "bn", "hi", "fr", "sw")) {
+            val read = AppLanguage.wrap(context, tag)
+            val shown = read.getString(com.example.fieldtrack.R.string.doc_entries, 1274)
+            assertTrue("$tag: $shown", shown.any { it in '0'..'9' } && shown.none { it in '\u0660'..'\u0669' || it in '\u09E6'..'\u09EF' })
+        }
+    }
+
+    @Test
+    fun `a phone set to Arabic with no choice made still gets the same digits as the money`() {
+        val arabicPhone = Locale("ar", "EG")
+        Locale.setDefault(arabicPhone)
+        val withLatin = AppLanguage.withLatinDigits(arabicPhone)
+        assertEquals("1274", String.format(withLatin, "%d", 1274))
+    }
 }

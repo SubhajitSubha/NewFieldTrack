@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="org_switch_right_now">अभी</string>
+    <string name="org_switch_also">इनके लिए भी काम करते हैं</string>
+    <string name="org_switch_join_another">दूसरे कारोबार से जुड़ें</string>
+    <string name="org_privacy_title">ये अलग-अलग रखे जाते हैं</string>
+    <string name="org_privacy_sees">आपको सिर्फ़ उसी कारोबार के ग्राहक, खेत और मशीनें दिखती हैं जिसके लिए आप अभी काम कर रहे हैं।</string>
+    <string name="org_privacy_hidden">कोई भी कारोबार नहीं देख सकता कि आपने किसी और के लिए क्या काम किया, या वहाँ कितना कमाया।</string>
+    <string name="org_privacy_leaving">सीज़न खत्म होने पर रिकॉर्ड उसी कारोबार के पास रहते हैं। आपको वे दिखना बंद हो जाते हैं।</string>
+    <string name="org_switch_cd">दूसरे कारोबार पर जाएँ</string>
+
+    <string name="home_greeting_morning">सुप्रभात</string>
+    <string name="home_greeting_afternoon">नमस्ते</string>
+    <string name="home_greeting_evening">शुभ संध्या</string>
+    <string name="home_todays_work">आज का काम</string>
+    <string name="home_nothing_yet_title">आज कुछ दर्ज नहीं हुआ</string>
+    <string name="home_nothing_yet_body">काम शुरू करते समय हरा बटन दबाएँ।</string>
+    <string name="home_from_customers">%1$s से</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="one">%d भेजना बाकी</item>
+        <item quantity="other">%d भेजना बाकी</item>
+    </plurals>
+    <string name="home_sync_done">सब भेज दिया</string>
+    <string name="home_heard_never">अभी अपडेट नहीं हुआ। अपडेट करने के लिए दबाएँ।</string>
+    <string name="home_heard_now">अभी-अभी अपडेट हुआ</string>
+    <string name="home_heard_updating">अपडेट हो रहा है…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="one">%d मिनट पहले अपडेट हुआ</item>
+        <item quantity="other">%d मिनट पहले अपडेट हुआ</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="one">%d घंटा पहले अपडेट हुआ। अपडेट करने के लिए दबाएँ।</item>
+        <item quantity="other">%d घंटे पहले अपडेट हुआ। अपडेट करने के लिए दबाएँ।</item>
+    </plurals>
+    <string name="home_sync_stuck">भेजा नहीं जा रहा</string>
+    <string name="job_not_sent_short">अभी भेजा नहीं</string>
+    <string name="job_not_sent">अभी भेजा नहीं गया। ऊपर जाने तक यह इस फ़ोन में सुरक्षित रखा है।</string>
+    <string name="home_clock_left_on">%1$s से चालू है। क्या काम पहले ही रुक गया था?</string>
+    <string name="home_job_running">चालू है</string>
+    <string name="home_job_paused">रुका हुआ</string>
+    <string name="home_job_pause">रोकें</string>
+    <string name="home_job_resume">जारी रखें</string>
+    <string name="home_job_open">काम खोलें</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">काम के लिए तैयार</string>
+    <string name="home_ready_title">अपना दिन शुरू करें</string>
+    <string name="home_field_first_running">आज का आपका पहला काम चालू है। पूरा होने पर यहाँ दिखेगा।</string>
+    <string name="home_stat_on_machine">मशीन पर</string>
+    <string name="home_stat_jobs_done">पूरे हुए काम</string>
+    <string name="home_stat_covered">हुआ रकबा</string>
+    <string name="home_cash_with_you">आपके पास नकद</string>
+    <string name="home_cash_with_you_note">आज नकद में लिया गया। घर जाने से पहले जमा करा दें।</string>
+    <string name="home_your_machine">आपकी मशीन</string>
+    <string name="home_last_seven">पिछले 7 दिन</string>
+    <string name="home_last_seven_hours">मशीन के घंटे, पिछले 7 दिन</string>
+    <string name="home_hours_on_machine">मशीन पर</string>
+    <string name="home_earned_today">आज की कमाई</string>
+    <string name="home_jobs_today">आज के काम</string>
+    <string name="home_nobody_owes">आपको किसी से कुछ नहीं लेना</string>
+    <string name="home_this_season">इस सीज़न</string>
+    <string name="home_season_since">%1$s से कमाई</string>
+    <string name="home_season_named_since">%1$s · %2$s से कमाई</string>
+    <string name="home_your_own_work">आपका अपना काम</string>
+    <string name="home_crew_now">काम पर निकले हैं</string>
+    <string name="home_crew_since">%1$s से</string>
+    <string name="home_crew_none">अभी कोई काम पर नहीं है।</string>
+    <string name="home_someone">कोई</string>
+    <string name="home_loading">खुल रहा है…</string>
+    <string name="home_done_today">आज पूरे हुए</string>
+    <string name="home_see_all_jobs">सब देखें</string>
+    <string name="home_right_now">अभी</string>
+    <string name="home_figure_on_job">काम पर</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">मशीनें चल रही हैं</string>
+    <string name="home_figure_down">खराब हैं</string>
+    <string name="home_collected_today">%1$s वसूले</string>
+
+    <string name="notify_channel_clock">काम की घड़ी</string>
+    <string name="notify_channel_clock_note">जो काम खुला है, उसकी घड़ी के साथ। बिना आवाज़ के।</string>
+    <string name="notify_channel_reminder">घड़ी की याद</string>
+    <string name="notify_channel_reminder_note">शाम को पूछता है, अगर कोई घड़ी अब भी चल रही हो।</string>
+    <string name="notify_clock_running">%1$s · घड़ी चल रही है</string>
+    <string name="notify_clock_paused">%1$s · रुका है, घड़ी में %2$s हुए</string>
+    <string name="notify_reminder_title">क्या अब भी %1$s का काम चल रहा है?</string>
+    <string name="notify_reminder_body">घड़ी %1$s चल चुकी है। काम रुक गया हो तो इसे रोक दें, ताकि बिल सही बने।</string>
+
+    <string name="cost_about">लगभग %1$s</string>
+    <string name="cost_hour_title">एक घंटे का खर्च</string>
+    <string name="cost_hour_not_enough">अभी काफ़ी काम दर्ज नहीं हुआ</string>
+    <string name="cost_hour_need">घंटे का खर्च तभी मायने रखता है जब लगभग %1$d घंटे का पूरा काम हो। अब तक: %2$s घंटे।</string>
+    <string name="cost_hour_diesel">डीज़ल</string>
+    <string name="cost_hour_repairs">मरम्मत और सर्विस</string>
+    <string name="cost_hour_loan">कर्ज़ का हिस्सा</string>
+    <string name="cost_hour_loan_none">कर्ज़ या किस्त</string>
+    <string name="cost_hour_loan_not_entered">डाला नहीं है</string>
+    <string name="cost_hour_loan_needs_hours">साल के घंटे चाहिए</string>
+    <string name="cost_hour_add_loan">जो इस पर चुकाते हैं वह डालें</string>
+    <string name="cost_hour_add_hours">बताएँ कि यह साल में कितने घंटे चलती है</string>
+    <string name="cost_hour_total">एक घंटे का खर्च</string>
+    <string name="cost_hour_basis">इस मशीन को जोड़ने के बाद से %1$s घंटे के पूरे काम के हिसाब से। यह सिर्फ़ मशीन का खर्च है, मज़दूरों की मज़दूरी नहीं।</string>
+    <string name="cost_kinds_title">काम की किस्म के हिसाब से</string>
+    <string name="cost_kind_title">%1$s · %2$s</string>
+    <string name="cost_kind_line">खर्च लगभग %1$s · बिल लगभग %2$s</string>
+    <string name="cost_kind_keeps">लगभग %1$s बचते हैं</string>
+    <string name="cost_kind_loses">लगभग %1$s का नुकसान</string>
+    <string name="cost_kinds_note">इस मशीन ने काम कितनी तेज़ी से निपटाया, उसी से निकाला गया। मज़दूरी से पहले का।</string>
+
+    <string name="start_cost_unit">%1$s पर आपका खर्च लगभग %2$s %3$s है</string>
+    <string name="start_cost_keep">%1$s पर आपको लगभग %2$s %3$s बचते हैं।</string>
+    <string name="start_cost_lose">%1$s पर आपको लगभग %2$s %3$s का नुकसान है।</string>
+    <string name="start_cost_note">डीज़ल, मरम्मत और कर्ज़। मज़दूरी से पहले का।</string>
+    <string name="start_cost_hour">%1$s को चलाने का खर्च लगभग %2$s प्रति घंटा है</string>
+    <string name="start_cost_hour_note">इस पर इस काम का अभी इतना नहीं हुआ कि हर एक का खर्च बता सकें।</string>
+
+    <string name="cost_lost">इस काम में %1$s का नुकसान हुआ</string>
+    <string name="cost_lost_note">खर्च बिल से ज़्यादा बैठा। रेट देखें, और देखें कि खर्च में क्या-क्या गया।</string>
+    <string name="cost_share_keeps">मशीन की अपनी मरम्मत और कर्ज़ जोड़ें (चले घंटों के लिए लगभग %1$s), तो इस काम में लगभग %2$s बचे।</string>
+    <string name="cost_share_loses">मशीन की अपनी मरम्मत और कर्ज़ जोड़ें (चले घंटों के लिए लगभग %1$s), तो इस काम में लगभग %2$s का नुकसान हुआ।</string>
+    <string name="cost_share_note">यह अंदाज़ा है, जो मशीन के चले घंटों में बाँटा गया है। ऊपर के आँकड़े वही हैं जो सच में खर्च हुए।</string>
+
+    <string name="job_lost_short">%1$s का नुकसान</string>
+
+    <string name="season_loan">कर्ज़ की किस्तें, लगभग</string>
+    <string name="season_loan_note">हर मशीन पर जो आपने डाला, इस सीज़न के महीनों के हिसाब से। यह दी गई किस्तों का रिकॉर्ड नहीं है।</string>
+    <plurals name="season_lost">
+        <item quantity="one">%1$d काम में नुकसान हुआ: %2$s</item>
+        <item quantity="other">%1$d कामों में नुकसान हुआ: कुल मिलाकर %2$s</item>
+    </plurals>
+    <string name="season_lost_note">हर एक का खर्च बिल से ज़्यादा रहा। सिर्फ़ वही काम गिने गए हैं जिनके हर खर्च का आँकड़ा है।</string>
+
+    <string name="upkeep_parts">क्या बदला गया</string>
+    <string name="upkeep_parts_hint">फ़िल्टर, तेल, बेल्ट — ताकि अगली बार पता रहे कि क्या हुआ था</string>
+    <string name="upkeep_parts_changed">बदला: %1$s</string>
+
+    <string name="display_title">स्क्रीन</string>
+    <string name="display_row_note">हल्का या गहरा रंग, और बड़े अक्षर</string>
+    <string name="display_theme">रंग</string>
+    <string name="display_theme_system">फ़ोन जैसा</string>
+    <string name="display_theme_system_note">हल्का या गहरा, जैसा फ़ोन में लगा है</string>
+    <string name="display_theme_light">हल्का</string>
+    <string name="display_theme_light_note">धूप में बाहर पढ़ना सबसे आसान</string>
+    <string name="display_theme_dark">गहरा</string>
+    <string name="display_theme_dark_note">रात में कैबिन में आँखों को आराम</string>
+    <string name="display_text">अक्षर</string>
+    <string name="display_bigger_text">बड़े अक्षर</string>
+    <string name="display_bigger_text_note">ऐप का हर शब्द एक साइज़ बड़ा हो जाएगा</string>
+    <string name="display_sample">ऐसा दिखेगा</string>
+    <string name="display_sample_line">3 काम · 12 बीघा</string>
+
+    <string name="duration_hours_minutes">%1$d घंटे %2$d मिनट</string>
+    <string name="duration_minutes">%1$d मिनट</string>
+    <string name="clock_check_title">क्या घड़ी सही है?</string>
+    <string name="clock_check_body">घड़ी %1$s से बिना रुके चल रही है। यानी %2$s।</string>
+    <string name="clock_check_when">काम कब रुका था?</string>
+    <string name="clock_check_last_entry">मेरी आखिरी एंट्री पर, %1$s</string>
+    <string name="clock_check_last_entry_note">इस काम में जो आखिरी बार दर्ज हुआ</string>
+    <string name="clock_check_other_time">किसी और समय पर, %1$s</string>
+    <string name="clock_check_other_time_note">दिन और समय चुनें</string>
+    <string name="clock_check_pick_time">समय: %1$s</string>
+    <string name="clock_check_would_read">घड़ी में %1$s दिखेगा। उसके बाद का समय नहीं गिना जाएगा।</string>
+    <string name="clock_check_out_of_range">घड़ी शुरू होने (%1$s) के बाद का और अभी से पहले का समय चुनें।</string>
+    <string name="clock_check_stop">घड़ी %1$s पर रोकें</string>
+    <string name="clock_check_still_working">काम चल रहा है, घड़ी सही है</string>
+    <string name="clock_moment_yesterday">कल %1$s</string>
+    <string name="clock_day_today">आज</string>
+    <string name="clock_day_yesterday">कल</string>
+
+    <string name="home_attention_title">ध्यान चाहिए</string>
+    <string name="home_attention_clear">अभी आपके लिए कुछ नहीं है</string>
+    <string name="home_attention_clear_note">मशीनें, पेमेंट और अपलोड सब ठीक हैं।</string>
+    <string name="home_attention_less">कम दिखाएँ</string>
+    <plurals name="home_attention_more">
+        <item quantity="one">%d और दिखाएँ</item>
+        <item quantity="other">%d और दिखाएँ</item>
+    </plurals>
+    <string name="home_alert_stuck">सर्वर ने एक बदलाव नहीं लिया</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="one">%d बदलाव ऊपर नहीं जा रहा। फ़ैसला करने के लिए बैकअप खोलें।</item>
+        <item quantity="other">%d बदलाव ऊपर नहीं जा रहे। फ़ैसला करने के लिए बैकअप खोलें।</item>
+    </plurals>
+    <string name="home_alert_clock">%1$s की घड़ी अब भी चल रही है</string>
+    <string name="home_alert_clock_note">%1$s, %2$s से</string>
+    <string name="home_alert_fuel">%1$s में डीज़ल ज़्यादा लग रहा है</string>
+    <string name="home_alert_fuel_note">हाल में लगभग %1$s लीटर प्रति घंटा, पहले %2$s: %3$d%% ज़्यादा</string>
+    <string name="home_alert_down">%1$s खराब है</string>
+    <string name="home_alert_down_note">खराबी %1$s को बताई गई</string>
+    <string name="home_alert_down_days">%1$s से खराब</string>
+    <string name="home_alert_service_over">%1$s की सर्विस का समय निकल गया</string>
+    <string name="home_alert_service_over_note">निशान से %1$s घंटे ऊपर</string>
+    <string name="home_alert_service_soon">%1$s की सर्विस आने वाली है</string>
+    <string name="home_alert_owes">%1$s पर %2$s बाकी है</string>
+    <string name="home_alert_owes_note">%1$s से बाकी</string>
+    <plurals name="home_alert_late">
+        <item quantity="one">%d ग्राहक पैसे देने में देर कर रहा है</item>
+        <item quantity="other">%d ग्राहक पैसे देने में देर कर रहे हैं</item>
+    </plurals>
+    <string name="home_alert_late_note">%1$s, %2$d दिन से ज़्यादा से बाकी</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="one">%d मज़दूरी खर्च में रकम नहीं है</item>
+        <item quantity="other">%d मज़दूरी खर्चों में रकम नहीं है</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">जो दिया गया वह डालें, ताकि मुनाफ़ा सही जुड़े</string>
+
+    <string name="start_step">कदम %1$d / 3</string>
+    <string name="start_who_for">यह काम किसके लिए है?</string>
+    <string name="start_search_customers">नाम या गाँव से खोजें</string>
+    <string name="start_new_customer">नया ग्राहक</string>
+    <string name="start_recent">हाल के</string>
+    <string name="start_no_customers_title">अभी कोई ग्राहक नहीं</string>
+    <string name="start_no_customers_body">जिस किसान का काम कर रहे हैं उसे जोड़ें, फिर काम शुरू करें।</string>
+    <string name="start_what_doing">क्या काम कर रहे हैं?</string>
+    <string name="start_machine">मशीन</string>
+    <string name="start_machine_busy">%1$s · काम पर</string>
+    <string name="start_machine_down">%1$s · खराब</string>
+    <string name="start_machine_busy_note">जो मशीन पहले से किसी काम पर है, उसे भी चुन सकते हैं — अगर वह काम आगे निकल गया हो तो उसे सौंप दें।</string>
+    <string name="start_new_machine">नई मशीन</string>
+    <string name="start_new_machine_title">मशीन जोड़ें</string>
+    <string name="start_new_machine_save">जोड़ें और आगे बढ़ें</string>
+    <string name="start_no_machine">कोई मशीन नहीं</string>
+    <string name="start_add_machine">मशीन जोड़ें</string>
+    <string name="start_machine_name">आप इसे क्या कहते हैं?</string>
+    <string name="start_work_type">काम की किस्म</string>
+    <string name="start_how_charging">पैसे कैसे लेंगे?</string>
+    <string name="start_your_rate">आपका रेट</string>
+    <string name="start_counted_in">गिनती किसमें</string>
+    <string name="start_usual_rate">आम रेट</string>
+    <string name="start_begin">टाइमर शुरू करें</string>
+    <string name="start_next">आगे</string>
+    <string name="start_rate_per">प्रति %1$s</string>
+
+    <string name="work_type_rotavator">रोटावेटर</string>
+    <string name="work_type_ploughing">जुताई</string>
+    <string name="work_type_harvesting">कटाई</string>
+    <string name="work_type_levelling">समतल करना</string>
+    <string name="work_type_spraying">छिड़काव</string>
+    <string name="work_type_hauling">ढुलाई</string>
+    <string name="work_type_sowing">बुवाई</string>
+    <string name="work_type_other">दूसरा</string>
+
+    <string name="live_started_at">%1$s को शुरू हुआ</string>
+    <string name="live_rate_line">%1$s &#215; %2$s</string>
+    <string name="live_add_cd">आधा %1$s जोड़ें</string>
+    <string name="live_take_cd">आधा %1$s घटाएँ</string>
+    <string name="live_add_one_trip">एक चक्कर और</string>
+    <string name="live_hourly_note">घंटे के हिसाब से — घड़ी ही बिल है।</string>
+    <string name="live_fixed_note">तय दाम। गिनने को कुछ नहीं।</string>
+
+    <string name="finish_check_title">सेव करने से पहले देख लें</string>
+    <string name="finish_work_done">पूरा हुआ काम</string>
+    <string name="finish_time_worked">काम का समय</string>
+    <string name="finish_amount_done">हुआ काम</string>
+    <string name="finish_rate">रेट</string>
+    <string name="finish_total">इस काम का कुल</string>
+    <string name="finish_make_bill">बिल बनाएँ</string>
+    <string name="finish_bill_title">बिल</string>
+    <string name="finish_bill_for">बिल किसे</string>
+    <string name="finish_this_job">यह काम</string>
+    <string name="finish_save_and_send">सेव करें और भेजें</string>
+</resources>

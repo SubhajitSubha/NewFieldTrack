@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="past_job_which_day">কোন দিন?</string>
+    <string name="past_job_yesterday">গতকাল</string>
+    <string name="past_job_today">আজ</string>
+    <string name="past_job_pick_date">বাছুন</string>
+    <string name="past_job_how_long">কতক্ষণ?</string>
+    <string name="past_job_from">থেকে</string>
+    <string name="past_job_to">পর্যন্ত</string>
+    <string name="past_job_forgot_times">সময়গুলো মনে নেই</string>
+    <string name="past_job_by_hand_note">চিহ্ন দেওয়া থাকবে, যাতে আপনি আর মালিক দুজনেই জানেন এটা ঘড়ি ধরে করা নয়।</string>
+    <string name="past_job_save">এই কাজ সেভ করুন</string>
+
+    <string name="role_question">আপনি কীভাবে কাজ করেন?</string>
+    <string name="role_question_caption">এতে শুধু হোম স্ক্রিনে কী দেখা যাবে তা বদলায়। প্রতিটি মালিকও মেশিন চালাতে আর কাজ লিখতে পারেন।</string>
+    <string name="role_solo">আমি নিজের মেশিনে কাজ করি</string>
+    <string name="role_solo_caption">আপনার ট্রাক্টর বা হারভেস্টার আছে, আর অন্য কৃষকদের কাজ নিজেই করে দেন।</string>
+    <string name="role_business">আমি ব্যবসা চালাই</string>
+    <string name="role_business_caption">কয়েকটি মেশিন আর চালক। কে কোথায় কাজ করছে দেখুন — আর যখন খুশি নিজেও একটি চালান।</string>
+    <string name="role_driver">আমি মালিকের হয়ে চালাই</string>
+    <string name="role_driver_caption">কোড দিয়ে যোগ দিন — একাধিক হলেও ক্ষতি নেই</string>
+    <string name="org_switch_title">আপনি কার হয়ে কাজ করেন</string>
+    <string name="org_switch_right_now">এখন</string>
+    <string name="org_switch_also">আরও যাঁদের হয়ে কাজ করেন</string>
+    <string name="org_switch_join_another">আরেকটি ব্যবসায় যোগ দিন</string>
+    <string name="org_privacy_title">এগুলো আলাদা রাখা হয়</string>
+    <string name="org_privacy_sees">এখন যে ব্যবসার হয়ে কাজ করছেন, শুধু তার গ্রাহক, জমি আর মেশিন আপনি দেখতে পাবেন।</string>
+    <string name="org_privacy_hidden">অন্য কারও জন্য আপনার কাজ, বা সেখানে আপনার আয়, কোনো ব্যবসা দেখতে পায় না।</string>
+    <string name="org_privacy_leaving">মৌসুম শেষ হলে খাতাপত্র ওই ব্যবসার কাছেই থাকে। আপনি আর সেগুলো দেখতে পান না।</string>
+    <string name="org_switch_cd">আরেকটি ব্যবসায় যান</string>
+
+    <string name="home_greeting_morning">সুপ্রভাত</string>
+    <string name="home_greeting_afternoon">শুভ দুপুর</string>
+    <string name="home_greeting_evening">শুভ সন্ধ্যা</string>
+    <string name="home_todays_work">আজকের কাজ</string>
+    <string name="home_nothing_yet_title">আজ কিছু লেখা হয়নি</string>
+    <string name="home_nothing_yet_body">কাজ শুরু করার সময় সবুজ বোতামটি চাপুন।</string>
+    <string name="home_from_customers">%1$s থেকে</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="one">%d টি পাঠানো বাকি</item>
+        <item quantity="other">%d টি পাঠানো বাকি</item>
+    </plurals>
+    <string name="home_sync_done">সব পাঠানো হয়েছে</string>
+    <string name="home_heard_never">এখনও হালনাগাদ হয়নি। হালনাগাদ করতে চাপুন।</string>
+    <string name="home_heard_now">এইমাত্র হালনাগাদ হয়েছে</string>
+    <string name="home_heard_updating">হালনাগাদ হচ্ছে…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="one">%d মিনিট আগে হালনাগাদ হয়েছে</item>
+        <item quantity="other">%d মিনিট আগে হালনাগাদ হয়েছে</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="one">%d ঘণ্টা আগে হালনাগাদ হয়েছে। হালনাগাদ করতে চাপুন।</item>
+        <item quantity="other">%d ঘণ্টা আগে হালনাগাদ হয়েছে। হালনাগাদ করতে চাপুন।</item>
+    </plurals>
+    <string name="home_sync_stuck">যাচ্ছে না</string>
+    <string name="job_not_sent_short">এখনও যায়নি</string>
+    <string name="job_not_sent">এখনও যায়নি। পাঠানো না হওয়া পর্যন্ত এই ফোনে নিরাপদে রাখা আছে।</string>
+    <string name="home_clock_left_on">%1$s থেকে চলছে। কাজ কি আগেই থেমে গিয়েছিল?</string>
+    <string name="home_job_running">চলছে</string>
+    <string name="home_job_paused">থামানো আছে</string>
+    <string name="home_job_pause">থামান</string>
+    <string name="home_job_resume">চালু করুন</string>
+    <string name="home_job_open">কাজ খুলুন</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">কাজের জন্য তৈরি</string>
+    <string name="home_ready_title">দিন শুরু করুন</string>
+    <string name="home_field_first_running">আজকের প্রথম কাজ চলছে। শেষ হলে এখানে দেখা যাবে।</string>
+    <string name="home_stat_on_machine">মেশিনে</string>
+    <string name="home_stat_jobs_done">কাজ হয়েছে</string>
+    <string name="home_stat_covered">জমি করা হয়েছে</string>
+    <string name="home_cash_with_you">আপনার কাছে নগদ</string>
+    <string name="home_cash_with_you_note">আজ নগদে যা নিয়েছেন। বাড়ি যাওয়ার আগে জমা দিন।</string>
+    <string name="home_your_machine">আপনার মেশিন</string>
+    <string name="home_last_seven">শেষ ৭ দিন</string>
+    <string name="home_last_seven_hours">মেশিনের ঘণ্টা, শেষ ৭ দিন</string>
+    <string name="home_hours_on_machine">মেশিনে</string>
+    <string name="home_earned_today">আজ আয়</string>
+    <string name="home_jobs_today">আজ কাজ</string>
+    <string name="home_nobody_owes">কেউ আপনার কাছে বাকি নেই</string>
+    <string name="home_this_season">এই মৌসুম</string>
+    <string name="home_season_since">%1$s থেকে আয়</string>
+    <string name="home_season_named_since">%1$s · %2$s থেকে আয়</string>
+    <string name="home_your_own_work">আপনার নিজের কাজ</string>
+    <string name="home_crew_now">কাজে বাইরে</string>
+    <string name="home_crew_since">%1$s থেকে</string>
+    <string name="home_crew_none">এখন কেউ কাজে নেই।</string>
+    <string name="home_someone">কেউ একজন</string>
+    <string name="home_loading">আসছে…</string>
+    <string name="home_done_today">আজ শেষ হয়েছে</string>
+    <string name="home_see_all_jobs">সব দেখুন</string>
+    <string name="home_right_now">এখন</string>
+    <string name="home_figure_on_job">কাজে</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">মেশিন কাজ করছে</string>
+    <string name="home_figure_down">খারাপ হয়ে আছে</string>
+    <string name="home_collected_today">%1$s তোলা হয়েছে</string>
+
+    <string name="notify_channel_clock">কাজের ঘড়ি</string>
+    <string name="notify_channel_clock_note">যে কাজটি খোলা আছে, তার ঘড়ি সহ। কোনো শব্দ নেই।</string>
+    <string name="notify_channel_reminder">ঘড়ির মনে করিয়ে দেওয়া</string>
+    <string name="notify_channel_reminder_note">ঘড়ি চলতে থাকলে সন্ধ্যায় একটি প্রশ্ন।</string>
+    <string name="notify_clock_running">%1$s · ঘড়ি চলছে</string>
+    <string name="notify_clock_paused">%1$s · ঘড়িতে %2$s নিয়ে থামানো</string>
+    <string name="notify_reminder_title">%1$s-এর কাজ কি এখনও চলছে?</string>
+    <string name="notify_reminder_body">ঘড়ি %1$s চলেছে। কাজ থেমে গেলে ঘড়ি থামিয়ে দিন, তাহলে বিল ঠিক হবে।</string>
+
+    <string name="cost_about">প্রায় %1$s</string>
+    <string name="cost_hour_title">ঘণ্টায় কত খরচ</string>
+    <string name="cost_hour_not_enough">এখনও যথেষ্ট কাজ লেখা হয়নি</string>
+    <string name="cost_hour_need">ঘণ্টার খরচের কোনো মানে হতে হলে প্রায় %1$d ঘণ্টার শেষ হওয়া কাজ দরকার। এখন পর্যন্ত: %2$s ঘণ্টা।</string>
+    <string name="cost_hour_diesel">ডিজেল</string>
+    <string name="cost_hour_repairs">মেরামত ও সার্ভিস</string>
+    <string name="cost_hour_loan">ঋণের ভাগ</string>
+    <string name="cost_hour_loan_none">ঋণ বা কিস্তি</string>
+    <string name="cost_hour_loan_not_entered">লেখা হয়নি</string>
+    <string name="cost_hour_loan_needs_hours">বছরে কত ঘণ্টা লাগবে</string>
+    <string name="cost_hour_add_loan">এর জন্য যা দেন তা লিখুন</string>
+    <string name="cost_hour_add_hours">বছরে কত ঘণ্টা চলে তা লিখুন</string>
+    <string name="cost_hour_total">ঘণ্টায় খরচ</string>
+    <string name="cost_hour_basis">এই মেশিন যোগ করার পর থেকে %1$s ঘণ্টার শেষ হওয়া কাজ ধরে। এটা শুধু মেশিনের খরচ, লোকজনের মজুরি নয়।</string>
+    <string name="cost_kinds_title">কাজের ধরন ধরে</string>
+    <string name="cost_kind_title">%1$s · %2$s</string>
+    <string name="cost_kind_line">খরচ প্রায় %1$s · আপনি বিল করেন প্রায় %2$s</string>
+    <string name="cost_kind_keeps">থাকে প্রায় %1$s</string>
+    <string name="cost_kind_loses">লোকসান প্রায় %1$s</string>
+    <string name="cost_kinds_note">এই মেশিন আসলে কত তাড়াতাড়ি কাজ সেরেছে তা ধরে হিসাব। লোকজনের মজুরির আগে।</string>
+
+    <string name="start_cost_unit">%1$s-এ আপনার খরচ প্রায় %2$s %3$s</string>
+    <string name="start_cost_keep">%1$s দরে আপনার থাকে প্রায় %2$s %3$s।</string>
+    <string name="start_cost_lose">%1$s দরে আপনার লোকসান প্রায় %2$s %3$s।</string>
+    <string name="start_cost_note">ডিজেল, মেরামত আর ঋণ ধরে। লোকজনের মজুরির আগে।</string>
+    <string name="start_cost_hour">%1$s চালাতে ঘণ্টায় প্রায় %2$s খরচ হয়</string>
+    <string name="start_cost_hour_note">এই কাজ এতে এখনও এত কম হয়েছে যে প্রতিটির খরচ বলা যাচ্ছে না।</string>
+
+    <string name="cost_lost">এই কাজে %1$s লোকসান হয়েছে</string>
+    <string name="cost_lost_note">খরচ বিলের চেয়ে বেশি হয়েছে। দর দেখুন, আর কীসে কত গেছে দেখুন।</string>
+    <string name="cost_share_keeps">মেশিনের নিজের মেরামত আর ঋণ ধরলে (যত ঘণ্টা চলেছে তার জন্য প্রায় %1$s), এই কাজে থাকে প্রায় %2$s।</string>
+    <string name="cost_share_loses">মেশিনের নিজের মেরামত আর ঋণ ধরলে (যত ঘণ্টা চলেছে তার জন্য প্রায় %1$s), এই কাজে লোকসান প্রায় %2$s।</string>
+    <string name="cost_share_note">আন্দাজ, মেশিন যত ঘণ্টা চলেছে তার ওপর ভাগ করা। উপরের অঙ্কগুলো যা সত্যিই খরচ হয়েছে।</string>
+
+    <string name="job_lost_short">লোকসান %1$s</string>
+
+    <string name="season_loan">ঋণের কিস্তি, প্রায়</string>
+    <string name="season_loan_note">প্রতিটি মেশিনে যা লিখেছেন, এই মৌসুমের মাসগুলোর জন্য। এটা দেওয়া টাকার হিসাব নয়।</string>
+    <plurals name="season_lost">
+        <item quantity="one">%1$d টি কাজে লোকসান হয়েছে: %2$s</item>
+        <item quantity="other">%1$d টি কাজে লোকসান হয়েছে: মোট %2$s</item>
+    </plurals>
+    <string name="season_lost_note">প্রতিটিতে খরচ বিলের চেয়ে বেশি হয়েছে। শুধু সেই কাজগুলো ধরা হয়েছে যার সব খরচের অঙ্ক আছে।</string>
+
+    <string name="upkeep_parts">কী কী বদলানো হয়েছে</string>
+    <string name="upkeep_parts_hint">ফিল্টার, তেল, বেল্ট — যাতে পরের বার জানেন কী করা হয়েছিল</string>
+    <string name="upkeep_parts_changed">বদলানো হয়েছে: %1$s</string>
+
+    <string name="display_title">স্ক্রিন</string>
+    <string name="display_row_note">আলো বা অন্ধকার, আর বড় লেখা</string>
+    <string name="display_theme">রং</string>
+    <string name="display_theme_system">ফোনের মতোই</string>
+    <string name="display_theme_system_note">ফোনে যেমন ঠিক করা, আলো বা অন্ধকার</string>
+    <string name="display_theme_light">আলো</string>
+    <string name="display_theme_light_note">রোদে বাইরে পড়তে সবচেয়ে সহজ</string>
+    <string name="display_theme_dark">অন্ধকার</string>
+    <string name="display_theme_dark_note">রাতে ক্যাবিনে চোখের আরাম</string>
+    <string name="display_text">লেখা</string>
+    <string name="display_bigger_text">বড় লেখা</string>
+    <string name="display_bigger_text_note">অ্যাপের প্রতিটি লেখা এক ধাপ বড় হবে</string>
+    <string name="display_sample">দেখতে এমন লাগবে</string>
+    <string name="display_sample_line">৩টি কাজ · ১২ বিঘা</string>
+
+    <string name="duration_hours_minutes">%1$d ঘণ্টা %2$d মিনিট</string>
+    <string name="duration_minutes">%1$d মিনিট</string>
+    <string name="clock_check_title">ঘড়ি কি ঠিক আছে?</string>
+    <string name="clock_check_body">ঘড়ি %1$s থেকে না থেমে চলছে। সেটা %2$s।</string>
+    <string name="clock_check_when">কাজ কখন থেমেছিল?</string>
+    <string name="clock_check_last_entry">আমার শেষ লেখার সময়, %1$s</string>
+    <string name="clock_check_last_entry_note">এই কাজে শেষ যা লেখা হয়েছে</string>
+    <string name="clock_check_other_time">অন্য সময়ে, %1$s</string>
+    <string name="clock_check_other_time_note">দিন আর সময় বাছুন</string>
+    <string name="clock_check_pick_time">সময়: %1$s</string>
+    <string name="clock_check_would_read">ঘড়িতে %1$s দেখাবে। এর পরের সময় ধরা হবে না।</string>
+    <string name="clock_check_out_of_range">ঘড়ি শুরুর (%1$s) পরে আর এখনের আগের একটি সময় বাছুন।</string>
+    <string name="clock_check_stop">%1$s-এ ঘড়ি থামান</string>
+    <string name="clock_check_still_working">এখনও কাজ চলছে, ঘড়ি ঠিক আছে</string>
+    <string name="clock_moment_yesterday">গতকাল %1$s</string>
+    <string name="clock_day_today">আজ</string>
+    <string name="clock_day_yesterday">গতকাল</string>
+
+    <string name="home_attention_title">নজর দিন</string>
+    <string name="home_attention_clear">এখন কিছুতেই আপনাকে লাগছে না</string>
+    <string name="home_attention_clear_note">মেশিন, টাকা পাওয়া আর পাঠানো সব ঠিক আছে।</string>
+    <string name="home_attention_less">কম দেখান</string>
+    <plurals name="home_attention_more">
+        <item quantity="one">আরও %d টি দেখান</item>
+        <item quantity="other">আরও %d টি দেখান</item>
+    </plurals>
+    <string name="home_alert_stuck">সার্ভার একটি বদল নেয়নি</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="one">%d টি বদল যাচ্ছে না। কী করবেন ঠিক করতে ব্যাকআপ খুলুন।</item>
+        <item quantity="other">%d টি বদল যাচ্ছে না। কী করবেন ঠিক করতে ব্যাকআপ খুলুন।</item>
+    </plurals>
+    <string name="home_alert_clock">%1$s-এর ঘড়ি এখনও চলছে</string>
+    <string name="home_alert_clock_note">%1$s, %2$s থেকে</string>
+    <string name="home_alert_fuel">%1$s বেশি ডিজেল খাচ্ছে</string>
+    <string name="home_alert_fuel_note">ইদানীং ঘণ্টায় প্রায় %1$s লিটার, আগে %2$s: %3$d%% বেশি</string>
+    <string name="home_alert_down">%1$s খারাপ হয়ে আছে</string>
+    <string name="home_alert_down_note">খারাপ হওয়ার খবর %1$s</string>
+    <string name="home_alert_down_days">%1$s ধরে খারাপ</string>
+    <string name="home_alert_service_over">%1$s-এর সার্ভিসের সময় পেরিয়ে গেছে</string>
+    <string name="home_alert_service_over_note">সীমার চেয়ে %1$s ঘণ্টা বেশি</string>
+    <string name="home_alert_service_soon">%1$s-এর সার্ভিস আসছে</string>
+    <string name="home_alert_owes">%1$s-এর কাছে %2$s পাওনা</string>
+    <string name="home_alert_owes_note">%1$s ধরে বাকি</string>
+    <plurals name="home_alert_late">
+        <item quantity="one">%d জন গ্রাহক টাকা দিতে দেরি করছেন</item>
+        <item quantity="other">%d জন গ্রাহক টাকা দিতে দেরি করছেন</item>
+    </plurals>
+    <string name="home_alert_late_note">%2$d দিনের বেশি ধরে %1$s বাকি</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="one">%d টি লোকজনের খরচের অঙ্ক লেখা নেই</item>
+        <item quantity="other">%d টি লোকজনের খরচের অঙ্ক লেখা নেই</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">কত দিয়েছেন লিখুন, যাতে লাভের হিসাব মেলে</string>
+
+    <string name="start_step">৩-এর মধ্যে ধাপ %1$d</string>
+    <string name="start_who_for">এই কাজ কার জন্য?</string>
+    <string name="start_search_customers">নাম বা গ্রাম দিয়ে খুঁজুন</string>
+    <string name="start_new_customer">নতুন গ্রাহক</string>
+    <string name="start_recent">সাম্প্রতিক</string>
+    <string name="start_no_customers_title">এখনও কোনো গ্রাহক নেই</string>
+    <string name="start_no_customers_body">যে কৃষকের কাজ করছেন তাঁকে যোগ করুন, তারপর কাজ শুরু করুন।</string>
+    <string name="start_what_doing">কী করছেন?</string>
+    <string name="start_machine">মেশিন</string>
+    <string name="start_machine_busy">%1$s · কাজ করছে</string>
+    <string name="start_machine_down">%1$s · খারাপ হয়ে আছে</string>
+    <string name="start_machine_busy_note">কাজে লাগানো মেশিনও বেছে নেওয়া যায় — সেই কাজ শেষ হয়ে গেলে ওটা অন্য কাউকে দিয়ে দিন।</string>
+    <string name="start_new_machine">নতুন মেশিন</string>
+    <string name="start_new_machine_title">মেশিন যোগ করুন</string>
+    <string name="start_new_machine_save">যোগ করে এগিয়ে যান</string>
+    <string name="start_no_machine">কোনো মেশিন নয়</string>
+    <string name="start_add_machine">মেশিন যোগ করুন</string>
+    <string name="start_machine_name">আপনি এটাকে কী বলে ডাকেন?</string>
+    <string name="start_work_type">কাজের ধরন</string>
+    <string name="start_how_charging">কীভাবে নেবেন?</string>
+    <string name="start_your_rate">আপনার দর</string>
+    <string name="start_counted_in">যে হিসাবে গোনা</string>
+    <string name="start_usual_rate">সাধারণ দর</string>
+    <string name="start_begin">ঘড়ি চালু করুন</string>
+    <string name="start_next">পরের ধাপ</string>
+    <string name="start_rate_per">প্রতি %1$s</string>
+</resources>

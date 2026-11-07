@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="app_name">FieldTrack</string>
+
+    <string name="action_continue">Endelea</string>
+    <string name="action_save">Hifadhi</string>
+    <string name="action_cancel">Ghairi</string>
+    <string name="action_back_cd">Rudi nyuma</string>
+    <string name="action_close_cd">Funga</string>
+    <string name="action_more_cd">Chaguo zaidi</string>
+    <string name="action_not_now">Sio sasa</string>
+    <string name="action_see_all">Tazama zote</string>
+    <string name="action_change">Badilisha</string>
+    <string name="action_try_again">Jaribu tena sasa</string>
+    <string name="action_send_whatsapp">Tuma kwa WhatsApp</string>
+    <string name="action_speak_cd">Sema badala ya kuandika</string>
+    <string name="action_use_location_cd">Tumia mahali nilipo sasa</string>
+    <string name="action_add_photo">Ongeza picha</string>
+    <string name="action_call_cd">Mpigie %1$s</string>
+    <string name="action_notifications_cd">Arifa</string>
+
+    <string name="status_running">Inaendelea</string>
+    <string name="status_paused">Imesimamishwa</string>
+    <string name="status_completed">Imekamilika</string>
+    <string name="status_due">Malipo yanadaiwa</string>
+    <string name="status_idle">Haifanyi kazi</string>
+    <string name="status_breakdown">Imeharibika</string>
+    <string name="status_settled">Imelipwa yote</string>
+    <string name="status_unpaid">Haijalipwa</string>
+    <string name="status_paid">Imelipwa</string>
+    <string name="status_added_by_hand">Imeandikwa</string>
+
+    <string name="nav_home">Mwanzo</string>
+    <string name="nav_jobs">Kazi</string>
+    <string name="nav_my_work">Kazi yangu</string>
+    <string name="nav_customers">Wateja</string>
+    <string name="nav_machines">Mashine</string>
+    <string name="nav_fleet">Mashine zote</string>
+    <string name="nav_more">Zaidi</string>
+
+    <string name="work_start">Anza kazi</string>
+    <string name="work_start_caption">Saa inahesabu unapofanya kazi</string>
+    <string name="work_start_offline_caption">Inafanya kazi bila mtandao</string>
+    <string name="work_pause">Simamisha</string>
+    <string name="work_resume">Endelea</string>
+    <string name="work_finish">Maliza</string>
+    <string name="work_time_on_job">Muda wa kazi hii</string>
+    <string name="work_area_done">Eneo lililolimwa</string>
+    <string name="work_amount_done">Kiasi kilichofanywa</string>
+    <string name="work_next_trip_rate">Safari ijayo %1$s</string>
+    <string name="finish_rate_varies">Bei tofauti</string>
+    <string name="work_trips_done">Safari zilizofanywa</string>
+    <string name="work_earning_so_far">Mapato hadi sasa</string>
+    <string name="work_one_more_trip">Safari moja zaidi</string>
+    <string name="work_undo_trip_cd">Ondoa safari ya mwisho</string>
+    <string name="work_increase_cd">Ongeza %1$s</string>
+    <string name="work_decrease_cd">Punguza %1$s</string>
+    <string name="work_hand_over_title">Mkabidhi mtu mwingine kazi hii</string>
+    <string name="work_hand_over_caption">Mmiliki au dereva — saa inaendelea kuhesabu</string>
+    <string name="work_discard_title">Futa kazi hii</string>
+    <string name="work_discard_caption">Hakuna kitakachohifadhiwa</string>
+
+    <string name="work_type_amount_cd">Andika kiasi badala yake</string>
+    <string name="work_type_amount_title">Mmefanya kiasi gani?</string>
+    <string name="work_type_amount_save">Ihifadhi</string>
+    <string name="work_more">Zaidi</string>
+    <string name="work_more_cd">Mambo mengine unayoweza kufanya kwenye kazi hii</string>
+    <string name="work_actions_title">Hatua zaidi</string>
+    <string name="work_back_to_work">Rudi kazini</string>
+    <string name="work_hand_over_nobody">Bado hakuna mtu mwingine kwenye timu yako</string>
+    <string name="work_rate_title">Badilisha bei</string>
+    <string name="work_rate_caption">Sasa %1$s</string>
+    <string name="work_rate_save">Hifadhi bei</string>
+    <string name="work_breakdown_title">Mashine imeharibika</string>
+    <string name="work_breakdown_caption">Inasimamisha saa na kuandika tatizo</string>
+    <string name="work_breakdown_what">Tatizo ni nini?</string>
+    <string name="work_breakdown_note">Kuna jingine? (si lazima)</string>
+    <string name="work_breakdown_note_hint">Kiinua hakishiki</string>
+    <string name="work_breakdown_save">Andika na usimamishe saa</string>
+    <string name="work_note_title">Ongeza maelezo</string>
+    <string name="work_note_short">Maelezo</string>
+    <string name="work_note_caption">Yanahifadhiwa na kazi hii</string>
+    <string name="work_note_hint">Shamba lilikuwa na maji mengi</string>
+    <string name="work_note_save">Hifadhi maelezo</string>
+    <string name="work_fuel_title">Mafuta</string>
+    <string name="work_fuel_caption">Dizeli iliyowekwa kwenye kazi hii</string>
+    <string name="work_fuel_litres">Lita</string>
+    <string name="work_fuel_cost">Gharama yake</string>
+    <string name="work_fuel_note">Hii ni gharama yako — mteja hatozwi kwa hili.</string>
+    <string name="work_fuel_save">Hifadhi mafuta</string>
+    <string name="work_fuel_no_machine">Chagua mashine kwenye kazi ili kuhifadhi mafuta kwa mashine hiyo.</string>
+    <string name="work_discard_confirm">Ufute kazi hii?</string>
+    <string name="work_discard_confirm_body">Saa, vipimo na maelezo yote uliyoandika kwenye kazi hii vitapotea. Mteja hatatozwa.</string>
+    <string name="work_discard_confirm_action">Ndiyo, ifute</string>
+    <string name="breakdown_hydraulics">Haidroliki</string>
+    <string name="breakdown_engine">Injini</string>
+    <string name="breakdown_tyre">Tairi</string>
+    <string name="breakdown_electrical">Umeme</string>
+    <string name="breakdown_implement">Kifaa cha kazi</string>
+    <string name="breakdown_other">Kitu kingine</string>
+
+    <string name="billing_per_land">Kwa %1$s</string>
+    <string name="billing_per_acre_caption">Eneo unalolima</string>
+    <string name="billing_per_hour">Kwa saa</string>
+    <string name="billing_per_hour_caption">Muda wa kazi</string>
+    <string name="billing_per_trip">Kwa safari</string>
+    <string name="billing_per_trip_caption">Mizigo iliyosafirishwa</string>
+    <string name="billing_per_unit">Kwa kipimo</string>
+    <string name="billing_per_unit_caption">Mfuko, kwintali, kipande</string>
+    <string name="billing_per_km">Kwa km</string>
+    <string name="billing_per_km_caption">Umbali uliosafirishwa</string>
+    <string name="billing_fixed">Bei maalum</string>
+    <string name="billing_fixed_caption">Kiasi kimoja mlichokubaliana</string>
+    <string name="billing_per_day">Kwa siku</string>
+    <string name="billing_per_day_caption">Mashine na dereva wanaokodishwa kwa siku</string>
+
+    <string name="unit_acre">Ekari</string>
+    <string name="unit_bigha">Bigha</string>
+    <string name="unit_kanal">Kanal</string>
+    <string name="unit_guntha">Guntha</string>
+    <string name="unit_katha">Katha</string>
+    <string name="unit_hour">Saa</string>
+    <string name="unit_trip">Safari</string>
+    <string name="unit_piece">Kipande</string>
+    <string name="unit_quintal">Kwintali</string>
+    <string name="unit_bag">Mfuko</string>
+    <string name="unit_km">km</string>
+    <string name="unit_hectare">Hekta</string>
+    <string name="unit_sqm">m²</string>
+    <string name="unit_bale">Robota</string>
+    <string name="unit_tonne">Tani</string>
+    <string name="unit_bushel">Bushel</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_litre">Lita</string>
+    <string name="unit_day">Siku</string>
+
+    <plurals name="field_earned_jobs">
+        <item quantity="one">kutokana na kazi %d</item>
+        <item quantity="other">kutokana na kazi %d</item>
+    </plurals>
+    <plurals name="fields_count">
+        <item quantity="one">shamba %d</item>
+        <item quantity="other">mashamba %d</item>
+    </plurals>
+    <plurals name="fields_jobs_here">
+        <item quantity="one">kazi %d hapa</item>
+        <item quantity="other">kazi %d hapa</item>
+    </plurals>
+    <plurals name="money_out_unpriced">
+        <item quantity="one">gharama %d ambayo hakuna aliyeweka bei</item>
+        <item quantity="other">gharama %d ambazo hakuna aliyeweka bei</item>
+    </plurals>
+    <plurals name="count_jobs">
+        <item quantity="one">kazi %d</item>
+        <item quantity="other">kazi %d</item>
+    </plurals>
+    <plurals name="count_trips">
+        <item quantity="one">safari %d</item>
+        <item quantity="other">safari %d</item>
+    </plurals>
+    <string name="time_today">leo</string>
+    <plurals name="count_days">
+        <item quantity="one">siku %d</item>
+        <item quantity="other">siku %d</item>
+    </plurals>
+    <plurals name="count_customers">
+        <item quantity="one">mteja %d</item>
+        <item quantity="other">wateja %d</item>
+    </plurals>
+    <plurals name="count_machines">
+        <item quantity="one">mashine %d</item>
+        <item quantity="other">mashine %d</item>
+    </plurals>
+
+    <string name="money_today">Leo</string>
+    <string name="money_owed_to_you">Unachodai</string>
+    <string name="money_total_due">Jumla inayodaiwa</string>
+    <string name="money_old_balance">Deni la awali</string>
+    <string name="money_paid_today">Aliyolipa leo</string>
+    <string name="money_balance">Salio</string>
+    <string name="money_received">Pesa zilizopokelewa</string>
+    <string name="money_did_they_pay">Wamelipa sasa?</string>
+    <string name="money_paid_all">Yote</string>
+    <string name="money_paid_some">Sehemu</string>
+    <string name="money_paid_none">Hakuna</string>
+    <string name="money_paid_none_caption">kwa mkopo</string>
+    <string name="money_how_much_given">Wamekupa kiasi gani?</string>
+    <string name="money_left_after">Bado inadaiwa baada ya hili</string>
+    <string name="method_cash">Pesa taslimu</string>
+    <string name="method_upi">UPI</string>
+    <string name="method_bank">Benki</string>
+    <string name="method_cheque">Hundi</string>
+    <string name="method_mobile_money">Pesa za simu</string>
+    <string name="method_card">Kadi</string>
+    <string name="method_in_kind">Kwa bidhaa (nafaka au mazao)</string>
+
+    <string name="sync_title">Kuhifadhi na nakala rudufu</string>
+    <string name="sync_offline_title">Hakuna mtandao sasa</string>
+    <string name="sync_offline_body">Endelea kufanya kazi. Kila kitu kinahifadhiwa kwenye simu hii na kitatumwa chenyewe mtandao ukirudi.</string>
+    <string name="sync_automatic">Hili hufanyika lenyewe. Huna haja ya kufanya chochote.</string>
+    <string name="sync_waiting">Inasubiri kutumwa</string>
+    <string name="sync_last_backup">Nakala rudufu ya mwisho %1$s</string>
+    <string name="sync_conflict_title">Mmebadilisha kazi moja kwa pamoja</string>
+    <string name="sync_conflict_action">Tatua</string>
+    <string name="sync_all_safe">Kila kitu kimehifadhiwa nakala</string>
+    <string name="sync_all_safe_body">Kila kazi, malipo na mteja kwenye simu hii vipo pia kwenye seva.</string>
+    <string name="sync_sending">Inatuma nakala rudufu…</string>
+    <string name="sync_sending_body">Inatuma kinachosubiri. Unaweza kuendelea kufanya kazi — hii inaendelea nyuma.</string>
+    <string name="sync_never">Bado haijatumwa nakala rudufu</string>
+    <string name="sync_nothing_waiting">Hakuna kinachosubiri kutumwa</string>
+    <string name="sync_nothing_waiting_body">Hakuna kitu kwenye simu hii kinachosubiri seva. Kazi utakayoandika kuanzia sasa itatumwa yenyewe.</string>
+    <string name="sync_waiting_title">Inasubiri mtandao</string>
+    <string name="sync_blocked_title">Badiliko moja halikuhifadhiwa</string>
+    <string name="sync_blocked_body">Kazi yako iko salama kwenye simu hii na hakuna kilichopotea. Seva haikukubali badiliko moja, kwa hiyo mengine yanayofuata yanasubiri nyuma yake.</string>
+    <string name="sync_no_backend_title">Nakala rudufu haijawashwa</string>
+    <string name="sync_no_backend_body">Kila kitu kimehifadhiwa kwenye simu hii, tayari kutumwa nakala rudufu itakapowekwa.</string>
+    <string name="sync_now">Tuma sasa hivi</string>
+    <string name="sync_destination">Inatuma nakala rudufu kwa %1$s</string>
+    <string name="sync_retry_at">Jaribio lijalo saa %1$s</string>
+    <string name="sync_whats_waiting">Kinachosubiri</string>
+    <string name="sync_reason">Seva ilisema nini</string>
+    <string name="sync_set_aside">Liweke kando</string>
+    <string name="sync_set_aside_note">Yaliyobaki yatatumwa. Hili litabaki kwenye simu, na hakuna kitakachofutwa.</string>
+    <plurals name="sync_set_aside_count">
+        <item quantity="one">badiliko %1$d limewekwa kando</item>
+        <item quantity="other">mabadiliko %1$d yamewekwa kando</item>
+    </plurals>
+    <string name="sync_just_now">punde tu</string>
+    <string name="sync_safe_note">Hakuna kinachoondolewa kwenye simu hii hadi seva iwe nacho. Hata nakala rudufu isipofanya kazi, rekodi zako bado ziko hapa.</string>
+    <plurals name="sync_changes_waiting">
+        <item quantity="one">badiliko %1$d linasubiri</item>
+        <item quantity="other">mabadiliko %1$d yanasubiri</item>
+    </plurals>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">dakika %1$d iliyopita</item>
+        <item quantity="other">dakika %1$d zilizopita</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">saa %1$d iliyopita</item>
+        <item quantity="other">saa %1$d zilizopita</item>
+    </plurals>
+    <string name="sync_item_jobs">Kazi</string>
+    <string name="sync_item_job_events">Rekodi za kazi</string>
+    <string name="sync_item_ledger">Bili na malipo</string>
+</resources>

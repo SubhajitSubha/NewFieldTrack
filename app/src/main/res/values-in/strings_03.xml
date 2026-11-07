@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="past_job_which_day">Hari apa?</string>
+    <string name="past_job_yesterday">Kemarin</string>
+    <string name="past_job_today">Hari ini</string>
+    <string name="past_job_pick_date">Pilih</string>
+    <string name="past_job_how_long">Berapa lama?</string>
+    <string name="past_job_from">Dari</string>
+    <string name="past_job_to">Sampai</string>
+    <string name="past_job_forgot_times">Saya lupa jamnya</string>
+    <string name="past_job_by_hand_note">Diberi tanda agar Anda dan pemilik sama-sama tahu ini tidak dihitung dengan waktu.</string>
+    <string name="past_job_save">Simpan pekerjaan ini</string>
+
+    <string name="role_question">Bagaimana Anda bekerja?</string>
+    <string name="role_question_caption">Ini hanya mengubah isi layar beranda Anda. Setiap pemilik juga bisa mengemudi dan mencatat pekerjaan.</string>
+    <string name="role_solo">Saya mengerjakan mesin sendiri</string>
+    <string name="role_solo_caption">Anda punya traktor atau mesin panen dan mengerjakannya sendiri untuk petani lain.</string>
+    <string name="role_business">Saya menjalankan usaha</string>
+    <string name="role_business_caption">Beberapa mesin dan sopir. Lihat siapa bekerja di mana — dan mengemudi sendiri kapan pun Anda mau.</string>
+    <string name="role_driver">Saya sopir untuk seorang pemilik</string>
+    <string name="role_driver_caption">Bergabung dengan kode — boleh lebih dari satu</string>
+    <string name="org_switch_title">Anda bekerja untuk siapa</string>
+    <string name="org_switch_right_now">Saat ini</string>
+    <string name="org_switch_also">Juga bekerja untuk</string>
+    <string name="org_switch_join_another">Gabung ke usaha lain</string>
+    <string name="org_privacy_title">Datanya dipisah</string>
+    <string name="org_privacy_sees">Anda hanya melihat pelanggan, lahan, dan mesin milik usaha yang sedang Anda kerjakan saat ini.</string>
+    <string name="org_privacy_hidden">Tidak ada usaha yang bisa melihat pekerjaan Anda untuk orang lain, atau penghasilan Anda di sana.</string>
+    <string name="org_privacy_leaving">Saat satu musim berakhir, catatannya tetap di usaha itu. Anda tidak lagi melihatnya.</string>
+    <string name="org_switch_cd">Pindah ke usaha lain</string>
+
+    <string name="home_greeting_morning">Selamat pagi</string>
+    <string name="home_greeting_afternoon">Selamat siang</string>
+    <string name="home_greeting_evening">Selamat malam</string>
+    <string name="home_todays_work">Pekerjaan hari ini</string>
+    <string name="home_nothing_yet_title">Belum ada yang dicatat hari ini</string>
+    <string name="home_nothing_yet_body">Ketuk tombol hijau saat Anda mulai bekerja.</string>
+    <string name="home_from_customers">dari %1$s</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="other">%d untuk dikirim</item>
+    </plurals>
+    <string name="home_sync_done">Semua terkirim</string>
+    <string name="home_heard_never">Belum diperbarui. Ketuk untuk memperbarui.</string>
+    <string name="home_heard_now">Baru saja diperbarui</string>
+    <string name="home_heard_updating">Memperbarui…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="other">Diperbarui %d menit lalu</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="other">Diperbarui %d jam lalu. Ketuk untuk memperbarui.</item>
+    </plurals>
+    <string name="home_sync_stuck">Tidak terkirim</string>
+    <string name="job_not_sent_short">Belum terkirim</string>
+    <string name="job_not_sent">Belum terkirim. Tersimpan aman di ponsel ini sampai terkirim.</string>
+    <string name="home_clock_left_on">Berjalan sejak %1$s. Apakah pekerjaan sudah berhenti lebih awal?</string>
+    <string name="home_job_running">Berjalan</string>
+    <string name="home_job_paused">Dijeda</string>
+    <string name="home_job_pause">Jeda</string>
+    <string name="home_job_resume">Lanjutkan</string>
+    <string name="home_job_open">Buka pekerjaan</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">Siap bekerja</string>
+    <string name="home_ready_title">Mulai hari Anda</string>
+    <string name="home_field_first_running">Pekerjaan pertama Anda hari ini sedang berjalan. Akan muncul di sini setelah selesai.</string>
+    <string name="home_stat_on_machine">Di mesin</string>
+    <string name="home_stat_jobs_done">Pekerjaan selesai</string>
+    <string name="home_stat_covered">Luas dikerjakan</string>
+    <string name="home_cash_with_you">Uang tunai di Anda</string>
+    <string name="home_cash_with_you_note">Diterima tunai hari ini. Serahkan sebelum Anda pulang.</string>
+    <string name="home_your_machine">Mesin Anda</string>
+    <string name="home_last_seven">7 hari terakhir</string>
+    <string name="home_last_seven_hours">Jam mesin, 7 hari terakhir</string>
+    <string name="home_hours_on_machine">di mesin</string>
+    <string name="home_earned_today">Pendapatan hari ini</string>
+    <string name="home_jobs_today">Pekerjaan hari ini</string>
+    <string name="home_nobody_owes">Tidak ada yang berutang kepada Anda</string>
+    <string name="home_this_season">Musim ini</string>
+    <string name="home_season_since">Pendapatan sejak %1$s</string>
+    <string name="home_season_named_since">%1$s · pendapatan sejak %2$s</string>
+    <string name="home_your_own_work">Pekerjaan Anda sendiri</string>
+    <string name="home_crew_now">Sedang bekerja</string>
+    <string name="home_crew_since">sejak %1$s</string>
+    <string name="home_crew_none">Saat ini tidak ada yang sedang bekerja.</string>
+    <string name="home_someone">Seseorang</string>
+    <string name="home_loading">Memuat…</string>
+    <string name="home_done_today">Selesai hari ini</string>
+    <string name="home_see_all_jobs">Lihat semua</string>
+    <string name="home_right_now">Saat ini</string>
+    <string name="home_figure_on_job">sedang bekerja</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">mesin bekerja</string>
+    <string name="home_figure_down">rusak</string>
+    <string name="home_collected_today">%1$s terkumpul</string>
+
+    <string name="notify_channel_clock">Jam kerja</string>
+    <string name="notify_channel_clock_note">Pekerjaan yang sedang dibuka, beserta jamnya. Tanpa suara.</string>
+    <string name="notify_channel_reminder">Pengingat jam kerja</string>
+    <string name="notify_channel_reminder_note">Pertanyaan di malam hari jika jam kerja masih berjalan.</string>
+    <string name="notify_clock_running">%1$s · jam berjalan</string>
+    <string name="notify_clock_paused">%1$s · dijeda, jam menunjukkan %2$s</string>
+    <string name="notify_reminder_title">Masih bekerja untuk %1$s?</string>
+    <string name="notify_reminder_body">Jam sudah berjalan %1$s. Jeda jika pekerjaan sudah berhenti, agar tagihannya benar.</string>
+
+    <string name="cost_about">sekitar %1$s</string>
+    <string name="cost_hour_title">Biaya satu jam</string>
+    <string name="cost_hour_not_enough">Pekerjaan yang dicatat belum cukup</string>
+    <string name="cost_hour_need">Dibutuhkan sekitar %1$d jam pekerjaan selesai sebelum biaya per jam berarti. Sejauh ini: %2$s jam.</string>
+    <string name="cost_hour_diesel">Solar</string>
+    <string name="cost_hour_repairs">Perbaikan dan servis</string>
+    <string name="cost_hour_loan">Bagian cicilan</string>
+    <string name="cost_hour_loan_none">Pinjaman atau cicilan</string>
+    <string name="cost_hour_loan_not_entered">belum diisi</string>
+    <string name="cost_hour_loan_needs_hours">perlu jam kerja per tahun</string>
+    <string name="cost_hour_add_loan">Isi yang Anda bayar untuk mesin ini</string>
+    <string name="cost_hour_add_hours">Isi berapa jam mesin bekerja dalam setahun</string>
+    <string name="cost_hour_total">Biaya satu jam</string>
+    <string name="cost_hour_basis">Dari %1$s jam pekerjaan selesai sejak Anda menambah mesin ini. Ini hanya biaya mesin, bukan upah pekerja.</string>
+    <string name="cost_kinds_title">Menurut jenis pekerjaan</string>
+    <string name="cost_kind_title">%1$s · %2$s</string>
+    <string name="cost_kind_line">Biaya sekitar %1$s · Anda menagih sekitar %2$s</string>
+    <string name="cost_kind_keeps">untung sekitar %1$s</string>
+    <string name="cost_kind_loses">rugi sekitar %1$s</string>
+    <string name="cost_kinds_note">Dihitung dari seberapa cepat mesin ini benar-benar menyelesaikan pekerjaan. Sebelum upah pekerja.</string>
+
+    <string name="start_cost_unit">Pada %1$s biaya Anda sekitar %2$s %3$s</string>
+    <string name="start_cost_keep">Pada %1$s Anda untung sekitar %2$s %3$s.</string>
+    <string name="start_cost_lose">Pada %1$s Anda rugi sekitar %2$s %3$s.</string>
+    <string name="start_cost_note">Solar, perbaikan, dan cicilan. Sebelum upah pekerja.</string>
+    <string name="start_cost_hour">%1$s berbiaya sekitar %2$s per jam untuk dijalankan</string>
+    <string name="start_cost_hour_note">Pekerjaan jenis ini di mesin tersebut belum cukup untuk menghitung biaya masing-masing.</string>
+
+    <string name="cost_lost">Pekerjaan ini rugi %1$s</string>
+    <string name="cost_lost_note">Biayanya lebih besar daripada yang ditagihkan. Periksa tarifnya, dan apa saja yang dikeluarkan.</string>
+    <string name="cost_share_keeps">Dengan menghitung perbaikan dan cicilan mesin itu sendiri (sekitar %1$s untuk jam kerjanya), pekerjaan ini menyisakan sekitar %2$s.</string>
+    <string name="cost_share_loses">Dengan menghitung perbaikan dan cicilan mesin itu sendiri (sekitar %1$s untuk jam kerjanya), pekerjaan ini rugi sekitar %2$s.</string>
+    <string name="cost_share_note">Perkiraan, dibagi rata sepanjang jam mesin bekerja. Angka di atas adalah yang benar-benar dikeluarkan.</string>
+
+    <string name="job_lost_short">Rugi %1$s</string>
+
+    <string name="season_loan">Cicilan pinjaman, sekitar</string>
+    <string name="season_loan_note">Yang Anda isi pada tiap mesin, untuk bulan-bulan dalam musim ini. Bukan catatan pembayaran yang sudah dilakukan.</string>
+    <plurals name="season_lost">
+        <item quantity="other">%1$d pekerjaan merugi: %2$s seluruhnya</item>
+    </plurals>
+    <string name="season_lost_note">Biaya masing-masing lebih besar daripada yang ditagihkan. Hanya pekerjaan yang semua biayanya ada angkanya yang dihitung.</string>
+
+    <string name="upkeep_parts">Apa yang diganti</string>
+    <string name="upkeep_parts_hint">Filter, oli, sabuk — agar lain kali Anda tahu apa yang sudah dikerjakan</string>
+    <string name="upkeep_parts_changed">Diganti: %1$s</string>
+
+    <string name="display_title">Tampilan</string>
+    <string name="display_row_note">Terang atau gelap, dan teks lebih besar</string>
+    <string name="display_theme">Warna</string>
+    <string name="display_theme_system">Sama seperti ponsel</string>
+    <string name="display_theme_system_note">Terang atau gelap, sesuai pengaturan ponsel</string>
+    <string name="display_theme_light">Terang</string>
+    <string name="display_theme_light_note">Paling mudah dibaca di luar ruangan saat terik</string>
+    <string name="display_theme_dark">Gelap</string>
+    <string name="display_theme_dark_note">Lebih nyaman di mata di kabin saat malam</string>
+    <string name="display_text">Teks</string>
+    <string name="display_bigger_text">Teks lebih besar</string>
+    <string name="display_bigger_text_note">Membuat setiap kata di aplikasi satu ukuran lebih besar</string>
+    <string name="display_sample">Tampilannya</string>
+    <string name="display_sample_line">3 pekerjaan · 12 bigha</string>
+
+    <string name="duration_hours_minutes">%1$d jam %2$d mnt</string>
+    <string name="duration_minutes">%1$d mnt</string>
+    <string name="clock_check_title">Apakah jamnya benar?</string>
+    <string name="clock_check_body">Jam sudah berjalan sejak %1$s tanpa berhenti. Itu %2$s.</string>
+    <string name="clock_check_when">Kapan pekerjaan berhenti?</string>
+    <string name="clock_check_last_entry">Pada catatan terakhir saya, %1$s</string>
+    <string name="clock_check_last_entry_note">Hal terakhir yang dicatat pada pekerjaan ini</string>
+    <string name="clock_check_other_time">Pada waktu lain, %1$s</string>
+    <string name="clock_check_other_time_note">Pilih hari dan jamnya</string>
+    <string name="clock_check_pick_time">Jam: %1$s</string>
+    <string name="clock_check_would_read">Jam akan menunjukkan %1$s. Waktu setelah itu tidak dihitung.</string>
+    <string name="clock_check_out_of_range">Pilih waktu setelah jam dimulai (%1$s) dan sebelum sekarang.</string>
+    <string name="clock_check_stop">Hentikan jam pada %1$s</string>
+    <string name="clock_check_still_working">Masih bekerja, jamnya benar</string>
+    <string name="clock_moment_yesterday">%1$s kemarin</string>
+    <string name="clock_day_today">Hari ini</string>
+    <string name="clock_day_yesterday">Kemarin</string>
+
+    <string name="home_attention_title">Perlu perhatian</string>
+    <string name="home_attention_clear">Saat ini tidak ada yang perlu Anda urus</string>
+    <string name="home_attention_clear_note">Mesin, pembayaran, dan pengiriman data semuanya beres.</string>
+    <string name="home_attention_less">Tampilkan lebih sedikit</string>
+    <plurals name="home_attention_more">
+        <item quantity="other">Tampilkan %d lagi</item>
+    </plurals>
+    <string name="home_alert_stuck">Server menolak satu perubahan</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="other">%d perubahan tidak terkirim. Buka Cadangan untuk memutuskan.</item>
+    </plurals>
+    <string name="home_alert_clock">Jam %1$s masih berjalan</string>
+    <string name="home_alert_clock_note">%1$s, sejak %2$s</string>
+    <string name="home_alert_fuel">%1$s memakai lebih banyak solar</string>
+    <string name="home_alert_fuel_note">Belakangan sekitar %1$s L per jam, sebelumnya %2$s: %3$d%% lebih banyak</string>
+    <string name="home_alert_down">%1$s rusak</string>
+    <string name="home_alert_down_note">Kerusakan dilaporkan %1$s</string>
+    <string name="home_alert_down_days">Rusak selama %1$s</string>
+    <string name="home_alert_service_over">%1$s melewati jadwal servis</string>
+    <string name="home_alert_service_over_note">%1$s jam melewati batas</string>
+    <string name="home_alert_service_soon">Servis %1$s segera tiba</string>
+    <string name="home_alert_owes">%1$s berutang %2$s</string>
+    <string name="home_alert_owes_note">Belum dibayar selama %1$s</string>
+    <plurals name="home_alert_late">
+        <item quantity="other">%d pelanggan terlambat membayar</item>
+    </plurals>
+    <string name="home_alert_late_note">%1$s belum dibayar lebih dari %2$d hari</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="other">%d biaya pekerja belum ada jumlahnya</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">Isi yang dibayarkan agar hitungan untungnya pas</string>
+
+    <string name="start_step">Langkah %1$d dari 3</string>
+    <string name="start_who_for">Pekerjaan ini untuk siapa?</string>
+    <string name="start_search_customers">Cari dengan nama atau desa</string>
+    <string name="start_new_customer">Pelanggan baru</string>
+    <string name="start_recent">Terbaru</string>
+    <string name="start_no_customers_title">Belum ada pelanggan</string>
+    <string name="start_no_customers_body">Tambahkan petani yang Anda kerjakan, lalu mulai pekerjaannya.</string>
+    <string name="start_what_doing">Anda mengerjakan apa?</string>
+    <string name="start_machine">Mesin</string>
+    <string name="start_machine_busy">%1$s · bekerja</string>
+    <string name="start_machine_down">%1$s · rusak</string>
+    <string name="start_machine_busy_note">Mesin yang sedang bekerja masih bisa dipilih — serahkan pekerjaan itu ke orang lain jika sudah selesai di tempat lain.</string>
+    <string name="start_new_machine">Mesin baru</string>
+    <string name="start_new_machine_title">Tambah mesin</string>
+    <string name="start_new_machine_save">Tambah dan lanjut</string>
+    <string name="start_no_machine">Tanpa mesin</string>
+    <string name="start_add_machine">Tambah mesin</string>
+    <string name="start_machine_name">Apa sebutan Anda untuk mesin ini?</string>
+    <string name="start_work_type">Jenis pekerjaan</string>
+    <string name="start_how_charging">Bagaimana cara menagih?</string>
+    <string name="start_your_rate">Tarif Anda</string>
+    <string name="start_counted_in">Dihitung dalam</string>
+    <string name="start_usual_rate">Tarif biasa</string>
+    <string name="start_begin">Mulai waktu</string>
+    <string name="start_next">Berikutnya</string>
+    <string name="start_rate_per">per %1$s</string>
+</resources>

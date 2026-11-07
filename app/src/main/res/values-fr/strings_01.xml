@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="app_name">FieldTrack</string>
+
+    <string name="action_continue">Continuer</string>
+    <string name="action_save">Enregistrer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_back_cd">Retour</string>
+    <string name="action_close_cd">Fermer</string>
+    <string name="action_more_cd">Plus d\'options</string>
+    <string name="action_not_now">Pas maintenant</string>
+    <string name="action_see_all">Tout voir</string>
+    <string name="action_change">Modifier</string>
+    <string name="action_try_again">Réessayer</string>
+    <string name="action_send_whatsapp">Envoyer sur WhatsApp</string>
+    <string name="action_speak_cd">Parler au lieu d\'écrire</string>
+    <string name="action_use_location_cd">Utiliser ma position actuelle</string>
+    <string name="action_add_photo">Ajouter une photo</string>
+    <string name="action_call_cd">Appeler %1$s</string>
+    <string name="action_notifications_cd">Alertes</string>
+
+    <string name="status_running">En cours</string>
+    <string name="status_paused">En pause</string>
+    <string name="status_completed">Terminé</string>
+    <string name="status_due">À payer</string>
+    <string name="status_idle">À l\'arrêt</string>
+    <string name="status_breakdown">En panne</string>
+    <string name="status_settled">Réglé</string>
+    <string name="status_unpaid">Impayé</string>
+    <string name="status_paid">Payé</string>
+    <string name="status_added_by_hand">Saisi à la main</string>
+
+    <string name="nav_home">Accueil</string>
+    <string name="nav_jobs">Travaux</string>
+    <string name="nav_my_work">Mon travail</string>
+    <string name="nav_customers">Clients</string>
+    <string name="nav_machines">Machines</string>
+    <string name="nav_fleet">Parc</string>
+    <string name="nav_more">Plus</string>
+
+    <string name="work_start">Démarrer le travail</string>
+    <string name="work_start_caption">Le chrono tourne pendant que vous travaillez</string>
+    <string name="work_start_offline_caption">Marche sans réseau</string>
+    <string name="work_pause">Pause</string>
+    <string name="work_resume">Reprendre</string>
+    <string name="work_finish">Terminer</string>
+    <string name="work_time_on_job">Temps sur ce travail</string>
+    <string name="work_area_done">Surface faite</string>
+    <string name="work_amount_done">Quantité faite</string>
+    <string name="work_next_trip_rate">Prochain trajet %1$s</string>
+    <string name="finish_rate_varies">Tarifs différents</string>
+    <string name="work_trips_done">Trajets faits</string>
+    <string name="work_earning_so_far">Gagné jusqu\'ici</string>
+    <string name="work_one_more_trip">Un trajet de plus</string>
+    <string name="work_undo_trip_cd">Retirer le dernier trajet</string>
+    <string name="work_increase_cd">Ajouter %1$s</string>
+    <string name="work_decrease_cd">Retirer %1$s</string>
+    <string name="work_hand_over_title">Passer ce travail à quelqu\'un d\'autre</string>
+    <string name="work_hand_over_caption">Propriétaire ou chauffeur : le chrono continue</string>
+    <string name="work_discard_title">Jeter ce travail</string>
+    <string name="work_discard_caption">Rien ne sera enregistré</string>
+
+    <string name="work_type_amount_cd">Saisir la quantité à la place</string>
+    <string name="work_type_amount_title">Combien a été fait ?</string>
+    <string name="work_type_amount_save">Enregistrer</string>
+    <string name="work_more">Plus</string>
+    <string name="work_more_cd">Autres actions possibles sur ce travail</string>
+    <string name="work_actions_title">Autres actions</string>
+    <string name="work_back_to_work">Retour au travail</string>
+    <string name="work_hand_over_nobody">Personne d\'autre dans votre équipe pour l\'instant</string>
+    <string name="work_rate_title">Changer le tarif</string>
+    <string name="work_rate_caption">Actuellement %1$s</string>
+    <string name="work_rate_save">Enregistrer le tarif</string>
+    <string name="work_breakdown_title">La machine est en panne</string>
+    <string name="work_breakdown_caption">Arrête le chrono et le note</string>
+    <string name="work_breakdown_what">Que s\'est-il passé ?</string>
+    <string name="work_breakdown_note">Autre chose ? (facultatif)</string>
+    <string name="work_breakdown_note_hint">Le relevage ne tient pas</string>
+    <string name="work_breakdown_save">Noter et arrêter le chrono</string>
+    <string name="work_note_title">Ajouter une note</string>
+    <string name="work_note_short">Note</string>
+    <string name="work_note_caption">Gardée avec ce travail</string>
+    <string name="work_note_hint">Le champ était très mouillé</string>
+    <string name="work_note_save">Enregistrer la note</string>
+    <string name="work_fuel_title">Carburant</string>
+    <string name="work_fuel_caption">Gazole mis sur ce travail</string>
+    <string name="work_fuel_litres">Litres</string>
+    <string name="work_fuel_cost">Ce que ça a coûté</string>
+    <string name="work_fuel_note">C\'est votre coût : le client n\'est pas facturé pour cela.</string>
+    <string name="work_fuel_save">Enregistrer le carburant</string>
+    <string name="work_fuel_no_machine">Choisissez une machine sur le travail pour lui rattacher le carburant.</string>
+    <string name="work_discard_confirm">Jeter ce travail ?</string>
+    <string name="work_discard_confirm_body">Le chrono, les mesures et toutes les notes de ce travail sont perdus. Le client n\'est pas facturé.</string>
+    <string name="work_discard_confirm_action">Oui, le jeter</string>
+    <string name="breakdown_hydraulics">Hydraulique</string>
+    <string name="breakdown_engine">Moteur</string>
+    <string name="breakdown_tyre">Pneu</string>
+    <string name="breakdown_electrical">Électricité</string>
+    <string name="breakdown_implement">Outil attelé</string>
+    <string name="breakdown_other">Autre chose</string>
+
+    <string name="billing_per_land">Par %1$s</string>
+    <string name="billing_per_acre_caption">Surface travaillée</string>
+    <string name="billing_per_hour">À l\'heure</string>
+    <string name="billing_per_hour_caption">Temps sur le travail</string>
+    <string name="billing_per_trip">Par trajet</string>
+    <string name="billing_per_trip_caption">Charges transportées</string>
+    <string name="billing_per_unit">À l\'unité</string>
+    <string name="billing_per_unit_caption">Sac, quintal, pièce</string>
+    <string name="billing_per_km">Au km</string>
+    <string name="billing_per_km_caption">Distance transportée</string>
+    <string name="billing_fixed">Prix fixe</string>
+    <string name="billing_fixed_caption">Un montant convenu</string>
+    <string name="billing_per_day">À la journée</string>
+    <string name="billing_per_day_caption">Machine et chauffeur loués à la journée</string>
+
+    <string name="unit_acre">Acre</string>
+    <string name="unit_bigha">Bigha</string>
+    <string name="unit_kanal">Kanal</string>
+    <string name="unit_guntha">Guntha</string>
+    <string name="unit_katha">Katha</string>
+    <string name="unit_hour">Heure</string>
+    <string name="unit_trip">Trajet</string>
+    <string name="unit_piece">Pièce</string>
+    <string name="unit_quintal">Quintal</string>
+    <string name="unit_bag">Sac</string>
+    <string name="unit_km">km</string>
+    <string name="unit_hectare">Hectare</string>
+    <string name="unit_sqm">m²</string>
+    <string name="unit_bale">Balle</string>
+    <string name="unit_tonne">Tonne</string>
+    <string name="unit_bushel">Boisseau</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_litre">Litre</string>
+    <string name="unit_day">Jour</string>
+
+    <plurals name="field_earned_jobs">
+        <item quantity="one">sur %d travail</item>
+        <item quantity="many">sur %d travaux</item>
+        <item quantity="other">sur %d travaux</item>
+    </plurals>
+    <plurals name="fields_count">
+        <item quantity="one">%d parcelle</item>
+        <item quantity="many">%d parcelles</item>
+        <item quantity="other">%d parcelles</item>
+    </plurals>
+    <plurals name="fields_jobs_here">
+        <item quantity="one">%d travail ici</item>
+        <item quantity="many">%d travaux ici</item>
+        <item quantity="other">%d travaux ici</item>
+    </plurals>
+    <plurals name="money_out_unpriced">
+        <item quantity="one">%d coût sans prix</item>
+        <item quantity="many">%d coûts sans prix</item>
+        <item quantity="other">%d coûts sans prix</item>
+    </plurals>
+    <plurals name="count_jobs">
+        <item quantity="one">%d travail</item>
+        <item quantity="many">%d travaux</item>
+        <item quantity="other">%d travaux</item>
+    </plurals>
+    <plurals name="count_trips">
+        <item quantity="one">%d trajet</item>
+        <item quantity="many">%d trajets</item>
+        <item quantity="other">%d trajets</item>
+    </plurals>
+    <string name="time_today">aujourd\'hui</string>
+    <plurals name="count_days">
+        <item quantity="one">%d jour</item>
+        <item quantity="many">%d jours</item>
+        <item quantity="other">%d jours</item>
+    </plurals>
+    <plurals name="count_customers">
+        <item quantity="one">%d client</item>
+        <item quantity="many">%d clients</item>
+        <item quantity="other">%d clients</item>
+    </plurals>
+    <plurals name="count_machines">
+        <item quantity="one">%d machine</item>
+        <item quantity="many">%d machines</item>
+        <item quantity="other">%d machines</item>
+    </plurals>
+
+    <string name="money_today">Aujourd\'hui</string>
+    <string name="money_owed_to_you">On vous doit</string>
+    <string name="money_total_due">Total à payer</string>
+    <string name="money_old_balance">Ancien solde</string>
+    <string name="money_paid_today">Payé aujourd\'hui</string>
+    <string name="money_balance">Solde</string>
+    <string name="money_received">Argent reçu</string>
+    <string name="money_did_they_pay">Ont-ils payé maintenant ?</string>
+    <string name="money_paid_all">Tout</string>
+    <string name="money_paid_some">Une partie</string>
+    <string name="money_paid_none">Rien</string>
+    <string name="money_paid_none_caption">à crédit</string>
+    <string name="money_how_much_given">Combien ont-ils donné ?</string>
+    <string name="money_left_after">Reste dû après cela</string>
+    <string name="method_cash">Espèces</string>
+    <string name="method_upi">UPI</string>
+    <string name="method_bank">Banque</string>
+    <string name="method_cheque">Chèque</string>
+    <string name="method_mobile_money">Mobile money</string>
+    <string name="method_card">Carte</string>
+    <string name="method_in_kind">En nature (grain ou récolte)</string>
+
+    <string name="sync_title">Enregistrement et sauvegarde</string>
+    <string name="sync_offline_title">Pas de réseau pour l\'instant</string>
+    <string name="sync_offline_body">Continuez à travailler. Tout est écrit sur ce téléphone et part tout seul quand le réseau revient.</string>
+    <string name="sync_automatic">Cela se fait tout seul. Vous n\'avez rien à faire.</string>
+    <string name="sync_waiting">En attente d\'envoi</string>
+    <string name="sync_last_backup">Dernière sauvegarde %1$s</string>
+    <string name="sync_conflict_title">Vous avez changé le même travail à deux</string>
+    <string name="sync_conflict_action">Régler cela</string>
+    <string name="sync_all_safe">Tout est sauvegardé</string>
+    <string name="sync_all_safe_body">Chaque travail, paiement et client de ce téléphone est aussi sur le serveur.</string>
+    <string name="sync_sending">Sauvegarde en cours…</string>
+    <string name="sync_sending_body">Envoi de ce qui attend. Vous pouvez continuer à travailler — cela se fait en arrière-plan.</string>
+    <string name="sync_never">Pas encore sauvegardé</string>
+    <string name="sync_nothing_waiting">Rien en attente d\'envoi</string>
+    <string name="sync_nothing_waiting_body">Rien sur ce téléphone n\'attend le serveur. Le travail que vous notez à partir de maintenant part tout seul.</string>
+    <string name="sync_waiting_title">En attente de réseau</string>
+    <string name="sync_blocked_title">Un changement n\'a pas pu être enregistré</string>
+    <string name="sync_blocked_body">Votre travail est en sécurité sur ce téléphone et rien n\'est perdu. Le serveur n\'a pas accepté un changement, donc les suivants attendent derrière.</string>
+    <string name="sync_no_backend_title">La sauvegarde n\'est pas activée</string>
+    <string name="sync_no_backend_body">Tout est enregistré sur ce téléphone et gardé, prêt à partir dès que la sauvegarde sera en place.</string>
+    <string name="sync_now">Envoyer quand même</string>
+    <string name="sync_destination">Sauvegarde vers %1$s</string>
+    <string name="sync_retry_at">Prochain essai à %1$s</string>
+    <string name="sync_whats_waiting">Ce qui attend</string>
+    <string name="sync_reason">Ce qu\'a dit le serveur</string>
+    <string name="sync_set_aside">Mettre celui-ci de côté</string>
+    <string name="sync_set_aside_note">Le reste sera envoyé. Celui-ci reste sur le téléphone, et rien n\'est supprimé.</string>
+    <plurals name="sync_set_aside_count">
+        <item quantity="one">%1$d changement mis de côté</item>
+        <item quantity="many">%1$d changements mis de côté</item>
+        <item quantity="other">%1$d changements mis de côté</item>
+    </plurals>
+    <string name="sync_just_now">à l\'instant</string>
+    <string name="sync_safe_note">Rien n\'est retiré de ce téléphone tant que le serveur ne l\'a pas reçu. Si la sauvegarde ne marche jamais, vos données restent ici.</string>
+    <plurals name="sync_changes_waiting">
+        <item quantity="one">%1$d changement en attente</item>
+        <item quantity="many">%1$d changements en attente</item>
+        <item quantity="other">%1$d changements en attente</item>
+    </plurals>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">il y a %1$d minute</item>
+        <item quantity="many">il y a %1$d minutes</item>
+        <item quantity="other">il y a %1$d minutes</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">il y a %1$d heure</item>
+        <item quantity="many">il y a %1$d heures</item>
+        <item quantity="other">il y a %1$d heures</item>
+    </plurals>
+    <string name="sync_item_jobs">Travaux</string>
+    <string name="sync_item_job_events">Relevés de travail</string>
+    <string name="sync_item_ledger">Factures et paiements</string>
+    <string name="sync_item_customers">Clients</string>
+    <string name="sync_item_machines">Machines</string>
+    <string name="sync_item_fuel">Pleins de carburant</string>
+    <string name="sync_item_breakdowns">Pannes</string>
+    <string name="sync_item_memberships">Équipe</string>
+    <string name="sync_item_orgs">Infos de l\'entreprise</string>
+    <string name="sync_item_rates">Tarifs</string>
+    <string name="sync_item_invites">Codes d\'invitation</string>
+    <string name="sync_item_other">Autres changements</string>
+</resources>

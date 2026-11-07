@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="home_greeting_morning">Habari za asubuhi</string>
+    <string name="home_greeting_afternoon">Habari za mchana</string>
+    <string name="home_greeting_evening">Habari za jioni</string>
+    <string name="home_todays_work">Kazi ya leo</string>
+    <string name="home_nothing_yet_title">Hakuna kilichoandikwa leo</string>
+    <string name="home_nothing_yet_body">Bonyeza kitufe cha kijani unapoanza kazi.</string>
+    <string name="home_from_customers">kutoka %1$s</string>
+    <plurals name="home_sync_waiting">
+        <item quantity="one">%d inasubiri kutumwa</item>
+        <item quantity="other">%d zinasubiri kutumwa</item>
+    </plurals>
+    <string name="home_sync_done">Vyote vimetumwa</string>
+    <string name="home_heard_never">Bado haijasasishwa. Bonyeza ili kusasisha.</string>
+    <string name="home_heard_now">Imesasishwa punde tu</string>
+    <string name="home_heard_updating">Inasasisha…</string>
+    <plurals name="home_heard_minutes">
+        <item quantity="one">Imesasishwa dakika %d iliyopita</item>
+        <item quantity="other">Imesasishwa dakika %d zilizopita</item>
+    </plurals>
+    <plurals name="home_heard_hours">
+        <item quantity="one">Imesasishwa saa %d iliyopita. Bonyeza ili kusasisha.</item>
+        <item quantity="other">Imesasishwa saa %d zilizopita. Bonyeza ili kusasisha.</item>
+    </plurals>
+    <string name="home_sync_stuck">Haitumi</string>
+    <string name="job_not_sent_short">Bado haijatumwa</string>
+    <string name="job_not_sent">Bado haijatumwa. Imehifadhiwa salama kwenye simu hii hadi itakapotumwa.</string>
+    <string name="home_clock_left_on">Inaendelea tangu %1$s. Kazi ilisimama mapema?</string>
+    <string name="home_job_running">Inaendelea</string>
+    <string name="home_job_paused">Imesimamishwa</string>
+    <string name="home_job_pause">Simamisha</string>
+    <string name="home_job_resume">Endelea</string>
+    <string name="home_job_open">Fungua kazi</string>
+    <string name="home_work_and_amount">%1$s · %2$s</string>
+    <string name="home_ready">Tayari kwa kazi</string>
+    <string name="home_ready_title">Anza siku yako</string>
+    <string name="home_field_first_running">Kazi yako ya kwanza leo inaendelea. Itaonekana hapa itakapokamilika.</string>
+    <string name="home_stat_on_machine">Kwenye mashine</string>
+    <string name="home_stat_jobs_done">Kazi zilizofanywa</string>
+    <string name="home_stat_covered">Eneo lililolimwa</string>
+    <string name="home_cash_with_you">Pesa taslimu ulizo nazo</string>
+    <string name="home_cash_with_you_note">Zilizopokelewa taslimu leo. Zikabidhi kabla ya kwenda nyumbani.</string>
+    <string name="home_your_machine">Mashine yako</string>
+    <string name="home_last_seven">Siku 7 zilizopita</string>
+    <string name="home_last_seven_hours">Saa za mashine, siku 7 zilizopita</string>
+    <string name="home_hours_on_machine">kwenye mashine</string>
+    <string name="home_earned_today">Mapato ya leo</string>
+    <string name="home_jobs_today">Kazi za leo</string>
+    <string name="home_nobody_owes">Hakuna anayekudai</string>
+    <string name="home_this_season">Msimu huu</string>
+    <string name="home_season_since">Mapato tangu %1$s</string>
+    <string name="home_season_named_since">%1$s · mapato tangu %2$s</string>
+    <string name="home_your_own_work">Kazi yako mwenyewe</string>
+    <string name="home_crew_now">Walio kazini</string>
+    <string name="home_crew_since">tangu %1$s</string>
+    <string name="home_crew_none">Hakuna aliye kazini sasa hivi.</string>
+    <string name="home_someone">Mtu</string>
+    <string name="home_loading">Inapakia…</string>
+    <string name="home_done_today">Zilizokamilika leo</string>
+    <string name="home_see_all_jobs">Tazama zote</string>
+    <string name="home_right_now">Sasa hivi</string>
+    <string name="home_figure_on_job">kazini</string>
+    <string name="home_of_total">%1$d/%2$d</string>
+    <string name="home_figure_machines_working">mashine zinafanya kazi</string>
+    <string name="home_figure_down">zimeharibika</string>
+    <string name="home_collected_today">%1$s zimekusanywa</string>
+
+    <string name="notify_channel_clock">Saa ya kazi</string>
+    <string name="notify_channel_clock_note">Kazi iliyo wazi, pamoja na saa yake. Kimya.</string>
+    <string name="notify_channel_reminder">Vikumbusho vya saa</string>
+    <string name="notify_channel_reminder_note">Swali la jioni ikiwa saa bado inaendelea.</string>
+    <string name="notify_clock_running">%1$s · saa inaendelea</string>
+    <string name="notify_clock_paused">%1$s · imesimamishwa saa ikiwa %2$s</string>
+    <string name="notify_reminder_title">Bado unamfanyia %1$s kazi?</string>
+    <string name="notify_reminder_body">Saa imeendelea kwa %1$s. Isimamishe kama kazi imeisha, ili bili iwe sahihi.</string>
+
+    <string name="cost_about">takriban %1$s</string>
+    <string name="cost_hour_title">Gharama ya saa moja</string>
+    <string name="cost_hour_not_enough">Kazi iliyoandikwa bado haitoshi</string>
+    <string name="cost_hour_need">Takriban saa %1$d za kazi iliyokamilika zinahitajika kabla gharama ya saa kuwa na maana. Hadi sasa: saa %2$s.</string>
+    <string name="cost_hour_diesel">Dizeli</string>
+    <string name="cost_hour_repairs">Ukarabati na huduma</string>
+    <string name="cost_hour_loan">Sehemu ya mkopo</string>
+    <string name="cost_hour_loan_none">Mkopo au awamu</string>
+    <string name="cost_hour_loan_not_entered">haijaandikwa</string>
+    <string name="cost_hour_loan_needs_hours">inahitaji saa za mwaka</string>
+    <string name="cost_hour_add_loan">Weka unacholipa kwa mashine hii</string>
+    <string name="cost_hour_add_hours">Andika saa ngapi inafanya kazi kwa mwaka</string>
+    <string name="cost_hour_total">Saa moja inagharimu</string>
+    <string name="cost_hour_basis">Kutokana na saa %1$s za kazi iliyokamilika tangu uongeze mashine hii. Hii ni mashine tu, si malipo ya wafanyakazi.</string>
+    <string name="cost_kinds_title">Kwa aina ya kazi</string>
+    <string name="cost_kind_title">%1$s · %2$s</string>
+    <string name="cost_kind_line">Gharama takriban %1$s · unatoza bili takriban %2$s</string>
+    <string name="cost_kind_keeps">unabaki na takriban %1$s</string>
+    <string name="cost_kind_loses">unapoteza takriban %1$s</string>
+    <string name="cost_kinds_note">Imekokotolewa kutokana na kasi halisi ya mashine hii kumaliza kazi. Kabla ya malipo ya wafanyakazi.</string>
+
+    <string name="start_cost_unit">Kwa %1$s gharama yako ni takriban %2$s %3$s</string>
+    <string name="start_cost_keep">Kwa %1$s unabaki na takriban %2$s %3$s.</string>
+    <string name="start_cost_lose">Kwa %1$s unapoteza takriban %2$s %3$s.</string>
+    <string name="start_cost_note">Dizeli, ukarabati na mkopo. Kabla ya malipo ya wafanyakazi.</string>
+    <string name="start_cost_hour">%1$s inagharimu takriban %2$s kwa saa kuiendesha</string>
+    <string name="start_cost_hour_note">Bado hakuna kazi ya kutosha ya aina hii ya kusema kila moja inagharimu kiasi gani.</string>
+
+    <string name="cost_lost">Kazi hii imepoteza %1$s</string>
+    <string name="cost_lost_note">Gharama ilikuwa kubwa kuliko ilichotozwa. Angalia bei, na kilichotumika.</string>
+    <string name="cost_share_keeps">Ukihesabu ukarabati na mkopo wa mashine yenyewe (takriban %1$s kwa saa ilizofanya kazi), kazi hii iliacha takriban %2$s.</string>
+    <string name="cost_share_loses">Ukihesabu ukarabati na mkopo wa mashine yenyewe (takriban %1$s kwa saa ilizofanya kazi), kazi hii ilipoteza takriban %2$s.</string>
+    <string name="cost_share_note">Makadirio, yaliyogawanywa kwa saa ambazo mashine ilifanya kazi. Hesabu za juu ni zilizotumika kweli.</string>
+
+    <string name="job_lost_short">Imepoteza %1$s</string>
+
+    <string name="season_loan">Awamu za mkopo, takriban</string>
+    <string name="season_loan_note">Ulichoandika kwa kila mashine, kwa miezi ya msimu huu. Si rekodi ya malipo yaliyofanywa.</string>
+    <plurals name="season_lost">
+        <item quantity="one">kazi %1$d ilipoteza pesa: %2$s</item>
+        <item quantity="other">kazi %1$d zilipoteza pesa: %2$s kwa jumla</item>
+    </plurals>
+    <string name="season_lost_note">Kila moja iligharimu zaidi ya ilichotozwa. Ni kazi tu ambazo kila gharama ina kiasi ndizo zinazohesabiwa.</string>
+
+    <string name="upkeep_parts">Kilichobadilishwa</string>
+    <string name="upkeep_parts_hint">Vichujio, oili, mkanda — ili wakati ujao ujue kilichofanywa</string>
+    <string name="upkeep_parts_changed">Vilivyobadilishwa: %1$s</string>
+
+    <string name="display_title">Mwonekano</string>
+    <string name="display_row_note">Mwanga au giza, na maandishi makubwa</string>
+    <string name="display_theme">Rangi</string>
+    <string name="display_theme_system">Kama simu</string>
+    <string name="display_theme_system_note">Mwanga au giza, kama simu yenyewe ilivyowekwa</string>
+    <string name="display_theme_light">Mwanga</string>
+    <string name="display_theme_light_note">Rahisi zaidi kusoma nje kwenye jua</string>
+    <string name="display_theme_dark">Giza</string>
+    <string name="display_theme_dark_note">Nafuu kwa macho ndani ya trekta usiku</string>
+    <string name="display_text">Maandishi</string>
+    <string name="display_bigger_text">Maandishi makubwa</string>
+    <string name="display_bigger_text_note">Inafanya kila neno kwenye programu kuwa kubwa zaidi</string>
+    <string name="display_sample">Inavyoonekana</string>
+    <string name="display_sample_line">Kazi 3 · bigha 12</string>
+
+    <string name="duration_hours_minutes">saa %1$d dak %2$d</string>
+    <string name="duration_minutes">dak %1$d</string>
+    <string name="clock_check_title">Saa iko sahihi?</string>
+    <string name="clock_check_body">Saa imekuwa ikiendelea tangu %1$s bila kusimama. Hiyo ni %2$s.</string>
+    <string name="clock_check_when">Kazi ilisimama lini?</string>
+    <string name="clock_check_last_entry">Nilipoandika mara ya mwisho, %1$s</string>
+    <string name="clock_check_last_entry_note">Kitu cha mwisho kilichoandikwa kwenye kazi hii</string>
+    <string name="clock_check_other_time">Wakati mwingine, %1$s</string>
+    <string name="clock_check_other_time_note">Chagua siku na saa</string>
+    <string name="clock_check_pick_time">Saa: %1$s</string>
+    <string name="clock_check_would_read">Saa itaonyesha %1$s. Muda baada ya hapo hauhesabiwi.</string>
+    <string name="clock_check_out_of_range">Chagua wakati baada ya saa kuanza (%1$s) na kabla ya sasa.</string>
+    <string name="clock_check_stop">Simamisha saa kwa %1$s</string>
+    <string name="clock_check_still_working">Bado tunafanya kazi, saa iko sahihi</string>
+    <string name="clock_moment_yesterday">%1$s jana</string>
+    <string name="clock_day_today">Leo</string>
+    <string name="clock_day_yesterday">Jana</string>
+
+    <string name="home_attention_title">Inahitaji uangalizi</string>
+    <string name="home_attention_clear">Hakuna kinachokuhitaji sasa hivi</string>
+    <string name="home_attention_clear_note">Mashine, malipo na utumaji vyote viko sawa.</string>
+    <string name="home_attention_less">Onyesha pungufu</string>
+    <plurals name="home_attention_more">
+        <item quantity="one">Onyesha %d zaidi</item>
+        <item quantity="other">Onyesha %d zaidi</item>
+    </plurals>
+    <string name="home_alert_stuck">Seva imekataa badiliko</string>
+    <plurals name="home_alert_stuck_note">
+        <item quantity="one">Badiliko %d halitumwi. Fungua Nakala rudufu ili uamue.</item>
+        <item quantity="other">Mabadiliko %d hayatumwi. Fungua Nakala rudufu ili uamue.</item>
+    </plurals>
+    <string name="home_alert_clock">Saa ya %1$s bado inaendelea</string>
+    <string name="home_alert_clock_note">%1$s, tangu %2$s</string>
+    <string name="home_alert_fuel">%1$s inatumia dizeli zaidi</string>
+    <string name="home_alert_fuel_note">Takriban L %1$s kwa saa hivi karibuni, awali %2$s: %3$d%% zaidi</string>
+    <string name="home_alert_down">%1$s imeharibika</string>
+    <string name="home_alert_down_note">Uharibifu uliripotiwa %1$s</string>
+    <string name="home_alert_down_days">Imeharibika kwa %1$s</string>
+    <string name="home_alert_service_over">%1$s imepita muda wa huduma</string>
+    <string name="home_alert_service_over_note">saa %1$s zaidi ya kikomo</string>
+    <string name="home_alert_service_soon">Huduma ya %1$s inakaribia</string>
+    <string name="home_alert_owes">%1$s anadaiwa %2$s</string>
+    <string name="home_alert_owes_note">Haijalipwa kwa %1$s</string>
+    <plurals name="home_alert_late">
+        <item quantity="one">mteja %d amechelewa kulipa</item>
+        <item quantity="other">wateja %d wamechelewa kulipa</item>
+    </plurals>
+    <string name="home_alert_late_note">%1$s haijalipwa kwa zaidi ya siku %2$d</string>
+    <plurals name="home_alert_unpriced">
+        <item quantity="one">gharama %d ya wafanyakazi haina kiasi</item>
+        <item quantity="other">gharama %d za wafanyakazi hazina kiasi</item>
+    </plurals>
+    <string name="home_alert_unpriced_note">Weka kilicholipwa ili faida ihesabike sawa</string>
+
+    <string name="start_step">Hatua %1$d kati ya 3</string>
+    <string name="start_who_for">Kazi hii ni ya nani?</string>
+    <string name="start_search_customers">Tafuta kwa jina au kijiji</string>
+    <string name="start_new_customer">Mteja mpya</string>
+    <string name="start_recent">Wa hivi karibuni</string>
+    <string name="start_no_customers_title">Bado hakuna wateja</string>
+    <string name="start_no_customers_body">Ongeza mkulima unayemfanyia kazi, kisha anza kazi.</string>
+    <string name="start_what_doing">Unafanya kazi gani?</string>
+    <string name="start_machine">Mashine</string>
+    <string name="start_machine_busy">%1$s · inafanya kazi</string>
+    <string name="start_machine_down">%1$s · imeharibika</string>
+    <string name="start_machine_busy_note">Mashine iliyo kazini bado inaweza kuchaguliwa — mkabidhi mwingine kazi hiyo kama imeendelea mbele.</string>
+    <string name="start_new_machine">Mashine mpya</string>
+    <string name="start_new_machine_title">Ongeza mashine</string>
+    <string name="start_new_machine_save">Iongeze na uendelee</string>
+    <string name="start_no_machine">Hakuna mashine</string>
+    <string name="start_add_machine">Ongeza mashine</string>
+    <string name="start_machine_name">Unaiitaje?</string>
+    <string name="start_work_type">Aina ya kazi</string>
+    <string name="start_how_charging">Unatoza vipi?</string>
+    <string name="start_your_rate">Bei yako</string>
+    <string name="start_counted_in">Inahesabiwa kwa</string>
+    <string name="start_usual_rate">Bei ya kawaida</string>
+    <string name="start_begin">Anza saa</string>
+    <string name="start_next">Endelea</string>
+    <string name="start_rate_per">kwa %1$s</string>
+
+    <string name="work_type_rotavator">Rotaveta</string>
+    <string name="work_type_ploughing">Kulima</string>
+    <string name="work_type_harvesting">Kuvuna</string>
+    <string name="work_type_levelling">Kusawazisha</string>
+    <string name="work_type_spraying">Kunyunyizia dawa</string>
+    <string name="work_type_hauling">Kusafirisha</string>
+    <string name="work_type_sowing">Kupanda mbegu</string>
+    <string name="work_type_other">Nyingine</string>
+
+    <string name="live_started_at">Ilianza %1$s</string>
+    <string name="live_rate_line">%1$s &#215; %2$s</string>
+    <string name="live_add_cd">Ongeza nusu %1$s</string>
+    <string name="live_take_cd">Punguza nusu %1$s</string>
+    <string name="live_add_one_trip">Safari moja zaidi</string>
+    <string name="live_hourly_note">Inatozwa kwa saa — saa ndiyo bili.</string>
+    <string name="live_fixed_note">Bei mliyokubaliana. Hakuna cha kuhesabu.</string>
+
+    <string name="finish_check_title">Kagua kabla ya kuhifadhi</string>
+    <string name="finish_work_done">Kazi iliyokamilika</string>
+    <string name="finish_time_worked">Muda wa kazi</string>
+    <string name="finish_amount_done">Kiasi kilichofanywa</string>
+    <string name="finish_rate">Bei</string>
+    <string name="finish_total">Jumla ya kazi hii</string>
+    <string name="finish_make_bill">Tengeneza bili</string>
+    <string name="finish_bill_title">Bili</string>
+    <string name="finish_bill_for">Bili kwa</string>
+    <string name="finish_this_job">Kazi hii</string>
+    <string name="finish_save_and_send">Hifadhi na utume</string>
+    <string name="finish_saved">Imehifadhiwa</string>
+    <string name="finish_saved_detail">%1$s zimepokelewa &#183; %2$s bado zinadaiwa</string>
+    <string name="finish_saved_nothing">Bado hakuna malipo &#183; %1$s zinadaiwa</string>
+    <string name="finish_done">Tayari</string>
+    <string name="finish_receipt_preview">Wataona hiki</string>
+    <string name="finish_bill_no">Bili %1$s</string>
+    <string name="finish_send_sms">SMS</string>
+    <string name="start_rate_per_amount">%1$s / %2$s</string>
+    <string name="finish_pdf">PDF</string>
+</resources>
