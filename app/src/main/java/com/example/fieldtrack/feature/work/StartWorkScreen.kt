@@ -28,6 +28,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.feature.machine.MachineChoice
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
@@ -342,49 +344,18 @@ private fun WorkStep(
             )
         }
 
-        FtSectionLabel(stringResource(R.string.start_machine))
-        // Wraps: a contractor with five machines had the last of them off the edge
-        // of a Row that could not wrap.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FtChip(
-                label = stringResource(R.string.start_no_machine),
-                selected = state.machineId == null,
-                onClick = { onSelectMachine(null) },
-            )
-            state.machines.forEach { machine ->
-                // Says what the machine is doing. Picking the harvester that is
-                // already out on someone else's field is the kind of mistake that is
-                // only noticed at billing time, when two jobs claim one machine.
-                FtChip(
-                    label = when (machine.status) {
-                        MachineStatus.Working ->
-                            stringResource(R.string.start_machine_busy, machine.name)
-                        MachineStatus.Down ->
-                            stringResource(R.string.start_machine_down, machine.name)
-                        MachineStatus.Idle -> machine.name
-                    },
-                    selected = state.machineId == machine.id,
-                    onClick = { onSelectMachine(machine.id) },
-                    tone = when (machine.status) {
-                        MachineStatus.Working -> FtChipTone.Busy
-                        MachineStatus.Down -> FtChipTone.Warning
-                        MachineStatus.Idle -> FtChipTone.Normal
-                    },
-                )
-            }
+        MachineChoice(
+            machines = state.machines,
+            selectedId = state.machineId,
+            noneLabel = stringResource(R.string.start_no_machine),
+            onPick = onSelectMachine,
+            label = stringResource(R.string.start_machine),
+            showBusy = true,
             // A machine bought last week should not mean abandoning the job you are
             // standing in a field trying to start.
-            if (state.canAddMachines) {
-                FtChip(
-                    label = stringResource(R.string.start_new_machine),
-                    selected = false,
-                    onClick = onNewMachine,
-                )
-            }
-        }
+            onAddNew = if (state.canAddMachines) onNewMachine else null,
+            addNewLabel = stringResource(R.string.start_new_machine),
+        )
         if (state.machines.any { it.status != MachineStatus.Idle }) {
             Text(
                 text = stringResource(R.string.start_machine_busy_note),
@@ -481,19 +452,14 @@ private fun RateStep(
 
         val units = unitsFor(state.billingMode)
         if (units.size > 1) {
-            FtSectionLabel(stringResource(R.string.start_counted_in))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                units.forEach { unit ->
-                    FtChip(
-                        label = stringResource(unit.labelRes),
-                        selected = state.unit == unit,
-                        onClick = { onUnit(unit) },
-                    )
-                }
-            }
+            FtPick(
+                options = units,
+                selected = units.firstOrNull { it == state.unit },
+                text = { stringResource(it.labelRes) },
+                onPick = onUnit,
+                label = stringResource(R.string.start_counted_in),
+                searchHint = stringResource(R.string.pick_search),
+            )
         }
         Box(Modifier.height(dimens.space4))
     }

@@ -112,6 +112,54 @@ Details and what to read first: `docs/translations.md`.
 - [x] Every screen rendered in Arabic (mirrored), French (the longest Latin script) and Hindi at larger text, and looked at; the screens in the other languages are covered by the same matrix runs.
 - [ ] A native speaker reads each language before it is offered to people who speak it.
 
+## N. Field feedback round (2026-11-08): simpler, and the cases real crews hit
+Source: the product owner's ten cases after showing friends a demo. Friends said "too complicated; our users are not that smart."
+**Simplicity rule for every item below:** one obvious way to do each thing, plain words, short screens, the common choice already
+picked, a long list becomes a dropdown, and what a role cannot do is hidden, never moved. Each item ends with the emulator check and
+the eight translations. When N is done the release blockers are next; the owner wants to ship soon.
+
+Order is chosen so each step builds on the one before (dependencies noted).
+
+- [x] **N1. Machine screens, short and honest to the type** (case 10). The type picker (24 tiles, 8 rows) becomes one dropdown with
+  the common kinds first and a search; same for `NewMachineSheet`, work types, units, billing modes, land units, payment methods,
+  months, languages and machine/driver pickers once the list is long (more than 5 choices becomes a dropdown, 5 or fewer stay as chips).
+  Name and plate hints, size field (HP, working width, litres, tonnes), meter (hours or km) and "needs a plate" follow the chosen kind.
+  Attachments (plough, harrow, trolley...) are not asked for a plate.
+  Built: `FtDropdown`/`FtPick` (5 or fewer = pills, more = list), `MachineChoice`; size/power field left as a suggestion (needs a migration).
+  New English strings from N-series are translated in one wave at N10 (TranslationsTest is red until then).
+- [ ] **N2. One profile edit screen** (case 8). Name and business details edit on one form with one Save; money/region, seasons and
+  plan stay as their own short screens because they need pickers.
+- [ ] **N3. Menu, profile icon, search; same places for every role** (cases 4, 5, 7). The More tab goes. Top bar on the main screens:
+  profile icon (opens a side menu with profile, business switcher, settings, help) and a search icon. Same four bottom tabs and the
+  same positions for everyone (Home, Work, Customers, Machines); a role only hides what it may not use, nothing moves. Search
+  also finds team, payments and recent activity, and shows the last things opened.
+- [ ] **N4. Notifications that matter** (case 9). Breakdown tells the owner, planners and whoever is booked on that machine at once,
+  high priority, with the machine and what broke. Also: handed over, job finished, booking request answered, papers/service due,
+  a team member joined. An SOS button on a running job (tell the owner "need help here" with the place). A notification list
+  in the app so nothing is lost when a phone was off. Every kind has a switch.
+- [ ] **N5. Machine changes during work** (case 6, second half). Change the machine on a running job: the clock splits into
+  segments, each machine gets its own hours, the timeline says "tractor A broke, tractor B took over". When a machine goes down,
+  the app lists its booked work for the next days and offers a free machine of the same kind in one tap.
+- [ ] **N6. Machines that belong to someone else** (case 6, first half). A machine can be: ours, a team member's, or hired in from an
+  outside person. For the last two: who owns it, how they are paid (per hour, per day, per acre or a share of what the job earned),
+  and the amount owed builds up by itself from the work done on it. Reports count it as hire cost, not as our own wear.
+  Needs N5 (hours per machine).
+- [ ] **N7. Paying people, with history** (case 2). Every team member gets one pay screen: what was paid, when, how, for what, notes,
+  advances and what is still to recover, plus what is owed for their machine (N6). Payments can be corrected with a reversing line
+  (never deleted). A member sees their own pay only. Needs N6.
+- [ ] **N8. One money history** (case 3). A single list of every money movement, newest first: customer payments and bills, pay-outs,
+  fuel, service, job costs, hire payments; filter by type, person, machine, customer, date. Each row opens its source. Shown by role:
+  customer money needs See money, wages need See people cost. Needs N6 and N7.
+- [ ] **N9. Your own roles** (case 1). The owner makes a named role (Manager, Accountant, Mechanic...) from a list of plain-word
+  switches, keeps it, and gives it to any member; changing the role changes everyone who has it. The five built-in roles stay.
+- [ ] **N10. Simplify pass and sign-off.** Walk every main flow as a first-time driver and a first-time owner, cut steps and words,
+  full test suite, emulator check at both sizes, light and dark, and the eight translations read again for the new words.
+
+Suggestions kept for later (not built unless asked): a wage rate per person that adds up what is owed each month; a lender's
+share of a hired machine's earnings across several jobs as a statement; sharing a machine's pay slip on WhatsApp.
+
+---
+
 ## Decisions
 Decided:
 1. Money in minor units: yes.

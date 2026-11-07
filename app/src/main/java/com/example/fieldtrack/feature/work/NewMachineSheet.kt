@@ -24,11 +24,14 @@ import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.designsystem.component.FtButton
-import com.example.fieldtrack.designsystem.component.FtChip
+import com.example.fieldtrack.designsystem.component.FtDropdown
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.iconFor
+import com.example.fieldtrack.feature.machine.MachineKinds
 import com.example.fieldtrack.feature.machine.labelRes
+import com.example.fieldtrack.feature.machine.nameHintRes
 
 /**
  * Adding a machine without leaving the job you are starting.
@@ -70,27 +73,21 @@ fun NewMachineSheet(
                 color = colors.ink,
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FtSectionLabel(stringResource(R.string.machines_kind))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MachineKind.entries.forEach { option ->
-                        FtChip(
-                            label = stringResource(option.labelRes()),
-                            selected = option == kind,
-                            onClick = { kind = option },
-                        )
-                    }
-                }
-            }
+            FtDropdown(
+                options = MachineKinds,
+                selected = kind,
+                text = { stringResource(it.labelRes()) },
+                icon = { iconFor(it) },
+                onPick = { kind = it },
+                label = stringResource(R.string.machines_kind),
+                searchHint = stringResource(R.string.machines_kind_search),
+            )
 
             FtTextField(
                 label = stringResource(R.string.machines_name),
                 value = name,
                 onValueChange = { name = it },
-                placeholder = stringResource(R.string.machines_name_hint),
+                placeholder = stringResource(kind.nameHintRes()),
                 focused = true,
             )
 

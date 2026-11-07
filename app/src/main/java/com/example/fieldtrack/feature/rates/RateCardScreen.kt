@@ -39,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -357,51 +358,37 @@ private fun RateSheet(
                 color = colors.ink,
             )
 
-            FtSectionLabel(stringResource(R.string.rates_work))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                workTypeOptions.forEach { option ->
-                    FtChip(
-                        label = stringResource(option.labelRes),
-                        selected = draft.workType.key == option.key,
-                        onClick = { onWorkType(option) },
-                    )
-                }
-            }
+            FtPick(
+                options = workTypeOptions,
+                selected = workTypeOptions.firstOrNull { it.key == draft.workType.key },
+                text = { stringResource(it.labelRes) },
+                icon = { it.icon },
+                onPick = onWorkType,
+                label = stringResource(R.string.rates_work),
+                searchHint = stringResource(R.string.pick_search),
+            )
 
             // Only the modes that make sense for this work. Charging rotavating by
             // the trip is not a choice anybody should be offered.
-            FtSectionLabel(stringResource(R.string.rates_charge_by))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                draft.workType.billingModes.forEach { mode ->
-                    FtChip(
-                        label = billingLabel(mode, draft.unit),
-                        selected = draft.billingMode == mode,
-                        onClick = { onBillingMode(mode) },
-                    )
-                }
-            }
+            FtPick(
+                options = draft.workType.billingModes,
+                selected = draft.billingMode,
+                text = { billingLabel(it, draft.unit) },
+                onPick = onBillingMode,
+                label = stringResource(R.string.rates_charge_by),
+                searchHint = stringResource(R.string.pick_search),
+            )
 
             val units = unitsFor(draft.billingMode)
             if (units.size > 1) {
-                FtSectionLabel(stringResource(R.string.start_counted_in))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    units.forEach { unit ->
-                        FtChip(
-                            label = stringResource(unit.labelRes),
-                            selected = draft.unit == unit,
-                            onClick = { onUnit(unit) },
-                        )
-                    }
-                }
+                FtPick(
+                    options = units,
+                    selected = units.firstOrNull { it == draft.unit },
+                    text = { stringResource(it.labelRes) },
+                    onPick = onUnit,
+                    label = stringResource(R.string.start_counted_in),
+                    searchHint = stringResource(R.string.pick_search),
+                )
             }
 
             FtTextField(

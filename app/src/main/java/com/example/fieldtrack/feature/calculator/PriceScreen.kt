@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.BillingMode
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtEmphasisCard
@@ -205,55 +206,35 @@ private fun Questions(
 ) {
     val input = state.input
 
-    Column {
-        FtSectionLabel(stringResource(R.string.start_work_type), Modifier.padding(bottom = 9.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            workTypeOptions.forEach { option ->
-                FtChip(
-                    label = stringResource(option.labelRes),
-                    selected = input.workType.key == option.key,
-                    onClick = { onWorkType(option) },
-                )
-            }
-        }
-    }
+    FtPick(
+        options = workTypeOptions,
+        selected = workTypeOptions.firstOrNull { it.key == input.workType.key },
+        text = { stringResource(it.labelRes) },
+        icon = { it.icon },
+        onPick = onWorkType,
+        label = stringResource(R.string.start_work_type),
+        searchHint = stringResource(R.string.pick_search),
+    )
 
-    Column {
-        FtSectionLabel(stringResource(R.string.price_charged), Modifier.padding(bottom = 9.dp))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            input.workType.billingModes.forEach { mode ->
-                FtChip(
-                    label = billingLabel(mode, state.landUnit),
-                    selected = input.billingMode == mode,
-                    onClick = { onBillingMode(mode) },
-                )
-            }
-        }
-    }
+    FtPick(
+        options = input.workType.billingModes,
+        selected = input.billingMode,
+        text = { billingLabel(it, state.landUnit) },
+        onPick = onBillingMode,
+        label = stringResource(R.string.price_charged),
+        searchHint = stringResource(R.string.pick_search),
+    )
 
     val units = unitsFor(input.billingMode)
     if (units.size > 1) {
-        Column {
-            FtSectionLabel(stringResource(R.string.start_counted_in), Modifier.padding(bottom = 9.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                units.forEach { unit ->
-                    FtChip(
-                        label = stringResource(unit.labelRes),
-                        selected = input.unit == unit,
-                        onClick = { onUnit(unit) },
-                    )
-                }
-            }
-        }
+        FtPick(
+            options = units,
+            selected = input.unit,
+            text = { stringResource(it.labelRes) },
+            onPick = onUnit,
+            label = stringResource(R.string.start_counted_in),
+            searchHint = stringResource(R.string.pick_search),
+        )
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

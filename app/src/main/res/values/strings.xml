@@ -941,8 +941,16 @@
     <string name="machines_service_overdue">Service overdue</string>
     <string name="machines_new_title">Add a machine</string>
     <string name="machines_kind">Type</string>
+    <string name="pick_search">Search</string>
+    <string name="machines_kind_search">Search machine types</string>
     <string name="machines_name">Name</string>
     <string name="machines_name_hint">Mahindra 575</string>
+    <string name="machines_name_hint_harvester">Kubota DC-68G</string>
+    <string name="machines_name_hint_tool">Shaktiman 7 ft</string>
+    <string name="machines_name_hint_sprayer">Aspee 600 L</string>
+    <string name="machines_name_hint_trailer">Trolley 1</string>
+    <string name="machines_name_hint_pump">Kirloskar 5 HP</string>
+    <string name="machines_name_hint_excavator">JCB 3DX</string>
     <string name="machines_plate">Number plate</string>
     <string name="machines_plate_hint">HR 22 F 4411</string>
     <string name="machines_hours_used">Hours on it now</string>

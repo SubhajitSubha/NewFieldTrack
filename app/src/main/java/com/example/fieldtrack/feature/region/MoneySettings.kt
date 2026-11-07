@@ -30,6 +30,7 @@ import com.example.fieldtrack.data.db.PaymentMethod
 import com.example.fieldtrack.data.region.Region
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.data.session.SessionStore
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
@@ -299,18 +300,13 @@ fun MoneySettingsScreen(
             )
 
             FtSectionLabel(stringResource(R.string.money_fiscal), Modifier.padding(top = 4.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                (1..12).forEach { month ->
-                    FtChip(
-                        label = monthName(month),
-                        selected = state.fiscalStartMonth == month,
-                        onClick = { if (state.allowed) onFiscalStartMonth(month) },
-                    )
-                }
-            }
+            FtPick(
+                options = (1..12).toList(),
+                selected = state.fiscalStartMonth,
+                text = { monthName(it) },
+                onPick = { if (state.allowed) onFiscalStartMonth(it) },
+                searchHint = stringResource(R.string.pick_search),
+            )
             Text(
                 text = stringResource(R.string.money_fiscal_note),
                 style = FieldTrackTheme.type.caption,

@@ -32,6 +32,7 @@ import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.MachineKind
 import com.example.fieldtrack.designsystem.component.FtButton
+import com.example.fieldtrack.designsystem.component.FtDropdown
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
@@ -193,15 +194,17 @@ fun AddMachineScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column {
-                FtSectionLabel(
-                    stringResource(R.string.machines_kind),
-                    Modifier.padding(bottom = 10.dp),
-                )
-                // Icons first, because a driver picking a machine type recognises the
-                // shape long before they read the word under it.
-                MachineKindGrid(state.kind, onKind)
-            }
+            // Icon beside the name, because a driver recognises the shape before the word;
+            // the list opens in a sheet so it no longer fills the form.
+            FtDropdown(
+                options = MachineKinds,
+                selected = state.kind,
+                text = { stringResource(it.labelRes()) },
+                icon = { iconFor(it) },
+                onPick = onKind,
+                label = stringResource(R.string.machines_kind),
+                searchHint = stringResource(R.string.machines_kind_search),
+            )
 
             if (state.kind == MachineKind.Other) {
                 FtTextField(
@@ -216,15 +219,17 @@ fun AddMachineScreen(
                 label = stringResource(R.string.machines_name),
                 value = state.name,
                 onValueChange = onName,
-                placeholder = stringResource(R.string.machines_name_hint),
+                placeholder = stringResource(state.kind.nameHintRes()),
                 focused = true,
             )
-            FtTextField(
-                label = stringResource(R.string.machines_plate),
-                value = state.plate,
-                onValueChange = onPlate,
-                placeholder = stringResource(R.string.machines_plate_hint),
-            )
+            if (state.kind.hasPlate || state.plate.isNotBlank()) {
+                FtTextField(
+                    label = stringResource(R.string.machines_plate),
+                    value = state.plate,
+                    onValueChange = onPlate,
+                    placeholder = stringResource(R.string.machines_plate_hint),
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.weight(1f)) {
                     FtTextField(
@@ -303,72 +308,6 @@ fun AddMachineScreen(
                 enabled = state.canSave && readOnlyNotice == null,
             )
         }
-    }
-}
-
-@Composable
-private fun MachineKindGrid(selected: MachineKind, onKind: (MachineKind) -> Unit) {
-    val kinds = listOf(
-        MachineKind.Tractor, MachineKind.Harvester, MachineKind.Rotavator,
-        MachineKind.Cultivator, MachineKind.Trolley, MachineKind.Thresher,
-        MachineKind.Sprayer, MachineKind.Transplanter, MachineKind.PowerTiller,
-        MachineKind.Baler, MachineKind.Leveller, MachineKind.Excavator,
-        MachineKind.Seeder, MachineKind.Mulcher, MachineKind.Plough,
-        MachineKind.Harrow, MachineKind.DroneSprayer, MachineKind.WaterTanker,
-        MachineKind.SugarcaneHarvester, MachineKind.PotatoDigger, MachineKind.Ridger,
-        MachineKind.GrainCart, MachineKind.Pump, MachineKind.Other,
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        kinds.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { kind ->
-                    KindTile(
-                        kind = kind,
-                        selected = kind == selected,
-                        onClick = { onKind(kind) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KindTile(
-    kind: MachineKind,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = FieldTrackTheme.colors
-    Column(
-        modifier
-            .clip(FieldTrackTheme.shapes.medium)
-            .background(colors.surface)
-            .border(
-                width = if (selected) FieldTrackTheme.dimens.borderSelected
-                else FieldTrackTheme.dimens.border,
-                color = if (selected) colors.primary else colors.line,
-                shape = FieldTrackTheme.shapes.medium,
-            )
-            .clickable(role = Role.RadioButton, onClick = onClick)
-            .padding(vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(7.dp),
-    ) {
-        Icon(
-            imageVector = iconFor(kind),
-            contentDescription = null,
-            tint = if (selected) colors.primary else colors.inkSecondary,
-            modifier = Modifier.size(32.dp),
-        )
-        Text(
-            text = stringResource(kind.labelRes()),
-            style = FieldTrackTheme.type.caption,
-            color = if (selected) colors.primaryPressed else colors.ink,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

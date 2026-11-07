@@ -26,6 +26,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.feature.machine.MachineChoice
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -194,29 +196,13 @@ fun PastWorkScreen(
             }
 
             if (state.machines.isNotEmpty()) {
-                Column {
-                    FtSectionLabel(
-                        stringResource(R.string.start_machine),
-                        Modifier.padding(bottom = 9.dp),
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FtChip(
-                            label = stringResource(R.string.start_no_machine),
-                            selected = state.machineId == null,
-                            onClick = { onMachine(null) },
-                        )
-                        state.machines.forEach { machine ->
-                            FtChip(
-                                label = machine.name,
-                                selected = state.machineId == machine.id,
-                                onClick = { onMachine(machine.id) },
-                            )
-                        }
-                    }
-                }
+                MachineChoice(
+                    machines = state.machines,
+                    selectedId = state.machineId,
+                    noneLabel = stringResource(R.string.start_no_machine),
+                    onPick = onMachine,
+                    label = stringResource(R.string.start_machine),
+                )
             }
 
             Column {
@@ -246,18 +232,13 @@ fun PastWorkScreen(
                 )
                 val units = unitsFor(state.billingMode)
                 if (units.size > 1) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        units.forEach { option ->
-                            FtChip(
-                                label = stringResource(option.labelRes),
-                                selected = state.unit == option,
-                                onClick = { onUnit(option) },
-                            )
-                        }
-                    }
+                    FtPick(
+                        options = units,
+                        selected = units.firstOrNull { it == state.unit },
+                        text = { stringResource(it.labelRes) },
+                        onPick = onUnit,
+                        searchHint = stringResource(R.string.pick_search),
+                    )
                 }
             }
 

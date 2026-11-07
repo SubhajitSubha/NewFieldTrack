@@ -34,6 +34,8 @@ import com.example.fieldtrack.data.db.CancelReason
 import com.example.fieldtrack.data.db.DayPart
 import com.example.fieldtrack.data.db.MachineStatus
 import com.example.fieldtrack.data.db.entity.CustomerEntity
+import com.example.fieldtrack.feature.machine.MachineChoice
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
@@ -177,19 +179,15 @@ fun BookingFormScreen(
                 }
             }
 
-            FtSectionLabel(stringResource(R.string.plan_form_work))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                workTypeOptions.forEach { option ->
-                    FtChip(
-                        label = stringResource(option.labelRes),
-                        selected = state.workType.key == option.key,
-                        onClick = { if (state.editable) actions.onWork(option) },
-                    )
-                }
-            }
+            FtPick(
+                options = workTypeOptions,
+                selected = workTypeOptions.firstOrNull { it.key == state.workType.key },
+                text = { stringResource(it.labelRes) },
+                icon = { it.icon },
+                onPick = { if (state.editable) actions.onWork(it) },
+                label = stringResource(R.string.plan_form_work),
+                searchHint = stringResource(R.string.pick_search),
+            )
 
             FtSectionLabel(stringResource(R.string.plan_form_day))
             FlowRow(
@@ -253,34 +251,14 @@ fun BookingFormScreen(
                 )
             }
 
-            FtSectionLabel(stringResource(R.string.start_machine))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FtChip(
-                    label = stringResource(R.string.plan_no_machine),
-                    selected = state.machineId == null,
-                    onClick = { if (state.editable) actions.onMachine(null) },
-                )
-                if (state.machineGone) {
-                    FtChip(
-                        label = stringResource(R.string.plan_machine_removed),
-                        selected = true,
-                        onClick = {},
-                        tone = FtChipTone.Warning,
-                    )
-                }
-                state.machines.forEach { machine ->
-                    val down = machine.status == MachineStatus.Down
-                    FtChip(
-                        label = if (down) stringResource(R.string.start_machine_down, machine.name) else machine.name,
-                        selected = state.machineId == machine.id,
-                        onClick = { if (state.editable) actions.onMachine(machine.id) },
-                        tone = if (down) FtChipTone.Warning else FtChipTone.Normal,
-                    )
-                }
-            }
+            MachineChoice(
+                machines = state.machines,
+                selectedId = state.machineId,
+                noneLabel = stringResource(R.string.plan_no_machine),
+                onPick = { if (state.editable) actions.onMachine(it) },
+                label = stringResource(R.string.start_machine),
+                removedLabel = if (state.machineGone) stringResource(R.string.plan_machine_removed) else null,
+            )
 
             FtSectionLabel(stringResource(R.string.plan_form_driver))
             FlowRow(

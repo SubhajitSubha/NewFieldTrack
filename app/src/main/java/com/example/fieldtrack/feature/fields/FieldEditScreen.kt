@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -130,20 +131,15 @@ fun FieldEditScreen(
                 onValueChange = onArea,
                 keyboardType = KeyboardType.Decimal,
             )
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Land only. A plot cannot be five hours or three quintals,
-                // and offering it invites a field whose size means nothing.
-                MeasureUnit.entries.filter { it.isLand }.forEach { unit ->
-                    FtChip(
-                        label = stringResource(unit.labelRes),
-                        selected = unit == state.unit,
-                        onClick = { onUnit(unit) },
-                    )
-                }
-            }
+            // Land only. A plot cannot be five hours or three quintals,
+            // and offering it invites a field whose size means nothing.
+            FtPick(
+                options = MeasureUnit.entries.filter { it.isLand },
+                selected = state.unit,
+                text = { stringResource(it.labelRes) },
+                onPick = onUnit,
+                searchHint = stringResource(R.string.pick_search),
+            )
 
             FtButton(
                 text = stringResource(R.string.field_measure),

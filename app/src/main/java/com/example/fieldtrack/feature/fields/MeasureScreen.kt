@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.measure.Shape
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtButtonTone
 import com.example.fieldtrack.designsystem.component.FtCard
@@ -332,15 +333,13 @@ private fun Result(state: MeasureState, actions: MeasureActions) {
         }
     }
 
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MeasureUnit.entries.filter { it.isLand }.forEach { unit ->
-            FtChip(
-                label = stringResource(unit.labelRes),
-                selected = unit == state.unit,
-                onClick = { actions.onUnit(unit) },
-            )
-        }
-    }
+    FtPick(
+        options = MeasureUnit.entries.filter { it.isLand },
+        selected = state.unit,
+        text = { stringResource(it.labelRes) },
+        onPick = actions.onUnit,
+        searchHint = stringResource(R.string.pick_search),
+    )
 
     // A bigha or a katha is not one size everywhere: the farmer says how many make an
     // acre where they live, and it is remembered rather than asked again.
