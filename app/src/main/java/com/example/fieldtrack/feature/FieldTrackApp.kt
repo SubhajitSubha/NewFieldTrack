@@ -269,7 +269,7 @@ internal object Routes {
     const val ROLES = "more/team/roles"
     const val ROLE = "more/team/roles/{roleId}"
     fun role(id: String?) = "more/team/roles/${id ?: "new"}"
-    const val MEMBER = "more/team/{membershipId}"
+    const val MEMBER = "more/team/{membershipId}?tab={tab}"
     const val BACKUP = "more/backup"
     const val DISPLAY = "more/display"
     /** Every preference, in one place. */
@@ -300,9 +300,9 @@ internal object Routes {
     const val TEAM_CHANGES = "more/team/changes"
     const val MONEY_OUT = "more/money-out"
     const val PAY_OUT = "more/money-out/pay?person={person}"
-    const val PERSON_PAY = "more/team/{membershipId}/pay"
     fun payOut(personId: String? = null) = "more/money-out/pay?person=${personId.orEmpty()}"
-    fun personPay(membershipId: String) = "more/team/$membershipId/pay"
+    /** A member's page opened on what they have been paid. */
+    fun personPay(membershipId: String) = "more/team/$membershipId?tab=Money"
     const val MACHINE_PROFIT = "machines/{machineId}/made"
     const val MACHINE = "machines/{machineId}"
     const val FUEL = "machines/{machineId}/fuel"
@@ -2164,6 +2164,7 @@ private fun MainNavHost(navController: NavHostController) {
                 val vm: TeamViewModel = appViewModel { TeamViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val context = LocalContext.current
                 val scope = rememberCoroutineScope()
                 var adding by remember { mutableStateOf(false) }
 
@@ -2189,6 +2190,11 @@ private fun MainNavHost(navController: NavHostController) {
                     onNotDuplicate = if (state.canEditTeam) {
                         { pair: DuplicatePair -> vm.notTheSamePerson(pair) }
                     } else null,
+                    onCall = { number ->
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$number") })
+                        }
+                    },
                 )
 
                 if (adding) {
@@ -2263,19 +2269,6 @@ private fun MainNavHost(navController: NavHostController) {
                     onRecover = vm::setRecover,
                     onJob = vm::setJob,
                     onSave = { vm.save { navController.popBackStack() } },
-                )
-            }
-
-            composable(Routes.PERSON_PAY) { entry ->
-                val membershipId = entry.arguments?.getString("membershipId").orEmpty()
-                val vm: com.example.fieldtrack.feature.money.PersonPayViewModel =
-                    appViewModel(key = "pay-$membershipId") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, membershipId) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                com.example.fieldtrack.feature.money.PersonPayScreen(
-                    state = state,
-                    onBack = { navController.popBackStack() },
-                    onPay = { navController.navigate(Routes.payOut(membershipId.substringAfterLast('_'))) },
-                    onTakeBack = vm::takeBack,
                 )
             }
 
@@ -2377,13 +2370,26 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.MEMBER) { entry ->
+            composable(
+                Routes.MEMBER,
+                arguments = listOf(navArgument("tab") { type = NavType.StringType; defaultValue = "" }),
+            ) { entry ->
                 val membershipId = entry.arguments?.getString("membershipId").orEmpty()
                 val vm: MemberViewModel = appViewModel(key = "member-$membershipId") {
                     MemberViewModel(it, membershipId)
                 }
                 val state by vm.state.collectAsStateWithLifecycle()
                 val context = LocalContext.current
+                var tab by rememberSaveable {
+                    mutableStateOf(
+                        com.example.fieldtrack.feature.team.MemberTab.entries
+                            .firstOrNull { it.name == entry.arguments?.getString("tab") }
+                            ?: com.example.fieldtrack.feature.team.MemberTab.Work
+                    )
+                }
+                val payVm: com.example.fieldtrack.feature.money.PersonPayViewModel =
+                    appViewModel(key = "pay-$membershipId") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, membershipId) }
+                val pay by payVm.state.collectAsStateWithLifecycle()
 
                 MemberScreen(
                     state = state,
@@ -2401,8 +2407,14 @@ private fun MainNavHost(navController: NavHostController) {
                     onSeePeopleCost = vm::setSeePeopleCost,
                     onCustomRole = vm::setCustomRole,
                     onRoles = { navController.navigate(Routes.ROLES) }.takeIf { state.editableByOwnerOnly },
-                    onPayHistory = if (state.canSeePay) ({ navController.navigate(Routes.personPay(membershipId)) }) else null,
-                    onSave = { vm.save { navController.popBackStack() } },
+                    tab = tab,
+                    onTab = { tab = it },
+                    pay = pay.takeIf { state.canSeePay },
+                    onPay = { navController.navigate(Routes.payOut(membershipId.substringAfterLast('_'))) },
+                    onTakeBack = payVm::takeBack,
+                    onJob = { navController.navigate("jobs/$it") },
+                    // Stays on the page: the Save button goes away and the page shows what was saved.
+                    onSave = { vm.save {} },
                     onSetActive = { active ->
                         vm.setActive(active) { navController.popBackStack() }
                     },

@@ -84,11 +84,16 @@ fun MemberScreen(
     onSetActive: (Boolean) -> Unit,
     onCall: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    /** Opens what this person has been paid, for somebody who may see what the business pays. */
-    onPayHistory: (() -> Unit)? = null,
     onCustomRole: (com.example.fieldtrack.data.session.CustomRole) -> Unit = {},
     /** Opens the owner's roles, to make or change one. Null for anybody but an owner. */
     onRoles: (() -> Unit)? = null,
+    tab: MemberTab = MemberTab.Work,
+    onTab: (MemberTab) -> Unit = {},
+    /** What they have been paid. Null for somebody who may not see it: then there is no Money part. */
+    pay: com.example.fieldtrack.feature.money.PersonPayState? = null,
+    onPay: () -> Unit = {},
+    onTakeBack: (String) -> Unit = {},
+    onJob: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -103,6 +108,8 @@ fun MemberScreen(
     // already answered all seven of these, and seven switches on open invites
     // an owner to fiddle with permissions they were not asked about.
     var showSwitches by rememberSaveable { mutableStateOf(false) }
+    val tabs = listOfNotNull(MemberTab.Work, MemberTab.Money.takeIf { pay != null }, MemberTab.Access)
+    val shown = tab.takeIf { it in tabs } ?: MemberTab.Work
 
     Column(
         modifier
@@ -111,10 +118,7 @@ fun MemberScreen(
             .imePadding()
     ) {
         FtTopBar(
-            title = stringResource(
-                if (state.role == MemberRole.Owner) R.string.more_owner
-                else R.string.team_driver
-            ),
+            title = state.displayName,
             onBack = onBack,
             backContentDescription = stringResource(R.string.action_back_cd),
         )
@@ -126,96 +130,55 @@ fun MemberScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
+            // ---- Who they are and what they are doing, with the one button an owner
+            // reaches for most: ringing them.
             FtCard {
-                Column(
-                    Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(11.dp),
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     FtAvatar(
                         initials = initialsOf(state.displayName),
-                        size = 74.dp,
+                        size = 58.dp,
                         background = colors.primaryWash,
                         contentColor = colors.primaryPressed,
                     )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
                         Text(
-                            text = state.displayName,
-                            style = FieldTrackTheme.type.sectionTitle,
+                            text = roleTitle(state.role, state.grants, state.customRoles),
+                            style = FieldTrackTheme.type.rowTitle,
                             color = colors.ink,
                         )
                         Text(
                             text = listOfNotNull(
                                 state.phone?.takeIf { it.isNotBlank() }?.let { formatPhone(it) },
-                                state.joinedAtMillis?.let {
-                                    stringResource(R.string.team_joined, dayMonthYear(it))
-                                },
+                                state.joinedAtMillis?.let { stringResource(R.string.team_joined, dayMonthYear(it)) },
                             ).joinToString(" · "),
                             style = FieldTrackTheme.type.caption,
                             color = colors.inkTertiary,
-                            modifier = Modifier.padding(top = 3.dp),
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                        Text(
+                            text = when {
+                                !state.active -> stringResource(R.string.team_left)
+                                state.liveWorkType != null -> stringResource(
+                                    R.string.team_status_on,
+                                    workLabel(state.liveWorkType),
+                                    com.example.fieldtrack.designsystem.format.duration(state.liveSeconds),
+                                )
+                                else -> stringResource(R.string.team_free)
+                            },
+                            style = FieldTrackTheme.type.caption,
+                            color = if (state.liveWorkType != null) colors.primaryPressed else colors.inkSecondary,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                StatCard(
-                    value = state.jobCount.toString(),
-                    label = stringResource(R.string.team_stat_jobs),
-                    modifier = Modifier.weight(1f),
-                )
-                StatCard(
-                    value = (state.totalSeconds / 3600).toString(),
-                    label = stringResource(R.string.team_stat_hours),
-                    modifier = Modifier.weight(1f),
-                )
-                // Hidden from a driver who may not see money, even about themselves:
-                // what the business earned off their work is the owner's figure.
-                if (state.canSeeTheirEarnings) {
-                    StatCard(
-                        value = moneyCompact(state.broughtInMinor),
-                        label = stringResource(R.string.team_stat_brought_in),
-                        valueColor = colors.primaryPressed,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            if (onPayHistory != null) {
-                FtCard(padding = 0.dp) {
-                    com.example.fieldtrack.designsystem.component.FtListRow(
-                        title = stringResource(R.string.person_pay_title),
-                        subtitle = stringResource(R.string.person_pay_row_note),
-                        leading = {
-                            com.example.fieldtrack.designsystem.component.FtIconTile(
-                                com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Banknote, size = 40.dp,
-                            )
-                        },
-                        showChevron = true,
-                        onClick = onPayHistory,
-                    )
-                }
-            }
-
-            if (state.canSeeTheirEarnings && state.advanceOwedMinor > 0) {
-                Text(
-                    text = stringResource(R.string.team_advance_owed, moneyCompact(state.advanceOwedMinor)),
-                    style = FieldTrackTheme.type.bodySmall,
-                    color = colors.moneyInk,
-                )
-            }
-
-            // Said plainly, because it is the thing an owner worries about when told
-            // their driver also works for somebody else. Never on your own record,
-            // where it would be telling you that you cannot see your own books.
-            if (!state.isYou) {
-                FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
-                    Text(
-                        text = stringResource(R.string.team_privacy_note, state.displayName),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkSecondary,
-                    )
+                    if (onCall != null && !state.isYou) {
+                        com.example.fieldtrack.designsystem.component.FtIconButton(
+                            icon = FieldTrackIcons.Call,
+                            contentDescription = stringResource(R.string.team_call_cd, state.displayName),
+                            onClick = onCall,
+                            tint = colors.onPrimary,
+                            background = colors.primary,
+                        )
+                    }
                 }
             }
 
@@ -276,247 +239,262 @@ fun MemberScreen(
                 }
             }
 
-            if (state.editable) {
-                // A job, not seven switches. An owner knows what a senior
-                // driver is; they do not know which four of seven permissions
-                // add up to one. The switches are still underneath, and still
-                // the only thing any capability check reads.
-                FtSectionLabel(stringResource(R.string.team_preset_title))
-                FtCard(padding = 0.dp) {
-                    state.offeredPresets.forEachIndexed { index, preset ->
-                        if (index > 0) FtRowDivider()
-                        RoleRow(
-                            title = stringResource(presetTitle(preset)),
-                            note = stringResource(presetNote(preset)),
-                            selected = state.preset == preset,
-                            danger = preset == RolePreset.Owner,
-                            // The one choice this side cannot undo, so it is
-                            // the one choice that asks twice.
-                            onSelect = {
-                                if (preset == RolePreset.Owner) confirmOwner = true
-                                else onPreset(preset)
+
+            // ---- Three parts, so the page answers one question at a time.
+            com.example.fieldtrack.designsystem.component.FtPick(
+                options = tabs,
+                selected = shown,
+                text = {
+                    stringResource(
+                        when (it) {
+                            MemberTab.Work -> R.string.member_tab_work
+                            MemberTab.Money -> R.string.member_tab_money
+                            MemberTab.Access -> R.string.member_tab_access
+                        }
+                    )
+                },
+                onPick = onTab,
+            )
+
+            when (shown) {
+                MemberTab.Work -> WorkPart(state, onJob)
+                MemberTab.Money -> pay?.let {
+                    com.example.fieldtrack.feature.money.PersonPayContent(state = it, onPay = onPay, onTakeBack = onTakeBack)
+                }
+                MemberTab.Access -> {
+                    if (state.editable) {
+                        // A job, not seven switches. An owner knows what a senior
+                        // driver is; they do not know which four of seven permissions
+                        // add up to one. The switches are still underneath, and still
+                        // the only thing any capability check reads.
+                        FtSectionLabel(stringResource(R.string.team_preset_title))
+                        FtCard(padding = 0.dp) {
+                            state.offeredPresets.forEachIndexed { index, preset ->
+                                if (index > 0) FtRowDivider()
+                                RoleRow(
+                                    title = stringResource(presetTitle(preset)),
+                                    note = stringResource(presetNote(preset)),
+                                    selected = state.preset == preset,
+                                    danger = preset == RolePreset.Owner,
+                                    // The one choice this side cannot undo, so it is
+                                    // the one choice that asks twice.
+                                    onSelect = {
+                                        if (preset == RolePreset.Owner) confirmOwner = true
+                                        else onPreset(preset)
+                                    },
+                                )
+                            }
+                            // The roles this owner made, offered like the built-in jobs.
+                            state.customRoles.forEach { role ->
+                                FtRowDivider()
+                                RoleRow(
+                                    title = role.name,
+                                    note = customRoleNote(role),
+                                    selected = state.customRole?.id == role.id,
+                                    onSelect = { onCustomRole(role) },
+                                )
+                            }
+                            if (state.preset == null && state.customRole == null) {
+                                FtRowDivider()
+                                // Shown only once it is already true, and not selectable:
+                                // there is no set of switches called "by hand" to apply.
+                                // It is a state the screen reports, not a mistake.
+                                RoleRow(
+                                    title = stringResource(R.string.team_preset_by_hand),
+                                    note = stringResource(R.string.team_preset_by_hand_note),
+                                    selected = true,
+                                    onSelect = null,
+                                )
+                            }
+                        }
+                        if (onRoles != null) {
+                            TextButton(onClick = onRoles) {
+                            // Coloured and pointed like the link it is: plain text does not look tappable.
+                            Text(stringResource(R.string.roles_manage), color = colors.primary, style = FieldTrackTheme.type.label)
+                            Icon(FieldTrackIcons.Forward, contentDescription = null, tint = colors.primary, modifier = Modifier.padding(start = 4.dp).size(16.dp))
+                        }
+                        }
+                        if (!state.editableByOwnerOnly) {
+                            Text(
+                                text = stringResource(R.string.team_preset_manager_only_owner),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.inkSecondary,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+
+                        FtSectionLabel(stringResource(R.string.team_preset_means))
+                        FtCard { GrantSummary(state) }
+
+                        FtButton(
+                            text = stringResource(
+                                if (showSwitches) R.string.team_preset_hide
+                                else R.string.team_preset_change
+                            ),
+                            onClick = { showSwitches = !showSwitches },
+                            tone = FtButtonTone.Secondary,
+                            height = 50.dp,
+                        )
+
+                        if (showSwitches) {
+                            FtSectionLabel(
+                                stringResource(R.string.team_allowed_to),
+                                Modifier.padding(top = 4.dp),
+                            )
+                            // Said before the switches, because three unchecked switches
+                            // read as "this person can do nothing" — and an owner deciding
+                            // what to grant should know what the job already includes.
+                            Text(
+                                text = stringResource(R.string.team_allowed_baseline),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.inkSecondary,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            )
+                            FtCard(padding = 0.dp) {
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_money),
+                                    note = stringResource(R.string.team_perm_money_note),
+                                    checked = state.canSeeMoney || state.role == MemberRole.Owner,
+                                    onChange = onSeeMoney,
+                                    // Closing a bill means seeing the amount on it, so this one
+                                    // cannot be switched off underneath it. Nor can any of the
+                                    // three be chosen for an owner, who holds them all by
+                                    // definition — switches that quietly do nothing are worse
+                                    // than no switches.
+                                    enabled = !state.canCloseBills && state.role != MemberRole.Owner,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_customers),
+                                    note = stringResource(R.string.team_perm_customers_note),
+                                    checked = state.canAddCustomers || state.role == MemberRole.Owner,
+                                    enabled = state.role != MemberRole.Owner,
+                                    onChange = onAddCustomers,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_bills),
+                                    note = stringResource(R.string.team_perm_bills_note),
+                                    checked = state.canCloseBills || state.role == MemberRole.Owner,
+                                    enabled = state.role != MemberRole.Owner,
+                                    onChange = onCloseBills,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_plan),
+                                    note = stringResource(R.string.team_perm_plan_note),
+                                    checked = state.canPlanWork || state.role == MemberRole.Owner,
+                                    enabled = state.role != MemberRole.Owner,
+                                    onChange = onPlanWork,
+                                )
+                            }
+
+                            // The switches that make somebody more than a driver. Kept in
+                            // their own card, and only an owner may hand them on: a
+                            // manager able to grant these could make a peer, and between
+                            // them they could put the owner out of their own business.
+                            FtSectionLabel(
+                                stringResource(R.string.team_trusted_with),
+                                Modifier.padding(top = 4.dp),
+                            )
+                            if (!state.editableByOwnerOnly) {
+                                Text(
+                                    text = stringResource(R.string.team_perm_owner_only),
+                                    style = FieldTrackTheme.type.bodySmall,
+                                    color = colors.inkSecondary,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                )
+                            }
+                            FtCard(padding = 0.dp) {
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_team),
+                                    note = stringResource(R.string.team_perm_team_note),
+                                    checked = state.canEditTeam || state.role == MemberRole.Owner,
+                                    enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
+                                    onChange = onEditTeam,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_machines),
+                                    note = stringResource(R.string.team_perm_machines_note),
+                                    checked = state.canEditMachines || state.role == MemberRole.Owner,
+                                    enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
+                                    onChange = onEditMachines,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_payout),
+                                    note = stringResource(R.string.team_perm_payout_note),
+                                    checked = state.canPayOut || state.role == MemberRole.Owner,
+                                    enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
+                                    onChange = onPayOut,
+                                )
+                                FtRowDivider()
+                                PermissionRow(
+                                    title = stringResource(R.string.team_perm_people_cost),
+                                    note = stringResource(R.string.team_perm_people_cost_note),
+                                    checked = state.canSeePeopleCost || state.role == MemberRole.Owner,
+                                    enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
+                                    onChange = onSeePeopleCost,
+                                )
+                            }
+                        }
+
+                        FtSectionLabel(
+                            stringResource(R.string.team_details),
+                            Modifier.padding(top = 4.dp),
+                        )
+                        FtTextField(
+                            label = stringResource(R.string.team_member_name),
+                            value = state.displayName,
+                            onValueChange = onName,
+                        )
+                        PhoneField(
+                            label = stringResource(R.string.edit_business_phone),
+                            value = state.phone.orEmpty(),
+                            onValueChange = onPhone,
+                        )
+                    } else {
+                        FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
+                            Text(
+                                text = stringResource(
+                                    if (state.isYou) R.string.team_not_yourself
+                                    else R.string.edit_not_allowed
+                                ),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.inkSecondary,
+                            )
+                        }
+                    }
+                    if (state.editable) {
+                        // At the very foot, and red: the one thing on this page that shuts a door.
+                        FtButton(
+                            text = stringResource(
+                                if (state.active) R.string.team_remove else R.string.team_take_back
+                            ),
+                            onClick = {
+                                if (state.active) confirmRemove = true else onSetActive(true)
                             },
+                            tone = if (state.active) FtButtonTone.Danger else FtButtonTone.Secondary,
+                            height = 50.dp,
+                            modifier = Modifier.padding(top = 10.dp),
                         )
                     }
-                    // The roles this owner made, offered like the built-in jobs.
-                    state.customRoles.forEach { role ->
-                        FtRowDivider()
-                        RoleRow(
-                            title = role.name,
-                            note = customRoleNote(role),
-                            selected = state.customRole?.id == role.id,
-                            onSelect = { onCustomRole(role) },
-                        )
-                    }
-                    if (state.preset == null && state.customRole == null) {
-                        FtRowDivider()
-                        // Shown only once it is already true, and not selectable:
-                        // there is no set of switches called "by hand" to apply.
-                        // It is a state the screen reports, not a mistake.
-                        RoleRow(
-                            title = stringResource(R.string.team_preset_by_hand),
-                            note = stringResource(R.string.team_preset_by_hand_note),
-                            selected = true,
-                            onSelect = null,
-                        )
-                    }
-                }
-                if (onRoles != null) {
-                    TextButton(onClick = onRoles) { Text(stringResource(R.string.roles_manage)) }
-                }
-                if (!state.editableByOwnerOnly) {
-                    Text(
-                        text = stringResource(R.string.team_preset_manager_only_owner),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkSecondary,
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    )
-                }
-
-                FtSectionLabel(stringResource(R.string.team_preset_means))
-                FtCard { GrantSummary(state) }
-
-                FtButton(
-                    text = stringResource(
-                        if (showSwitches) R.string.team_preset_hide
-                        else R.string.team_preset_change
-                    ),
-                    onClick = { showSwitches = !showSwitches },
-                    tone = FtButtonTone.Secondary,
-                    height = 50.dp,
-                )
-
-                if (showSwitches) {
-                    FtSectionLabel(
-                        stringResource(R.string.team_allowed_to),
-                        Modifier.padding(top = 4.dp),
-                    )
-                    // Said before the switches, because three unchecked switches
-                    // read as "this person can do nothing" — and an owner deciding
-                    // what to grant should know what the job already includes.
-                    Text(
-                        text = stringResource(R.string.team_allowed_baseline),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkSecondary,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    )
-                    FtCard(padding = 0.dp) {
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_money),
-                            note = stringResource(R.string.team_perm_money_note),
-                            checked = state.canSeeMoney || state.role == MemberRole.Owner,
-                            onChange = onSeeMoney,
-                            // Closing a bill means seeing the amount on it, so this one
-                            // cannot be switched off underneath it. Nor can any of the
-                            // three be chosen for an owner, who holds them all by
-                            // definition — switches that quietly do nothing are worse
-                            // than no switches.
-                            enabled = !state.canCloseBills && state.role != MemberRole.Owner,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_customers),
-                            note = stringResource(R.string.team_perm_customers_note),
-                            checked = state.canAddCustomers || state.role == MemberRole.Owner,
-                            enabled = state.role != MemberRole.Owner,
-                            onChange = onAddCustomers,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_bills),
-                            note = stringResource(R.string.team_perm_bills_note),
-                            checked = state.canCloseBills || state.role == MemberRole.Owner,
-                            enabled = state.role != MemberRole.Owner,
-                            onChange = onCloseBills,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_plan),
-                            note = stringResource(R.string.team_perm_plan_note),
-                            checked = state.canPlanWork || state.role == MemberRole.Owner,
-                            enabled = state.role != MemberRole.Owner,
-                            onChange = onPlanWork,
-                        )
-                    }
-
-                    // The switches that make somebody more than a driver. Kept in
-                    // their own card, and only an owner may hand them on: a
-                    // manager able to grant these could make a peer, and between
-                    // them they could put the owner out of their own business.
-                    FtSectionLabel(
-                        stringResource(R.string.team_trusted_with),
-                        Modifier.padding(top = 4.dp),
-                    )
-                    if (!state.editableByOwnerOnly) {
-                        Text(
-                            text = stringResource(R.string.team_perm_owner_only),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkSecondary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        )
-                    }
-                    FtCard(padding = 0.dp) {
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_team),
-                            note = stringResource(R.string.team_perm_team_note),
-                            checked = state.canEditTeam || state.role == MemberRole.Owner,
-                            enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
-                            onChange = onEditTeam,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_machines),
-                            note = stringResource(R.string.team_perm_machines_note),
-                            checked = state.canEditMachines || state.role == MemberRole.Owner,
-                            enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
-                            onChange = onEditMachines,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_payout),
-                            note = stringResource(R.string.team_perm_payout_note),
-                            checked = state.canPayOut || state.role == MemberRole.Owner,
-                            enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
-                            onChange = onPayOut,
-                        )
-                        FtRowDivider()
-                        PermissionRow(
-                            title = stringResource(R.string.team_perm_people_cost),
-                            note = stringResource(R.string.team_perm_people_cost_note),
-                            checked = state.canSeePeopleCost || state.role == MemberRole.Owner,
-                            enabled = state.editableByOwnerOnly && state.role != MemberRole.Owner,
-                            onChange = onSeePeopleCost,
-                        )
-                    }
-                }
-
-                FtSectionLabel(
-                    stringResource(R.string.team_details),
-                    Modifier.padding(top = 4.dp),
-                )
-                FtTextField(
-                    label = stringResource(R.string.team_member_name),
-                    value = state.displayName,
-                    onValueChange = onName,
-                )
-                PhoneField(
-                    label = stringResource(R.string.edit_business_phone),
-                    value = state.phone.orEmpty(),
-                    onValueChange = onPhone,
-                )
-            } else {
-                FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
-                    Text(
-                        text = stringResource(
-                            if (state.isYou) R.string.team_not_yourself
-                            else R.string.edit_not_allowed
-                        ),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkSecondary,
-                    )
                 }
             }
 
             Box(Modifier.padding(bottom = dimens.space4))
         }
 
-        if (state.editable || onCall != null) {
-            Column(
-                Modifier.padding(dimens.screenPadding),
-                verticalArrangement = Arrangement.spacedBy(9.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    if (onCall != null) {
-                        FtButton(
-                            text = stringResource(R.string.team_call),
-                            onClick = onCall,
-                            modifier = Modifier.weight(1f),
-                            tone = FtButtonTone.Secondary,
-                            height = 54.dp,
-                        )
-                    }
-                    if (state.editable) {
-                        FtButton(
-                            text = stringResource(R.string.edit_save),
-                            onClick = onSave,
-                            modifier = Modifier.weight(1f),
-                            enabled = state.canSave,
-                            height = 54.dp,
-                        )
-                    }
-                }
-                if (state.editable) {
-                    FtButton(
-                        text = stringResource(
-                            if (state.active) R.string.team_remove else R.string.team_take_back
-                        ),
-                        onClick = {
-                            if (state.active) confirmRemove = true else onSetActive(true)
-                        },
-                        tone = if (state.active) FtButtonTone.Danger else FtButtonTone.Secondary,
-                        height = 50.dp,
-                    )
-                }
+        // Only when there is something to save, and only where it was changed.
+        if (state.editable && state.changed) {
+            Box(Modifier.padding(dimens.screenPadding)) {
+                FtButton(
+                    text = stringResource(R.string.edit_save),
+                    onClick = onSave,
+                    enabled = state.canSave,
+                    height = 54.dp,
+                )
             }
         }
     }
@@ -645,24 +623,6 @@ fun MemberScreen(
             },
         )
     }
-}
-
-@StringRes
-private fun presetTitle(preset: RolePreset): Int = when (preset) {
-    RolePreset.Driver -> R.string.team_role_driver
-    RolePreset.SeniorDriver -> R.string.team_preset_senior
-    RolePreset.Manager -> R.string.team_preset_manager
-    RolePreset.Owner -> R.string.team_role_owner
-    RolePreset.Viewer -> R.string.team_preset_viewer
-}
-
-@StringRes
-private fun presetNote(preset: RolePreset): Int = when (preset) {
-    RolePreset.Driver -> R.string.team_preset_driver_note
-    RolePreset.SeniorDriver -> R.string.team_preset_senior_note
-    RolePreset.Manager -> R.string.team_preset_manager_note
-    RolePreset.Owner -> R.string.team_preset_owner_note
-    RolePreset.Viewer -> R.string.team_preset_viewer_note
 }
 
 /**
@@ -870,5 +830,75 @@ internal fun PermissionRow(
                 uncheckedTrackColor = colors.line,
             ),
         )
+    }
+}
+
+/** Their work for this business: what it adds up to, and the latest jobs, each opening its page. */
+@Composable
+private fun WorkPart(state: MemberState, onJob: (String) -> Unit) {
+    val colors = FieldTrackTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            StatCard(
+                value = state.jobCount.toString(),
+                label = stringResource(R.string.team_stat_jobs),
+                modifier = Modifier.weight(1f),
+            )
+            StatCard(
+                value = (state.totalSeconds / 3600).toString(),
+                label = stringResource(R.string.team_stat_hours),
+                modifier = Modifier.weight(1f),
+            )
+            // Hidden from a driver who may not see money, even about themselves:
+            // what the business earned off their work is the owner's figure.
+            if (state.canSeeTheirEarnings) {
+                StatCard(
+                    value = moneyCompact(state.broughtInMinor),
+                    label = stringResource(R.string.team_stat_brought_in),
+                    valueColor = colors.primaryPressed,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        if (state.recentJobs.isNotEmpty()) {
+            FtSectionLabel(stringResource(R.string.member_recent_work), Modifier.padding(top = 4.dp))
+            FtCard(padding = 0.dp) {
+                state.recentJobs.forEachIndexed { i, job ->
+                    if (i > 0) FtRowDivider()
+                    com.example.fieldtrack.designsystem.component.FtListRow(
+                        title = workLabel(job.workType),
+                        subtitle = listOf(job.customerName, dayMonthYear(job.atMillis))
+                            .filter { it.isNotBlank() }.joinToString(" · "),
+                        trailing = when {
+                            job.running -> {
+                                {
+                                    Text(
+                                        stringResource(R.string.status_running),
+                                        style = FieldTrackTheme.type.caption,
+                                        color = colors.primaryPressed,
+                                    )
+                                }
+                            }
+                            state.canSeeTheirEarnings -> {
+                                { Text(moneyCompact(job.amountMinor), style = FieldTrackTheme.type.label, color = colors.ink) }
+                            }
+                            else -> null
+                        },
+                        showChevron = true,
+                        onClick = { onJob(job.jobId) },
+                    )
+                }
+            }
+        }
+        // Said plainly, because it is the thing an owner worries about when told their driver
+        // also works for somebody else. Never on your own record.
+        if (!state.isYou) {
+            Text(
+                text = stringResource(R.string.team_privacy_note, state.displayName),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
     }
 }

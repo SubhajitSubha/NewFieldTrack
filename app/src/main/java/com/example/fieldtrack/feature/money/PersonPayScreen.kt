@@ -115,146 +115,136 @@ class PersonPayViewModel(
     }
 }
 
+/**
+ * What one person has been paid, drawn inside their page under Money: the total, an advance
+ * still to take back, what is owed for their machine, every payment with what it was for,
+ * and a way to pay them. A mistaken payment is taken back with a button on its own line,
+ * never by a tap on a card that does not look like it can be tapped.
+ */
 @Composable
-fun PersonPayScreen(
+fun PersonPayContent(
     state: PersonPayState,
-    onBack: () -> Unit,
     onPay: () -> Unit,
     onTakeBack: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
-    val dimens = FieldTrackTheme.dimens
     var confirming by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Column(modifier.fillMaxSize().background(colors.paper)) {
-        FtTopBar(
-            title = state.name,
-            subtitle = stringResource(R.string.person_pay_title),
-            onBack = onBack,
-            backContentDescription = stringResource(R.string.action_back_cd),
-        )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(11.dp)) {
         if (state.loaded && !state.mayLook) {
-            Column(Modifier.weight(1f).padding(dimens.screenPadding)) {
-                FtCard {
-                    Text(
-                        text = stringResource(R.string.money_out_locked),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkSecondary,
-                    )
-                }
+            FtCard {
+                Text(
+                    text = stringResource(R.string.money_out_locked),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                )
             }
             return@Column
         }
-        LazyColumn(
-            Modifier.weight(1f).padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(11.dp),
-        ) {
-            item {
-                FtCard(background = colors.deep, borderColor = colors.deep) {
-                    Text(
-                        text = stringResource(R.string.person_pay_paid).uppercase(),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.onDarkMuted,
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(text = money(state.paidMinor), style = FieldTrackTheme.type.moneyHero, color = colors.onDark)
-                }
+        FtCard(background = colors.deep, borderColor = colors.deep) {
+            Text(
+                text = stringResource(R.string.person_pay_paid).uppercase(),
+                style = FieldTrackTheme.type.caption,
+                color = colors.onDarkMuted,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(text = money(state.paidMinor), style = FieldTrackTheme.type.moneyHero, color = colors.onDark)
+        }
+        if (state.mayPay) {
+            FtButton(text = stringResource(R.string.person_pay_pay, state.name), onClick = onPay, icon = com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Minus)
+        }
+        if (state.advanceOutstandingMinor > 0) {
+            FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+                Text(
+                    text = stringResource(R.string.person_pay_advance, money(state.advanceOutstandingMinor)),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = colors.dueInk,
+                )
             }
-            if (state.advanceOutstandingMinor > 0) {
-                item(key = "advance") {
-                    FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
-                        Text(
-                            text = stringResource(R.string.person_pay_advance, money(state.advanceOutstandingMinor)),
-                            style = FieldTrackTheme.type.rowTitle,
-                            color = colors.dueInk,
-                        )
-                    }
-                }
+        }
+        state.hire?.let { hire ->
+            FtCard {
+                Text(
+                    text = stringResource(R.string.person_pay_hire, hire.machines.joinToString(", ") { it.name }),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = colors.ink,
+                )
+                Text(
+                    text = stringResource(R.string.hire_owed_paid, money(hire.owedMinor), money(hire.paidMinor)),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+                Text(
+                    text = stringResource(R.string.hire_left, money(hire.balanceMinor.coerceAtLeast(0))),
+                    style = FieldTrackTheme.type.rowTitle,
+                    color = if (hire.balanceMinor > 0) colors.dueInk else colors.ink,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
             }
-            state.hire?.let { hire ->
-                item(key = "hire") {
-                    FtCard {
-                        Text(
-                            text = stringResource(R.string.person_pay_hire, hire.machines.joinToString(", ") { it.name }),
-                            style = FieldTrackTheme.type.rowTitle,
-                            color = colors.ink,
-                        )
-                        Text(
-                            text = stringResource(R.string.hire_owed_paid, money(hire.owedMinor), money(hire.paidMinor)),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkSecondary,
-                            modifier = Modifier.padding(top = 3.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.hire_left, money(hire.balanceMinor.coerceAtLeast(0))),
-                            style = FieldTrackTheme.type.rowTitle,
-                            color = if (hire.balanceMinor > 0) colors.dueInk else colors.ink,
-                            modifier = Modifier.padding(top = 3.dp),
-                        )
-                    }
-                }
+        }
+        if (state.loaded && state.rows.isEmpty()) {
+            FtCard {
+                Text(
+                    text = stringResource(R.string.person_pay_none),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkSecondary,
+                )
             }
-            if (state.loaded && state.rows.isEmpty()) {
-                item {
-                    FtCard {
-                        Text(
-                            text = stringResource(R.string.person_pay_none),
-                            style = FieldTrackTheme.type.bodySmall,
-                            color = colors.inkSecondary,
-                        )
-                    }
-                }
-            }
-            state.rows.groupBy { dayMonthYear(it.atMillis) }.forEach { (day, rows) ->
-                item(key = "d-$day") { FtSectionLabel(day) }
-                items(rows, key = { it.id }) { row ->
-                    FtCard(
-                        modifier = if (state.mayPay && !row.voided) Modifier.clickable { confirming = row.id } else Modifier,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(
-                                        when (row.covers) {
-                                            PayoutCovers.Job -> R.string.money_out_for_job
-                                            PayoutCovers.Day -> R.string.money_out_for_day
-                                            PayoutCovers.Period -> R.string.money_out_for_period
-                                            PayoutCovers.Advance -> R.string.money_out_for_advance
-                                            PayoutCovers.Hire -> R.string.money_out_for_hire
-                                        }
-                                    ),
-                                    style = FieldTrackTheme.type.body.copy(
-                                        textDecoration = if (row.voided) TextDecoration.LineThrough else null,
-                                    ),
-                                    color = if (row.voided) colors.inkTertiary else colors.ink,
-                                )
-                                Text(
-                                    text = listOfNotNull(
-                                        row.method?.let { stringResource(it.labelRes) },
-                                        row.note?.takeIf { it.isNotBlank() },
-                                        if (row.voided) stringResource(R.string.person_pay_taken_back) else null,
-                                    ).joinToString(" · "),
-                                    style = FieldTrackTheme.type.caption,
-                                    color = colors.inkSecondary,
-                                )
-                            }
+        }
+        state.rows.groupBy { dayMonthYear(it.atMillis) }.forEach { (day, rows) ->
+            FtSectionLabel(day)
+            rows.forEach { row ->
+                FtCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
                             Text(
-                                text = money(row.amountMinor),
-                                style = FieldTrackTheme.type.sectionTitle.copy(
+                                text = stringResource(
+                                    when (row.covers) {
+                                        PayoutCovers.Job -> R.string.money_out_for_job
+                                        PayoutCovers.Day -> R.string.money_out_for_day
+                                        PayoutCovers.Period -> R.string.money_out_for_period
+                                        PayoutCovers.Advance -> R.string.money_out_for_advance
+                                        PayoutCovers.Hire -> R.string.money_out_for_hire
+                                    }
+                                ),
+                                style = FieldTrackTheme.type.body.copy(
                                     textDecoration = if (row.voided) TextDecoration.LineThrough else null,
                                 ),
                                 color = if (row.voided) colors.inkTertiary else colors.ink,
                             )
+                            Text(
+                                text = listOfNotNull(
+                                    row.method?.let { stringResource(it.labelRes) },
+                                    row.note?.takeIf { it.isNotBlank() },
+                                    if (row.voided) stringResource(R.string.person_pay_taken_back) else null,
+                                ).joinToString(" · "),
+                                style = FieldTrackTheme.type.caption,
+                                color = colors.inkSecondary,
+                            )
+                        }
+                        Text(
+                            text = money(row.amountMinor),
+                            style = FieldTrackTheme.type.sectionTitle.copy(
+                                textDecoration = if (row.voided) TextDecoration.LineThrough else null,
+                            ),
+                            color = if (row.voided) colors.inkTertiary else colors.ink,
+                        )
+                    }
+                    if (state.mayPay && !row.voided) {
+                        TextButton(
+                            onClick = { confirming = row.id },
+                            modifier = Modifier.align(Alignment.End),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.person_pay_back_button),
+                                style = FieldTrackTheme.type.label,
+                                color = colors.dueInk,
+                            )
                         }
                     }
                 }
-            }
-            item { Spacer(Modifier.height(dimens.screenPadding)) }
-        }
-        if (state.mayPay) {
-            Column(Modifier.padding(dimens.screenPadding)) {
-                FtButton(text = stringResource(R.string.person_pay_pay, state.name), onClick = onPay)
             }
         }
     }

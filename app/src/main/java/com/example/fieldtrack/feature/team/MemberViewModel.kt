@@ -16,6 +16,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** One job this person did, as their page lists it. */
+data class RecentJob(
+    val jobId: String,
+    val workType: String,
+    val customerName: String,
+    val atMillis: Long,
+    val amountMinor: Long,
+    val running: Boolean,
+)
+
+/** The parts of a member's page. */
+enum class MemberTab { Work, Money, Access }
+
 data class MemberState(
     val loaded: Boolean = false,
     val displayName: String = "",
@@ -56,8 +69,19 @@ data class MemberState(
     val customRoles: List<com.example.fieldtrack.data.session.CustomRole> = emptyList(),
     val canSeeTheirEarnings: Boolean = true,
     val saving: Boolean = false,
+    /** Their latest work for this business, newest first. */
+    val recentJobs: List<RecentJob> = emptyList(),
+    /** What is saved: the page offers Save only once something differs from it. */
+    val savedName: String = "",
+    val savedPhone: String? = null,
+    val savedRole: MemberRole = MemberRole.Operator,
+    val savedGrants: Grants = Grants(),
 ) {
-    val canSave: Boolean get() = editable && !saving && displayName.isNotBlank()
+    val changed: Boolean
+        get() = loaded && (displayName != savedName || phone.orEmpty() != savedPhone.orEmpty() ||
+            role != savedRole || grants != savedGrants)
+
+    val canSave: Boolean get() = editable && changed && !saving && displayName.isNotBlank()
 
     /** The switches as one value, so a preset can be compared against them. */
     val grants: Grants
@@ -132,9 +156,29 @@ class MemberViewModel(
             // mid-shift: removal stops the job where it stands.
             val live = app.workRepository.observeLiveFor(s.orgId, member.personId).first()
 
+            val customerNames = app.directoryRepository.observeCustomers(s.orgId).first().associate { c -> c.id to c.name }
             _state.update {
                 it.copy(
                     loaded = true,
+                    recentJobs = jobs.sortedByDescending { job -> job.workedAt }.take(RECENT_JOBS).map { job ->
+                        RecentJob(
+                            jobId = job.id,
+                            workType = job.workType,
+                            customerName = customerNames[job.customerId].orEmpty(),
+                            atMillis = job.workedAt,
+                            amountMinor = job.amountMinor,
+                            running = job.status == JobStatus.Running || job.status == JobStatus.Paused,
+                        )
+                    },
+                    savedName = member.displayName,
+                    savedPhone = member.phone?.ifBlank { null },
+                    savedRole = member.role,
+                    savedGrants = com.example.fieldtrack.data.session.Grants(
+                        seeMoney = member.canSeeMoney, addCustomers = member.canAddCustomers,
+                        closeBills = member.canCloseBills, editTeam = member.canEditTeam,
+                        editMachines = member.canEditMachines, planWork = member.canPlanWork,
+                        payOut = member.canPayOut, seePeopleCost = member.canSeePeopleCost,
+                    ),
                     displayName = member.displayName,
                     // Normalised on the way in, because the column holds two
                     // spellings of the same number: ten digits when an owner
@@ -277,7 +321,13 @@ class MemberViewModel(
             }
             return@launch
         }
-        _state.update { it.copy(saving = false) }
+        _state.update {
+            it.copy(
+                saving = false,
+                savedName = current.displayName, savedPhone = current.phone, savedRole = current.role,
+                savedGrants = current.grants,
+            )
+        }
         onSaved()
     }
 
@@ -294,6 +344,9 @@ class MemberViewModel(
         }.onSuccess { onDone() }
     }
 }
+
+/** Enough to recognise their recent work without turning the page into a job list. */
+private const val RECENT_JOBS = 8
 
 /** The one refusal this screen can produce, as a string the screen can show. */
 private val LastOwnerProblem = com.example.fieldtrack.R.string.account_last_owner

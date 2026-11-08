@@ -166,4 +166,49 @@ class ArrangementTest {
             db.close()
         }
     }
+
+    @Test fun aMemberPageOffersSaveOnlyOnceSomethingChanged() {
+        val base = com.example.fieldtrack.feature.team.MemberState(
+            loaded = true, displayName = "Gurmeet", savedName = "Gurmeet", editable = true,
+        )
+        var state by mutableStateOf(base)
+        compose.setContent {
+            FieldTrackTheme(dark = false) {
+                com.example.fieldtrack.feature.team.MemberScreen(
+                    state = state, onBack = {}, onName = {}, onPhone = {}, onPreset = {}, onSeeMoney = {},
+                    onAddCustomers = {}, onCloseBills = {}, onEditTeam = {}, onEditMachines = {}, onPlanWork = {},
+                    onPayOut = {}, onSeePeopleCost = {}, onSave = {}, onSetActive = {}, onCall = null,
+                    tab = com.example.fieldtrack.feature.team.MemberTab.Access,
+                )
+            }
+        }
+        val save = text(R.string.edit_save)
+        compose.onAllNodesWithText(save).assertCountEquals(0)
+        state = base.copy(displayName = "Gurmeet Singh")
+        compose.waitForIdle()
+        compose.onNodeWithText(save).assertExists()
+    }
+
+    @Test fun aPaymentIsTakenBackWithAButtonYouCanSee() {
+        compose.setContent {
+            FieldTrackTheme(dark = false) {
+                com.example.fieldtrack.feature.money.PersonPayContent(
+                    state = com.example.fieldtrack.feature.money.PersonPayState(
+                        loaded = true, mayLook = true, mayPay = true, name = "Gurmeet", paidMinor = 200_000,
+                        rows = listOf(
+                            com.example.fieldtrack.feature.money.PersonPayRow(
+                                "p1", 1L, 200_000, com.example.fieldtrack.data.db.PayoutCovers.Day, null, null, voided = false,
+                            ),
+                            com.example.fieldtrack.feature.money.PersonPayRow(
+                                "p2", 2L, 100_000, com.example.fieldtrack.data.db.PayoutCovers.Advance, null, null, voided = true,
+                            ),
+                        ),
+                    ),
+                    onPay = {}, onTakeBack = {},
+                )
+            }
+        }
+        // One for the live payment; none for the one already taken back.
+        compose.onAllNodesWithText(text(R.string.person_pay_back_button)).assertCountEquals(1)
+    }
 }

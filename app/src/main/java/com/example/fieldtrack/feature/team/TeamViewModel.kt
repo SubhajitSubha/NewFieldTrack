@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 import com.example.fieldtrack.data.auth.PhoneNumbers
 import com.example.fieldtrack.data.db.entity.MembershipEntity
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import com.example.fieldtrack.data.session.grants
 
 /** One person on the books, with whatever they happen to be doing right now. */
 data class TeamMemberRow(
@@ -30,6 +32,12 @@ data class TeamMemberRow(
     val workingOn: String? = null,
     val elapsedSeconds: Long = 0,
     val paused: Boolean = false,
+    /** Their switches, so the list can name their job the way the member page does. */
+    val grants: com.example.fieldtrack.data.session.Grants = com.example.fieldtrack.data.session.Grants(),
+    /** An advance they still have to work off. Zero for whoever may not see pay. */
+    val advanceMinor: Long = 0,
+    /** What the business still owes them for a machine of theirs. Zero for whoever may not see pay. */
+    val hireLeftMinor: Long = 0,
 ) {
     val working: Boolean get() = workingOn != null
 }
@@ -44,6 +52,7 @@ data class TeamState(
     val ownerCount: Int = 0,
     /** Two rows that look like one person, if the team holds any. */
     val possibleDuplicate: DuplicatePair? = null,
+    val customRoles: List<com.example.fieldtrack.data.session.CustomRole> = emptyList(),
 ) {
     val working: List<TeamMemberRow> get() = members.filter { it.working && it.active }
     val idle: List<TeamMemberRow> get() = members.filter { !it.working && it.active }
@@ -107,14 +116,21 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.workRepository.observeLive(s.orgId),
             app.directoryRepository.observeMachines(s.orgId),
             app.teamRepository.observeOpenInvites(s.orgId),
-            dismissedDuplicates,
-        ) { members, liveJobs, machines, openCodes, dismissed ->
+            combine(
+                dismissedDuplicates,
+                app.teamRepository.observeCustomRoles(s.orgId),
+                app.hireRepository.observe(s.orgId),
+            ) { d, r, h -> Triple(d, r, h) },
+        ) { members, liveJobs, machines, openCodes, (dismissed, roles, hire) ->
             val machineNames = machines.associate { it.id to it.name }
+            // What is owed either way is for whoever may see what people are paid, and nobody else.
+            val seesPay = Capability.SeePeopleCost in s.can
             TeamState(
                 loaded = true,
                 canEditTeam = Capability.EditTeam in s.can,
                 openCodeCount = openCodes.size,
                 ownerCount = members.count { it.active && it.role == MemberRole.Owner },
+                customRoles = roles,
                 possibleDuplicate = duplicateAmong(members, dismissed),
                 members = members.map { member ->
                     val job = liveJobs.firstOrNull { it.operatorPersonId == member.personId }
@@ -131,6 +147,13 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         },
                         elapsedSeconds = job?.let { app.workRepository.elapsedSeconds(it) } ?: 0,
                         paused = job?.status == JobStatus.Paused,
+                        grants = member.grants(),
+                        advanceMinor = if (seesPay && member.active) {
+                            app.ledgerRepository.observeAdvanceOutstanding(s.orgId, member.personId).first()
+                        } else 0,
+                        hireLeftMinor = if (seesPay) {
+                            hire.firstOrNull { it.personId == member.personId }?.balanceMinor?.coerceAtLeast(0) ?: 0
+                        } else 0,
                     )
                 },
             )

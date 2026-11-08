@@ -204,11 +204,17 @@ after, for an owner and for a driver. A step is not done until its tasks pass.
   Decided: no separate diesel switch. The rules let every member read diesel and repairs, so a switch would hide nothing
   on the server and needs a migration plus a rules change; diesel and repairs show to anybody who sees either kind of
   money. Job costs are not listed: when labour is paid it is a payment out already, listing the cost too would count it twice.
-- [ ] **P5. Team, organised.** List: each person a card with role, what they are doing today, their machine, what you owe them (if you may
+- [x] **P5. Team, organised.** List: each person a card with role, what they are doing today, their machine, what you owe them (if you may
   see it) and a call button; invited people appear in the list as waiting; one Invite button; Roles and Team changes under "Manage".
   Member page in three parts: Work (today, this season, recent jobs), Money (owed, paid, advances, machine hire, Pay; the current
   separate pay screen merges in), Access (role as one dropdown with its sentence, fine-tune switches folded away, name and phone,
   remove from team at the very bottom).
+  Built: one "Add a person" asks "will they use the app?" (send a code / just write them down); each card says their job
+  (built-in, the owner's own, or "set by hand"), what they are doing in words, any advance to take back or machine hire
+  owed, and has a call button; Roles and Team changes sit under Manage; the one-owner warning says what tapping it does.
+  Member page: who they are, a call button, then Work (figures, latest work) / Money (the pay page, moved in; each payment
+  has a visible "Take this back") / What they can do (role, fine-tune, details, remove at the foot). Save only after a change.
+  Invited people still show as a "codes waiting" line rather than as people (an invite has no name until it is used).
 - [ ] **P6. Walk Home, Jobs, Customers, Machines, machine detail and job detail** as a first-time owner and driver with screenshots;
   list what is out of place (not audited yet) and report it before changing anything big.
 - [ ] **P7. Words, icons, translations, sign-off.** New strings in the eight languages, screen matrix and accessibility audit, full
