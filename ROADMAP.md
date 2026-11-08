@@ -159,7 +159,7 @@ Order is chosen so each step builds on the one before (dependencies noted).
   Done: the pay form asks "who" in one dropdown; the new screens are in the screen matrix (all nine configurations green);
   full suite 1,137 tests green after one fix (permission rows are named toggles); translations drafted, unread.
 
-## P. Arrange the app around the person (2026-11-08) - agreed, in progress
+## P. Arrange the app around the person (2026-11-08) - built; waiting for the owner's check
 Why: N put every feature somewhere, but arranged them by what was built, not by what a person is trying to do. The owner's verdict
 after trying it: more options in the drawer, not better arranged; no easy business switch; no real Settings screen; profile still
 has the old flow; money visibility unclear; team screens thin and unorganised. Seen on the emulator: the drawer is the old More list
@@ -224,8 +224,12 @@ after, for an owner and for a driver. A step is not done until its tasks pass.
   shared card. Customers already had its search box and "+".
   Reported, not changed (bigger): the owner's Home puts "Start work" below the fold under the figures; the person who
   drives too may want it first. Machine detail and job detail are long but in order; left as they are.
-- [ ] **P7. Words, icons, translations, sign-off.** New strings in the eight languages, screen matrix and accessibility audit, full
+- [x] **P7. Words, icons, translations, sign-off.** New strings in the eight languages, screen matrix and accessibility audit, full
   suite, the 15 tasks measured again, owner's check.
+  Done: 61 new strings drafted in the eight languages (strings_11, Indonesian strings_12; unread, notes in
+  docs/translations.md); full suite 1,147 tests green including every screen in all nine configurations; the tasks are
+  counted in docs/ux-tasks.md (most in three taps or fewer; the four that take more are named with the reason).
+  Waiting on: the owner trying it.
 
 Needs the owner's yes before P1 (defaults in brackets): "team switch" means switching between businesses [yes]; Money is a menu row, the
 four tabs stay [yes]; Profile is the form itself [yes]; diesel and repairs get their own visibility switch [yes, but if it needs a

@@ -44,6 +44,17 @@ but kept in the record), the **I need help** sheet (`sos_*`) and the notificatio
 (`push_breakdown_*`, `push_sos`, `push_member_joined`, which take a machine's or a person's name, so
 check gender and word order). Arabic uses masculine verbs in the notification lines.
 
+## Added with the rearrangement round (`strings_11.xml`, Indonesian `strings_12.xml`)
+61 more entries for the new menu, Settings, the profile form, search in the bar, the Money page and the
+team pages, drafted the same way and equally unread. Read first: **Change** on the business line of the
+menu (`menu_change_business`, a short verb on a small pill, so it must stay short), the question before
+adding a person (`team_add_how`, `team_add_invite`, `team_add_write`: "will they use the app on their own
+phone?"), the member page's parts (`member_tab_*`; "What they can do" must fit beside two short words),
+**take this back** for a payment (`person_pay_back_button`, which cancels but keeps the record), and the
+two lines that say what a role may not see (`mh_hidden_*`). Spanish, Portuguese and French refer to the
+team member as "she/elle/ela" in `team_add_*` where the word is "persona/pessoa/personne"; check it reads
+naturally.
+
 ## Things the translations cannot yet do
 - The amount in words at the foot of a bill is English-only (and only for rupees). A bill in
   another language leaves that line off rather than print English number-words.
