@@ -276,6 +276,7 @@ internal object Routes {
     const val SETTINGS = "more/settings"
     /** Everything about money, behind one door. */
     const val MONEY = "more/money"
+    const val MONEY_REPORTS = "more/money/reports"
     const val EXPORT = "more/export"
     const val REMINDERS = "more/reminders"
     const val HELP = "more/help"
@@ -1341,25 +1342,6 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.MONEY_HISTORY) {
-                val vm: com.example.fieldtrack.feature.money.MoneyHistoryViewModel =
-                    appViewModel { com.example.fieldtrack.feature.money.MoneyHistoryViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                com.example.fieldtrack.feature.money.MoneyHistoryScreen(
-                    state = state,
-                    onBack = { navController.popBackStack() },
-                    onFilter = vm::setFilter,
-                    onPeriod = vm::setPeriod,
-                    onQuery = vm::setQuery,
-                    onOpen = { target ->
-                        when (target) {
-                            is com.example.fieldtrack.feature.money.HistoryOpen.Customer -> navController.navigate(Routes.ledger(target.customerId))
-                            is com.example.fieldtrack.feature.money.HistoryOpen.Person -> navController.navigate(Routes.personPay(target.membershipId))
-                            is com.example.fieldtrack.feature.money.HistoryOpen.Machine -> navController.navigate("machines/${target.machineId}")
-                        }
-                    },
-                )
-            }
 
             composable(Routes.NOTICES) {
                 val app = LocalContext.current.applicationContext as FieldFlowApplication
@@ -2652,16 +2634,43 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.MONEY) {
+            // The money page, and the old history route that now leads to it.
+            listOf(Routes.MONEY, Routes.MONEY_HISTORY).forEach { route ->
+                composable(route) {
+                    val vm: com.example.fieldtrack.feature.money.MoneyHistoryViewModel =
+                        appViewModel { com.example.fieldtrack.feature.money.MoneyHistoryViewModel(it) }
+                    val state by vm.state.collectAsStateWithLifecycle()
+                    com.example.fieldtrack.feature.money.MoneyHistoryScreen(
+                        state = state,
+                        onBack = { navController.popBackStack() },
+                        actions = com.example.fieldtrack.feature.money.MoneyActions(
+                            onFilter = vm::setFilter,
+                            onPeriod = vm::setPeriod,
+                            onQuery = vm::setQuery,
+                            onOpen = { target ->
+                                when (target) {
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Customer -> navController.navigate(Routes.ledger(target.customerId))
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Person -> navController.navigate(Routes.personPay(target.membershipId))
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Machine -> navController.navigate("machines/${target.machineId}")
+                                }
+                            },
+                            onReceived = { navController.navigate(Routes.pay(it)) },
+                            onPaySomeone = { navController.navigate(Routes.payOut(null)) },
+                            onPeople = { navController.navigate(Routes.MONEY_OUT) },
+                            onReports = { navController.navigate(Routes.MONEY_REPORTS) },
+                        ),
+                    )
+                }
+            }
+
+            composable(Routes.MONEY_REPORTS) {
                 val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
-                com.example.fieldtrack.feature.money.MoneyHubScreen(
+                com.example.fieldtrack.feature.money.MoneyReportsScreen(
                     access = com.example.fieldtrack.feature.money.MoneyHubAccess(
                         customerMoney = session?.canSeeMoney == true,
                         peopleCost = session?.let { Capability.SeePeopleCost in it.can } == true,
                     ),
                     onBack = { navController.popBackStack() },
-                    onHistory = { navController.navigate(Routes.MONEY_HISTORY) },
-                    onPeople = { navController.navigate(Routes.MONEY_OUT) },
                     onSeason = { navController.navigate(Routes.SEASON) },
                     onIncome = { navController.navigate(Routes.INCOME) },
                     onAssets = { navController.navigate(Routes.ASSETS) },

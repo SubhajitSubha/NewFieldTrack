@@ -192,11 +192,18 @@ after, for an owner and for a driver. A step is not done until its tasks pass.
 - [x] **P3. Profile is the form.** Name, phone (fixed), role, and for an owner the business details, all editable on the page with
   one Save that appears once something changes. No per-field rows, no separate "edit" screen.
   Built: leaving with unsaved changes asks (save, or leave without saving); "Saved." confirms; the old edit route is gone.
-- [ ] **P4. Money, one place.** A hub: top figures (to collect, paid out this month, left this season, each only if the role may see it),
+- [x] **P4. Money, one place.** A hub: top figures (to collect, paid out this month, left this season, each only if the role may see it),
   two big buttons (Money received, Pay someone), then one list of everything with In / Out and a period, then Reports (season,
   income statement, machine values, rates and the price sum). Money history, Money out and the pay form become parts of it, not
   separate doors. Visibility by kind of transaction, set per role in the role editor under "Money they see": customer money,
   wages and machine hire, diesel and repairs; the list says plainly what is hidden for the role.
+  Built: the menu's Money opens one page: in and out for the period, what farmers still owe, Money received (pick the
+  farmer, then the payment form) and Pay someone, People and hire, Reports and prices (season, income statement, machine
+  values, rates, the price sum), then every movement with only the kinds this person may see offered as filters and a line
+  saying what is kept back. A payment out says what it was for, and unnamed ones read "Labourers".
+  Decided: no separate diesel switch. The rules let every member read diesel and repairs, so a switch would hide nothing
+  on the server and needs a migration plus a rules change; diesel and repairs show to anybody who sees either kind of
+  money. Job costs are not listed: when labour is paid it is a payment out already, listing the cost too would count it twice.
 - [ ] **P5. Team, organised.** List: each person a card with role, what they are doing today, their machine, what you owe them (if you may
   see it) and a call button; invited people appear in the list as waiting; one Invite button; Roles and Team changes under "Manage".
   Member page in three parts: Work (today, this season, recent jobs), Money (owed, paid, advances, machine hire, Pay; the current

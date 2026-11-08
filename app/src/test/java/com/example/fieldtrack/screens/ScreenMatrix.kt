@@ -895,6 +895,7 @@ abstract class ScreenMatrix(
         "profile" to Routes.PROFILE,
         "settings" to Routes.SETTINGS,
         "money" to Routes.MONEY,
+        "money-reports" to Routes.MONEY_REPORTS,
         "team" to Routes.TEAM,
         "member" to "more/team/${ids.driverMembershipId}",
         "invite" to Routes.INVITE,

@@ -2555,6 +2555,17 @@
     <string name="search_bar_prompt">Find a farmer, a field, a machine or a job by its name, village, phone number or plate.</string>
     <string name="search_close_cd">Close search</string>
     <string name="search_clear_cd">Clear what you typed</string>
+    <string name="money_to_collect">Farmers still owe %1$s</string>
+    <string name="money_got_paid">Money received</string>
+    <string name="money_received_who">Who paid?</string>
+    <string name="money_pay_someone">Pay someone</string>
+    <string name="money_people_row">People and hire</string>
+    <string name="money_people_note">What each person and each machine owner is owed and has been paid</string>
+    <string name="money_reports_row">Reports and prices</string>
+    <string name="money_reports_note">The season, an income statement for the bank, what the machines are worth, your rates</string>
+    <string name="money_reports_note_short">Your rates, and a quick price for a job</string>
+    <string name="mh_hidden_farmers">Farmers\' bills and payments are not shown to you.</string>
+    <string name="mh_hidden_people">What people are paid is not shown to you.</string>
     <string name="money_hub_reports">Reports</string>
     <string name="money_hub_prices">Your prices</string>
     <string name="money_hub_rates_note">What you charge for each kind of work</string>

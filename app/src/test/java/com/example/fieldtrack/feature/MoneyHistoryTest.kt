@@ -157,4 +157,36 @@ class MoneyHistoryTest {
             assertEquals(HistoryPeriod.Ever, ready { period == HistoryPeriod.Ever && rows.size >= 4 }.period)
         }
     }
+
+    @Test fun `somebody who sees what people are paid but not farmers' money sees wages and diesel, and is told what is kept back`() {
+        business(driver)
+        runBlocking {
+            val row = app.db.orgDao().membership(org, driver)!!
+            app.db.orgDao().upsertMembership(row.copy(canSeePeopleCost = true))
+            @Suppress("UNCHECKED_CAST")
+            val startup = SessionStore::class.java.getDeclaredField("_startup").apply { isAccessible = true }.get(app.sessionStore) as MutableStateFlow<Startup>
+            startup.value = Startup.Loading
+            app.sessionStore.load()
+        }
+        history { _, ready ->
+            val s = ready { rows.size >= 3 }
+            assertEquals(setOf(HistoryKind.PaidOut, HistoryKind.Fuel, HistoryKind.Repairs), s.rows.map { it.kind }.toSet())
+            assertFalse("farmers' money is kept back", s.seesMoney)
+            assertTrue(s.seesPeople)
+            assertFalse("no filter for a kind they cannot see", HistoryFilter.Received in s.filters)
+            assertEquals("nothing owed is shown either", 0L, s.toCollectMinor)
+        }
+    }
+
+    @Test fun `the owner is told what farmers still owe`() {
+        business(owner)
+        runBlocking {
+            app.ledgerRepository.recordOpeningBalance(org, ramesh, 80_000)
+        }
+        history { _, ready ->
+            val s = ready { toCollectMinor > 0 }
+            assertEquals("owed 800, paid 500", 30_000L, s.toCollectMinor)
+            assertEquals(HistoryFilter.entries.toList(), s.filters)
+        }
+    }
 }

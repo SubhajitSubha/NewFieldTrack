@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
@@ -71,6 +73,8 @@ data class HistoryRow(
     val amountMinor: Long,
     val voided: Boolean = false,
     val open: HistoryOpen? = null,
+    /** For a payment out: what it was for (a job, a day, an advance, machine hire). */
+    val covers: PayoutCovers? = null,
 )
 
 data class MoneyHistoryState(
@@ -82,14 +86,37 @@ data class MoneyHistoryState(
     val rows: List<HistoryRow> = emptyList(),
     val inMinor: Long = 0,
     val outMinor: Long = 0,
-)
+    /** Farmers' bills and payments. */
+    val seesMoney: Boolean = false,
+    /** Wages, advances and machine hire. */
+    val seesPeople: Boolean = false,
+    val canTakePayment: Boolean = false,
+    val canPayOut: Boolean = false,
+    /** What farmers still owe, all told. */
+    val toCollectMinor: Long = 0,
+    /** For choosing whose payment came in; empty for somebody who may not take one. */
+    val customers: List<com.example.fieldtrack.data.db.entity.CustomerEntity> = emptyList(),
+) {
+    /** Only the kinds this person may see are offered as a filter. */
+    val filters: List<HistoryFilter>
+        get() = listOfNotNull(
+            HistoryFilter.All,
+            HistoryFilter.Received.takeIf { seesMoney },
+            HistoryFilter.Billed.takeIf { seesMoney },
+            HistoryFilter.PaidOut.takeIf { seesPeople },
+            HistoryFilter.Costs,
+        )
+}
 
 /**
- * Every movement of money in one list, newest first: what came in from farmers, what was billed,
- * what went out to people, and what was spent on diesel and repairs.
+ * The one place for money: what this period brought in and cost, what farmers still owe, the
+ * two things people come here to do (take a payment, pay somebody), and every movement of
+ * money in one list, newest first.
  *
- * Each kind is shown only to somebody who may see it: the farmers' side with money, wages and
- * hire with what the business pays. A line leads to the page it came from.
+ * Each kind is shown only to somebody who may see it: farmers' bills and payments with "see
+ * money", wages, advances and hire with "see what people are paid", diesel and repairs with
+ * either. The page says plainly which kinds are kept from this person. A line leads to the
+ * page it came from.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel() {
@@ -111,8 +138,9 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                     app.directoryRepository.observeCustomers(s.orgId),
                     app.directoryRepository.observeMachines(s.orgId),
                     app.teamRepository.observeEveryone(s.orgId),
-                ) { c, m, t -> Triple(c, m, t) },
-            ) { ledger, payouts, fuel, service, (customers, machines, team) ->
+                    app.ledgerRepository.observeBalances(s.orgId),
+                ) { c, m, t, b -> Lists(c, m, t, b) },
+            ) { ledger, payouts, fuel, service, (customers, machines, team, balances) ->
                 if (!seesMoney && !seesPeople) return@combine MoneyHistoryState(loaded = true, filter = filter, period = period, query = query)
                 val customerName = customers.associate { it.id to it.name }
                 val machineName = machines.associate { it.id to it.name }
@@ -135,6 +163,10 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                                 )
                             )
                         }
+                    }
+                    // Diesel and repairs are the business's own running costs, not a farmer's
+                    // account: shown to anybody who sees either kind of money.
+                    run {
                         fuel.forEach {
                             add(
                                 HistoryRow(
@@ -161,7 +193,7 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                                     id = "p-" + it.id, atMillis = it.atMillis, kind = HistoryKind.PaidOut,
                                     who = it.toPersonId?.let { id -> personName[id] } ?: it.toName.orEmpty(),
                                     detail = it.note?.takeIf { n -> n.isNotBlank() },
-                                    amountMinor = it.amountMinor, voided = it.voidedAt != null,
+                                    amountMinor = it.amountMinor, voided = it.voidedAt != null, covers = it.covers,
                                     open = it.toPersonId?.let { id -> HistoryOpen.Person(membershipId(s.orgId, id)) },
                                 )
                             )
@@ -185,6 +217,12 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                 MoneyHistoryState(
                     loaded = true, mayLook = true, filter = filter, period = period, query = query,
                     rows = shown,
+                    seesMoney = seesMoney,
+                    seesPeople = seesPeople,
+                    canTakePayment = Capability.TakePayment in s.can,
+                    canPayOut = Capability.PayOut in s.can,
+                    toCollectMinor = if (seesMoney) balances.sumOf { maxOf(it.balanceMinor, 0) } else 0,
+                    customers = if (Capability.TakePayment in s.can) customers else emptyList(),
                     inMinor = counted.filter { it.kind == HistoryKind.Received }.sumOf { it.amountMinor },
                     outMinor = counted.filter { it.kind == HistoryKind.PaidOut || it.kind == HistoryKind.Fuel || it.kind == HistoryKind.Repairs }
                         .sumOf { it.amountMinor },
@@ -198,21 +236,42 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
     fun setQuery(text: String) = form.update { it.copy(third = text.take(40)) }
 }
 
+/** The four lists the money page reads besides the money itself. */
+private data class Lists(
+    val customers: List<com.example.fieldtrack.data.db.entity.CustomerEntity>,
+    val machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
+    val team: List<com.example.fieldtrack.data.db.entity.MembershipEntity>,
+    val balances: List<com.example.fieldtrack.data.db.dao.CustomerBalance>,
+)
+
+/** Where the money page leads, grouped so it travels as one argument. */
+class MoneyActions(
+    val onFilter: (HistoryFilter) -> Unit,
+    val onPeriod: (HistoryPeriod) -> Unit,
+    val onQuery: (String) -> Unit,
+    val onOpen: (HistoryOpen) -> Unit,
+    /** Opens the payment form for the farmer picked. */
+    val onReceived: (customerId: String) -> Unit,
+    val onPaySomeone: () -> Unit,
+    /** What each person is owed and has been paid. */
+    val onPeople: () -> Unit,
+    val onReports: () -> Unit,
+)
+
 @Composable
 fun MoneyHistoryScreen(
     state: MoneyHistoryState,
+    actions: MoneyActions,
     onBack: () -> Unit,
-    onFilter: (HistoryFilter) -> Unit,
-    onPeriod: (HistoryPeriod) -> Unit,
-    onQuery: (String) -> Unit,
-    onOpen: (HistoryOpen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
+    var pickingFarmer by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    var farmerQuery by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
     Column(modifier.fillMaxSize().background(colors.paper)) {
         FtTopBar(
-            title = stringResource(R.string.mh_title),
+            title = stringResource(R.string.menu_money),
             onBack = onBack,
             backContentDescription = stringResource(R.string.action_back_cd),
         )
@@ -232,10 +291,79 @@ fun MoneyHistoryScreen(
             Modifier.weight(1f).padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            item {
+            item(key = "summary") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FtPick(
-                        options = HistoryFilter.entries,
+                    // ---- The figures: this period, and what is still to come in.
+                    FtCard(background = colors.deep, borderColor = colors.deep) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                            Column {
+                                Text(stringResource(R.string.mh_in).uppercase(), style = FieldTrackTheme.type.caption, color = colors.onDarkMuted)
+                                Text(money(state.inMinor), style = FieldTrackTheme.type.sectionTitle, color = colors.onDark)
+                            }
+                            Column {
+                                Text(stringResource(R.string.mh_out).uppercase(), style = FieldTrackTheme.type.caption, color = colors.onDarkMuted)
+                                Text(money(state.outMinor), style = FieldTrackTheme.type.sectionTitle, color = colors.onDark)
+                            }
+                        }
+                        if (state.seesMoney) {
+                            Text(
+                                text = stringResource(R.string.money_to_collect, money(state.toCollectMinor)),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.onDarkMuted,
+                                modifier = Modifier.padding(top = 10.dp),
+                            )
+                        }
+                    }
+
+                    // ---- The two things people come here to do.
+                    val receive = state.canTakePayment && state.customers.isNotEmpty()
+                    if (receive || state.canPayOut) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (receive) com.example.fieldtrack.designsystem.component.FtButton(
+                                text = stringResource(R.string.money_got_paid),
+                                onClick = { farmerQuery = ""; pickingFarmer = true },
+                                icon = FieldTrackIcons.Add,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (state.canPayOut) com.example.fieldtrack.designsystem.component.FtButton(
+                                text = stringResource(R.string.money_pay_someone),
+                                onClick = actions.onPaySomeone,
+                                tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary,
+                                icon = FieldTrackIcons.Minus,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    // ---- Pages behind this one.
+                    FtCard(padding = 0.dp) {
+                        if (state.seesPeople) {
+                            FtListRow(
+                                title = stringResource(R.string.money_people_row),
+                                subtitle = stringResource(R.string.money_people_note),
+                                subtitleMaxLines = 2,
+                                leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
+                                showChevron = true,
+                                onClick = actions.onPeople,
+                            )
+                            FtRowDivider()
+                        }
+                        FtListRow(
+                            title = stringResource(R.string.money_reports_row),
+                            subtitle = stringResource(
+                                if (state.seesPeople) R.string.money_reports_note else R.string.money_reports_note_short
+                            ),
+                            subtitleMaxLines = 2,
+                            leading = { FtIconTile(FieldTrackIcons.Report, size = 40.dp) },
+                            showChevron = true,
+                            onClick = actions.onReports,
+                        )
+                    }
+
+                    // ---- Every movement of money.
+                    FtSectionLabel(stringResource(R.string.mh_title), Modifier.padding(top = 8.dp))
+                    if (state.filters.size > 2) FtPick(
+                        options = state.filters,
                         selected = state.filter,
                         text = {
                             stringResource(
@@ -248,7 +376,7 @@ fun MoneyHistoryScreen(
                                 }
                             )
                         },
-                        onPick = onFilter,
+                        onPick = actions.onFilter,
                     )
                     FtPick(
                         options = HistoryPeriod.entries,
@@ -263,26 +391,24 @@ fun MoneyHistoryScreen(
                                 }
                             )
                         },
-                        onPick = onPeriod,
+                        onPick = actions.onPeriod,
                     )
                     FtTextField(
                         value = state.query,
-                        onValueChange = onQuery,
+                        onValueChange = actions.onQuery,
                         leadingIcon = FieldTrackIcons.Search,
                         placeholder = stringResource(R.string.mh_search),
                     )
-                    FtCard(background = colors.deep, borderColor = colors.deep) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            Column {
-                                Text(stringResource(R.string.mh_in).uppercase(), style = FieldTrackTheme.type.caption, color = colors.onDarkMuted)
-                                Text(money(state.inMinor), style = FieldTrackTheme.type.sectionTitle, color = colors.onDark)
-                            }
-                            Column {
-                                Text(stringResource(R.string.mh_out).uppercase(), style = FieldTrackTheme.type.caption, color = colors.onDarkMuted)
-                                Text(money(state.outMinor), style = FieldTrackTheme.type.sectionTitle, color = colors.onDark)
-                            }
-                        }
-                    }
+                    // Said, not left to be guessed: an empty kind is either nothing or not yours to see.
+                    val hidden = listOfNotNull(
+                        stringResource(R.string.mh_hidden_farmers).takeIf { !state.seesMoney },
+                        stringResource(R.string.mh_hidden_people).takeIf { !state.seesPeople },
+                    )
+                    if (hidden.isNotEmpty()) Text(
+                        text = hidden.joinToString(" "),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                    )
                 }
             }
             if (state.loaded && state.rows.isEmpty()) {
@@ -302,7 +428,7 @@ fun MoneyHistoryScreen(
                     FtCard(padding = 0.dp) {
                         rows.forEachIndexed { index, row ->
                             if (index > 0) FtRowDivider()
-                            HistoryLine(row, onOpen)
+                            HistoryLine(row, actions.onOpen)
                         }
                     }
                 }
@@ -310,27 +436,50 @@ fun MoneyHistoryScreen(
             item { Spacer(Modifier.height(dimens.screenPadding)) }
         }
     }
+
+    if (pickingFarmer) {
+        com.example.fieldtrack.feature.work.PickCustomerSheet(
+            customers = state.customers,
+            query = farmerQuery,
+            onQuery = { farmerQuery = it },
+            onPick = { pickingFarmer = false; actions.onReceived(it.id) },
+            onDismiss = { pickingFarmer = false },
+            title = stringResource(R.string.money_received_who),
+        )
+    }
 }
 
 @Composable
 private fun HistoryLine(row: HistoryRow, onOpen: (HistoryOpen) -> Unit) {
     val colors = FieldTrackTheme.colors
+    // A payment out says what it was for, which says more than "paid out" ever could.
     val label = stringResource(
         when (row.kind) {
             HistoryKind.Received -> R.string.mh_k_received
             HistoryKind.Billed -> R.string.mh_k_billed
             HistoryKind.Corrected -> R.string.mh_k_corrected
-            HistoryKind.PaidOut -> R.string.mh_k_paid
+            HistoryKind.PaidOut -> when (row.covers) {
+                PayoutCovers.Job -> R.string.money_out_for_job
+                PayoutCovers.Day -> R.string.money_out_for_day
+                PayoutCovers.Period -> R.string.money_out_for_period
+                PayoutCovers.Advance -> R.string.money_out_for_advance
+                PayoutCovers.Hire -> R.string.money_out_for_hire
+                null -> R.string.mh_k_paid
+            }
             HistoryKind.Fuel -> R.string.mh_k_fuel
             HistoryKind.Repairs -> R.string.mh_k_repairs
         }
     )
+    // Paid to nobody on the team and not named: the day's labourers.
+    val who = row.who.ifBlank {
+        if (row.kind == HistoryKind.PaidOut) stringResource(R.string.payout_labourers) else ""
+    }
     val incoming = row.kind == HistoryKind.Received
     val outgoing = row.kind == HistoryKind.PaidOut || row.kind == HistoryKind.Fuel || row.kind == HistoryKind.Repairs
     FtListRow(
-        title = row.who.ifBlank { label },
+        title = who.ifBlank { label },
         subtitle = listOfNotNull(
-            label.takeIf { row.who.isNotBlank() }, row.detail,
+            label.takeIf { who.isNotBlank() }, row.detail,
             if (row.voided) stringResource(R.string.person_pay_taken_back) else null,
         ).joinToString(" · ").ifBlank { null },
         leading = {

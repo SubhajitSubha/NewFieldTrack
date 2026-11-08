@@ -32,18 +32,15 @@ data class MoneyHubAccess(
 )
 
 /**
- * The one place for money.
+ * Reports and prices, behind one line on the money page.
  *
- * Everything that came in or went out, paying people, the reports for a season or a
- * bank, and the prices the business charges: each used to be its own line in the menu.
- * A part a person may not see is left out, not greyed.
+ * The reports for a season or a bank, and the prices the business charges: each used to
+ * be its own line in the menu. A part a person may not see is left out, not greyed.
  */
 @Composable
-fun MoneyHubScreen(
+fun MoneyReportsScreen(
     access: MoneyHubAccess,
     onBack: () -> Unit,
-    onHistory: () -> Unit,
-    onPeople: () -> Unit,
     onSeason: () -> Unit,
     onIncome: () -> Unit,
     onAssets: () -> Unit,
@@ -59,7 +56,7 @@ fun MoneyHubScreen(
             .background(colors.paper)
     ) {
         FtTopBar(
-            title = stringResource(R.string.menu_money),
+            title = stringResource(R.string.money_reports_row),
             onBack = onBack,
             backContentDescription = stringResource(R.string.action_back_cd),
         )
@@ -70,15 +67,6 @@ fun MoneyHubScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Links(
-                buildList {
-                    add(Hub(stringResource(R.string.mh_title), stringResource(R.string.mh_row_note), FieldTrackIcons.Banknote, onHistory))
-                    if (access.peopleCost) add(
-                        Hub(stringResource(R.string.more_money_out), stringResource(R.string.more_money_out_note), FieldTrackIcons.Team, onPeople)
-                    )
-                }
-            )
-
             val reports = buildList {
                 if (access.peopleCost) add(
                     Hub(stringResource(R.string.season_title), stringResource(R.string.more_season_note), FieldTrackIcons.Report, onSeason)
@@ -91,7 +79,7 @@ fun MoneyHubScreen(
                 )
             }
             if (reports.isNotEmpty()) {
-                FtSectionLabel(stringResource(R.string.money_hub_reports), Modifier.padding(top = 8.dp))
+                FtSectionLabel(stringResource(R.string.money_hub_reports))
                 Links(reports)
             }
 
