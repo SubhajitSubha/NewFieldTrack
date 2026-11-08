@@ -25,6 +25,7 @@ import android.content.ClipboardManager
 import android.widget.Toast
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material3.Text
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -2275,8 +2276,28 @@ private fun MainNavHost(navController: NavHostController) {
                 // From a person's own page the person is already chosen.
                 val person = entry.arguments?.getString("person").orEmpty()
                 LaunchedEffect(person) { if (person.isNotBlank()) vm.setPerson(person) }
+                val context = LocalContext.current
+                var upiAsk by remember { mutableStateOf(false) }
+                var upiNote by remember { mutableStateOf<Int?>(null) }
+                // What the UPI app said when it came back: saved if it went, asked if it cannot say.
+                val upiLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                    val reply = result.data?.getStringExtra("response")
+                        ?: result.data?.getStringExtra("Status")?.let { "Status=$it" }
+                    val outcome = com.example.fieldtrack.data.payments.Upi.parseReply(reply)
+                    when (outcome.status) {
+                        com.example.fieldtrack.data.payments.Upi.Status.Success ->
+                            vm.saveAsUpi(outcome.transactionId) { navController.popBackStack() }
+                        com.example.fieldtrack.data.payments.Upi.Status.Failure -> upiNote = R.string.payout_upi_failed
+                        else -> upiAsk = true
+                    }
+                }
                 PayOutScreen(
                     state = state,
+                    onPayByUpi = { link ->
+                        upiNote = null
+                        runCatching { upiLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+                            .onFailure { upiNote = R.string.payout_upi_no_app }
+                    },
                     onNote = vm::setNote,
                     onBack = { navController.popBackStack() },
                     onPerson = vm::setPerson,
@@ -2287,6 +2308,29 @@ private fun MainNavHost(navController: NavHostController) {
                     onJob = vm::setJob,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
+                upiNote?.let { note ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { upiNote = null },
+                        text = { Text(stringResource(note)) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { upiNote = null }) { Text(stringResource(R.string.orgs_refused_ok)) } },
+                    )
+                }
+                if (upiAsk) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { upiAsk = false },
+                        title = { Text(stringResource(R.string.payout_upi_ask_title)) },
+                        text = { Text(stringResource(R.string.payout_upi_ask_body)) },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                upiAsk = false
+                                vm.saveAsUpi(null) { navController.popBackStack() }
+                            }) { Text(stringResource(R.string.payout_upi_ask_yes)) }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { upiAsk = false }) { Text(stringResource(R.string.payout_upi_ask_no)) }
+                        },
+                    )
+                }
             }
 
             composable(Routes.TEAM_CHANGES) {

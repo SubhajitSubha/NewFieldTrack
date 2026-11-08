@@ -47,6 +47,9 @@ data class PayOutState(
     val note: String = "",
     val mayPay: Boolean = false,
     val busy: Boolean = false,
+    /** The chosen person's UPI id, when they have given one: they can be paid from here. */
+    val payeeUpi: String? = null,
+    val businessName: String = "",
 ) {
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
     val payingLabourers: Boolean get() = toPersonId == null
@@ -60,6 +63,16 @@ data class PayOutState(
         get() = mayPay && !busy && amountMinor > 0 &&
             (covers != PayoutCovers.Job || jobId != null) &&
             (covers != PayoutCovers.Advance || toPersonId != null)
+
+    /** The UPI link that pays them this amount, when they can be paid by UPI from here. */
+    val upiLink: String?
+        get() {
+            val id = payeeUpi ?: return null
+            if (!canSave || !com.example.fieldtrack.data.payments.Upi.looksValid(id)) return null
+            if (com.example.fieldtrack.designsystem.format.Money.style.currencyCode != "INR") return null
+            val name = people.firstOrNull { it.personId == toPersonId }?.name.orEmpty()
+            return com.example.fieldtrack.data.payments.Upi.payLink(id, name, amountMinor, note = businessName)
+        }
 }
 
 /**
@@ -81,12 +94,18 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.workRepository.observeRecent(s.orgId),
             form,
             form.map { it.toPersonId }.distinctUntilChanged().flatMapLatest { personId ->
-                if (personId == null) flowOf(0L)
-                else app.ledgerRepository.observeAdvanceOutstanding(s.orgId, personId)
+                if (personId == null) flowOf(0L to null)
+                else combine(
+                    app.ledgerRepository.observeAdvanceOutstanding(s.orgId, personId),
+                    app.peopleRepository.observeDetails(s.orgId, personId),
+                ) { advance, details -> advance to details?.payoutUpi }
             },
-        ) { members, recentJobs, typed, advanceOutstanding ->
+            app.db.orgDao().observeOrg(s.orgId),
+        ) { members, recentJobs, typed, (advanceOutstanding, upi), org ->
             typed.copy(
                 loaded = true,
+                payeeUpi = upi,
+                businessName = org?.name.orEmpty(),
                 advanceOutstandingMinor = advanceOutstanding,
                 people = members.map { PayablePerson(it.personId, it.displayName) },
                 jobs = recentJobs.map {
@@ -105,6 +124,20 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setMethod(method: PaymentMethod) = form.update { it.copy(method = method) }
     fun setRecover(text: String) = form.update { it.copy(recoverText = MoneyInput.clean(text)) }
     fun setNote(text: String) = form.update { it.copy(note = text.take(120)) }
+
+    /**
+     * Saves the payment as made by UPI, once the UPI app said it went (or the person said so).
+     * The UPI reference goes in the note, so the payment can be matched to the bank's own record.
+     */
+    fun saveAsUpi(transactionId: String?, onSaved: () -> Unit) {
+        form.update {
+            it.copy(
+                method = PaymentMethod.Upi,
+                note = listOfNotNull(it.note.trim().ifBlank { null }, transactionId?.let { t -> "UPI $t" }).joinToString(" · "),
+            )
+        }
+        save(onSaved)
+    }
 
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val now = state.value

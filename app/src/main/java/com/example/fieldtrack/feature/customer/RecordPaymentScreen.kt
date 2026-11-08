@@ -70,7 +70,15 @@ data class RecordPaymentState(
     /** What was handed over when it was grain or produce, such as "20 bags of wheat". */
     val inKindNote: String = "",
     val saving: Boolean = false,
+    /** The business's UPI id and name, for a code the farmer can scan to pay. */
+    val upiId: String? = null,
+    val businessName: String = "",
 ) {
+    /** A QR to scan, when the farmer pays by UPI and the business has said where UPI money goes. */
+    val upiLink: String?
+        get() = if (method == PaymentMethod.Upi && com.example.fieldtrack.data.payments.Upi.looksValid(upiId) && amountMinor > 0 &&
+            com.example.fieldtrack.designsystem.format.Money.style.currencyCode == "INR"
+        ) com.example.fieldtrack.data.payments.Upi.payLink(upiId!!, businessName, amountMinor, note = customerName) else null
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
     val canSave: Boolean get() = amountMinor > 0 && !saving
     val leftAfterMinor: Long get() = (owedMinor - amountMinor).coerceAtLeast(0)
@@ -93,8 +101,12 @@ class RecordPaymentViewModel(
             val customer = app.directoryRepository.observeCustomer(s.orgId, customerId).first()
             val owed = app.ledgerRepository.observeBalance(s.orgId, customerId).first()
             entries = app.ledgerRepository.observeLedger(s.orgId, customerId).first()
+            val org = app.db.orgDao().observeOrg(s.orgId).first()
             _state.update {
-                it.copy(customerName = customer?.name.orEmpty(), owedMinor = owed)
+                it.copy(
+                    customerName = customer?.name.orEmpty(), owedMinor = owed,
+                    upiId = org?.upiId, businessName = org?.name.orEmpty(),
+                )
             }
         }
     }
@@ -301,6 +313,38 @@ fun RecordPaymentScreen(
                             onClick = { onMethod(method) },
                         )
                     }
+                }
+            }
+
+            // Paid by UPI: a code for the farmer to scan, with the amount already in it.
+            if (state.method == PaymentMethod.Upi && com.example.fieldtrack.designsystem.format.Money.style.currencyCode == "INR") {
+                val link = state.upiLink
+                if (link != null) {
+                    com.example.fieldtrack.designsystem.component.FtCard {
+                        com.example.fieldtrack.designsystem.qr.QrImage(
+                            text = link,
+                            contentDescription = stringResource(R.string.upi_qr_cd, money(state.amountMinor)),
+                            modifier = Modifier.fillMaxWidth(0.75f).align(Alignment.CenterHorizontally),
+                        )
+                        Text(
+                            text = stringResource(R.string.upi_qr_note, state.customerName),
+                            style = FieldTrackTheme.type.bodySmall,
+                            color = colors.inkSecondary,
+                            modifier = Modifier.padding(top = 10.dp),
+                        )
+                        Text(
+                            text = state.upiId.orEmpty(),
+                            style = FieldTrackTheme.type.caption,
+                            color = colors.inkTertiary,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                } else if (!com.example.fieldtrack.data.payments.Upi.looksValid(state.upiId)) {
+                    Text(
+                        text = stringResource(R.string.upi_qr_no_id),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.inkTertiary,
+                    )
                 }
             }
 

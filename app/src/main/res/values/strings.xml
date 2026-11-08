@@ -2646,4 +2646,14 @@
     <string name="profile_payout_upi">Your UPI id, to be paid on</string>
     <string name="team_licence_expired">Driving licence has run out</string>
     <string name="team_licence_soon">Licence runs out %1$s</string>
+    <string name="upi_qr_cd">A QR code to pay %1$s by UPI</string>
+    <string name="upi_qr_note">Let %1$s scan this with any UPI app. Save once the money shows in your account.</string>
+    <string name="upi_qr_no_id">Put your UPI id on your Profile and a code to scan will show here.</string>
+    <string name="payout_pay_by_upi">Pay %1$s by UPI</string>
+    <string name="payout_upi_failed">The UPI app says the payment did not go through. Nothing was saved.</string>
+    <string name="payout_upi_no_app">There is no UPI app on this phone. Pay the usual way, then save it here.</string>
+    <string name="payout_upi_ask_title">Did the money go?</string>
+    <string name="payout_upi_ask_body">The UPI app did not say. Check it, and save the payment here only if it went.</string>
+    <string name="payout_upi_ask_yes">It went, save it</string>
+    <string name="payout_upi_ask_no">It did not</string>
 </resources>

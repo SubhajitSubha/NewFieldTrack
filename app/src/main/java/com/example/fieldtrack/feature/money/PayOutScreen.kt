@@ -60,6 +60,8 @@ fun PayOutScreen(
     onSave: () -> Unit,
     onNote: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    /** Opens the person's UPI app with this link. */
+    onPayByUpi: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -240,8 +242,21 @@ fun PayOutScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        Column(Modifier.padding(dimens.screenPadding).fillMaxWidth()) {
+        Column(
+            Modifier.padding(dimens.screenPadding).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            // Paying them for real, not only writing it down, when they have given a UPI id.
+            state.upiLink?.let { link ->
+                FtButton(
+                    text = stringResource(R.string.payout_pay_by_upi, money(state.amountMinor)),
+                    onClick = { onPayByUpi(link) },
+                    tone = com.example.fieldtrack.designsystem.component.FtButtonTone.Send,
+                )
+            }
             FtButton(
+                tone = if (state.upiLink != null) com.example.fieldtrack.designsystem.component.FtButtonTone.Secondary
+                else com.example.fieldtrack.designsystem.component.FtButtonTone.Primary,
                 text = if (state.amountMinor > 0) {
                     stringResource(R.string.payout_save_amount, money(state.amountMinor))
                 } else {
