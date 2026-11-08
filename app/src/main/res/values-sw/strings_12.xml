@@ -36,6 +36,7 @@
     <string name="member_pay_terms">Jinsi anavyolipwa</string>
     <string name="member_pay_terms_note">Anachopata kinajumlishwa chenyewe kutoka kazi anazoendesha. Kubadilisha kiwango kunahesabu tena tangu malipo yalipoanza.</string>
     <string name="member_pay_rate">Kiwango</string>
+    <string name="member_pay_from">Kuhesabu kuanzia</string>
     <string name="pay_basis_day">Kwa siku</string>
     <string name="pay_basis_hour">Kwa saa</string>
     <string name="pay_basis_area">Kwa ardhi</string>

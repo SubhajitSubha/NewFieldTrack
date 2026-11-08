@@ -84,7 +84,7 @@ class GettingPaidTest {
     @Test
     fun `a rupee business with a UPI id sends a link with the amount filled in`() {
         val link = ReminderText.upiLink("singh@okaxis", "Singh Agro", 450_050, inr)!!
-        assertEquals("upi://pay?pa=singh%40okaxis&pn=Singh+Agro&am=4500.50&cu=INR", link)
+        assertEquals("upi://pay?pa=singh@okaxis&pn=Singh%20Agro&am=4500.50&cu=INR", link)
         val text = ReminderText.build(context, null, "Singh Agro", 450_050, inr, null, null, "singh@okaxis")
         assertTrue(text.contains(link))
         assertTrue("the id itself, for a phone that will not open the link", text.contains("singh@okaxis"))

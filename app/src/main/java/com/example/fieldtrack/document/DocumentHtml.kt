@@ -136,7 +136,7 @@ object DocumentHtml {
 
         append("<div class='gap'></div>")
         append(dueBand(L.balanceDue, d.balanceInWords, d.balanceMinor))
-        append(payBlock(d.letterhead))
+        append(payBlock(d.letterhead, d.balanceMinor, d.style))
         append("<div class='spacer'></div>")
         append(signature(d.letterhead.businessName))
         append("</div>")
@@ -246,7 +246,7 @@ object DocumentHtml {
 
         append("<div class='gap'></div>")
         append(dueBand(L.totalStillToPay, d.totalInWords, d.totalMinor))
-        append(payBlock(d.letterhead))
+        append(payBlock(d.letterhead, d.totalMinor, d.style))
         append("<div class='spacer'></div>")
         append(
             "<div class='foot-row'><div class='note'>${esc(L.duesNote)}</div>" +
@@ -377,7 +377,7 @@ object DocumentHtml {
     private fun wordsLine(words: String?) =
         if (words == null || !L.showAmountInWords) "</div>" else "<div class='due-words'>${esc(words)}</div></div>"
 
-    private fun payBlock(l: Letterhead): String {
+    private fun payBlock(l: Letterhead, dueMinor: Long, style: MoneyStyle): String {
         val details = l.payDetails?.takeIf { it.isNotBlank() }
         if (l.upiId == null && details != null) {
             return "<div class='gap'></div><div class='pay'><div>" +
@@ -385,10 +385,27 @@ object DocumentHtml {
                 "<div class='upi'>${details.lines().joinToString("<br>") { esc(it) }}</div></div></div>"
         }
         val upi = l.upiId ?: return ""
-        return "<div class='gap'></div><div class='pay'><div class='qr'>UPI<br>QR</div>" +
+        // A real code with the amount in it, so the farmer scans and only has to say yes. With
+        // nothing owed, or in a currency UPI does not carry, the id alone.
+        val link = com.example.fieldtrack.document.ReminderText.upiLink(upi, l.businessName, dueMinor, style)
+        val qr = link?.let { "<div class='qr'>${qrSvg(it)}</div>" }.orEmpty()
+        return "<div class='gap'></div><div class='pay'>$qr" +
             "<div><div class='label'>${esc(L.payByUpi)}</div><div class='upi'>${esc(upi)}</div>" +
             "<div class='cell-sub'>${esc(L.scanUpi)}</div>" +
             "</div></div>"
+    }
+
+    /** The code as one SVG path, black on white with the standard's quiet margin. */
+    private fun qrSvg(text: String): String {
+        val code = com.example.fieldtrack.designsystem.qr.QrCode.encode(text)
+        val quiet = 4
+        val cells = code.size + quiet * 2
+        val path = StringBuilder()
+        for (y in 0 until code.size) for (x in 0 until code.size) {
+            if (code.modules[y][x]) path.append("M${x + quiet} ${y + quiet}h1v1h-1z")
+        }
+        return "<svg width='120' height='120' viewBox='0 0 $cells $cells' shape-rendering='crispEdges'>" +
+            "<rect width='$cells' height='$cells' fill='#fff'/><path d='$path' fill='#000'/></svg>"
     }
 
     private fun signature(business: String) =
@@ -514,11 +531,8 @@ table.plain td { border: 0; border-bottom: 1px solid $LINE; padding: 11px 0; }
 }
 .credit svg { flex-shrink: 0; }
 .pay { display: flex; gap: 20px; align-items: center; border: 1px solid $LINE; border-radius: 12px; padding: 16px 20px; }
-.qr {
-  width: 88px; height: 88px; border: 2px dashed #C3C0B6; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  font-size: 11.5px; font-weight: 700; color: $INK_3; line-height: 1.3; flex-shrink: 0;
-}
+.qr { width: 120px; height: 120px; flex-shrink: 0; }
+.qr svg { display: block; }
 .upi { font-size: 18px; font-weight: 700; margin-top: 5px; }
 .sign-row { display: flex; justify-content: flex-end; padding-bottom: 20px; }
 .foot-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding-bottom: 18px; }

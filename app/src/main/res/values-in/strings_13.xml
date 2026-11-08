@@ -36,6 +36,7 @@
     <string name="member_pay_terms">Cara dia dibayar</string>
     <string name="member_pay_terms_note">Penghasilannya bertambah sendiri dari pekerjaan yang dia kemudikan. Mengubah tarif menghitung ulang sejak gaji dimulai.</string>
     <string name="member_pay_rate">Tarif</string>
+    <string name="member_pay_from">Dihitung sejak</string>
     <string name="pay_basis_day">Per hari</string>
     <string name="pay_basis_hour">Per jam</string>
     <string name="pay_basis_area">Per lahan</string>

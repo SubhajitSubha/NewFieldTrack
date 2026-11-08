@@ -62,10 +62,22 @@ class MainActivity : ComponentActivity() {
     /** A tap on one of the app's own notifications, which opens the list of what the phone was told. */
     private val openNoticesRequests = MutableStateFlow(false)
 
+    /** The context the system made for this activity, before the language was laid over it. */
+    private var systemBase: android.content.Context? = null
+
     /** The chosen language is laid over everything this screen reads its text from. */
     override fun attachBaseContext(newBase: android.content.Context) {
+        systemBase = newBase
         super.attachBaseContext(com.example.fieldtrack.data.settings.AppLanguage.wrap(newBase))
     }
+
+    /**
+     * Printing from the system's own context: the language's context does not know it belongs to
+     * this activity, and the print service refuses anything that is not one.
+     */
+    override fun getSystemService(name: String): Any? =
+        if (name == PRINT_SERVICE) systemBase?.getSystemService(name) ?: super.getSystemService(name)
+        else super.getSystemService(name)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super, as the platform requires: this swaps the launch window's

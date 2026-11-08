@@ -36,6 +36,7 @@
     <string name="member_pay_terms">उन्हें पैसे कैसे मिलते हैं</string>
     <string name="member_pay_terms_note">उनकी कमाई उनके चलाए कामों से अपने आप जुड़ती है। रेट बदलने पर गिनती पैसे शुरू होने के दिन से फिर होती है।</string>
     <string name="member_pay_rate">रेट</string>
+    <string name="member_pay_from">कब से गिनें</string>
     <string name="pay_basis_day">रोज़ के हिसाब से</string>
     <string name="pay_basis_hour">घंटे के हिसाब से</string>
     <string name="pay_basis_area">ज़मीन के हिसाब से</string>

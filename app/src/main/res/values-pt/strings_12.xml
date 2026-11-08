@@ -36,6 +36,7 @@
     <string name="member_pay_terms">Como recebe</string>
     <string name="member_pay_terms_note">O que ganha se soma sozinho pelos serviços que dirige. Mudar a tarifa conta de novo desde o início do pagamento.</string>
     <string name="member_pay_rate">Tarifa</string>
+    <string name="member_pay_from">Conta a partir de</string>
     <string name="pay_basis_day">Por dia</string>
     <string name="pay_basis_hour">Por hora</string>
     <string name="pay_basis_area">Por terra</string>

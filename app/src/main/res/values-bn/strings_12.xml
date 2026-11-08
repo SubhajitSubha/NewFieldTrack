@@ -36,6 +36,7 @@
     <string name="member_pay_terms">তিনি কীভাবে টাকা পান</string>
     <string name="member_pay_terms_note">তাঁর আয় তাঁর চালানো কাজ থেকে নিজে থেকেই যোগ হয়। রেট বদলালে টাকা শুরুর দিন থেকে আবার গোনা হয়।</string>
     <string name="member_pay_rate">রেট</string>
+    <string name="member_pay_from">কবে থেকে গোনা</string>
     <string name="pay_basis_day">দিন হিসেবে</string>
     <string name="pay_basis_hour">ঘণ্টা হিসেবে</string>
     <string name="pay_basis_area">জমি হিসেবে</string>

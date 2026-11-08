@@ -36,6 +36,7 @@
     <string name="member_pay_terms">Cómo se le paga</string>
     <string name="member_pay_terms_note">Lo que gana se suma solo con los trabajos que conduce. Al cambiar la tarifa se vuelve a contar desde que empezó el pago.</string>
     <string name="member_pay_rate">Tarifa</string>
+    <string name="member_pay_from">Se cuenta desde</string>
     <string name="pay_basis_day">Por día</string>
     <string name="pay_basis_hour">Por hora</string>
     <string name="pay_basis_area">Por tierra</string>

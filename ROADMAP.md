@@ -235,7 +235,7 @@ Needs the owner's yes before P1 (defaults in brackets): "team switch" means swit
 four tabs stay [yes]; Profile is the form itself [yes]; diesel and repairs get their own visibility switch [yes, but if it needs a
 rules change I will say so first].
 
-## Q. Trust and money that moves by itself (2026-11-08) - agreed, in progress
+## Q. Trust and money that moves by itself (2026-11-08) - done
 Why: the app is full of trust and money; if every rupee is typed by hand it stays a data-entry app. The owner asked for the
 details we should hold on people and the business, the owner's power to check and change them, and money handled in the app.
 Decisions from the owner: add this before the release blockers; a driving licence is optional.
@@ -256,20 +256,24 @@ Decisions from the owner: add this before the release blockers; a driving licenc
   A team member keeps their own particulars on Profile ("For your pay and your safety") and is told when somebody else
   changed them; the change is in Team changes (the log never carries the rate). A licence run out, or running out within
   30 days, shows on the team card. "My pay" in the menu for a member who may not see everybody's pay.
-- [ ] **Q5. UPI, India first.** Pay a person: opens the UPI app with their id and the amount filled in, and records the
+- [x] **Q5. UPI, India first.** Pay a person: opens the UPI app with their id and the amount filled in, and records the
   payment when the UPI app says it went through (asks when it cannot tell). Get paid: a QR code with the amount on the
   farmer's page and on the bill, drawn by our own code, and one tap to record it once the money is seen.
   Other countries keep "tap Paid" until their own route (Pix, M-Pesa) is done.
-- [ ] **Q6. Close-out.** The whole rules file for the console, translations, screen matrix, full suite, emulator check.
+  Built: the QR shows on the payment form when UPI is chosen, and on the bill and the dues list (in place of the box that
+  only looked like one); a reminder's link writes the id the same way. Not yet proven by a real UPI app scanning it.
+- [x] **Q6. Close-out.** The whole rules file for the console, translations, screen matrix, full suite, emulator check.
+  Found on the emulator and fixed: the pay sheets hid Save behind the keyboard; pay terms now say the day the pay was
+  counted from (it can start before the day it is written down); "Look first" on a bill or statement failed for anybody
+  who had chosen a language in the app (the print service refused the language's context).
 
 Later, decided after the closed test: payment links through a payment company from our server (bills mark themselves
 paid; each owner does that company's KYC; fees per payment). Not planned: holding or paying out money on owners' behalf.
 
 Suggestions kept for later (not built unless asked):
-- A team member seeing their own pay. Needs three things together: `payouts` rule allowing a read when `resource.data.toPersonId`
-  is the signed-in person, a Firestore composite index (`toPersonId` + `serverAt`) in `firestore.indexes.json`, and a second
-  restore query for people who may not read all payouts. Small on the phone, but it cannot be tried from here. a wage rate per person that adds up what is owed each month; a lender's
-share of a hired machine's earnings across several jobs as a statement; sharing a machine's pay slip on WhatsApp.
+- A lender's share of a hired machine's earnings across several jobs as a statement; sharing a machine's pay slip on
+  WhatsApp. (A team member's own pay and a wage rate per person were built in Q3 and Q4; the own-pay query asks only for
+  `toPersonId`, so it needs no extra index.)
 
 ---
 

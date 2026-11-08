@@ -942,11 +942,13 @@ private fun HandoverSheet(name: String, heldMinor: Long, onSave: (Long, String?)
     val parsed = com.example.fieldtrack.designsystem.format.MoneyInput.parse(amount) ?: 0L
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
+        // Open all the way, so Save stays above the keyboard.
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = colors.paper,
         contentColor = colors.ink,
     ) {
         Column(
-            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState()).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
@@ -1128,9 +1130,18 @@ private fun PayTermsSheet(
     var basis by rememberSaveable { mutableStateOf(current?.basis ?: com.example.fieldtrack.data.db.PayBasis.PerDay) }
     var rate by rememberSaveable { mutableStateOf(current?.rateMinor?.let { minorAsText(it) }.orEmpty()) }
     val parsed = com.example.fieldtrack.designsystem.format.MoneyInput.parse(rate) ?: 0L
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.paper, contentColor = colors.ink) {
+    // Pay often began before the day it is written down; the day it began is theirs to say.
+    var fromMillis by rememberSaveable { mutableStateOf(current?.fromMillis ?: System.currentTimeMillis()) }
+    var pickingDay by rememberSaveable { mutableStateOf(false) }
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        // Open all the way, so Save stays above the keyboard.
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = colors.paper,
+        contentColor = colors.ink,
+    ) {
         Column(
-            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState()).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(stringResource(R.string.member_pay_terms), style = FieldTrackTheme.type.sectionTitle, color = colors.ink)
@@ -1156,6 +1167,14 @@ private fun PayTermsSheet(
                 prefix = style.symbol,
                 keyboardType = if (style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
             )
+            FtCard(padding = 0.dp) {
+                com.example.fieldtrack.designsystem.component.FtListRow(
+                    title = stringResource(R.string.member_pay_from),
+                    subtitle = dayMonthYear(fromMillis),
+                    showChevron = true,
+                    onClick = { pickingDay = true },
+                )
+            }
             Text(
                 text = stringResource(R.string.member_pay_terms_note),
                 style = FieldTrackTheme.type.caption,
@@ -1163,11 +1182,18 @@ private fun PayTermsSheet(
             )
             FtButton(
                 text = stringResource(R.string.edit_save),
-                // Kept from when it began, so changing the rate does not lose the work before it.
-                onClick = { onSave(basis, parsed, current?.fromMillis ?: System.currentTimeMillis()) },
+                onClick = { onSave(basis, parsed, fromMillis) },
                 enabled = parsed > 0,
             )
         }
+    }
+    if (pickingDay) {
+        val zone = com.example.fieldtrack.data.region.BusinessClock.zone
+        com.example.fieldtrack.feature.machine.AnyDaySheet(
+            java.time.Instant.ofEpochMilli(fromMillis).atZone(zone).toLocalDate().toEpochDay(),
+            onDismiss = { pickingDay = false },
+            onPicked = { day -> pickingDay = false; fromMillis = com.example.fieldtrack.feature.machine.dayStartMillis(day) },
+        )
     }
 }
 
@@ -1177,9 +1203,15 @@ private fun PayoutSheet(name: String, upi: String, bank: String, onSave: (String
     val colors = FieldTrackTheme.colors
     var u by rememberSaveable { mutableStateOf(upi) }
     var b by rememberSaveable { mutableStateOf(bank) }
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.paper, contentColor = colors.ink) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        // Open all the way, so Save stays above the keyboard.
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = colors.paper,
+        contentColor = colors.ink,
+    ) {
         Column(
-            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState()).imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(stringResource(R.string.member_pay_to_title, name), style = FieldTrackTheme.type.sectionTitle, color = colors.ink)

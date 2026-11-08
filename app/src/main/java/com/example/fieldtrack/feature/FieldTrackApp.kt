@@ -2312,7 +2312,7 @@ private fun MainNavHost(navController: NavHostController) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { upiNote = null },
                         text = { Text(stringResource(note)) },
-                        confirmButton = { androidx.compose.material3.TextButton(onClick = { upiNote = null }) { Text(stringResource(R.string.orgs_refused_ok)) } },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { upiNote = null }) { Text(stringResource(R.string.action_close_cd)) } },
                     )
                 }
                 if (upiAsk) {

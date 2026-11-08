@@ -5,7 +5,6 @@ import com.example.fieldtrack.R
 import com.example.fieldtrack.data.settings.AppLanguage
 import com.example.fieldtrack.designsystem.format.MoneyStyle
 import com.example.fieldtrack.designsystem.format.money
-import java.net.URLEncoder
 
 /**
  * The message an owner sends a customer who owes money.
@@ -27,9 +26,7 @@ object ReminderText {
     fun upiLink(upiId: String?, businessName: String, balanceMinor: Long, style: MoneyStyle): String? {
         val id = upiId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         if (style.currencyCode != "INR" || balanceMinor <= 0) return null
-        val amount = "%d.%02d".format(balanceMinor / 100, balanceMinor % 100)
-        fun enc(text: String) = URLEncoder.encode(text, "UTF-8")
-        return "upi://pay?pa=${enc(id)}&pn=${enc(businessName)}&am=$amount&cu=INR"
+        return com.example.fieldtrack.data.payments.Upi.payLink(id, businessName, balanceMinor)
     }
 
     fun build(

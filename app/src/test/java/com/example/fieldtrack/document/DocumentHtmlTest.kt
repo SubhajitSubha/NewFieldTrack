@@ -25,7 +25,11 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class DocumentHtmlTest {
 
-    @org.junit.Before fun readsInLakhs() { Money.grouping = DigitGrouping.Indian }
+    @org.junit.Before fun readsInLakhs() {
+        // Rupees whatever a test before this one left behind: some notes are worded in the app's money.
+        Money.style = com.example.fieldtrack.designsystem.format.MoneyStyle()
+        Money.grouping = DigitGrouping.Indian
+    }
     @org.junit.After fun backToThePhone() { Money.grouping = DigitGrouping.forLocale(java.util.Locale.getDefault()) }
 
     private val fullOrg = OrgEntity(
@@ -90,6 +94,17 @@ class DocumentHtmlTest {
         assertTrue(html.contains("GSTIN 06ABCDE1234F1Z5"))
         assertTrue(html.contains("2026-27/0241"))
         assertTrue(html.contains("Ramesh Singh"))
+    }
+
+    @Test
+    fun `a bill with money owed carries a real UPI code, and one with nothing owed only the id`() {
+        val owed = DocumentHtml.render(bill(fullOrg))
+        assertTrue("a code drawn, not a box that only looks like one", owed.contains("shape-rendering='crispEdges'"))
+        assertFalse(owed.contains("UPI<br>QR"))
+
+        val settled = DocumentHtml.render(bill(fullOrg, previous = -r(3_500)))
+        assertTrue("the id is still there to pay to", settled.contains("singhagro@okaxis"))
+        assertFalse("no amount to scan for", settled.contains("<svg width='120'"))
     }
 
     @Test

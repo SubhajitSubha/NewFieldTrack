@@ -36,6 +36,7 @@
     <string name="member_pay_terms">Comment il est payé</string>
     <string name="member_pay_terms_note">Ce que son travail rapporte s\'additionne seul à partir des travaux qu\'il conduit. Changer le taux recompte depuis le début de la paie.</string>
     <string name="member_pay_rate">Taux</string>
+    <string name="member_pay_from">Début du décompte</string>
     <string name="pay_basis_day">À la journée</string>
     <string name="pay_basis_hour">À l\'heure</string>
     <string name="pay_basis_area">À la surface</string>

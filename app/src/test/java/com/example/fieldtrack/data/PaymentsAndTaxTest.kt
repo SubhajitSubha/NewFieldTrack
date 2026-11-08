@@ -44,6 +44,8 @@ class PaymentsAndTaxTest {
 
     @After fun tearDown() {
         h.close()
+        // Onboarding a shilling business sets the money for the whole app; leave it as found.
+        Money.style = com.example.fieldtrack.designsystem.format.MoneyStyle()
         Money.grouping = DigitGrouping.forLocale(java.util.Locale.getDefault())
     }
 

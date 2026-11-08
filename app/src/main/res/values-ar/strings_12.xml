@@ -36,6 +36,7 @@
     <string name="member_pay_terms">طريقة الدفع له</string>
     <string name="member_pay_terms_note">ما يكسبه يُجمع وحده من الأعمال التي يقودها. تغيير السعر يعيد العدّ من بداية الأجر.</string>
     <string name="member_pay_rate">السعر</string>
+    <string name="member_pay_from">العدّ من</string>
     <string name="pay_basis_day">باليوم</string>
     <string name="pay_basis_hour">بالساعة</string>
     <string name="pay_basis_area">بالأرض</string>
