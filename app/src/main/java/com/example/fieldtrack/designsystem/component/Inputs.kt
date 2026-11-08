@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -54,10 +55,18 @@ fun FtTextField(
     focused: Boolean = false,
     onVoiceInput: (() -> Unit)? = null,
     voiceContentDescription: String = "",
+    /** Puts the cursor in the box and opens the keyboard as soon as it appears. */
+    takeFocus: Boolean = false,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
     val shape = FieldTrackTheme.shapes.medium
+    val focusRequester = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    if (takeFocus) androidx.compose.runtime.LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboard?.show()
+    }
 
     Column(modifier) {
         if (label != null) FtSectionLabel(label, Modifier.padding(bottom = 9.dp))
@@ -102,7 +111,13 @@ fun FtTextField(
             }
             Box(Modifier.weight(1f)) {
                 if (value.isEmpty() && placeholder.isNotEmpty()) {
-                    Text(placeholder, style = FieldTrackTheme.type.body, color = colors.inkTertiary)
+                    Text(
+                        placeholder,
+                        style = FieldTrackTheme.type.body,
+                        color = colors.inkTertiary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
                 }
                 BasicTextField(
                     value = value,
@@ -117,7 +132,7 @@ fun FtTextField(
                     // The label is drawn above and the box says nothing of its own, so a screen
                     // reader would announce an unnamed edit box. Give it the name a sighted
                     // person reads off the screen.
-                    modifier = Modifier.fillMaxWidth().semantics {
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).semantics {
                         (label ?: placeholder.takeIf { it.isNotEmpty() })?.let { contentDescription = it }
                     },
                 )

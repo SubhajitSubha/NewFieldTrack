@@ -154,19 +154,22 @@ import com.example.fieldtrack.feature.region.MoneySettingsScreen
 import com.example.fieldtrack.feature.region.MoneySettingsViewModel
 import com.example.fieldtrack.feature.orgs.NewBusinessScreen
 import com.example.fieldtrack.feature.orgs.NewBusinessViewModel
-import com.example.fieldtrack.feature.search.SearchScreen
+import com.example.fieldtrack.feature.search.SearchResultsPane
 import com.example.fieldtrack.feature.search.SearchViewModel
 import com.example.fieldtrack.feature.season.SeasonsScreen
 import com.example.fieldtrack.feature.season.SeasonsViewModel
 import com.example.fieldtrack.feature.calculator.PriceViewModel
 import com.example.fieldtrack.feature.rates.RateCardScreen
 import com.example.fieldtrack.feature.rates.RateCardViewModel
-import com.example.fieldtrack.feature.orgs.OrgSwitcherScreen
+import com.example.fieldtrack.feature.orgs.BusinessSheet
 import com.example.fieldtrack.feature.orgs.OrgSwitcherViewModel
 import com.example.fieldtrack.feature.more.BackupScreen
 import com.example.fieldtrack.feature.more.BackupViewModel
 import com.example.fieldtrack.feature.more.MoreScreen
-import com.example.fieldtrack.feature.more.SecurityScreen
+import com.example.fieldtrack.feature.more.SettingsScreen
+import com.example.fieldtrack.feature.more.SettingsViewModel
+import com.example.fieldtrack.feature.more.SettingsActions
+import com.example.fieldtrack.feature.more.PhonePrefs
 import com.example.fieldtrack.feature.more.PricingScreen
 import com.example.fieldtrack.feature.more.PricingViewModel
 import com.example.fieldtrack.feature.more.BookingLinkScreen
@@ -191,9 +194,7 @@ import com.example.fieldtrack.notify.ReminderKind
 import com.example.fieldtrack.notify.Reminders
 import com.example.fieldtrack.feature.more.ExportScreen
 import com.example.fieldtrack.feature.more.ExportViewModel
-import com.example.fieldtrack.feature.more.EditDetailsActions
-import com.example.fieldtrack.feature.more.EditDetailsScreen
-import com.example.fieldtrack.feature.more.EditDetailsViewModel
+import com.example.fieldtrack.feature.more.ProfileActions
 import com.example.fieldtrack.feature.more.ProfileScreen
 import com.example.fieldtrack.feature.more.ProfileViewModel
 import com.example.fieldtrack.feature.more.MoreViewModel
@@ -260,7 +261,6 @@ internal object Routes {
     const val NEW_MACHINE = "machines/new"
     const val EDIT_MACHINE = "machines/{machineId}/edit"
     const val MORE = "more"
-    const val SEARCH = "search"
     const val NOTICES = "notices"
     const val MONEY_HISTORY = "more/money-history"
     const val PROFILE = "more/profile"
@@ -270,12 +270,12 @@ internal object Routes {
     const val ROLE = "more/team/roles/{roleId}"
     fun role(id: String?) = "more/team/roles/${id ?: "new"}"
     const val MEMBER = "more/team/{membershipId}"
-    const val EDIT_PROFILE = "more/profile/name"
-    /** Same screen as [EDIT_PROFILE]; kept so every old link still lands on the one form. */
-    const val EDIT_BUSINESS = EDIT_PROFILE
     const val BACKUP = "more/backup"
     const val DISPLAY = "more/display"
-    const val SECURITY = "more/security"
+    /** Every preference, in one place. */
+    const val SETTINGS = "more/settings"
+    /** Everything about money, behind one door. */
+    const val MONEY = "more/money"
     const val EXPORT = "more/export"
     const val REMINDERS = "more/reminders"
     const val HELP = "more/help"
@@ -290,7 +290,6 @@ internal object Routes {
     const val TOUR = "tour"
     const val RATES = "more/rates"
     const val PRICE = "more/price"
-    const val ORGS = "more/businesses"
     const val JOIN_ANOTHER = "more/businesses/join"
     const val NEW_BUSINESS = "more/businesses/new"
     const val UPKEEP = "fleet/upkeep"
@@ -677,6 +676,17 @@ private fun MainGraph(
     val unreadNotices by (if (noticeOrg == null) kotlinx.coroutines.flow.flowOf(0) else app.noticeInbox.unread(noticeOrg))
         .collectAsStateWithLifecycle(0)
 
+    // Search opens over the screen you are on, in the bar itself, the way other apps do it.
+    var searching by rememberSaveable { mutableStateOf(false) }
+    val searchVm: SearchViewModel = appViewModel { SearchViewModel(it) }
+    val searchState by searchVm.state.collectAsStateWithLifecycle()
+    val searchTyped by searchVm.typed.collectAsStateWithLifecycle()
+    val closeSearch: () -> Unit = { searching = false; searchVm.setQuery("") }
+    // Leaving the main screens, or opening the menu, puts the bar back.
+    LaunchedEffect(tab, drawerState.isOpen) { if (tab < 0 || drawerState.isOpen) closeSearch() }
+    BackHandler(enabled = searching) { closeSearch() }
+    fun fromSearch(route: String) { closeSearch(); navController.navigate(route) }
+
     // The menu is for the main screens: on a job in progress or a bill being written it
     // stays shut, because anything that invites you to wander off is a way to lose work.
     androidx.compose.material3.ModalNavigationDrawer(
@@ -725,13 +735,29 @@ private fun MainGraph(
                         menuContentDescription = stringResource(R.string.menu_open_cd),
                         searchContentDescription = stringResource(R.string.menu_search_cd),
                         onMenu = openMenu,
-                        onSearch = { navController.navigate(Routes.SEARCH) },
+                        onSearch = { searching = true },
                         unread = unreadNotices,
                         notificationsContentDescription = stringResource(R.string.notices_title),
                         onNotifications = { navController.navigate(Routes.NOTICES) },
+                        searching = searching,
+                        query = searchTyped,
+                        onQuery = searchVm::setQuery,
+                        onCloseSearch = closeSearch,
                     )
-                    Box(Modifier.weight(1f)) { content() }
-                    if (tab >= 0) {
+                    Box(Modifier.weight(1f)) {
+                        content()
+                        if (searching) SearchResultsPane(
+                            state = searchState,
+                            onCustomer = { fromSearch(Routes.ledger(it)) },
+                            onField = { fromSearch(Routes.fields(it)) },
+                            onMachine = { fromSearch("machines/$it") },
+                            onJob = { fromSearch("jobs/$it") },
+                            onMember = { fromSearch("more/team/$it") },
+                        )
+                    }
+                    // Hidden while searching: the keyboard covers it anyway, and the
+                    // back arrow in the bar is the one way out.
+                    if (tab >= 0 && !searching) {
                         FtBottomBar(
                             destinations = bottomDestinations(roots, driver),
                             selectedIndex = tab,
@@ -756,12 +782,26 @@ private fun MainGraph(
                             menuContentDescription = stringResource(R.string.menu_open_cd),
                             searchContentDescription = stringResource(R.string.menu_search_cd),
                             onMenu = openMenu,
-                            onSearch = { navController.navigate(Routes.SEARCH) },
+                            onSearch = { searching = true },
                             unread = unreadNotices,
                             notificationsContentDescription = stringResource(R.string.notices_title),
                             onNotifications = { navController.navigate(Routes.NOTICES) },
+                            searching = searching,
+                            query = searchTyped,
+                            onQuery = searchVm::setQuery,
+                            onCloseSearch = closeSearch,
                         )
-                        Box(Modifier.weight(1f)) { content() }
+                        Box(Modifier.weight(1f)) {
+                            content()
+                            if (searching) SearchResultsPane(
+                                state = searchState,
+                                onCustomer = { fromSearch(Routes.ledger(it)) },
+                                onField = { fromSearch(Routes.fields(it)) },
+                                onMachine = { fromSearch("machines/$it") },
+                                onJob = { fromSearch("jobs/$it") },
+                                onMember = { fromSearch("more/team/$it") },
+                            )
+                        }
                     }
                 }
             }
@@ -853,33 +893,31 @@ private fun SideMenu(
     val vm: MoreViewModel = appViewModel(key = key) { MoreViewModel(it) }
     val state by vm.state.collectAsStateWithLifecycle()
     fun go(route: String): () -> Unit = { onClose(); navController.navigate(route) }
-    fun open(route: String): () -> Unit = { onClose(); navController.openScreen(route, roots) }
+    var choosingBusiness by rememberSaveable { mutableStateOf(false) }
     MoreScreen(
         state = state,
         inDrawer = inDrawer,
-        onEditProfile = go(Routes.PROFILE),
+        onProfile = go(Routes.PROFILE),
+        onChangeBusiness = { choosingBusiness = true },
         onTeam = go(Routes.TEAM),
-        onEditBusiness = if (state.canEditBusiness) go(Routes.EDIT_BUSINESS) else null,
-        onBackup = go(Routes.BACKUP),
-        onDisplay = go(Routes.DISPLAY),
-        onSecurity = go(Routes.SECURITY),
-        onExport = go(Routes.EXPORT),
-        onReminders = go(Routes.REMINDERS),
+        onMoney = go(Routes.MONEY),
+        onRequests = go(Routes.REQUESTS),
+        onSettings = go(Routes.SETTINGS),
         onHelp = go(Routes.HELP),
-        onPlan = if (state.canEditBusiness) go(Routes.planPrice()) else null,
-        onRequests = if (state.canPlan) go(Routes.REQUESTS) else null,
-        onBookingLink = if (state.canEditBusiness) go(Routes.BOOKING_LINK) else null,
-        onIncome = if (state.canSeePeopleCost && state.canSeeMoney) go(Routes.INCOME) else null,
-        onAssets = if (state.canSeePeopleCost) go(Routes.ASSETS) else null,
-        onHistory = if (state.canSeeMoney || state.canSeePeopleCost) go(Routes.MONEY_HISTORY) else null,
-        onRates = go(Routes.RATES),
-        onSearch = go(Routes.SEARCH),
-        onPrice = go(Routes.PRICE),
-        onMoneyOut = go(Routes.MONEY_OUT),
-        onSeason = go(Routes.SEASON),
-        onMachines = open(Routes.MACHINES),
-        onCustomers = if (Routes.CUSTOMERS in roots) open(Routes.CUSTOMERS) else null,
     )
+    if (choosingBusiness) {
+        val orgs: OrgSwitcherViewModel = appViewModel { OrgSwitcherViewModel(it) }
+        val orgState by orgs.state.collectAsStateWithLifecycle()
+        BusinessSheet(
+            state = orgState,
+            // Switching builds a fresh history for the business, which starts at Home.
+            onSwitch = { orgId -> orgs.switchTo(orgId) { choosingBusiness = false; onClose() } },
+            onJoinAnother = { choosingBusiness = false; go(Routes.JOIN_ANOTHER)() },
+            onStartNew = { choosingBusiness = false; go(Routes.NEW_BUSINESS)() },
+            onDismissRefusal = orgs::clearRefusal,
+            onDismiss = { choosingBusiness = false },
+        )
+    }
 }
 
 @Composable
@@ -1279,43 +1317,15 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.SECURITY) {
-                val lock = app.appLock
-                val enabled by lock.enabled.collectAsStateWithLifecycle()
-                val after by lock.after.collectAsStateWithLifecycle()
-                SecurityScreen(
-                    available = lock.available(),
-                    enabled = enabled,
-                    after = after,
-                    onEnabled = lock::setEnabled,
-                    onAfter = lock::setAfter,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
             composable(Routes.DISPLAY) {
                 val settings = app.displaySettings
-                val theme by settings.theme.collectAsStateWithLifecycle()
-                val bigger by settings.biggerText.collectAsStateWithLifecycle()
                 val grouping by settings.grouping.collectAsStateWithLifecycle()
                 val weekStart by settings.weekStart.collectAsStateWithLifecycle()
-                val language by settings.language.collectAsStateWithLifecycle()
-                val hostActivity = LocalContext.current as? android.app.Activity
                 DisplayScreen(
-                    theme = theme,
-                    biggerText = bigger,
                     grouping = grouping,
                     weekStart = weekStart,
-                    language = language,
-                    onTheme = settings::setTheme,
-                    onBiggerText = settings::setBiggerText,
                     onGrouping = settings::setGrouping,
                     onWeekStart = settings::setWeekStart,
-                    onLanguage = { tag ->
-                        settings.setLanguage(tag)
-                        // The text is read from the context the activity was made with.
-                        hostActivity?.recreate()
-                    },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -1381,21 +1391,6 @@ private fun MainNavHost(navController: NavHostController) {
                             com.example.fieldtrack.notify.PushEvent.SosRaised -> navController.openScreen(Routes.JOBS, roots)
                         }
                     },
-                )
-            }
-
-            composable(Routes.SEARCH) {
-                val vm: SearchViewModel = appViewModel { SearchViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                SearchScreen(
-                    state = state,
-                    onBack = { navController.popBackStack() },
-                    onQuery = vm::setQuery,
-                    onCustomer = { navController.navigate(Routes.ledger(it)) },
-                    onField = { navController.navigate(Routes.fields(it)) },
-                    onMachine = { navController.navigate("machines/$it") },
-                    onJob = { navController.navigate("jobs/$it") },
-                    onMember = { navController.navigate("more/team/$it") },
                 )
             }
 
@@ -2507,26 +2502,6 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.ORGS) {
-                val vm: OrgSwitcherViewModel = appViewModel { OrgSwitcherViewModel(it) }
-                val state by vm.state.collectAsStateWithLifecycle()
-                OrgSwitcherScreen(
-                    state = state,
-                    onBack = { navController.popBackStack() },
-                    onSwitch = { orgId ->
-                        // Switching changes what the whole app is looking at, so
-                        // it goes home rather than leaving the user on a screen
-                        // about a business they have just stopped looking at.
-                        // Nothing to navigate: the switch builds a fresh history for the
-                        // business (see businessNavController), which starts at Home.
-                        vm.switchTo(orgId) {}
-                    },
-                    onJoinAnother = { navController.navigate(Routes.JOIN_ANOTHER) },
-                    onDismissRefusal = vm::clearRefusal,
-                    onStartNew = { navController.navigate(Routes.NEW_BUSINESS) },
-                )
-            }
-
             composable(Routes.NEW_BUSINESS) {
                 val vm: NewBusinessViewModel = appViewModel { NewBusinessViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
@@ -2541,13 +2516,13 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            composable(Routes.PROFILE) {
+            composable(Routes.SETTINGS) {
                 val app = LocalContext.current.applicationContext as FieldFlowApplication
                 val scope = rememberCoroutineScope()
                 val activity = LocalContext.current as? android.app.Activity
                 var unsent by remember { mutableStateOf(0) }
                 LaunchedEffect(Unit) { unsent = app.sessionStore.unsentCount() }
-                val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
+                val vm: SettingsViewModel = appViewModel { SettingsViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
                 val proofNeedsPlan by vm.needsPlan.collectAsStateWithLifecycle()
                 LaunchedEffect(proofNeedsPlan) {
@@ -2560,52 +2535,78 @@ private fun MainNavHost(navController: NavHostController) {
                 var googleEmail by remember { mutableStateOf(googleAuth.linkedEmail() ?: state.signedInEmail) }
                 var googleNote by remember { mutableStateOf<Int?>(null) }
                 var deleteFailed by remember { mutableStateOf(false) }
-                ProfileScreen(
+                val display = app.displaySettings
+                val lock = app.appLock
+                val prefs = PhonePrefs(
+                    language = display.language.collectAsStateWithLifecycle().value,
+                    theme = display.theme.collectAsStateWithLifecycle().value,
+                    biggerText = display.biggerText.collectAsStateWithLifecycle().value,
+                    lockAvailable = remember { lock.available() },
+                    lockOn = lock.enabled.collectAsStateWithLifecycle().value,
+                    lockAfter = lock.after.collectAsStateWithLifecycle().value,
+                )
+                SettingsScreen(
                     state = state,
+                    prefs = prefs,
                     onBack = { navController.popBackStack() },
-                    onEditName = { navController.navigate(Routes.EDIT_PROFILE) },
-                    onEditBusiness = { navController.navigate(Routes.EDIT_BUSINESS) },
-                    onEditSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
-                    onEditPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
-                    onEditMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
-                    onBusinessMode = vm::setBusinessMode,
-                    onProofOfWork = vm::setProofOfWork,
-                    onBusinesses = { navController.navigate(Routes.ORGS) },
-                    onSignOut = {
-                        scope.launch {
-                            // While still signed in: the server only lets a person remove their own phone.
-                            app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
-                            app.sessionStore.signOut(
-                                FirebasePhoneAuth(activityProvider = { activity })
-                            )
-                        }
-                    },
-                    // The only owner cannot leave: a business nobody owns can
-                    // never be changed again by anyone.
-                    onLeave = if (state.canLeave) {
-                        {
+                    actions = SettingsActions(
+                        onLanguage = { tag ->
+                            display.setLanguage(tag)
+                            // The text is read from the context the activity was made with.
+                            activity?.recreate()
+                        },
+                        onTheme = display::setTheme,
+                        onBiggerText = display::setBiggerText,
+                        onLock = lock::setEnabled,
+                        onLockAfter = lock::setAfter,
+                        onNotifications = { navController.navigate(Routes.REMINDERS) },
+                        onNumbers = { navController.navigate(Routes.DISPLAY) },
+                        onLandUnit = { vm.setLandUnit(it) },
+                        onMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
+                        onSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                        onPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
+                        onBookingLink = { navController.navigate(Routes.BOOKING_LINK) },
+                        onPricing = { navController.navigate(Routes.planPrice()) },
+                        onProofOfWork = { vm.setProofOfWork(it) },
+                        onBusinessMode = vm::setBusinessMode,
+                        onBackup = { navController.navigate(Routes.BACKUP) },
+                        onExport = { navController.navigate(Routes.EXPORT) },
+                        onSignOut = {
                             scope.launch {
-                                runCatching {
-                                    app.teamRepository.leaveOrg(state.orgId, state.personId)
-                                    app.sessionStore.signOut(null)
+                                // While still signed in: the server only lets a person remove their own phone.
+                                app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
+                                app.sessionStore.signOut(
+                                    FirebasePhoneAuth(activityProvider = { activity })
+                                )
+                            }
+                        },
+                        // The only owner cannot leave: a business nobody owns can
+                        // never be changed again by anyone.
+                        onLeave = if (state.canLeave) {
+                            {
+                                scope.launch {
+                                    runCatching {
+                                        app.teamRepository.leaveOrg(state.orgId, state.personId)
+                                        app.sessionStore.signOut(null)
+                                    }
                                 }
                             }
-                        }
-                    } else null,
+                        } else null,
+                        onDeleteAccount = {
+                            scope.launch {
+                                deleteFailed = false
+                                app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
+                                val result = app.sessionStore.deleteAccount(
+                                    app.syncTransport, FirebasePhoneAuth(activityProvider = { activity }),
+                                )
+                                if (result == com.example.fieldtrack.data.session.SessionStore.DeletionResult.CouldNotReachServer) {
+                                    deleteFailed = true
+                                }
+                            }
+                        },
+                    ),
                     unsentCount = unsent,
                     deleteFailed = deleteFailed,
-                    onDeleteAccount = {
-                        scope.launch {
-                            deleteFailed = false
-                            app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
-                            val result = app.sessionStore.deleteAccount(
-                                app.syncTransport, FirebasePhoneAuth(activityProvider = { activity }),
-                            )
-                            if (result == com.example.fieldtrack.data.session.SessionStore.DeletionResult.CouldNotReachServer) {
-                                deleteFailed = true
-                            }
-                        }
-                    },
                     google = if (googleAuth.available) {
                         com.example.fieldtrack.feature.more.GoogleLink(
                             email = googleEmail,
@@ -2631,24 +2632,41 @@ private fun MainNavHost(navController: NavHostController) {
                 )
             }
 
-            // One form for the person and the business: the old name route and the old
-            // business route both lead here, so nothing that linked to them is lost.
-            composable(Routes.EDIT_PROFILE) {
-                val vm: EditDetailsViewModel = appViewModel { EditDetailsViewModel(it) }
+            // You and your business, on one page that is itself the form.
+            composable(Routes.PROFILE) {
+                val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
-                EditDetailsScreen(
+                ProfileScreen(
                     state = state,
-                    actions = EditDetailsActions(
+                    actions = ProfileActions(
                         onYourName = vm::setYourName,
                         onBusinessName = vm::setBusinessName,
                         onPhone = vm::setPhone,
                         onAddress = vm::setAddress,
                         onGstin = vm::setGstin,
                         onUpiId = vm::setUpiId,
-                        onLandUnit = vm::setLandUnit,
+                        onSave = { vm.save() },
+                        onDiscard = vm::discard,
                     ),
                     onBack = { navController.popBackStack() },
-                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.MONEY) {
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                com.example.fieldtrack.feature.money.MoneyHubScreen(
+                    access = com.example.fieldtrack.feature.money.MoneyHubAccess(
+                        customerMoney = session?.canSeeMoney == true,
+                        peopleCost = session?.let { Capability.SeePeopleCost in it.can } == true,
+                    ),
+                    onBack = { navController.popBackStack() },
+                    onHistory = { navController.navigate(Routes.MONEY_HISTORY) },
+                    onPeople = { navController.navigate(Routes.MONEY_OUT) },
+                    onSeason = { navController.navigate(Routes.SEASON) },
+                    onIncome = { navController.navigate(Routes.INCOME) },
+                    onAssets = { navController.navigate(Routes.ASSETS) },
+                    onRates = { navController.navigate(Routes.RATES) },
+                    onPrice = { navController.navigate(Routes.PRICE) },
                 )
             }
 

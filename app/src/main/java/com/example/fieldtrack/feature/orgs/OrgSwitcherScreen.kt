@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -42,149 +43,132 @@ import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.workLabel
 
 /**
- * The businesses this person drives for, and which one the app is looking at.
- *
- * The card at the bottom is not decoration. Somebody asked to put their work into
- * an app owned by the people who pay them deserves to be told, in their own
- * language and before they are asked to trust it, exactly what each of those
- * people can and cannot see.
+ * The businesses this person belongs to, opened from the business line at the top of the
+ * menu: two taps from anywhere to be working for somebody else. The one they are in has a
+ * tick; the others switch on a tap; joining or starting one is at the foot.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun OrgSwitcherScreen(
+fun BusinessSheet(
     state: OrgSwitcherState,
-    onBack: () -> Unit,
     onSwitch: (String) -> Unit,
     onJoinAnother: () -> Unit,
+    onStartNew: () -> Unit,
     onDismissRefusal: () -> Unit,
-    modifier: Modifier = Modifier,
-    /** Starts a business of the person's own. Null where that is not offered. */
-    onStartNew: (() -> Unit)? = null,
+    onDismiss: () -> Unit,
 ) {
     val colors = FieldTrackTheme.colors
-    val dimens = FieldTrackTheme.dimens
-
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(colors.paper)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = colors.paper,
+        contentColor = colors.ink,
     ) {
-        FtTopBar(
-            title = stringResource(R.string.orgs_title),
-            subtitle = state.personName,
-            onBack = onBack,
-            backContentDescription = stringResource(R.string.action_back_cd),
-        )
-
         Column(
             Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 18.dp)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            state.current?.let { current ->
-                FtSectionLabel(stringResource(R.string.orgs_right_now))
-                FtCard(background = colors.deepGreen, borderColor = colors.deepGreen) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        FtAvatar(
-                            initials = initialsOf(current.name),
-                            size = 52.dp,
-                            background = colors.onDark.copy(alpha = 0.18f),
-                            contentColor = colors.onDark,
-                        )
-                        Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                            Text(
-                                text = current.name,
-                                style = FieldTrackTheme.type.sectionTitle,
-                                color = colors.onDark,
-                            )
-                            Text(
-                                text = current.liveWorkType?.let {
-                                    stringResource(
-                                        R.string.orgs_running,
-                                        "${workLabel(it)} · ${duration(current.liveSeconds)}",
-                                    )
-                                } ?: current.lastWorkedLabel(),
-                                style = FieldTrackTheme.type.caption,
-                                color = colors.onDarkMuted,
-                                modifier = Modifier.padding(top = 5.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            FtSectionLabel(stringResource(R.string.orgs_also))
+            Text(
+                text = stringResource(R.string.biz_sheet_title),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.ink,
+            )
             FtCard(padding = 0.dp) {
-                state.others.forEach { org ->
+                listOfNotNull(state.current).plus(state.others).forEach { org ->
+                    val checking = state.checking == org.orgId
+                    val name = org.name.ifBlank { stringResource(R.string.biz_unnamed) }
                     FtListRow(
-                        title = org.name,
-                        subtitle = org.lastWorkedLabel(),
+                        title = name,
+                        subtitle = if (checking) stringResource(R.string.orgs_checking)
+                        else roleWord(org.role),
                         leading = {
                             FtAvatar(
-                                initials = initialsOf(org.name),
-                                size = 46.dp,
-                                background = colors.surfaceMuted,
-                                contentColor = colors.inkSecondary,
+                                initials = initialsOf(name),
+                                size = 42.dp,
+                                background = if (org.isCurrent) colors.primary else colors.surfaceMuted,
+                                contentColor = if (org.isCurrent) colors.onPrimary else colors.inkSecondary,
                             )
                         },
-                        trailing = if (!org.active) {
-                            {
-                                // Said rather than hidden. The work is still theirs
-                                // to remember even once the season is over.
-                                FtStatusPill(
-                                    status = FtStatus.Idle,
-                                    label = stringResource(R.string.orgs_removed),
-                                )
+                        trailing = when {
+                            org.isCurrent -> {
+                                {
+                                    Icon(
+                                        FieldTrackIcons.Check,
+                                        contentDescription = stringResource(R.string.biz_sheet_here),
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
                             }
-                        } else null,
-                        showChevron = org.active,
-                        onClick = if (org.active) ({ onSwitch(org.orgId) }) else null,
-                    )
-                    FtRowDivider()
-                }
-
-                if (onStartNew != null) {
-                    FtListRow(
-                        title = stringResource(R.string.orgs_start_new),
-                        subtitle = stringResource(R.string.orgs_start_new_note),
-                        leading = {
-                            FtIconTile(
-                                icon = FieldTrackIcons.Add,
-                                size = 46.dp,
-                                background = colors.primaryWash,
-                                tint = colors.primaryPressed,
-                            )
+                            !org.active -> {
+                                { FtStatusPill(status = FtStatus.Idle, label = stringResource(R.string.orgs_removed)) }
+                            }
+                            else -> null
                         },
-                        onClick = onStartNew,
+                        // Only another business they still work for is something to tap.
+                        onClick = if (!org.isCurrent && org.active && state.checking == null) {
+                            { onSwitch(org.orgId) }
+                        } else null,
+                        titleColor = if (org.isCurrent) colors.primary else colors.ink,
                     )
                     FtRowDivider()
                 }
                 FtListRow(
                     title = stringResource(R.string.orgs_join),
                     subtitle = stringResource(R.string.orgs_join_note),
-                    leading = {
-                        FtIconTile(
-                            icon = FieldTrackIcons.Add,
-                            size = 46.dp,
-                            background = colors.primaryWash,
-                            tint = colors.primaryPressed,
-                        )
-                    },
+                    leading = { AddTile() },
                     onClick = onJoinAnother,
                 )
+                FtRowDivider()
+                FtListRow(
+                    title = stringResource(R.string.orgs_start_new),
+                    subtitle = stringResource(R.string.orgs_start_new_note),
+                    leading = { AddTile() },
+                    onClick = onStartNew,
+                )
             }
-
-            ApartCard()
-
-            Box(Modifier.height(dimens.space4))
+            // The one reassurance a driver needs before moving between employers.
+            Text(
+                text = stringResource(R.string.orgs_apart_hidden),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            )
         }
     }
+    RefusedDialog(state, onDismissRefusal)
+}
 
+@Composable
+private fun AddTile() {
+    val colors = FieldTrackTheme.colors
+    FtIconTile(
+        icon = FieldTrackIcons.Add,
+        size = 42.dp,
+        background = colors.primaryWash,
+        tint = colors.primaryPressed,
+    )
+}
+
+@Composable
+private fun roleWord(role: MemberRole): String = stringResource(
+    when (role) {
+        MemberRole.Owner -> R.string.more_owner
+        MemberRole.Viewer -> R.string.more_viewer
+        MemberRole.Operator -> R.string.more_operator
+    }
+)
+
+@Composable
+private fun RefusedDialog(state: OrgSwitcherState, onDismissRefusal: () -> Unit) {
+    val colors = FieldTrackTheme.colors
     // Shown only after the server has said so, never on a guess. Somebody tapping
     // a business they believe they still work for deserves to be told why nothing
     // happened, rather than watching the row quietly turn into "Ended".
-    state.refused?.let { name ->
+    state.refused?.let { raw ->
+        val name = raw.ifBlank { stringResource(R.string.biz_unnamed) }
         AlertDialog(
             onDismissRequest = onDismissRefusal,
             containerColor = colors.surface,
@@ -211,70 +195,6 @@ fun OrgSwitcherScreen(
                     )
                 }
             },
-        )
-    }
-}
-
-/** "Last worked 2 April", or that there is nothing yet. */
-@Composable
-private fun OrgRow.lastWorkedLabel(): String =
-    lastWorkedMillis?.let { stringResource(R.string.orgs_last_worked, dayMonth(it)) }
-        ?: stringResource(R.string.orgs_never_worked)
-
-/**
- * What each business can and cannot see.
- *
- * Three plain sentences, two of which are refusals. A driver handing their work to
- * an app their employer owns has a reasonable fear, and the only useful answer to
- * it is a specific one.
- */
-@Composable
-private fun ApartCard() {
-    val colors = FieldTrackTheme.colors
-
-    FtCard(borderColor = colors.line) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = FieldTrackIcons.Lock,
-                contentDescription = null,
-                tint = colors.ink,
-                modifier = Modifier.size(22.dp),
-            )
-            Text(
-                text = stringResource(R.string.orgs_apart_title),
-                style = FieldTrackTheme.type.rowTitle,
-                color = colors.ink,
-                modifier = Modifier.padding(start = 11.dp),
-            )
-        }
-        Column(
-            Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
-        ) {
-            ApartLine(allowed = true, text = stringResource(R.string.orgs_apart_see))
-            ApartLine(allowed = false, text = stringResource(R.string.orgs_apart_hidden))
-            ApartLine(allowed = false, text = stringResource(R.string.orgs_apart_stays))
-        }
-    }
-}
-
-@Composable
-private fun ApartLine(allowed: Boolean, text: String) {
-    val colors = FieldTrackTheme.colors
-    Row(verticalAlignment = Alignment.Top) {
-        Icon(
-            imageVector = if (allowed) FieldTrackIcons.Check else FieldTrackIcons.Close,
-            contentDescription = null,
-            tint = if (allowed) colors.money else colors.due,
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .size(17.dp),
-        )
-        Text(
-            text = text,
-            style = FieldTrackTheme.type.bodySmall,
-            color = colors.ink,
-            modifier = Modifier.padding(start = 10.dp),
         )
     }
 }

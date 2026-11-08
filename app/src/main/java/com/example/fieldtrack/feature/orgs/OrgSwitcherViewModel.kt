@@ -67,7 +67,9 @@ class OrgSwitcherViewModel(private val app: FieldFlowApplication) : ViewModel() 
                 val org = app.db.orgDao().findOrg(membership.orgId)
                 OrgRow(
                     orgId = membership.orgId,
-                    name = org?.name?.ifBlank { null } ?: membership.orgId.take(8),
+                    // Blank until the business has been fetched once; the screen says so in words,
+                    // never with an id nobody can read.
+                    name = org?.name?.ifBlank { null }.orEmpty(),
                     role = membership.role,
                     active = membership.active,
                     lastWorkedMillis = app.db.jobDao()

@@ -53,6 +53,13 @@ class SearchViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
+    /**
+     * What is in the box, as typed. The box must follow this and not [state]: the results
+     * wait for a pause in the typing, and a box fed from them would throw away every key
+     * pressed in between.
+     */
+    val typed: StateFlow<String> = query
+
     val state: StateFlow<SearchState> = query.debounce(150).flatMapLatest { text ->
         flow {
             val term = text.trim()

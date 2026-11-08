@@ -2529,4 +2529,33 @@
     <string name="doc_made_with">Made with FieldTrack</string>
     <string name="doc_tagline">record the work, send the bill, keep the khata</string>
     <string name="doc_page_one">page 1 of 1</string>
+
+    <!-- P-series: the menu, settings, profile form, search in the bar, the money place -->
+    <string name="menu_your_profile">Your profile</string>
+    <string name="menu_change_business">Change</string>
+    <string name="menu_money_note">What came in, what went out, and reports</string>
+    <string name="menu_settings_note">Language, colours, notifications, your business</string>
+    <plurals name="menu_requests_new">
+        <item quantity="one">%d new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+    <string name="biz_sheet_title">Your businesses</string>
+    <string name="biz_unnamed">A business you work for</string>
+    <string name="biz_sheet_here">You are working here</string>
+    <string name="settings_phone">On this phone</string>
+    <string name="settings_theme_phone">Like my phone</string>
+    <string name="settings_numbers">Numbers and weeks</string>
+    <string name="settings_numbers_note">How amounts are written, and the day a week starts</string>
+    <string name="settings_link_on">On: farmers can ask for work from your link</string>
+    <string name="settings_records">Your records</string>
+    <string name="profile_saved">Saved.</string>
+    <string name="profile_unsaved_title">Save your changes?</string>
+    <string name="profile_unsaved_body">You changed your details but have not saved them.</string>
+    <string name="profile_unsaved_leave">Leave without saving</string>
+    <string name="search_bar_prompt">Find a farmer, a field, a machine or a job by its name, village, phone number or plate.</string>
+    <string name="search_close_cd">Close search</string>
+    <string name="search_clear_cd">Clear what you typed</string>
+    <string name="money_hub_reports">Reports</string>
+    <string name="money_hub_prices">Your prices</string>
+    <string name="money_hub_rates_note">What you charge for each kind of work</string>
 </resources>

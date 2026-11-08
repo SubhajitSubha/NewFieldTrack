@@ -20,19 +20,20 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
-import com.example.fieldtrack.designsystem.component.FtTextField
-import com.example.fieldtrack.designsystem.component.FtTopBar
-import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.workLabel
 
-/** Search across farmers, fields, machines and jobs, with one box. */
+/**
+ * What a search found, drawn over the screen it was started from.
+ *
+ * The box itself is in the top bar (see RootBar), the way phones search everywhere else:
+ * the magnifier turns the bar into the box, the results cover the screen below, and the
+ * back arrow puts everything back as it was.
+ */
 @Composable
-fun SearchScreen(
+fun SearchResultsPane(
     state: SearchState,
-    onBack: () -> Unit,
-    onQuery: (String) -> Unit,
     onCustomer: (String) -> Unit,
     onField: (customerId: String) -> Unit,
     onMachine: (String) -> Unit,
@@ -43,29 +44,18 @@ fun SearchScreen(
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
     Column(modifier.fillMaxSize().background(colors.paper).imePadding()) {
-        FtTopBar(
-            title = stringResource(R.string.search_title),
-            onBack = onBack,
-            backContentDescription = stringResource(R.string.action_back_cd),
-        )
         Column(
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = dimens.screenPadding),
+                .padding(horizontal = dimens.screenPadding)
+                .padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            FtTextField(
-                value = state.query,
-                onValueChange = onQuery,
-                leadingIcon = FieldTrackIcons.Search,
-                placeholder = stringResource(R.string.search_hint),
-                focused = true,
-            )
             val r = state.results
             when {
                 !state.searched -> Text(
-                    text = stringResource(R.string.search_prompt),
+                    text = stringResource(R.string.search_bar_prompt),
                     style = FieldTrackTheme.type.bodySmall,
                     color = colors.inkTertiary,
                 )

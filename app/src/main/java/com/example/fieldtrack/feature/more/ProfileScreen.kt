@@ -1,636 +1,335 @@
 package com.example.fieldtrack.feature.more
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.semantics.Role
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
-import androidx.compose.ui.res.pluralStringResource
-import com.example.fieldtrack.designsystem.component.FtButton
-import com.example.fieldtrack.designsystem.component.FtButtonTone
-import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.auth.formatPhone
-import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
-import com.example.fieldtrack.data.season.SeasonCalendar
-import com.example.fieldtrack.data.season.SeasonStart
 import com.example.fieldtrack.data.session.Capability
-import com.example.fieldtrack.feature.plan.timeOfDay
-import com.example.fieldtrack.feature.season.seasonStartsSummary
-import com.example.fieldtrack.data.plan.PlanSettings
 import com.example.fieldtrack.designsystem.component.FtAvatar
-import com.example.fieldtrack.designsystem.component.FtCard
-import com.example.fieldtrack.designsystem.component.FtIconTile
-import com.example.fieldtrack.designsystem.component.FtListRow
-import com.example.fieldtrack.designsystem.component.FtRowDivider
+import com.example.fieldtrack.designsystem.component.FtButton
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
+import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.initialsOf
-import com.example.fieldtrack.feature.labelRes
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.example.fieldtrack.feature.region.PhoneField
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import com.example.fieldtrack.designsystem.format.money
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** What the profile needs to offer adding a Google account to the sign-in. */
-data class GoogleLink(val email: String?, val note: String?, val onAdd: () -> Unit)
-
-data class ProfileState(
-    val loaded: Boolean = false,
-    val displayName: String = "",
-    val role: MemberRole = MemberRole.Owner,
+/** The fields of the form, as typed. Compared with what was loaded to know whether anything changed. */
+data class ProfileFields(
+    /** The person's own name, which everyone may correct. */
+    val yourName: String = "",
     val businessName: String = "",
-    val addressLine: String? = null,
-    val phone: String? = null,
-    val orgId: String = "",
-    val personId: String = "",
-    /**
-     * False for the only owner of a business.
-     *
-     * Not a permission so much as an arithmetic fact: a business whose last owner
-     * walks out can never have its team, its rates or its details changed again
-     * by anybody.
-     */
-    val canLeave: Boolean = false,
-    /**
-     * The number this person signed in with.
-     *
-     * Not [phone], which is the business's number and shown under Business above.
-     * A contractor's own mobile and the one he puts on his bills are routinely
-     * different, and telling somebody they are "signed in as" a number they have
-     * never signed in with is the kind of small lie that makes people distrust
-     * everything else on the screen.
-     */
-    val signedInPhone: String? = null,
-    /** The Google account they signed in with or added, if any. */
-    val signedInEmail: String? = null,
-    /** Businesses that go with the account if it is deleted: theirs alone, nobody else to run them. */
-    val soleOwnerOf: List<String> = emptyList(),
-    /** Advance this person still owes the business, said when they are about to leave it. */
-    val advanceOwedMinor: Long = 0,
-    /** Businesses they work for today — what the row's subtitle counts. */
-    val orgCount: Int = 1,
-    /** Including ended ones: decides whether the row is worth showing at all. */
-    val everOrgCount: Int = 1,
-    val upiId: String? = null,
-    val gstin: String? = null,
-    val landUnit: MeasureUnit = MeasureUnit.Acre,
-    /** The currency the business keeps its books in. */
-    val currencyCode: String = "INR",
-    /** When the business's seasons begin, as the owner set them (or the usual dates). */
-    val seasonStarts: List<SeasonStart> = SeasonCalendar.Default.starts,
-    /** How the plan is read: the hour its day turns over, and whether drivers see everybody's work. */
-    val plan: PlanSettings = PlanSettings(),
-    val businessMode: Boolean = false,
-    /** The business asks its crew for proof of work. */
-    val proofOfWork: Boolean = false,
-    /** False for a driver, who may not change the business they work for. */
-    val canEditBusiness: Boolean = false,
+    /** The letterhead. Each one prints only when it is filled in. */
+    val phone: String = "",
+    val addressLine: String = "",
+    val gstin: String = "",
+    val upiId: String = "",
 )
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
-
-    val state: StateFlow<ProfileState> = app.sessionStore.session.flatMapLatest { s ->
-        combine(
-            app.db.orgDao().observeOrg(s.orgId),
-            app.sessionStore.businessMode,
-            app.teamRepository.observeTeam(s.orgId),
-        ) { org, businessMode, team ->
-            val otherOwners = team.count {
-                it.role == MemberRole.Owner && it.active && it.personId != s.personId
-            }
-            ProfileState(
-                loaded = true,
-                displayName = s.displayName,
-                role = s.role,
-                businessName = org?.name.orEmpty(),
-                addressLine = org?.addressLine,
-                phone = org?.phone,
-                upiId = org?.upiId,
-                gstin = org?.gstin,
-                landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
-                currencyCode = org?.currencyCode ?: "INR",
-                seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
-                plan = PlanSettings(PlanSettings.cleanHour(org?.planDayStartHour), org?.driversSeeAll ?: false),
-                businessMode = businessMode,
-                proofOfWork = org?.proofOfWork == true,
-                canEditBusiness = Capability.EditBusiness in s.can,
-                orgId = s.orgId,
-                personId = s.personId,
-                // A driver may always leave. An owner may only leave if somebody
-                // else can still run the place.
-                canLeave = s.role != MemberRole.Owner || otherOwners > 0,
-                signedInPhone = app.sessionStore.signedInPhone(),
-                signedInEmail = app.sessionStore.signedInEmail(),
-                soleOwnerOf = app.sessionStore.businessesOwnedAlone().mapNotNull { id ->
-                    app.db.orgDao().findOrg(id)?.name
-                },
-                advanceOwedMinor = app.ledgerRepository.observeAdvanceOutstanding(s.orgId, s.personId).first(),
-                orgCount = app.db.orgDao().activeMembershipCountFor(s.personId),
-                everOrgCount = app.db.orgDao().membershipCountFor(s.personId),
-            )
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileState())
-
-    init {
-        viewModelScope.launch { app.sessionStore.load() }
-    }
-
-    fun setBusinessMode(enabled: Boolean) = app.sessionStore.setBusinessMode(enabled)
-
-    /** Set when switching proof of work on needs the paid plan. */
-    val needsPlan = MutableStateFlow(false)
-
-    fun setProofOfWork(on: Boolean) = viewModelScope.launch {
-        try {
-            app.sessionStore.setProofOfWork(on)
-        } catch (limit: com.example.fieldtrack.data.plan.PlanLimit) {
-            needsPlan.value = true
-        } catch (other: Exception) {
-        }
-    }
+data class ProfileState(
+    val fields: ProfileFields = ProfileFields(),
+    /** What is saved now: the form has changes when [fields] differs from it. */
+    val saved: ProfileFields = ProfileFields(),
+    val role: MemberRole = MemberRole.Owner,
+    /** The number this person signs in with: shown, never edited here. */
+    val signedInPhone: String? = null,
+    /** The business's currency, which decides whether the form asks for a UPI id. */
+    val currencyCode: String = "INR",
+    /** False for a driver, who sees only their own name: the business is not theirs to change. */
+    val canEditBusiness: Boolean = false,
+    /** A save the server or the rules turned down. */
+    val refused: Boolean = false,
+    val loaded: Boolean = false,
+    val saving: Boolean = false,
+    /** True right after a save, until the next change: the page says it worked. */
+    val justSaved: Boolean = false,
+) {
+    val changed: Boolean get() = loaded && fields != saved
+    val canSave: Boolean
+        get() = changed && fields.yourName.isNotBlank() && !saving &&
+            (!canEditBusiness || fields.businessName.isNotBlank())
 }
 
 /**
- * Everything about the person and the business they trade as.
+ * You, and the business you trade as, on one page that is itself the form.
  *
- * One screen rather than two, because from the farmer's side it is one question —
- * "what does the app know about me" — and because the answers are what print at the
- * top of every bill they send. Each row shows what is set now and opens the form
- * that changes it; a row that is blank says so rather than sitting empty.
+ * The same details the person gave when they started, shown filled in and changed in
+ * place. Nothing on it is a row leading somewhere else; a Save appears once something
+ * has actually changed, and leaving with changes asks first. Preferences are not here:
+ * they live in Settings.
  */
+class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
+
+    private val _state = MutableStateFlow(ProfileState())
+    val state: StateFlow<ProfileState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            val org = app.db.orgDao().observeOrg(s.orgId).first()
+            val loaded = ProfileFields(
+                yourName = s.displayName,
+                businessName = org?.name?.ifBlank { null } ?: s.businessName,
+                phone = org?.phone.orEmpty(),
+                addressLine = org?.addressLine.orEmpty(),
+                gstin = org?.gstin.orEmpty(),
+                upiId = org?.upiId.orEmpty(),
+            )
+            _state.update {
+                it.copy(
+                    fields = loaded,
+                    saved = loaded,
+                    role = s.role,
+                    signedInPhone = app.sessionStore.signedInPhone(),
+                    currencyCode = s.currencyCode,
+                    canEditBusiness = Capability.EditBusiness in s.can,
+                    loaded = true,
+                )
+            }
+        }
+    }
+
+    private fun edit(change: (ProfileFields) -> ProfileFields) =
+        _state.update { it.copy(fields = change(it.fields), justSaved = false, refused = false) }
+
+    fun setYourName(v: String) = edit { it.copy(yourName = v) }
+    fun setBusinessName(v: String) = edit { it.copy(businessName = v) }
+    fun setPhone(v: String) = edit { it.copy(phone = v) }
+    fun setAddress(v: String) = edit { it.copy(addressLine = v) }
+    fun setGstin(v: String) = edit { it.copy(gstin = v.uppercase()) }
+    fun setUpiId(v: String) = edit { it.copy(upiId = v) }
+
+    fun save() = viewModelScope.launch {
+        val current = _state.value
+        if (!current.canSave) return@launch
+        val f = current.fields
+        _state.update { it.copy(saving = true, refused = false) }
+        if (f.yourName.trim() != current.saved.yourName.trim()) app.sessionStore.updateProfile(f.yourName)
+        if (current.canEditBusiness && f.copy(yourName = "") != current.saved.copy(yourName = "")) {
+            val failed = runCatching {
+                app.sessionStore.updateBusiness(
+                    name = f.businessName,
+                    // The unit is set in Settings; read it fresh so this form never undoes it.
+                    landUnit = app.sessionStore.current()?.landUnit ?: return@runCatching,
+                    phone = f.phone,
+                    addressLine = f.addressLine,
+                    gstin = f.gstin,
+                    upiId = f.upiId,
+                )
+            }.isFailure
+            if (failed) {
+                _state.update { it.copy(saving = false, refused = true) }
+                return@launch
+            }
+        }
+        _state.update { it.copy(saving = false, saved = f, justSaved = true) }
+    }
+
+    /** Puts the form back to what is saved, for somebody leaving without saving. */
+    fun discard() = _state.update { it.copy(fields = it.saved, refused = false) }
+}
+
+/** The editors of the form, grouped so they travel as one argument. */
+class ProfileActions(
+    val onYourName: (String) -> Unit,
+    val onBusinessName: (String) -> Unit,
+    val onPhone: (String) -> Unit,
+    val onAddress: (String) -> Unit,
+    val onGstin: (String) -> Unit,
+    val onUpiId: (String) -> Unit,
+    val onSave: () -> Unit,
+    val onDiscard: () -> Unit,
+)
+
 @Composable
 fun ProfileScreen(
     state: ProfileState,
+    actions: ProfileActions,
     onBack: () -> Unit,
-    onEditName: () -> Unit,
-    onEditBusiness: () -> Unit,
-    onEditSeasons: () -> Unit,
-    onEditPlan: () -> Unit,
-    onEditMoney: () -> Unit,
-    /** Null when this build cannot offer Google, so there is nothing to show. */
-    google: GoogleLink? = null,
-    onBusinessMode: (Boolean) -> Unit,
-    onProofOfWork: (Boolean) -> Unit = {},
-    onSignOut: () -> Unit,
-    /** Deletes the account. Null where there is no way to ask the server. */
-    onDeleteAccount: (() -> Unit)? = null,
-    /** Set when the last try could not reach the server, so the person is told rather than left wondering. */
-    deleteFailed: Boolean = false,
-    onBusinesses: () -> Unit,
-    /** Null for the only owner, who cannot leave their own business. */
-    onLeave: (() -> Unit)?,
-    unsentCount: Int,
     modifier: Modifier = Modifier,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
-    val notSet = stringResource(R.string.profile_not_set)
+    val f = state.fields
+    var askLeave by rememberSaveable { mutableStateOf(false) }
+    val back = { if (state.changed) askLeave = true else onBack() }
+    BackHandler(enabled = state.changed) { askLeave = true }
 
     Column(
         modifier
             .fillMaxSize()
             .background(colors.paper)
+            .imePadding()
     ) {
         FtTopBar(
             title = stringResource(R.string.profile_title),
-            onBack = onBack,
+            onBack = back,
             backContentDescription = stringResource(R.string.action_back_cd),
         )
-
         Column(
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = dimens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Who this is: shown, not offered for editing. The phone number is how they
+            // sign in, and the role is the owner's to give.
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(11.dp),
             ) {
                 FtAvatar(
-                    initials = initialsOf(state.displayName),
-                    size = 88.dp,
+                    initials = initialsOf(f.yourName),
+                    size = 76.dp,
                     background = colors.primary,
                     contentColor = colors.onPrimary,
                 )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = state.displayName,
-                        style = FieldTrackTheme.type.sectionTitle,
-                        color = colors.ink,
-                    )
-                    Text(
-                        text = stringResource(
-                            if (state.role == MemberRole.Owner) R.string.more_owner
-                            else R.string.more_operator
-                        ),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.inkTertiary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-            }
-
-            // One door for everything below: name, business, bill details and land unit.
-            FtButton(
-                text = stringResource(R.string.profile_edit_all),
-                onClick = onEditName,
-                tone = FtButtonTone.Secondary,
-                height = 48.dp,
-            )
-
-            FtSectionLabel(stringResource(R.string.profile_you))
-            FtCard(padding = 0.dp) {
-                ValueRow(
-                    label = stringResource(R.string.onboard_your_name),
-                    value = state.displayName,
-                    onClick = onEditName,
-                )
-            }
-
-            FtSectionLabel(stringResource(R.string.profile_business))
-            FtCard(padding = 0.dp) {
-                // Every one of these prints at the top of a bill, which is why they
-                // are shown here with their values rather than hidden behind a form.
-                val open = onEditBusiness.takeIf { state.canEditBusiness }
-                ValueRow(
-                    label = stringResource(R.string.onboard_business_name),
-                    value = state.businessName,
-                    onClick = open,
-                )
-                FtRowDivider()
-                ValueRow(
-                    label = stringResource(R.string.profile_address),
-                    value = state.addressLine ?: notSet,
-                    muted = state.addressLine == null,
-                    onClick = open,
-                )
-                FtRowDivider()
-                ValueRow(
-                    label = stringResource(R.string.edit_business_phone),
-                    value = state.phone?.let { formatPhone(it) } ?: notSet,
-                    muted = state.phone == null,
-                    onClick = open,
-                )
-                FtRowDivider()
-                ValueRow(
-                    label = stringResource(R.string.edit_business_upi),
-                    value = state.upiId ?: notSet,
-                    muted = state.upiId == null,
-                    onClick = open,
-                )
-                FtRowDivider()
-                ValueRow(
-                    label = stringResource(R.string.edit_business_gstin),
-                    value = state.gstin ?: notSet,
-                    muted = state.gstin == null,
-                    onClick = open,
-                )
-            }
-
-            FtSectionLabel(stringResource(R.string.profile_measuring))
-            FtCard(padding = 0.dp) {
-                ValueRow(
-                    label = stringResource(R.string.profile_land_measured_in),
-                    value = stringResource(state.landUnit.labelRes),
-                    onClick = onEditBusiness.takeIf { state.canEditBusiness },
-                )
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.profile_money),
-                    subtitle = stringResource(
-                        R.string.profile_money_summary,
-                        com.example.fieldtrack.data.region.Region.nameOf(state.currencyCode),
-                        com.example.fieldtrack.designsystem.format.MoneyStyle.symbolOf(state.currencyCode),
-                    ),
-                    showChevron = true,
-                    onClick = onEditMoney,
-                )
-                FtRowDivider()
-                // Under the label, not beside it: named seasons make a line far longer
-                // than the clipped value a row like the ones above can hold, and the
-                // dates are the whole point of the row.
-                FtListRow(
-                    title = stringResource(R.string.profile_seasons),
-                    subtitle = seasonStartsSummary(state.seasonStarts),
-                    subtitleMaxLines = 3,
-                    showChevron = state.canEditBusiness,
-                    onClick = onEditSeasons.takeIf { state.canEditBusiness },
-                )
-                FtRowDivider()
-                FtListRow(
-                    title = stringResource(R.string.profile_plan),
-                    subtitle = stringResource(
-                        if (state.plan.driversSeeAll) R.string.profile_plan_summary_all else R.string.profile_plan_summary_own,
-                        timeOfDay(state.plan.dayStartHour * 60),
-                    ),
-                    subtitleMaxLines = 3,
-                    showChevron = state.canEditBusiness,
-                    onClick = onEditPlan.takeIf { state.canEditBusiness },
-                )
-                FtRowDivider()
-                Row(
-                    Modifier
-                        .toggleable(value = state.businessMode, role = Role.Switch, onValueChange = onBusinessMode)
-                        .padding(horizontal = 15.dp, vertical = 13.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.profile_business_mode),
-                            style = FieldTrackTheme.type.rowTitle,
-                            color = colors.ink,
-                        )
-                        Text(
-                            text = stringResource(R.string.profile_business_mode_note),
-                            style = FieldTrackTheme.type.caption,
-                            color = colors.inkTertiary,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    Switch(
-                        checked = state.businessMode,
-                        // The whole row toggles; the switch only shows the state.
-                        onCheckedChange = null,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = colors.onPrimary,
-                            checkedTrackColor = colors.primary,
-                            uncheckedThumbColor = colors.surface,
-                            uncheckedTrackColor = colors.line,
-                        ),
-                    )
-                }
-                if (state.canEditBusiness) {
-                    FtRowDivider()
-                    Row(
-                        Modifier
-                            .toggleable(value = state.proofOfWork, role = Role.Switch, onValueChange = onProofOfWork)
-                            .padding(horizontal = 15.dp, vertical = 13.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.proof_setting),
-                                style = FieldTrackTheme.type.rowTitle,
-                                color = colors.ink,
-                            )
-                            Text(
-                                text = stringResource(R.string.proof_setting_note),
-                                style = FieldTrackTheme.type.caption,
-                                color = colors.inkTertiary,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
-                        }
-                        Switch(
-                            checked = state.proofOfWork,
-                            onCheckedChange = null,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = colors.onPrimary,
-                                checkedTrackColor = colors.primary,
-                                uncheckedThumbColor = colors.surface,
-                                uncheckedTrackColor = colors.line,
-                            ),
-                        )
-                    }
-                }
-            }
-
-            // Shown whenever somebody has more than one, and to drivers always:
-            // a driver with one employer today may be given a second code
-            // tomorrow, and would otherwise have nowhere to type it.
-            if (state.everOrgCount > 1 || state.role != MemberRole.Owner) {
-                FtSectionLabel(stringResource(R.string.orgs_title))
-                FtCard(padding = 0.dp) {
-                    FtListRow(
-                        // The business they are in, not a repeat of the heading
-                        // above it: the row's job is to say where they are now,
-                        // and the count underneath says there is somewhere else.
-                        title = state.businessName,
-                        subtitle = pluralStringResource(
-                            R.plurals.orgs_count, state.orgCount, state.orgCount,
-                        ),
-                        leading = { FtIconTile(FieldTrackIcons.Team, size = 40.dp) },
-                        showChevron = true,
-                        onClick = onBusinesses,
-                    )
-                }
-            }
-
-            FtSectionLabel(stringResource(R.string.account_section))
-            FtCard {
                 Text(
-                    text = stringResource(
-                        R.string.account_signed_in_as,
-                        state.signedInPhone?.let { formatPhone(it) }
-                            ?: state.signedInEmail
-                            ?: state.displayName,
-                    ),
-                    style = FieldTrackTheme.type.bodySmall,
-                    color = colors.inkSecondary,
-                )
-                if (google != null) {
-                    // A second way back in, for a lost phone or a number that changed.
-                    Text(
-                        text = if (google.email != null) {
-                            stringResource(R.string.account_google_linked, google.email)
-                        } else stringResource(R.string.account_google_offer),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.inkTertiary,
-                        modifier = Modifier.padding(top = 7.dp),
-                    )
-                    if (google.email == null) {
-                        FtButton(
-                            text = stringResource(R.string.account_google_add),
-                            onClick = google.onAdd,
-                            tone = FtButtonTone.Secondary,
-                            height = 46.dp,
-                            modifier = Modifier.padding(top = 9.dp),
-                        )
-                    }
-                    google.note?.let {
-                        Text(
-                            text = it,
-                            style = FieldTrackTheme.type.caption,
-                            color = colors.dueInk,
-                            modifier = Modifier.padding(top = 7.dp),
-                        )
-                    }
-                }
-                // Said before they decide, not after. Somebody signing out of a
-                // shared phone should know what is still sitting on it.
-                if (unsentCount > 0) {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.account_sign_out_unsent, unsentCount, unsentCount,
+                    text = listOfNotNull(
+                        stringResource(
+                            when (state.role) {
+                                MemberRole.Owner -> R.string.more_owner
+                                MemberRole.Viewer -> R.string.more_viewer
+                                MemberRole.Operator -> R.string.more_operator
+                            }
                         ),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.inkTertiary,
-                        modifier = Modifier.padding(top = 7.dp),
-                    )
-                }
-            }
-
-            onLeave?.let { leave ->
-                var leaving by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
-                FtButton(
-                    text = stringResource(R.string.account_leave),
-                    onClick = { leaving = true },
-                    tone = FtButtonTone.Secondary,
-                    height = 50.dp,
+                        state.signedInPhone?.let { formatPhone(it) },
+                    ).joinToString(" · "),
+                    style = FieldTrackTheme.type.caption,
+                    color = colors.inkTertiary,
+                    modifier = Modifier.padding(top = 10.dp),
                 )
-                if (leaving) {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { leaving = false },
-                        title = { Text(stringResource(R.string.account_leave_confirm, state.businessName)) },
-                        text = {
-                            Text(
-                                buildString {
-                                    append(stringResource(R.string.account_leave_body))
-                                    // Said to the person leaving, so it is not a surprise at the next payday.
-                                    if (state.advanceOwedMinor > 0) {
-                                        append("\n\n")
-                                        append(stringResource(R.string.account_leave_advance, money(state.advanceOwedMinor)))
-                                    }
-                                }
-                            )
-                        },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = { leaving = false; leave() }) {
-                                Text(stringResource(R.string.account_leave_yes), color = colors.dueInk)
-                            }
-                        },
-                        dismissButton = {
-                            androidx.compose.material3.TextButton(onClick = { leaving = false }) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                        },
-                    )
-                }
             }
 
-            FtButton(
-                text = stringResource(R.string.account_sign_out),
-                onClick = onSignOut,
-                tone = FtButtonTone.Danger,
-                height = 50.dp,
+            FtTextField(
+                label = stringResource(R.string.onboard_your_name),
+                value = f.yourName,
+                onValueChange = actions.onYourName,
+                placeholder = stringResource(R.string.onboard_your_name_hint),
             )
 
-            if (onDeleteAccount != null) {
-                var confirming by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
-                FtButton(
-                    text = stringResource(R.string.account_delete),
-                    onClick = { confirming = true },
-                    tone = FtButtonTone.Secondary,
-                    height = 46.dp,
+            if (state.canEditBusiness) {
+                FtSectionLabel(stringResource(R.string.profile_business), Modifier.padding(top = 6.dp))
+                FtTextField(
+                    label = stringResource(R.string.onboard_business_name),
+                    value = f.businessName,
+                    onValueChange = actions.onBusinessName,
+                    placeholder = stringResource(R.string.onboard_business_name_hint),
                 )
-                if (deleteFailed) {
-                    Text(
-                        text = stringResource(R.string.account_delete_failed),
-                        style = FieldTrackTheme.type.caption,
-                        color = colors.dueInk,
-                    )
-                }
-                if (confirming) {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { confirming = false },
-                        title = { Text(stringResource(R.string.account_delete_title)) },
-                        text = {
-                            Text(
-                                buildString {
-                                    append(stringResource(R.string.account_delete_body))
-                                    if (state.soleOwnerOf.isNotEmpty()) {
-                                        append("\n\n")
-                                        append(
-                                            stringResource(
-                                                R.string.account_delete_businesses,
-                                                state.soleOwnerOf.joinToString(", "),
-                                            )
-                                        )
-                                    }
-                                }
-                            )
-                        },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = { confirming = false; onDeleteAccount() }) {
-                                Text(stringResource(R.string.account_delete_yes), color = colors.dueInk)
-                            }
-                        },
-                        dismissButton = {
-                            androidx.compose.material3.TextButton(onClick = { confirming = false }) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                        },
-                    )
-                }
+                // What a customer reads at the top of a bill. Optional throughout:
+                // a farmer trading under his own name has a village and a phone, and
+                // printing empty labels for the rest would look like an unfinished
+                // form rather than a bill.
+                Text(
+                    text = stringResource(R.string.edit_bill_details_note),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.inkTertiary,
+                )
+                PhoneField(
+                    label = stringResource(R.string.edit_business_phone),
+                    value = f.phone,
+                    onValueChange = actions.onPhone,
+                )
+                FtTextField(
+                    label = stringResource(R.string.edit_business_address),
+                    value = f.addressLine,
+                    onValueChange = actions.onAddress,
+                    placeholder = stringResource(R.string.edit_business_address_hint),
+                )
+                // UPI is how people pay in India; elsewhere the bank or mobile-money
+                // details live under Money and region.
+                if (state.currencyCode == "INR") FtTextField(
+                    label = stringResource(R.string.edit_business_upi),
+                    value = f.upiId,
+                    onValueChange = actions.onUpiId,
+                    placeholder = stringResource(R.string.edit_business_upi_hint),
+                    helper = stringResource(R.string.edit_business_upi_note),
+                )
+                FtTextField(
+                    label = stringResource(R.string.edit_business_gstin),
+                    value = f.gstin,
+                    onValueChange = actions.onGstin,
+                    helper = stringResource(R.string.edit_business_gstin_note),
+                )
             }
 
+            if (state.refused) {
+                Text(
+                    text = stringResource(R.string.edit_not_allowed),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.dueInk,
+                )
+            }
+            if (state.justSaved) {
+                Text(
+                    text = stringResource(R.string.profile_saved),
+                    style = FieldTrackTheme.type.bodySmall,
+                    color = colors.money,
+                )
+            }
             Box(Modifier.padding(bottom = dimens.space4))
         }
+        // Only when there is something to save: a button that does nothing is a
+        // button that teaches people to stop trusting buttons.
+        if (state.changed) {
+            Box(Modifier.padding(dimens.screenPadding)) {
+                FtButton(
+                    text = stringResource(R.string.edit_save),
+                    onClick = actions.onSave,
+                    enabled = state.canSave,
+                )
+            }
+        }
     }
-}
 
-/** A label on the left, what it is set to on the right, and a way to change it. */
-@Composable
-private fun ValueRow(
-    label: String,
-    value: String,
-    onClick: (() -> Unit)?,
-    muted: Boolean = false,
-) {
-    FtListRow(
-        title = label,
-        trailing = {
-            // Capped and clipped: a long address or UPI id would otherwise take the
-            // width it wants and push the label it belongs to off the screen.
-            Text(
-                text = value,
-                style = FieldTrackTheme.type.label,
-                color = if (muted) FieldTrackTheme.colors.inkTertiary
-                else FieldTrackTheme.colors.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End,
-                modifier = Modifier.widthIn(max = 170.dp),
-            )
-        },
-        showChevron = onClick != null,
-        onClick = onClick,
-    )
+    if (askLeave) {
+        AlertDialog(
+            onDismissRequest = { askLeave = false },
+            containerColor = colors.surface,
+            title = { Text(stringResource(R.string.profile_unsaved_title)) },
+            text = { Text(stringResource(R.string.profile_unsaved_body)) },
+            confirmButton = {
+                TextButton(onClick = { askLeave = false; actions.onSave() }) {
+                    Text(stringResource(R.string.edit_save), color = colors.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { askLeave = false; actions.onDiscard(); onBack() }) {
+                    Text(stringResource(R.string.profile_unsaved_leave), color = colors.dueInk)
+                }
+            },
+        )
+    }
 }

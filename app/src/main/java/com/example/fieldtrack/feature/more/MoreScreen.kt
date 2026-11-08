@@ -1,6 +1,11 @@
 package com.example.fieldtrack.feature.more
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,16 +13,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -25,7 +31,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.BuildConfig
 import com.example.fieldtrack.FieldFlowApplication
 import com.example.fieldtrack.R
-import com.example.fieldtrack.data.db.MeasureUnit
 import com.example.fieldtrack.data.db.MemberRole
 import com.example.fieldtrack.data.session.Capability
 import com.example.fieldtrack.designsystem.component.FtAvatar
@@ -33,17 +38,14 @@ import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtIconTile
 import com.example.fieldtrack.designsystem.component.FtListRow
 import com.example.fieldtrack.designsystem.component.FtRowDivider
-import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTopBar
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.initialsOf
-import com.example.fieldtrack.feature.labelRes
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -52,62 +54,46 @@ data class MoreState(
     val displayName: String = "",
     val businessName: String = "",
     val role: MemberRole = MemberRole.Owner,
-    val machineCount: Int = 0,
-    val customerCount: Int = 0,
-    val pendingUploads: Int = 0,
-    val rateCount: Int = 0,
-    val canSeeMoney: Boolean = true,
+    /** Customer money: what comes in. */
+    val canSeeMoney: Boolean = false,
     /** Its own switch: a colleague's wage is not a customer balance. */
     val canSeePeopleCost: Boolean = false,
-    /** Null until a server has actually confirmed holding this phone's work. */
-    val lastBackupAt: Long? = null,
-    /** False for a driver, who may not rename the business they work for. */
-    val canEditBusiness: Boolean = false,
     /** Whether this person plans work, and so deals with farmers' requests. */
     val canPlan: Boolean = false,
-    val memberCount: Int = 0,
     val canSeeTeam: Boolean = false,
-    val landUnit: MeasureUnit = MeasureUnit.Acre,
-    /** False for a farmer trading under their own name rather than a business name. */
-    val isBusiness: Boolean = false,
-)
+    val memberCount: Int = 0,
+    /** Whether farmers can ask for work through the business's own page. */
+    val bookingLinkOn: Boolean = false,
+    val newRequests: Int = 0,
+) {
+    /** Somebody who may see any kind of money has a Money place; anybody else has none. */
+    val hasMoney: Boolean get() = canSeeMoney || canSeePeopleCost
+    /** Requests are a place only where they can arrive, or some are still waiting. */
+    val hasRequests: Boolean get() = canPlan && (bookingLinkOn || newRequests > 0)
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MoreViewModel(app: FieldFlowApplication) : ViewModel() {
 
-
     val state: StateFlow<MoreState> = app.sessionStore.session.flatMapLatest { s ->
         combine(
-            app.directoryRepository.observeMachines(s.orgId),
-            app.directoryRepository.observeCustomers(s.orgId),
-            app.db.outboxDao().observePendingCount(),
             app.teamRepository.observeTeam(s.orgId),
-            // Paired because combine tops out at five typed sources, and these two
-            // are both just small numbers for the rows below.
-            combine(
-                app.syncEngine.status,
-                app.directoryRepository.observeRateCard(s.orgId),
-            ) { sync, rates -> sync to rates.size },
-        ) { machines, customers, pending, team, (sync, rateCount) ->
+            app.db.orgDao().observeOrg(s.orgId),
+            app.planRepository.observeNewRequestCount(s.orgId),
+        ) { team, org, newRequests ->
             MoreState(
                 displayName = s.displayName,
-                businessName = s.businessName,
+                businessName = org?.name?.ifBlank { null } ?: s.businessName,
                 role = s.role,
-                machineCount = machines.size,
-                customerCount = customers.size,
-                pendingUploads = pending,
-                lastBackupAt = sync.lastSuccessAt,
-                rateCount = rateCount,
                 canSeeMoney = s.canSeeMoney,
                 canSeePeopleCost = Capability.SeePeopleCost in s.can,
-                canEditBusiness = Capability.EditBusiness in s.can,
                 canPlan = Capability.PlanWork in s.can,
-                memberCount = team.size,
                 // A one-person outfit has no team to manage; the row appears when
                 // business mode is switched on, which is where drivers come from.
                 canSeeTeam = app.sessionStore.isBusiness(),
-                landUnit = s.landUnit,
-                isBusiness = app.sessionStore.isBusiness(),
+                memberCount = team.count { it.active },
+                bookingLinkOn = org?.bookingLink == true,
+                newRequests = newRequests,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoreState())
@@ -118,50 +104,24 @@ class MoreViewModel(app: FieldFlowApplication) : ViewModel() {
 }
 
 /**
- * The side menu: everything that is not one of the four tabs, in three groups.
+ * The menu behind the picture at the top of the four main screens.
  *
- * Work (the people and machines you deal with), Money (what comes in, goes out and is
- * left), Settings. A group with nothing in it for this person is not drawn, so a driver
- * is shown a short list and an owner a longer one, in the same order, with each thing in
- * the same place. Rows are hidden, never moved, when a person may not use them.
- *
- * Shows only what exists: a row for a setting that has not been built would be a door
- * opening onto nothing.
+ * Short on purpose. At the top, who you are (opens your profile) and which business you
+ * are working in (one tap to change it). Then the few places that are not tabs: your
+ * team, your money, farmers' requests. Then settings and help. Anything that is a tab is
+ * not repeated here, and anything a person may not use is left out rather than shown
+ * greyed: a driver sees a menu of four lines, an owner one of seven, in the same order.
  */
 @Composable
 fun MoreScreen(
     state: MoreState,
-    onEditProfile: () -> Unit,
+    onProfile: () -> Unit,
+    onChangeBusiness: () -> Unit,
     onTeam: () -> Unit,
-    /** Null for a driver: the business is not theirs to rename. */
-    onEditBusiness: (() -> Unit)?,
-    onBackup: () -> Unit,
-    onDisplay: () -> Unit,
-    onSecurity: (() -> Unit)? = null,
-    onExport: (() -> Unit)? = null,
-    onReminders: (() -> Unit)? = null,
-    onHelp: (() -> Unit)? = null,
-    /** For somebody who may see what the business pays: what the machines are worth. */
-    onAssets: (() -> Unit)? = null,
-    onIncome: (() -> Unit)? = null,
-    onRequests: (() -> Unit)? = null,
-    onBookingLink: (() -> Unit)? = null,
-    onPlan: (() -> Unit)? = null,
-    onRates: () -> Unit,
-    /** Every movement of money in one list, for somebody who sees any of it. */
-    onHistory: (() -> Unit)? = null,
-    onSearch: () -> Unit = {},
-    onMoneyOut: () -> Unit,
-    onSeason: () -> Unit,
-    onMachines: () -> Unit,
-    /** Opens the price calculator. Shown only to somebody who may see rates. */
-    onPrice: () -> Unit,
-    /**
-     * Opens the customers, for somebody who has them as a tab. Null for a driver
-     * who has no customer list to open: the row then only states the count rather
-     * than leading to a list they were never meant to have.
-     */
-    onCustomers: (() -> Unit)?,
+    onMoney: () -> Unit,
+    onRequests: () -> Unit,
+    onSettings: () -> Unit,
+    onHelp: () -> Unit,
     modifier: Modifier = Modifier,
     /** In the side menu the screen's own title bar is dropped: the menu already has a header. */
     inDrawer: Boolean = false,
@@ -181,195 +141,130 @@ fun MoreScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = dimens.screenPadding)
-                .padding(top = if (inDrawer) 12.dp else 0.dp),
-            verticalArrangement = Arrangement.spacedBy(13.dp),
+                .padding(top = if (inDrawer) 14.dp else 0.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            FtCard(padding = 16.dp, onClick = onEditProfile) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            // ---- You
+            FtCard(padding = 0.dp) {
+                FtListRow(
+                    title = state.displayName,
+                    subtitle = stringResource(R.string.menu_your_profile),
+                    leading = {
+                        FtAvatar(
+                            initials = initialsOf(state.displayName),
+                            size = 46.dp,
+                            background = colors.primary,
+                            contentColor = colors.onPrimary,
+                        )
+                    },
+                    showChevron = true,
+                    onClick = onProfile,
+                )
+                FtRowDivider()
+                // ---- The business you are working in, and the way to another one. Drawn
+                // by hand rather than as a list row so a long name can take two lines
+                // instead of being cut short by the word beside it.
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = onChangeBusiness)
+                        .padding(horizontal = dimens.cardPadding, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     FtAvatar(
-                        initials = initialsOf(state.displayName),
-                        size = 52.dp,
-                        background = colors.primary,
-                        contentColor = colors.onPrimary,
+                        initials = initialsOf(state.businessName),
+                        size = 46.dp,
+                        background = colors.surfaceMuted,
+                        contentColor = colors.inkSecondary,
                     )
-                    Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                    Column(Modifier.weight(1f).padding(horizontal = 13.dp)) {
                         Text(
-                            text = state.displayName,
-                            style = FieldTrackTheme.type.sectionTitle,
+                            text = state.businessName,
+                            style = FieldTrackTheme.type.rowTitle,
                             color = colors.ink,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            // A solo owner trades under their own name, so repeating
-                            // it here would read as a bug rather than as information.
-                            text = listOf(
-                                state.businessName.takeIf { it != state.displayName },
-                                stringResource(
-                                    when (state.role) {
-                                        MemberRole.Owner -> R.string.more_owner
-                                        MemberRole.Viewer -> R.string.more_viewer
-                                        else -> R.string.more_operator
-                                    }
-                                ),
-                            ).filterNotNull().filter { it.isNotBlank() }.joinToString(" · "),
+                            text = stringResource(
+                                when (state.role) {
+                                    MemberRole.Owner -> R.string.more_owner
+                                    MemberRole.Viewer -> R.string.more_viewer
+                                    MemberRole.Operator -> R.string.more_operator
+                                }
+                            ),
                             style = FieldTrackTheme.type.caption,
                             color = colors.inkTertiary,
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                    FtIconTile(
-                        icon = FieldTrackIcons.Edit,
-                        size = 38.dp,
-                        background = colors.surfaceMuted,
-                        tint = colors.inkSecondary,
-                    )
+                    Row(
+                        Modifier
+                            .clip(FieldTrackTheme.shapes.chip)
+                            .border(dimens.border, colors.primary, FieldTrackTheme.shapes.chip)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            FieldTrackIcons.Swap,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.menu_change_business),
+                            style = FieldTrackTheme.type.label,
+                            color = colors.primary,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
                 }
             }
 
-            // ---- Work
-            MenuGroup(stringResource(R.string.more_your_work), inDrawer, buildList {
-                row(
-                    stringResource(R.string.machines_title), FieldTrackIcons.Tractor, onMachines,
-                    value = pluralStringResource(R.plurals.count_machines, state.machineCount, state.machineCount),
+            // ---- Places that are not tabs
+            val places = buildList {
+                if (state.canSeeTeam) add(
+                    MenuItem(
+                        stringResource(R.string.more_team), FieldTrackIcons.Team, onTeam,
+                        pluralStringResource(R.plurals.count_members, state.memberCount, state.memberCount),
+                    )
                 )
-                if (state.canSeeTeam) row(
-                    stringResource(R.string.more_team), FieldTrackIcons.Team, onTeam,
-                    value = pluralStringResource(R.plurals.count_members, state.memberCount, state.memberCount),
+                if (state.hasMoney) add(
+                    MenuItem(
+                        stringResource(R.string.menu_money), FieldTrackIcons.money(), onMoney,
+                        stringResource(R.string.menu_money_note),
+                    )
                 )
-                row(
-                    stringResource(R.string.customers_title), FieldTrackIcons.Customer, onCustomers,
-                    value = pluralStringResource(R.plurals.count_customers, state.customerCount, state.customerCount),
+                if (state.hasRequests) add(
+                    MenuItem(
+                        stringResource(R.string.requests_title), FieldTrackIcons.Calendar, onRequests,
+                        if (state.newRequests > 0) pluralStringResource(
+                            R.plurals.menu_requests_new, state.newRequests, state.newRequests,
+                        ) else null,
+                    )
                 )
-                if (onRequests != null) row(
-                    stringResource(R.string.requests_title), FieldTrackIcons.Calendar, onRequests,
-                    subtitle = stringResource(R.string.requests_row_note),
-                )
-                if (onBookingLink != null) row(
-                    stringResource(R.string.link_title), FieldTrackIcons.WhatsApp, onBookingLink,
-                    subtitle = stringResource(R.string.link_row_note),
-                )
-            })
+            }
+            MenuCard(places)
 
-            // ---- Money. Each row behind its own switch: a rate card is nothing but the
-            // prices this business charges, and what a colleague earns is not the same
-            // kind of secret as a customer balance.
-            MenuGroup(stringResource(R.string.menu_money), inDrawer, buildList {
-                if (onHistory != null) row(
-                    stringResource(R.string.mh_title), FieldTrackIcons.Banknote, onHistory,
-                    subtitle = stringResource(R.string.mh_row_note),
-                )
-                if (state.canSeeMoney) {
-                    row(
-                        stringResource(R.string.more_rates), FieldTrackIcons.Bill, onRates,
-                        value = if (state.rateCount == 0) stringResource(R.string.more_rates_none)
-                        else pluralStringResource(R.plurals.more_rates_count, state.rateCount, state.rateCount),
-                        tile = colors.dueWash to colors.due,
-                    )
-                    row(
-                        stringResource(R.string.more_price), FieldTrackIcons.money(), onPrice,
-                        subtitle = stringResource(R.string.more_price_note),
-                    )
-                }
-                if (state.canSeePeopleCost) {
-                    row(
-                        stringResource(R.string.more_money_out), FieldTrackIcons.Bill, onMoneyOut,
-                        subtitle = stringResource(R.string.more_money_out_note),
-                    )
-                    row(
-                        stringResource(R.string.season_title), FieldTrackIcons.Report, onSeason,
-                        subtitle = stringResource(R.string.more_season_note),
-                    )
-                }
-                if (onIncome != null) row(
-                    stringResource(R.string.income_title), FieldTrackIcons.Bill, onIncome,
-                    subtitle = stringResource(R.string.income_row_note),
-                )
-                if (onAssets != null) row(
-                    stringResource(R.string.assets_title), FieldTrackIcons.Tractor, onAssets,
-                    subtitle = stringResource(R.string.assets_row_note),
-                )
-            })
-
-            // ---- Settings
-            MenuGroup(stringResource(R.string.more_settings), inDrawer, buildList {
-                row(
-                    stringResource(R.string.more_language), FieldTrackIcons.More, onDisplay,
-                    value = com.example.fieldtrack.data.settings.AppLanguage.nativeName(
-                        androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0].toLanguageTag()
+            MenuCard(
+                listOf(
+                    MenuItem(
+                        stringResource(R.string.more_settings), FieldTrackIcons.Settings, onSettings,
+                        stringResource(R.string.menu_settings_note),
+                    ),
+                    MenuItem(
+                        stringResource(R.string.help_title), FieldTrackIcons.Help, onHelp,
+                        stringResource(R.string.help_row_note),
                     ),
                 )
-                row(
-                    stringResource(R.string.display_title), FieldTrackIcons.Edit, onDisplay,
-                    subtitle = stringResource(R.string.display_row_note),
-                )
-                if (onPlan != null) row(
-                    stringResource(R.string.pricing_title), FieldTrackIcons.Check, onPlan,
-                    subtitle = stringResource(R.string.plan_row_note),
-                )
-                if (onReminders != null) row(
-                    stringResource(R.string.remind_title), FieldTrackIcons.Bell, onReminders,
-                    subtitle = stringResource(R.string.remind_row_note),
-                )
-                if (onSecurity != null) row(
-                    stringResource(R.string.security_title), FieldTrackIcons.Lock, onSecurity,
-                    subtitle = stringResource(R.string.security_row_note),
-                )
-                if (onHelp != null) row(
-                    stringResource(R.string.help_title), FieldTrackIcons.Search, onHelp,
-                    subtitle = stringResource(R.string.help_row_note),
-                )
-                if (onExport != null) row(
-                    stringResource(R.string.export_title), FieldTrackIcons.Report, onExport,
-                    subtitle = stringResource(R.string.export_row_note),
-                )
-                row(
-                    stringResource(R.string.more_backup), if (state.pendingUploads == 0 && state.lastBackupAt != null) {
-                        FieldTrackIcons.Check
-                    } else {
-                        FieldTrackIcons.Offline
-                    }, onBackup,
-                    // What is actually true right now, rather than a fixed label. This
-                    // row is the one place most people will ever look to find out
-                    // whether their records exist anywhere but this phone.
-                    subtitle = when {
-                        state.pendingUploads > 0 -> stringResource(
-                            R.string.more_backup_waiting,
-                            pluralStringResource(
-                                R.plurals.sync_changes_waiting,
-                                state.pendingUploads,
-                                state.pendingUploads,
-                            ),
-                        )
-                        // Nothing queued is not the same as safely on a server.
-                        state.lastBackupAt == null -> stringResource(R.string.sync_never)
-                        else -> stringResource(R.string.sync_all_safe)
-                    },
-                    tile = colors.moneyWash to colors.money,
-                )
-            })
-
-            if (!inDrawer) {
-                FtSectionLabel(stringResource(R.string.more_help))
-                FtCard {
-                    Text(
-                        text = stringResource(R.string.more_help_offline_title),
-                        style = FieldTrackTheme.type.rowTitle,
-                        color = colors.ink,
-                    )
-                    Text(
-                        text = stringResource(R.string.more_help_offline_body),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkTertiary,
-                        modifier = Modifier.padding(top = 5.dp),
-                    )
-                }
-            }
+            )
 
             Text(
                 text = stringResource(R.string.more_version, BuildConfig.VERSION_NAME),
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
             Box(Modifier.padding(bottom = dimens.space4))
         }
@@ -380,47 +275,22 @@ fun MoreScreen(
 private data class MenuItem(
     val title: String,
     val icon: ImageVector,
-    val onClick: (() -> Unit)?,
-    val subtitle: String?,
-    /** A short fact at the end of the line: how many, or which. */
-    val value: String?,
-    val tile: Pair<Color, Color>?,
+    val onClick: () -> Unit,
+    val note: String?,
 )
 
-private fun MutableList<MenuItem>.row(
-    title: String,
-    icon: ImageVector,
-    onClick: (() -> Unit)?,
-    subtitle: String? = null,
-    value: String? = null,
-    tile: Pair<Color, Color>? = null,
-) {
-    add(MenuItem(title, icon, onClick, subtitle, value, tile))
-}
-
-/** A labelled card of menu rows; drawn only if it has any row to show. */
 @Composable
-private fun MenuGroup(label: String, valueUnderTitle: Boolean, items: List<MenuItem>) {
+private fun MenuCard(items: List<MenuItem>) {
     if (items.isEmpty()) return
-    val colors = FieldTrackTheme.colors
-    FtSectionLabel(label)
     FtCard(padding = 0.dp) {
         items.forEachIndexed { index, item ->
             if (index > 0) FtRowDivider()
             FtListRow(
                 title = item.title,
-                // The side menu is too narrow to hold a title and a fact on one line, so the
-                // fact goes under the title there instead of squeezing it to "My ra…".
-                subtitle = if (valueUnderTitle) item.value ?: item.subtitle else item.subtitle,
-                leading = {
-                    val tile = item.tile
-                    if (tile == null) FtIconTile(item.icon, size = 40.dp)
-                    else FtIconTile(icon = item.icon, size = 40.dp, background = tile.first, tint = tile.second)
-                },
-                trailing = item.value?.takeIf { !valueUnderTitle }?.let {
-                    { Text(text = it, style = FieldTrackTheme.type.bodySmall, color = colors.inkTertiary) }
-                },
-                showChevron = item.onClick != null,
+                subtitle = item.note,
+                subtitleMaxLines = 2,
+                leading = { FtIconTile(item.icon, size = 40.dp) },
+                showChevron = true,
                 onClick = item.onClick,
             )
         }

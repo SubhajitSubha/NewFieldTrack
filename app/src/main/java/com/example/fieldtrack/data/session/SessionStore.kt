@@ -504,6 +504,25 @@ class SessionStore(
     }
 
     /**
+     * Changes the unit new work is measured in, on its own, from Settings.
+     *
+     * Work already recorded keeps the unit it was measured in; only what is quoted
+     * from now on changes.
+     */
+    suspend fun setLandUnit(unit: MeasureUnit) {
+        val session = current() ?: return
+        session.can.require(Capability.EditBusiness)
+        val org = db.orgDao().observeOrg(session.orgId).first() ?: return
+        if (org.defaultLandUnit == unit) return
+        val updated = org.copy(defaultLandUnit = unit, updatedAt = clock.now())
+        db.orgDao().upsertOrg(updated)
+        syncQueue.enqueueUpsert(
+            session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
+        )
+        _startup.value = Startup.Ready(session.copy(landUnit = unit))
+    }
+
+    /**
      * Sets when this business's seasons begin.
      *
      * Its own call, not another argument to [updateBusiness]: that one rewrites the

@@ -20,14 +20,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.designsystem.component.FtAvatar
 import com.example.fieldtrack.designsystem.component.FtIconButton
+import com.example.fieldtrack.designsystem.component.FtTextField
+import androidx.compose.ui.res.stringResource
+import com.example.fieldtrack.R
 import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
 /**
  * The strip along the top of the four main screens, the same on every one of them and for
- * every role: your picture, which opens the menu with your profile and settings, and the
- * magnifier, which searches everything. The two things people reach for from anywhere sit
- * where people have learned to look for them in other apps.
+ * every role: your picture, which opens the menu with your profile and settings, the bell,
+ * and the magnifier, which searches everything. The things people reach for from anywhere
+ * sit where people have learned to look for them in other apps.
+ *
+ * Searching happens in the bar itself: the magnifier turns the whole width into the box,
+ * with a back arrow to put the bar back, and the results cover the screen underneath.
  */
 @Composable
 fun RootBar(
@@ -41,8 +47,43 @@ fun RootBar(
     unread: Int = 0,
     notificationsContentDescription: String = "",
     onNotifications: () -> Unit = {},
+    /** True while the bar is the search box. */
+    searching: Boolean = false,
+    query: String = "",
+    onQuery: (String) -> Unit = {},
+    onCloseSearch: () -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
+    if (searching) {
+        Row(
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = FieldTrackTheme.dimens.screenPadding - 4.dp)
+                .padding(top = 6.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FtIconButton(
+                icon = FieldTrackIcons.Back,
+                contentDescription = stringResource(R.string.search_close_cd),
+                onClick = onCloseSearch,
+            )
+            FtTextField(
+                value = query,
+                onValueChange = onQuery,
+                leadingIcon = FieldTrackIcons.Search,
+                placeholder = stringResource(R.string.search_title),
+                focused = true,
+                takeFocus = true,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            if (query.isNotEmpty()) FtIconButton(
+                icon = FieldTrackIcons.Close,
+                contentDescription = stringResource(R.string.search_clear_cd),
+                onClick = { onQuery("") },
+            )
+        }
+        return
+    }
     Row(
         modifier
             .fillMaxWidth()

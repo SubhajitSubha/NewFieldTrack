@@ -325,6 +325,50 @@ object FieldTrackIcons {
         moveTo(4f, 8f); horizontalLineTo(17f); lineTo(14f, 5f)
         moveTo(20f, 16f); horizontalLineTo(7f); lineTo(10f, 19f)
     }
+
+    /** A cog: the one picture every phone already uses for "settings". */
+    val Settings: ImageVector by chrome("Settings") {
+        circle(12f, 12f, 3f)
+        circle(12f, 12f, 7f)
+        moveTo(19f, 12f); horizontalLineTo(21.5f)
+        moveTo(16.95f, 16.95f); lineTo(18.7f, 18.7f)
+        moveTo(12f, 19f); verticalLineTo(21.5f)
+        moveTo(7.05f, 16.95f); lineTo(5.3f, 18.7f)
+        moveTo(5f, 12f); horizontalLineTo(2.5f)
+        moveTo(7.05f, 7.05f); lineTo(5.3f, 5.3f)
+        moveTo(12f, 5f); verticalLineTo(2.5f)
+        moveTo(16.95f, 7.05f); lineTo(18.7f, 5.3f)
+    }
+
+    val Help: ImageVector by chrome("Help") {
+        circle(12f, 12f, 9f)
+        moveTo(9.5f, 9.5f); arcToRelative(2.5f, 2.5f, 0f, true, true, 2.5f, 2.5f); verticalLineTo(14f)
+        moveTo(12f, 17f); verticalLineTo(17.2f)
+    }
+
+    /** A globe, for the language the app speaks. */
+    val Language: ImageVector by chrome("Language") {
+        circle(12f, 12f, 9f)
+        moveTo(3f, 12f); horizontalLineTo(21f)
+        moveTo(12f, 3f); arcToRelative(4.5f, 9f, 0f, false, false, 0f, 18f)
+        arcToRelative(4.5f, 9f, 0f, false, false, 0f, -18f)
+    }
+
+    /** Half light, half dark. */
+    val Display: ImageVector by chrome("Display") {
+        circle(12f, 12f, 8.5f)
+        moveTo(12f, 3.5f); verticalLineTo(20.5f)
+        moveTo(12f, 8f); horizontalLineTo(17f)
+        moveTo(12f, 12f); horizontalLineTo(19f)
+        moveTo(12f, 16f); horizontalLineTo(17f)
+    }
+
+    /** An arrow down onto a line: something leaves the app as a file. */
+    val Export: ImageVector by chrome("Export") {
+        moveTo(12f, 4f); verticalLineTo(15f)
+        moveTo(7f, 10f); lineTo(12f, 15f); lineTo(17f, 10f)
+        moveTo(5f, 19.5f); horizontalLineTo(19f)
+    }
 }
 
 // -------------------------------------------------------------------- builders

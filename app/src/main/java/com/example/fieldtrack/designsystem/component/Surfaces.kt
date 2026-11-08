@@ -220,7 +220,9 @@ fun FtListRow(
                 }
             }
             trailing?.invoke(this)
-            if (showChevron) {
+            // The arrow promises "this opens something". On a row that opens nothing it
+            // is a lie, so it is never drawn there, whatever the caller asked for.
+            if (showChevron && onClick != null) {
                 Icon(
                     imageVector = FieldTrackIcons.Forward,
                     contentDescription = null,

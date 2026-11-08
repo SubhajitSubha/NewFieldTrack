@@ -37,25 +37,18 @@ import com.example.fieldtrack.designsystem.format.money
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 
 /**
- * Light or dark, and how big the words are.
+ * How numbers and weeks are shown: digit grouping and the day a week begins.
  *
- * Changes apply the moment they are tapped, and the sample at the bottom is drawn
- * in whatever is chosen — so the person sees the result on this screen rather than
- * having to go back and find out.
+ * The everyday choices (language, light or dark, bigger text) sit right on the Settings
+ * screen; these two are rarer and come with a sample, so they keep a page of their own.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DisplayScreen(
-    theme: ThemeChoice,
-    biggerText: Boolean,
     grouping: GroupingChoice,
     weekStart: WeekStartChoice,
-    language: String?,
-    onTheme: (ThemeChoice) -> Unit,
-    onBiggerText: (Boolean) -> Unit,
     onGrouping: (GroupingChoice) -> Unit,
     onWeekStart: (WeekStartChoice) -> Unit,
-    onLanguage: (String?) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -68,7 +61,7 @@ fun DisplayScreen(
             .background(colors.paper)
     ) {
         FtTopBar(
-            title = stringResource(R.string.display_title),
+            title = stringResource(R.string.settings_numbers),
             onBack = onBack,
             backContentDescription = stringResource(R.string.action_back_cd),
         )
@@ -79,68 +72,7 @@ fun DisplayScreen(
                 .padding(horizontal = dimens.screenPadding),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            // Words only. The icon set has no sun or moon, and a map pin standing
-            // for "light" would be a picture of the wrong thing.
-            FtSectionLabel(stringResource(R.string.display_theme))
-            FtChoiceCard(
-                title = stringResource(R.string.display_theme_system),
-                description = stringResource(R.string.display_theme_system_note),
-                selected = theme == ThemeChoice.System,
-                onClick = { onTheme(ThemeChoice.System) },
-            )
-            FtChoiceCard(
-                title = stringResource(R.string.display_theme_light),
-                description = stringResource(R.string.display_theme_light_note),
-                selected = theme == ThemeChoice.Light,
-                onClick = { onTheme(ThemeChoice.Light) },
-            )
-            FtChoiceCard(
-                title = stringResource(R.string.display_theme_dark),
-                description = stringResource(R.string.display_theme_dark_note),
-                selected = theme == ThemeChoice.Dark,
-                onClick = { onTheme(ThemeChoice.Dark) },
-            )
-
-            FtSectionLabel(stringResource(R.string.display_text), Modifier.padding(top = 8.dp))
-            FtCard(padding = 0.dp) {
-                Row(
-                    Modifier
-                        .toggleable(
-                            value = biggerText,
-                            role = Role.Switch,
-                            onValueChange = onBiggerText,
-                        )
-                        .padding(horizontal = 15.dp, vertical = 13.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.display_bigger_text),
-                            style = FieldTrackTheme.type.rowTitle,
-                            color = colors.ink,
-                        )
-                        Text(
-                            text = stringResource(R.string.display_bigger_text_note),
-                            style = FieldTrackTheme.type.caption,
-                            color = colors.inkTertiary,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    Switch(
-                        checked = biggerText,
-                        // The whole row toggles; the switch only shows the state.
-                        onCheckedChange = null,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = colors.onPrimary,
-                            checkedTrackColor = colors.primary,
-                            uncheckedThumbColor = colors.surface,
-                            uncheckedTrackColor = colors.line,
-                        ),
-                    )
-                }
-            }
-
-            FtSectionLabel(stringResource(R.string.money_grouping), Modifier.padding(top = 8.dp))
+            FtSectionLabel(stringResource(R.string.money_grouping))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -166,34 +98,6 @@ fun DisplayScreen(
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
             )
-
-            // Only when there is a language to choose besides English, which is what any
-            // text not yet translated falls back to.
-            if (AppLanguage.SUPPORTED.size > 1) {
-                FtSectionLabel(stringResource(R.string.language_title), Modifier.padding(top = 8.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FtChip(
-                        label = stringResource(R.string.language_auto),
-                        selected = language == null,
-                        onClick = { onLanguage(null) },
-                    )
-                    AppLanguage.SUPPORTED.forEach { tag ->
-                        FtChip(
-                            label = AppLanguage.nativeName(tag),
-                            selected = language == tag,
-                            onClick = { onLanguage(tag) },
-                        )
-                    }
-                }
-                Text(
-                    text = stringResource(R.string.language_note),
-                    style = FieldTrackTheme.type.caption,
-                    color = colors.inkTertiary,
-                )
-            }
 
             FtSectionLabel(stringResource(R.string.week_starts), Modifier.padding(top = 8.dp))
             FlowRow(

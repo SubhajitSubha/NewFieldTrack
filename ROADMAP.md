@@ -159,6 +159,58 @@ Order is chosen so each step builds on the one before (dependencies noted).
   Done: the pay form asks "who" in one dropdown; the new screens are in the screen matrix (all nine configurations green);
   full suite 1,137 tests green after one fix (permission rows are named toggles); translations drafted, unread.
 
+## P. Arrange the app around the person (2026-11-08) - agreed, in progress
+Why: N put every feature somewhere, but arranged them by what was built, not by what a person is trying to do. The owner's verdict
+after trying it: more options in the drawer, not better arranged; no easy business switch; no real Settings screen; profile still
+has the old flow; money visibility unclear; team screens thin and unorganised. Seen on the emulator: the drawer is the old More list
+(about 18 rows, Machines and Customers repeated from the tabs, Language and Display opening the same screen, icons that mean
+nothing); Profile has an "Edit your details" button AND every field is also a row that opens its own editor, and holds preferences,
+the plan, business mode and sign-out; the team list shows a name and "Free"; a member page is a settings form.
+
+Rule: arrange by the question a person asks. Home = what is happening today. Jobs = the work. Customers = who I work for. Machines =
+what I work with. Team = who works for me. Money = where the money is. Settings = me and the app. A thing lives in ONE place.
+Two more rules from the owner (2026-11-08): **nothing looks tappable unless it is** (an arrow means "opens something";
+a fact is shown as plain text, a setting changes in place) and **search happens in the top bar itself**, full width over the
+screen, like other apps; long lists get their own search box at the top.
+Test: a list of 15 everyday tasks (docs/ux-tasks.md), each reachable from Home in 3 taps or fewer, measured on the emulator before and
+after, for an owner and for a driver. A step is not done until its tasks pass.
+
+- [x] **P1. A short menu with a business switch.** Header = you + the business you are in; one tap opens a sheet of all your businesses
+  (tick the current one, "join another", "start my own"). Rows, only those the role may use, never moved: Team, Money, Farmers'
+  requests (only when the booking link is on), Settings, Help. Machines and Customers leave the menu (they are tabs). Backup status
+  leaves (Home already shows it; full detail goes in Settings). Every row gets an icon that means what it says.
+  Built: menu = you (profile) + the business you are in with a Change pill (sheet of businesses, join, start one) + Team, Money,
+  Farmers' requests (only when the link is on or some wait) + Settings, Help. New icons: settings, help, language, display, export.
+  Search opens in the bar (the separate search screen is gone; the box keeps every key, it no longer waits on the results).
+  The arrow is drawn only on rows that open something, in the shared row itself, so no screen can get it wrong.
+- [x] **P2. Settings, one screen for preferences.** Grouped by plain headings, with the common ones changed in place (language,
+  light/dark, text size, phone lock as switches or a dropdown, no deeper screen): Notifications, Business (owner: money and region,
+  land unit, seasons, day start, drivers see own work, business mode, proof of work, booking link), Plan and billing, Data (backup,
+  export), Account (signed in as, sign out, delete). Nothing about preferences stays in Profile or the menu.
+  Built: language (dropdown), colours (pills), bigger text and phone lock (switches) change in place; the old Security screen
+  is gone; Display keeps only digit grouping and week start ("Numbers and weeks"); land unit moved here from the profile form.
+- [x] **P3. Profile is the form.** Name, phone (fixed), role, and for an owner the business details, all editable on the page with
+  one Save that appears once something changes. No per-field rows, no separate "edit" screen.
+  Built: leaving with unsaved changes asks (save, or leave without saving); "Saved." confirms; the old edit route is gone.
+- [ ] **P4. Money, one place.** A hub: top figures (to collect, paid out this month, left this season, each only if the role may see it),
+  two big buttons (Money received, Pay someone), then one list of everything with In / Out and a period, then Reports (season,
+  income statement, machine values, rates and the price sum). Money history, Money out and the pay form become parts of it, not
+  separate doors. Visibility by kind of transaction, set per role in the role editor under "Money they see": customer money,
+  wages and machine hire, diesel and repairs; the list says plainly what is hidden for the role.
+- [ ] **P5. Team, organised.** List: each person a card with role, what they are doing today, their machine, what you owe them (if you may
+  see it) and a call button; invited people appear in the list as waiting; one Invite button; Roles and Team changes under "Manage".
+  Member page in three parts: Work (today, this season, recent jobs), Money (owed, paid, advances, machine hire, Pay; the current
+  separate pay screen merges in), Access (role as one dropdown with its sentence, fine-tune switches folded away, name and phone,
+  remove from team at the very bottom).
+- [ ] **P6. Walk Home, Jobs, Customers, Machines, machine detail and job detail** as a first-time owner and driver with screenshots;
+  list what is out of place (not audited yet) and report it before changing anything big.
+- [ ] **P7. Words, icons, translations, sign-off.** New strings in the eight languages, screen matrix and accessibility audit, full
+  suite, the 15 tasks measured again, owner's check.
+
+Needs the owner's yes before P1 (defaults in brackets): "team switch" means switching between businesses [yes]; Money is a menu row, the
+four tabs stay [yes]; Profile is the form itself [yes]; diesel and repairs get their own visibility switch [yes, but if it needs a
+rules change I will say so first].
+
 Suggestions kept for later (not built unless asked):
 - A team member seeing their own pay. Needs three things together: `payouts` rule allowing a read when `resource.data.toPersonId`
   is the signed-in person, a Firestore composite index (`toPersonId` + `serverAt`) in `firestore.indexes.json`, and a second
