@@ -2585,6 +2585,13 @@
     <string name="person_pay_back_button">Take this back</string>
     <string name="team_everyone">Everyone</string>
     <string name="team_one_owner_action">Choose someone to be an owner too</string>
+    <string name="jobs_filter_all">All</string>
+    <string name="jobs_none_all">No finished work yet.</string>
+    <string name="jobs_search">A farmer, a driver or the work</string>
+    <string name="jobs_start_cd">Start work</string>
+    <string name="machines_search">A machine\'s name or plate</string>
+    <string name="fleet_your_machines">Your machines</string>
+    <string name="fleet_upkeep_note">Services due, papers running out, what broke and what it cost</string>
     <string name="money_hub_reports">Reports</string>
     <string name="money_hub_prices">Your prices</string>
     <string name="money_hub_rates_note">What you charge for each kind of work</string>

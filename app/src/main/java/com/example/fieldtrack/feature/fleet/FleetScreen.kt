@@ -13,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,19 +39,38 @@ import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
 import com.example.fieldtrack.feature.WeekBars
 import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.iconFor
+import com.example.fieldtrack.feature.machine.matching
 
 @Composable
 fun FleetScreen(
     state: FleetState,
-    onSeeAllMachines: () -> Unit,
     onUpkeep: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The machines themselves, listed right here: the tab is called Fleet, so it shows the fleet. */
+    machines: com.example.fieldtrack.feature.machine.MachinesState = com.example.fieldtrack.feature.machine.MachinesState(),
+    onOpenMachine: (String) -> Unit = {},
+    /** Null for somebody who may not add a machine. */
+    onAdd: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
+    var query by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
 
     AdaptiveScreen(modifier) {
-        FtTopBar(title = stringResource(R.string.fleet_title))
+        FtTopBar(
+            title = stringResource(R.string.fleet_title),
+            action = {
+                if (onAdd != null) {
+                    com.example.fieldtrack.designsystem.component.FtIconButton(
+                        icon = FieldTrackIcons.Add,
+                        contentDescription = stringResource(R.string.machines_add_cd),
+                        onClick = onAdd,
+                        tint = colors.onPrimary,
+                        background = colors.primary,
+                    )
+                }
+            },
+        )
 
         if (state.loaded && !state.hasMachines) {
             FtCard(Modifier.padding(horizontal = dimens.screenPadding)) {
@@ -77,40 +98,33 @@ fun FleetScreen(
                 StatusTile(state.down, R.string.fleet_down, colors.due, Modifier.weight(1f))
             }
 
-            HoursChart(state.weekHours)
-        }, secondary = {
-            FtSectionLabel(stringResource(R.string.fleet_attention))
-            if (state.attention.isEmpty()) {
-                FtCard {
-                    Text(
-                        text = stringResource(R.string.fleet_all_well),
-                        style = FieldTrackTheme.type.bodySmall,
-                        color = colors.inkTertiary,
-                    )
-                }
-            } else {
+            // Only when something does: an "all is well" card is a line to read for nothing.
+            if (state.attention.isNotEmpty()) {
+                FtSectionLabel(stringResource(R.string.fleet_attention))
                 state.attention.forEach { item ->
-                    // Tappable now. These rows named the broken machine and then
-                    // offered nothing to do about it, which is where the dead end
-                    // was most visible.
                     AttentionCard(item, onClick = onUpkeep)
                 }
             }
 
-            FtButton(
-                text = stringResource(R.string.fleet_upkeep),
-                onClick = onUpkeep,
-                icon = FieldTrackIcons.Service,
-                tone = FtButtonTone.Secondary,
-                height = 54.dp,
-            )
-
-            FtButton(
-                text = stringResource(R.string.fleet_see_all),
-                onClick = onSeeAllMachines,
-                tone = FtButtonTone.Secondary,
-                height = 54.dp,
-            )
+            // ---- The machines themselves.
+            FtSectionLabel(stringResource(R.string.fleet_your_machines))
+            if (machines.rows.size > com.example.fieldtrack.feature.machine.MACHINE_SEARCH_FROM) {
+                com.example.fieldtrack.feature.machine.MachineSearch(query, onQuery = { query = it })
+            }
+            machines.rows.matching(query).forEach { row ->
+                com.example.fieldtrack.feature.machine.MachineListRow(row, onClick = { onOpenMachine(row.id) })
+            }
+        }, secondary = {
+            FtCard(padding = 0.dp) {
+                FtListRow(
+                    title = stringResource(R.string.fleet_upkeep),
+                    subtitle = stringResource(R.string.fleet_upkeep_note),
+                    leading = { FtIconTile(FieldTrackIcons.Service, size = 40.dp) },
+                    showChevron = true,
+                    onClick = onUpkeep,
+                )
+            }
+            HoursChart(state.weekHours)
         })
     }
 }

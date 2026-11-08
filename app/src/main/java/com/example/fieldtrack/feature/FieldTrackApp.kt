@@ -1822,6 +1822,9 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onFilter = vm::setFilter,
                     onOpen = { job -> navController.navigate("jobs/${job.id}") },
+                    onQuery = vm::setQuery,
+                    // The same "+" that adds a customer on Customers and a machine on Fleet.
+                    onStart = { navController.navigate(Routes.START) }.takeIf { state.canStart },
                 )
             }
 
@@ -1930,10 +1933,17 @@ private fun MainNavHost(navController: NavHostController) {
             composable(Routes.FLEET) {
                 val vm: FleetViewModel = appViewModel { FleetViewModel(it) }
                 val state by vm.state.collectAsStateWithLifecycle()
+                val machinesVm: MachinesViewModel = appViewModel { MachinesViewModel(it) }
+                val machines by machinesVm.state.collectAsStateWithLifecycle()
+                val planGuard = rememberPlanGuard(navController)
                 FleetScreen(
                     state = state,
-                    onSeeAllMachines = { open(Routes.MACHINES) },
                     onUpkeep = { navController.navigate(Routes.UPKEEP) },
+                    machines = machines,
+                    onOpenMachine = { id -> navController.navigate("machines/$id") },
+                    onAdd = {
+                        planGuard(com.example.fieldtrack.data.plan.Need.MoreMachines) { navController.navigate(Routes.NEW_MACHINE) }
+                    }.takeIf { machines.canEdit },
                 )
             }
 

@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
  * have it add up — so per-job payment status does not exist to filter by. Who owes
  * what is the customers tab's question.
  */
-enum class JobFilter { Running, Today, Week }
+enum class JobFilter { Running, Today, Week, All }
 
 data class JobCard(
     val id: String,
@@ -44,6 +44,7 @@ data class JobCard(
     val live: Boolean,
     /** How much this job lost, when it did and every cost is priced. */
     val lostMinor: Long? = null,
+    val workedAt: Long = 0,
 )
 
 data class JobsState(
@@ -58,12 +59,17 @@ data class JobsState(
      * could; a manager given the machines but not the money can reach it now.
      */
     val canSeeMoney: Boolean = true,
+    /** What is typed in the list's own search box. */
+    val query: String = "",
+    /** Whether this person may start a job: everybody but somebody who may only look. */
+    val canStart: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     private val filter = MutableStateFlow(JobFilter.Running)
+    private val query = MutableStateFlow("")
 
     val state: StateFlow<JobsState> = app.sessionStore.session.flatMapLatest { s ->
         filter.flatMapLatest { chosen ->
@@ -74,6 +80,8 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     .observeCompletedToday(s.orgId, startOfToday(now))
                 JobFilter.Week -> app.workRepository
                     .observeCompletedToday(s.orgId, startOfToday(now) - 6 * DAY_MILLIS)
+                // Every finished job: the season's work, found again with the search box.
+                JobFilter.All -> app.workRepository.observeCompletedToday(s.orgId, 0L)
             }
             val margins = if (Capability.SeeMoney in s.can && Capability.SeePeopleCost in s.can) {
                 app.db.orgDao().observeJobMargins(s.orgId, startOfToday(now) - 6 * DAY_MILLIS, Long.MAX_VALUE)
@@ -89,16 +97,19 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 // job, and the active-only list silently dropped it: every job a
                 // driver ever did went nameless the moment they were let go.
                 app.teamRepository.observeEveryone(s.orgId),
-                margins,
-            ) { jobs, customers, machines, team, jobMargins ->
+                kotlinx.coroutines.flow.combine(margins, query) { m, q -> m to q },
+            ) { jobs, customers, machines, team, (jobMargins, typed) ->
                 val customerNames = customers.associate { it.id to it.name }
                 val machineKinds = machines.associate { it.id to it.kind }
                 val memberNames = team.associate { it.personId to it.displayName }
                 val lost = jobMargins.mapNotNull { m -> m.lostMinor?.let { m.jobId to it } }.toMap()
 
+                val q = typed.trim()
                 JobsState(
                     loaded = true,
                     filter = chosen,
+                    query = typed,
+                    canStart = Capability.RecordWork in s.can,
                     canAmend = Capability.AmendBilledWork in s.can,
                     canSeeMoney = s.canSeeMoney,
                     jobs = jobs.map { job ->
@@ -121,7 +132,12 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                             },
                             live = live,
                             lostMinor = lost[job.id],
+                            workedAt = job.workedAt,
                         )
+                    }.filter { card ->
+                        q.isEmpty() || card.customerName.contains(q, ignoreCase = true) ||
+                            card.operatorName.orEmpty().contains(q, ignoreCase = true) ||
+                            card.workType.contains(q, ignoreCase = true)
                     },
                 )
             }
@@ -133,6 +149,7 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 
     fun setFilter(value: JobFilter) = filter.update { value }
+    fun setQuery(value: String) = query.update { value.take(40) }
 
     private companion object {
         const val DAY_MILLIS = 86_400_000L

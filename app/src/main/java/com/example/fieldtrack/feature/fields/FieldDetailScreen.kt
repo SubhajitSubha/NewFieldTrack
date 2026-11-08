@@ -116,7 +116,7 @@ fun FieldDetailScreen(
                 }
             }
 
-            FtCard(onClick = if (state.hasPin) onOpenMaps else null) {
+            FtCard(onClick = if (state.hasPin) onOpenMaps else null, chevron = true) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FtIconTile(FieldTrackIcons.Field, size = 42.dp)
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {

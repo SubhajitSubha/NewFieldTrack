@@ -138,7 +138,7 @@ fun FieldsScreen(
 @Composable
 private fun FieldCard(row: FieldRow, onClick: () -> Unit) {
     val colors = FieldTrackTheme.colors
-    FtCard(onClick = onClick) {
+    FtCard(onClick = onClick, chevron = true) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             FtIconTile(FieldTrackIcons.Field, size = 44.dp)
             Column(Modifier.weight(1f).padding(start = 12.dp)) {

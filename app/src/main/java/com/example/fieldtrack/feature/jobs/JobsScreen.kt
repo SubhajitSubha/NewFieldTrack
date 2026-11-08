@@ -46,6 +46,9 @@ fun JobsScreen(
     onFilter: (JobFilter) -> Unit,
     onOpen: (JobCard) -> Unit,
     modifier: Modifier = Modifier,
+    onQuery: (String) -> Unit = {},
+    /** Starts a job. Null for somebody who may only look. */
+    onStart: (() -> Unit)? = null,
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -55,7 +58,20 @@ fun JobsScreen(
             .fillMaxSize()
             .background(colors.paper)
     ) {
-        FtTopBar(title = stringResource(R.string.jobs_title))
+        FtTopBar(
+            title = stringResource(R.string.jobs_title),
+            action = {
+                if (onStart != null) {
+                    com.example.fieldtrack.designsystem.component.FtIconButton(
+                        icon = com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Add,
+                        contentDescription = stringResource(R.string.jobs_start_cd),
+                        onClick = onStart,
+                        tint = colors.onPrimary,
+                        background = colors.primary,
+                    )
+                }
+            },
+        )
 
         FlowRow(
             Modifier.padding(horizontal = dimens.screenPadding, vertical = 4.dp),
@@ -80,6 +96,17 @@ fun JobsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // A season of finished work is a long list: it gets its own search box.
+            if (state.filter == JobFilter.Week || state.filter == JobFilter.All) {
+                item {
+                    com.example.fieldtrack.designsystem.component.FtTextField(
+                        value = state.query,
+                        onValueChange = onQuery,
+                        leadingIcon = com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Search,
+                        placeholder = stringResource(R.string.jobs_search),
+                    )
+                }
+            }
             if (state.loaded && state.jobs.isEmpty()) {
                 item {
                     FtCard {
@@ -96,7 +123,7 @@ fun JobsScreen(
                 FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
                     FtListRow(
                         title = job.customerName,
-                        subtitle = job.detail(),
+                        subtitle = job.detail(withDay = state.filter == JobFilter.Week || state.filter == JobFilter.All),
                         // Colour down the edge so a list of jobs scans by state
                         // before a single word is read.
                         statusStripe = job.status.stripeColor(),
@@ -143,25 +170,29 @@ fun JobsScreen(
 
 /** "Harvesting · 4 acre · Jaswant driving" — what, how much, and who. */
 @Composable
-private fun JobCard.detail(): String {
+private fun JobCard.detail(withDay: Boolean): String {
     val measure = if (quantity > 0) measure(quantity, unit) else null
     val who = operatorName?.let {
         if (live) stringResource(R.string.jobs_driving, it) else stringResource(R.string.jobs_by, it)
     }
+    // Past today, "when" is the first thing a person looks for in a list of work.
+    val day = com.example.fieldtrack.feature.dayMonth(workedAt).takeIf { withDay }
     // The work type's own name, not the key it is stored under.
-    return listOfNotNull(workLabel(workType), measure, who).joinToString(" · ")
+    return listOfNotNull(day, workLabel(workType), measure, who).joinToString(" · ")
 }
 
 private fun JobFilter.labelRes() = when (this) {
     JobFilter.Running -> R.string.jobs_filter_running
     JobFilter.Today -> R.string.jobs_filter_today
     JobFilter.Week -> R.string.jobs_filter_week
+    JobFilter.All -> R.string.jobs_filter_all
 }
 
 private fun JobFilter.emptyRes() = when (this) {
     JobFilter.Running -> R.string.jobs_none_running
     JobFilter.Today -> R.string.jobs_none_today
     JobFilter.Week -> R.string.jobs_none_week
+    JobFilter.All -> R.string.jobs_none_all
 }
 
 private fun com.example.fieldtrack.designsystem.component.FtStatus.labelRes() = when (this) {

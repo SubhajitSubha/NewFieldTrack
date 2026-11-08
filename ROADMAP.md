@@ -215,8 +215,15 @@ after, for an owner and for a driver. A step is not done until its tasks pass.
   Member page: who they are, a call button, then Work (figures, latest work) / Money (the pay page, moved in; each payment
   has a visible "Take this back") / What they can do (role, fine-tune, details, remove at the foot). Save only after a change.
   Invited people still show as a "codes waiting" line rather than as people (an invite has no name until it is used).
-- [ ] **P6. Walk Home, Jobs, Customers, Machines, machine detail and job detail** as a first-time owner and driver with screenshots;
+- [x] **P6. Walk Home, Jobs, Customers, Machines, machine detail and job detail** as a first-time owner and driver with screenshots;
   list what is out of place (not audited yet) and report it before changing anything big.
+  Done (small, safe changes): Fleet lists the machines itself (it used to need "See all machines"), with "+" to add one and
+  a search box past eight machines (the Machines list too); Jobs got "+" to start work, an "All" filter, a search box on
+  "This week" and "All", and the date on past jobs; cards that open something now carry the arrow (Home's owed/season
+  figures, a machine's service, breakdown and hire cards, a field's map card, field cards) through one switch on the
+  shared card. Customers already had its search box and "+".
+  Reported, not changed (bigger): the owner's Home puts "Start work" below the fold under the figures; the person who
+  drives too may want it first. Machine detail and job detail are long but in order; left as they are.
 - [ ] **P7. Words, icons, translations, sign-off.** New strings in the eight languages, screen matrix and accessibility audit, full
   suite, the 15 tasks measured again, owner's check.
 

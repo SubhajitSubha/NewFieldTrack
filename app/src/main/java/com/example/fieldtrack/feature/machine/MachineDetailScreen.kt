@@ -204,7 +204,7 @@ fun MachineDetailScreen(
 
             // Somebody else's machine: whose, and what is owed for its work so far.
             hire?.let { balance ->
-                FtCard(modifier = Modifier.clickable(onClick = onHire)) {
+                FtCard(onClick = onHire, chevron = true) {
                     Text(
                         text = stringResource(R.string.hire_machine_card, balance.name),
                         style = FieldTrackTheme.type.rowTitle,
@@ -549,7 +549,8 @@ private fun ServiceBanner(state: MachineDetailState, onClick: () -> Unit) {
         FtCard(
             background = colors.dueWash,
             borderColor = colors.dueWash,
-            modifier = Modifier.clickable(onClick = onClick),
+            onClick = onClick,
+            chevron = true,
         ) {
             Text(
                 text = pluralStringResource(
@@ -576,7 +577,8 @@ private fun ServiceBanner(state: MachineDetailState, onClick: () -> Unit) {
     FtCard(
         background = if (state.serviceOverdue) colors.dueWash else colors.surfaceMuted,
         borderColor = if (state.serviceOverdue) colors.dueWash else colors.line,
-        modifier = Modifier.clickable(onClick = onClick),
+        onClick = onClick,
+        chevron = true,
     ) {
         Text(
             text = if (state.serviceOverdue) {

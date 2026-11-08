@@ -43,21 +43,36 @@ fun FtCard(
     borderWidth: Dp = FieldTrackTheme.dimens.hairline,
     padding: Dp = FieldTrackTheme.dimens.cardPadding,
     onClick: (() -> Unit)? = null,
+    /**
+     * Draws the arrow at the end that says "this opens something". For a card whose
+     * content does not already carry one; a card that opens something should say so.
+     */
+    chevron: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(background)
-            .border(borderWidth, borderColor, shape)
-            .then(
-                if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
-                else Modifier
+    val base = modifier
+        .fillMaxWidth()
+        .clip(shape)
+        .background(background)
+        .border(borderWidth, borderColor, shape)
+        .then(
+            if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
+            else Modifier
+        )
+        .padding(padding)
+    if (chevron && onClick != null) {
+        Row(base, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), content = content)
+            Icon(
+                imageVector = FieldTrackIcons.Forward,
+                contentDescription = null,
+                tint = FieldTrackTheme.colors.inkTertiary,
+                modifier = Modifier.padding(start = 10.dp).size(20.dp),
             )
-            .padding(padding),
-        content = content,
-    )
+        }
+    } else {
+        Column(modifier = base, content = content)
+    }
 }
 
 /**

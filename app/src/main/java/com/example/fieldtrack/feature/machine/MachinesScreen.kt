@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -112,6 +114,7 @@ fun MachinesScreen(
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
+    var query by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
 
     Column(
         modifier
@@ -161,36 +164,68 @@ fun MachinesScreen(
                 }
             }
 
-            items(state.rows, key = { it.id }) { row ->
-                FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
-                    FtListRow(
-                        title = row.name,
-                        subtitle = row.subtitle(),
-                        onClick = onEdit?.let { edit -> { edit(row.id) } },
-                        leading = {
-                            FtIconTile(
-                                icon = iconFor(row.kind),
-                                size = 52.dp,
-                                background = if (row.status == MachineStatus.Working) colors.primaryWash
-                                else colors.surfaceMuted,
-                                tint = if (row.status == MachineStatus.Working) colors.primary
-                                else colors.inkSecondary,
-                            )
-                        },
-                        trailing = {
-                            FtStatusPill(
-                                status = row.status.asPillStatus(),
-                                label = stringResource(row.status.labelRes()),
-                            )
-                        },
-                    )
-                }
+            if (state.rows.size > MACHINE_SEARCH_FROM) {
+                item { MachineSearch(query, onQuery = { query = it }) }
+            }
+            items(state.rows.matching(query), key = { it.id }) { row ->
+                MachineListRow(row, onClick = onEdit?.let { edit -> { edit(row.id) } })
             }
 
             item { Box(Modifier.height(dimens.space4)) }
         }
     }
 }
+
+/** One machine in a list: what it is, how it stands, and its page on a tap. Shared with the fleet. */
+@Composable
+internal fun MachineListRow(row: MachineRow, onClick: (() -> Unit)?) {
+    val colors = FieldTrackTheme.colors
+    FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
+        FtListRow(
+            title = row.name,
+            subtitle = row.subtitle(),
+            onClick = onClick,
+            showChevron = onClick != null,
+            leading = {
+                FtIconTile(
+                    icon = iconFor(row.kind),
+                    size = 52.dp,
+                    background = if (row.status == MachineStatus.Working) colors.primaryWash
+                    else colors.surfaceMuted,
+                    tint = if (row.status == MachineStatus.Working) colors.primary
+                    else colors.inkSecondary,
+                )
+            },
+            trailing = {
+                FtStatusPill(
+                    status = row.status.asPillStatus(),
+                    label = stringResource(row.status.labelRes()),
+                )
+            },
+        )
+    }
+}
+
+/** A box to narrow a long list of machines by name or plate. */
+@Composable
+internal fun MachineSearch(query: String, onQuery: (String) -> Unit) {
+    com.example.fieldtrack.designsystem.component.FtTextField(
+        value = query,
+        onValueChange = onQuery,
+        leadingIcon = FieldTrackIcons.Search,
+        placeholder = stringResource(R.string.machines_search),
+    )
+}
+
+/** The machines whose name or plate holds what was typed. */
+internal fun List<MachineRow>.matching(query: String): List<MachineRow> {
+    val q = query.trim()
+    if (q.isEmpty()) return this
+    return filter { it.name.contains(q, ignoreCase = true) || it.plate.orEmpty().contains(q, ignoreCase = true) }
+}
+
+/** A short list is read at a glance; past this many, a search box earns its place. */
+internal const val MACHINE_SEARCH_FROM = 8
 
 /** "HR 22 F 4411 · 1,240 hr", with a service warning when one is close. */
 @Composable

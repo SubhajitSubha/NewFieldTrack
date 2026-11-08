@@ -1024,13 +1024,23 @@ fun FigureCard(
 ) {
     val colors = FieldTrackTheme.colors
     FtCard(modifier, onClick = onClick) {
-        Text(
-            text = label.uppercase(),
-            style = FieldTrackTheme.type.overline,
-            color = colors.inkTertiary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // The arrow says the card opens something; without it a figure reads as just a figure.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label.uppercase(),
+                style = FieldTrackTheme.type.overline,
+                color = colors.inkTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (onClick != null) Icon(
+                FieldTrackIcons.Forward,
+                contentDescription = null,
+                tint = colors.inkTertiary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
         FtFitText(
             text = value,
             style = FieldTrackTheme.type.moneyMedium,
