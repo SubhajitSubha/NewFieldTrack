@@ -55,6 +55,13 @@ data class ProfileFields(
     val addressLine: String = "",
     val gstin: String = "",
     val upiId: String = "",
+    /** A team member's own particulars: where their pay goes, their licence, who to call. */
+    val payoutUpi: String = "",
+    val payoutBank: String = "",
+    val licenceNumber: String = "",
+    val licenceExpiresDay: Long? = null,
+    val emergencyName: String = "",
+    val emergencyPhone: String = "",
 )
 
 data class ProfileState(
@@ -74,6 +81,11 @@ data class ProfileState(
     val saving: Boolean = false,
     /** True right after a save, until the next change: the page says it worked. */
     val justSaved: Boolean = false,
+    /** Somebody who works for a business, not the one who owns it: their own particulars are asked for. */
+    val showParticulars: Boolean = false,
+    /** Who else last changed their particulars, and when, so a change made for them is never silent. */
+    val changedByName: String? = null,
+    val changedAt: Long? = null,
 ) {
     val changed: Boolean get() = loaded && fields != saved
     val canSave: Boolean
@@ -98,7 +110,14 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
         viewModelScope.launch {
             val s = app.sessionStore.load() ?: return@launch
             val org = app.db.orgDao().observeOrg(s.orgId).first()
+            val details = app.peopleRepository.observeDetails(s.orgId, s.personId).first()
             val loaded = ProfileFields(
+                payoutUpi = details?.payoutUpi.orEmpty(),
+                payoutBank = details?.payoutBank.orEmpty(),
+                licenceNumber = details?.licenceNumber.orEmpty(),
+                licenceExpiresDay = details?.licenceExpiresDay,
+                emergencyName = details?.emergencyName.orEmpty(),
+                emergencyPhone = details?.emergencyPhone.orEmpty(),
                 yourName = s.displayName,
                 businessName = org?.name?.ifBlank { null } ?: s.businessName,
                 phone = org?.phone.orEmpty(),
@@ -114,6 +133,10 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     signedInPhone = app.sessionStore.signedInPhone(),
                     currencyCode = s.currencyCode,
                     canEditBusiness = Capability.EditBusiness in s.can,
+                    showParticulars = s.role != MemberRole.Owner,
+                    changedByName = details?.updatedByPersonId?.takeIf { it != s.personId }
+                        ?.let { by -> app.db.orgDao().membership(s.orgId, by)?.displayName },
+                    changedAt = details?.updatedAt?.takeIf { details.updatedByPersonId != s.personId },
                     loaded = true,
                 )
             }
@@ -129,6 +152,7 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setAddress(v: String) = edit { it.copy(addressLine = v) }
     fun setGstin(v: String) = edit { it.copy(gstin = v.uppercase()) }
     fun setUpiId(v: String) = edit { it.copy(upiId = v) }
+    fun setParticulars(change: (ProfileFields) -> ProfileFields) = edit(change)
 
     fun save() = viewModelScope.launch {
         val current = _state.value
@@ -136,7 +160,22 @@ class ProfileViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val f = current.fields
         _state.update { it.copy(saving = true, refused = false) }
         if (f.yourName.trim() != current.saved.yourName.trim()) app.sessionStore.updateProfile(f.yourName)
-        if (current.canEditBusiness && f.copy(yourName = "") != current.saved.copy(yourName = "")) {
+        val particulars = { x: ProfileFields ->
+            listOf(x.payoutUpi, x.payoutBank, x.licenceNumber, x.licenceExpiresDay, x.emergencyName, x.emergencyPhone)
+        }
+        if (current.showParticulars && particulars(f) != particulars(current.saved)) {
+            val s = app.sessionStore.load()
+            if (s != null) runCatching {
+                app.peopleRepository.saveDetails(
+                    s.orgId, s.can, s.personId, byPersonId = s.personId,
+                    payoutUpi = f.payoutUpi, payoutBank = f.payoutBank,
+                    licenceNumber = f.licenceNumber, licenceExpiresDay = f.licenceExpiresDay,
+                    emergencyName = f.emergencyName, emergencyPhone = f.emergencyPhone,
+                )
+            }
+        }
+        val businessPart = { x: ProfileFields -> listOf(x.businessName, x.phone, x.addressLine, x.gstin, x.upiId) }
+        if (current.canEditBusiness && businessPart(f) != businessPart(current.saved)) {
             val failed = runCatching {
                 app.sessionStore.updateBusiness(
                     name = f.businessName,
@@ -169,6 +208,7 @@ class ProfileActions(
     val onGstin: (String) -> Unit,
     val onUpiId: (String) -> Unit,
     val onSave: () -> Unit,
+    val onParticulars: ((ProfileFields) -> ProfileFields) -> Unit = {},
     val onDiscard: () -> Unit,
 )
 
@@ -285,6 +325,8 @@ fun ProfileScreen(
                 )
             }
 
+            if (state.showParticulars) ParticularsPart(state, actions)
+
             if (state.refused) {
                 Text(
                     text = stringResource(R.string.edit_not_allowed),
@@ -330,6 +372,77 @@ fun ProfileScreen(
                     Text(stringResource(R.string.profile_unsaved_leave), color = colors.dueInk)
                 }
             },
+        )
+    }
+}
+
+/**
+ * A team member's own particulars on their own page: where their pay goes, their licence, and
+ * who to call. Theirs to change; if somebody else changed them, the page says who and when.
+ */
+@Composable
+private fun ParticularsPart(state: ProfileState, actions: ProfileActions) {
+    val colors = FieldTrackTheme.colors
+    val f = state.fields
+    var pickingDay by rememberSaveable { mutableStateOf(false) }
+    FtSectionLabel(stringResource(R.string.profile_particulars), Modifier.padding(top = 6.dp))
+    if (state.changedByName != null && state.changedAt != null) {
+        Text(
+            text = stringResource(
+                R.string.profile_particulars_changed_by,
+                state.changedByName,
+                com.example.fieldtrack.feature.dayMonthYear(state.changedAt),
+            ),
+            style = FieldTrackTheme.type.bodySmall,
+            color = colors.dueInk,
+        )
+    }
+    if (state.currencyCode == "INR") FtTextField(
+        label = stringResource(R.string.profile_payout_upi),
+        value = f.payoutUpi,
+        onValueChange = { v -> actions.onParticulars { it.copy(payoutUpi = v.trim().take(60)) } },
+        placeholder = stringResource(R.string.edit_business_upi_hint),
+    )
+    FtTextField(
+        label = stringResource(R.string.member_bank),
+        value = f.payoutBank,
+        onValueChange = { v -> actions.onParticulars { it.copy(payoutBank = v.take(120)) } },
+        helper = stringResource(R.string.member_bank_note),
+    )
+    FtTextField(
+        label = stringResource(R.string.member_licence),
+        value = f.licenceNumber,
+        onValueChange = { v -> actions.onParticulars { it.copy(licenceNumber = v.take(30)) } },
+    )
+    if (f.licenceNumber.isNotBlank()) {
+        com.example.fieldtrack.designsystem.component.FtCard(padding = 0.dp) {
+            com.example.fieldtrack.designsystem.component.FtListRow(
+                title = stringResource(R.string.member_licence_expires),
+                subtitle = f.licenceExpiresDay?.let {
+                    com.example.fieldtrack.feature.dayMonthYear(com.example.fieldtrack.feature.machine.dayStartMillis(it))
+                } ?: stringResource(R.string.paper_pick_day),
+                showChevron = true,
+                onClick = { pickingDay = true },
+            )
+        }
+    }
+    FtTextField(
+        label = stringResource(R.string.member_emergency_name),
+        value = f.emergencyName,
+        onValueChange = { v -> actions.onParticulars { it.copy(emergencyName = v.take(60)) } },
+    )
+    if (f.emergencyName.isNotBlank()) {
+        PhoneField(
+            label = stringResource(R.string.member_emergency_phone),
+            value = f.emergencyPhone,
+            onValueChange = { v -> actions.onParticulars { it.copy(emergencyPhone = v) } },
+        )
+    }
+    if (pickingDay) {
+        com.example.fieldtrack.feature.machine.AnyDaySheet(
+            f.licenceExpiresDay,
+            onDismiss = { pickingDay = false },
+            onPicked = { day -> pickingDay = false; actions.onParticulars { it.copy(licenceExpiresDay = day) } },
         )
     }
 }

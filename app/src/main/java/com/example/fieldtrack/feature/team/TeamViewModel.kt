@@ -40,6 +40,8 @@ data class TeamMemberRow(
     val hireLeftMinor: Long = 0,
     /** The business's cash they are holding. Zero for whoever may not see farmers' money. */
     val cashHeldMinor: Long = 0,
+    /** The last day their driving licence is valid, when one was written down. */
+    val licenceExpiresDay: Long? = null,
 ) {
     val working: Boolean get() = workingOn != null
 }
@@ -123,8 +125,10 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 app.teamRepository.observeCustomRoles(s.orgId),
                 app.hireRepository.observe(s.orgId),
                 app.peopleRepository.observeCashHeld(s.orgId),
-            ) { d, r, h, c -> TeamExtras(d, r, h, c) },
-        ) { members, liveJobs, machines, openCodes, (dismissed, roles, hire, cash) ->
+                app.db.orgDao().observeAllMemberDetails(s.orgId),
+            ) { d, r, h, c, p -> TeamExtras(d, r, h, c, p) },
+        ) { members, liveJobs, machines, openCodes, (dismissed, roles, hire, cash, particulars) ->
+            val licenceOf = particulars.associate { it.personId to it.licenceExpiresDay }
             val machineNames = machines.associate { it.id to it.name }
             // What is owed either way is for whoever may see what people are paid, and nobody else.
             val seesPay = Capability.SeePeopleCost in s.can
@@ -155,6 +159,7 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                             app.ledgerRepository.observeAdvanceOutstanding(s.orgId, member.personId).first()
                         } else 0,
                         cashHeldMinor = if (s.canSeeMoney) cash[member.personId] ?: 0L else 0L,
+                        licenceExpiresDay = licenceOf[member.personId],
                         hireLeftMinor = if (seesPay) {
                             hire.firstOrNull { it.personId == member.personId }?.balanceMinor?.coerceAtLeast(0) ?: 0
                         } else 0,
@@ -235,6 +240,7 @@ private data class TeamExtras(
     val roles: List<com.example.fieldtrack.data.session.CustomRole>,
     val hire: List<com.example.fieldtrack.data.repository.HireBalance>,
     val cash: Map<String, Long>,
+    val particulars: List<com.example.fieldtrack.data.db.entity.MemberDetailsEntity>,
 )
 
 /** Order-independent, so answering once answers it whichever way round it is seen. */

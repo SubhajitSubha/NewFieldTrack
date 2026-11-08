@@ -244,12 +244,18 @@ Decisions from the owner: add this before the release blockers; a driving licenc
   took it back and when; a correction says what it corrects; typing a person's name finds everything they recorded.
 - [x] **Q2. Cash in hand.** Cash a team member takes from a farmer is "held by them" until the owner records that it was
   handed over. Shown on the team card, the member page, the money page, and to the person holding it.
-- [ ] **Q3. A team member sees their own pay** (rules change: a payout readable by the person it was paid to; a second
+- [x] **Q3. A team member sees their own pay** (rules change: a payout readable by the person it was paid to; a second
   restore query for them). From the menu: "My pay".
-- [ ] **Q4. Member details.** How to pay them (UPI id or bank), how they are paid and at what rate (per day, per acre, per
+- [x] **Q4. Member details.** How to pay them (UPI id or bank), how they are paid and at what rate (per day, per acre, per
   hour, monthly) with what that adds up to from their work, driving licence number and expiry (optional), an emergency
   contact. Personal details in a record the owner, the team managers and the person can read; pay terms where only the
   money people and the person can read. Every change is in Team changes and shown to the person.
+  Built: member page parts are Work / Money / Details. Details: name, phone, licence and its end date, emergency contact
+  (fields for whoever runs the team, plain facts for anybody else). Money: how they are paid (by the day, hour, land or
+  month) with earned / paid / still to pay worked out from the jobs they drove, and where their pay goes (UPI, bank).
+  A team member keeps their own particulars on Profile ("For your pay and your safety") and is told when somebody else
+  changed them; the change is in Team changes (the log never carries the rate). A licence run out, or running out within
+  30 days, shows on the team card. "My pay" in the menu for a member who may not see everybody's pay.
 - [ ] **Q5. UPI, India first.** Pay a person: opens the UPI app with their id and the amount filled in, and records the
   payment when the UPI app says it went through (asks when it cannot tell). Get paid: a QR code with the amount on the
   farmer's page and on the bill, drawn by our own code, and one tap to record it once the money is seen.

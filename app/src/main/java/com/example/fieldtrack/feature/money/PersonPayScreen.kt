@@ -70,6 +70,10 @@ data class PersonPayState(
     /** What is owed for a machine of theirs the business uses, if there is one. */
     val hire: HireBalance? = null,
     val rows: List<PersonPayRow> = emptyList(),
+    /** What their work has earned under their pay terms, if they have any. */
+    val wages: com.example.fieldtrack.data.repository.WageBalance? = null,
+    /** Their own pay, looked at by themselves: no paying or taking back from here. */
+    val isSelf: Boolean = false,
 )
 
 /**
@@ -83,21 +87,26 @@ class PersonPayViewModel(
 ) : ViewModel() {
 
     val state: StateFlow<PersonPayState> = app.sessionStore.session.flatMapLatest { s ->
-        val mayLook = Capability.SeePeopleCost in s.can
         // A membership's id is the business's id and the person's, joined: see membershipId().
         val personId = membershipId.removePrefix(s.orgId + "_")
+        val self = personId == s.personId
+        // Whoever sees what people are paid, and the person themselves: trust runs both ways.
+        val mayLook = Capability.SeePeopleCost in s.can || self
         combine(
             app.ledgerRepository.observePayoutsTo(s.orgId, personId),
             app.ledgerRepository.observeAdvanceOutstanding(s.orgId, personId),
             app.hireRepository.observe(s.orgId),
             app.teamRepository.observeEveryone(s.orgId),
-        ) { payouts, advance, hire, people ->
+            app.peopleRepository.observeWages(s.orgId),
+        ) { payouts, advance, hire, people, wages ->
             val name = people.firstOrNull { it.personId == personId }?.displayName.orEmpty()
             if (!mayLook) return@combine PersonPayState(loaded = true, name = name)
             PersonPayState(
                 loaded = true,
                 mayLook = true,
-                mayPay = Capability.PayOut in s.can,
+                isSelf = self,
+                wages = wages[personId],
+                mayPay = Capability.PayOut in s.can && !self,
                 name = name,
                 paidMinor = payouts.filter { it.voidedAt == null }.sumOf { it.amountMinor },
                 advanceOutstandingMinor = advance,
@@ -151,6 +160,7 @@ fun PersonPayContent(
             Spacer(Modifier.height(3.dp))
             Text(text = money(state.paidMinor), style = FieldTrackTheme.type.moneyHero, color = colors.onDark)
         }
+        state.wages?.let { w -> WageCard(w) }
         if (state.mayPay) {
             FtButton(text = stringResource(R.string.person_pay_pay, state.name), onClick = onPay, icon = com.example.fieldtrack.designsystem.icon.FieldTrackIcons.Minus)
         }
@@ -262,6 +272,43 @@ fun PersonPayContent(
             dismissButton = {
                 TextButton(onClick = { confirming = null }) { Text(stringResource(R.string.person_pay_back_no)) }
             },
+        )
+    }
+}
+
+/** What their work has earned under their pay terms, what was paid, and what is left. */
+@Composable
+private fun WageCard(w: com.example.fieldtrack.data.repository.WageBalance) {
+    val colors = FieldTrackTheme.colors
+    FtCard {
+        Text(
+            text = stringResource(
+                R.string.wages_terms,
+                stringResource(
+                    when (w.basis) {
+                        com.example.fieldtrack.data.db.PayBasis.PerDay -> R.string.wages_per_day
+                        com.example.fieldtrack.data.db.PayBasis.PerHour -> R.string.wages_per_hour
+                        com.example.fieldtrack.data.db.PayBasis.PerAcre -> R.string.wages_per_area
+                        com.example.fieldtrack.data.db.PayBasis.Monthly -> R.string.wages_per_month
+                    },
+                    money(w.rateMinor),
+                ),
+                dayMonthYear(w.fromMillis),
+            ),
+            style = FieldTrackTheme.type.caption,
+            color = colors.inkTertiary,
+        )
+        Text(
+            text = stringResource(R.string.wages_earned_paid, money(w.earnedMinor), money(w.paidMinor)),
+            style = FieldTrackTheme.type.bodySmall,
+            color = colors.inkSecondary,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            text = stringResource(R.string.wages_left, money(w.leftMinor.coerceAtLeast(0))),
+            style = FieldTrackTheme.type.rowTitle,
+            color = if (w.leftMinor > 0) colors.dueInk else colors.ink,
+            modifier = Modifier.padding(top = 3.dp),
         )
     }
 }

@@ -26,6 +26,15 @@ data class RecentJob(
     val running: Boolean,
 )
 
+/** What the team keeps about a person besides their name and phone: their licence, and who to call. */
+data class Particulars(
+    val licenceNumber: String = "",
+    /** The last day the licence is valid, as an epoch day. */
+    val licenceExpiresDay: Long? = null,
+    val emergencyName: String = "",
+    val emergencyPhone: String = "",
+)
+
 /** The parts of a member's page. */
 enum class MemberTab { Work, Money, Access }
 
@@ -69,6 +78,15 @@ data class MemberState(
     val customRoles: List<com.example.fieldtrack.data.session.CustomRole> = emptyList(),
     val canSeeTheirEarnings: Boolean = true,
     val saving: Boolean = false,
+    val particulars: Particulars = Particulars(),
+    val savedParticulars: Particulars = Particulars(),
+    /** Where their pay goes. Changed from the money part, saved on its own. */
+    val payoutUpi: String? = null,
+    val payoutBank: String? = null,
+    /** How they are paid. Null when nobody has said, or for somebody who may not see it. */
+    val payTerms: com.example.fieldtrack.data.db.entity.MemberPayTermsEntity? = null,
+    /** Whether whoever is looking may set how they are paid. */
+    val canSetPay: Boolean = false,
     /** The business's cash they hold: farmers' money they took and have not handed over. */
     val cashHeldMinor: Long = 0,
     /** Whether whoever is looking receives cash, and so may write a hand-over down. */
@@ -83,7 +101,7 @@ data class MemberState(
 ) {
     val changed: Boolean
         get() = loaded && (displayName != savedName || phone.orEmpty() != savedPhone.orEmpty() ||
-            role != savedRole || grants != savedGrants)
+            role != savedRole || grants != savedGrants || particulars != savedParticulars)
 
     val canSave: Boolean get() = editable && changed && !saving && displayName.isNotBlank()
 
@@ -161,6 +179,13 @@ class MemberViewModel(
             val live = app.workRepository.observeLiveFor(s.orgId, member.personId).first()
 
             val customerNames = app.directoryRepository.observeCustomers(s.orgId).first().associate { c -> c.id to c.name }
+            val details = app.peopleRepository.observeDetails(s.orgId, member.personId).first()
+            val particulars = Particulars(
+                licenceNumber = details?.licenceNumber.orEmpty(),
+                licenceExpiresDay = details?.licenceExpiresDay,
+                emergencyName = details?.emergencyName.orEmpty(),
+                emergencyPhone = details?.emergencyPhone.orEmpty(),
+            )
             _state.update {
                 it.copy(
                     loaded = true,
@@ -174,6 +199,11 @@ class MemberViewModel(
                             running = job.status == JobStatus.Running || job.status == JobStatus.Paused,
                         )
                     },
+                    particulars = particulars,
+                    savedParticulars = particulars,
+                    payoutUpi = details?.payoutUpi,
+                    payoutBank = details?.payoutBank,
+                    canSetPay = Capability.PayOut in s.can && member.personId != s.personId,
                     savedName = member.displayName,
                     savedPhone = member.phone?.ifBlank { null },
                     savedRole = member.role,
@@ -236,6 +266,11 @@ class MemberViewModel(
             val s = app.sessionStore.load() ?: return@launch
             val member = app.teamRepository.find(s.orgId, membershipId) ?: return@launch
             personId = member.personId
+            if (Capability.SeePeopleCost in s.can) launch {
+                app.peopleRepository.observePayTerms(s.orgId, member.personId).collect { terms ->
+                    _state.update { it.copy(payTerms = terms) }
+                }
+            }
             if (!s.canSeeMoney) return@launch
             app.peopleRepository.observeCashHeld(s.orgId).collect { held ->
                 _state.update {
@@ -255,6 +290,30 @@ class MemberViewModel(
         runCatching {
             app.peopleRepository.recordHandover(s.orgId, s.can, personId, amountMinor, byPersonId = s.personId, note = note)
         }
+    }
+
+    fun setParticulars(change: (Particulars) -> Particulars) = _state.update { it.copy(particulars = change(it.particulars)) }
+
+    /** Where their pay goes, saved at once from its own sheet. */
+    fun savePayout(upi: String?, bank: String?) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        val p = _state.value.savedParticulars
+        runCatching {
+            app.peopleRepository.saveDetails(
+                s.orgId, s.can, personId, byPersonId = s.personId,
+                payoutUpi = upi, payoutBank = bank,
+                licenceNumber = p.licenceNumber, licenceExpiresDay = p.licenceExpiresDay,
+                emergencyName = p.emergencyName, emergencyPhone = p.emergencyPhone,
+            )
+        }.onSuccess {
+            _state.update { it.copy(payoutUpi = upi?.trim()?.ifBlank { null }, payoutBank = bank?.trim()?.ifBlank { null }) }
+        }
+    }
+
+    /** How they are paid, saved at once from its own sheet. */
+    fun savePayTerms(basis: com.example.fieldtrack.data.db.PayBasis, rateMinor: Long, fromMillis: Long) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        runCatching { app.peopleRepository.savePayTerms(s.orgId, s.can, personId, s.personId, basis, rateMinor, fromMillis) }
     }
 
     fun setName(v: String) = _state.update { it.copy(displayName = v) }
@@ -354,11 +413,22 @@ class MemberViewModel(
             }
             return@launch
         }
+        if (current.particulars != current.savedParticulars) {
+            val p = current.particulars
+            runCatching {
+                app.peopleRepository.saveDetails(
+                    s.orgId, s.can, personId, byPersonId = s.personId,
+                    payoutUpi = current.payoutUpi, payoutBank = current.payoutBank,
+                    licenceNumber = p.licenceNumber, licenceExpiresDay = p.licenceExpiresDay,
+                    emergencyName = p.emergencyName, emergencyPhone = p.emergencyPhone,
+                )
+            }
+        }
         _state.update {
             it.copy(
                 saving = false,
                 savedName = current.displayName, savedPhone = current.phone, savedRole = current.role,
-                savedGrants = current.grants,
+                savedGrants = current.grants, savedParticulars = current.particulars,
             )
         }
         onSaved()

@@ -66,6 +66,11 @@ data class MoreState(
     val bookingLinkOn: Boolean = false,
     val newRequests: Int = 0,
 ) {
+    /**
+     * Somebody on a team who may not see what people are paid still sees their own pay.
+     * Whoever sees everybody's finds their own on their team page instead.
+     */
+    val hasMyPay: Boolean get() = canSeeTeam && role != MemberRole.Owner && !canSeePeopleCost
     /** Somebody who may see any kind of money has a Money place; anybody else has none. */
     val hasMoney: Boolean get() = canSeeMoney || canSeePeopleCost
     /** Requests are a place only where they can arrive, or some are still waiting. */
@@ -121,6 +126,7 @@ fun MoreScreen(
     onMoney: () -> Unit,
     onRequests: () -> Unit,
     onSettings: () -> Unit,
+    onMyPay: () -> Unit = {},
     onHelp: () -> Unit,
     modifier: Modifier = Modifier,
     /** In the side menu the screen's own title bar is dropped: the menu already has a header. */
@@ -227,6 +233,12 @@ fun MoreScreen(
                     MenuItem(
                         stringResource(R.string.more_team), FieldTrackIcons.Team, onTeam,
                         pluralStringResource(R.plurals.count_members, state.memberCount, state.memberCount),
+                    )
+                )
+                if (state.hasMyPay) add(
+                    MenuItem(
+                        stringResource(R.string.my_pay_title), FieldTrackIcons.Banknote, onMyPay,
+                        stringResource(R.string.my_pay_note),
                     )
                 )
                 if (state.hasMoney) add(

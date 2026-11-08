@@ -396,6 +396,18 @@ private fun MemberCard(member: TeamMemberRow, state: TeamState, onOpen: (String)
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 val owed = listOfNotNull(
+                    // A driver on the road without a valid licence is the owner's problem too.
+                    member.licenceExpiresDay?.let { day ->
+                        val today = com.example.fieldtrack.feature.machine.todayEpochDay()
+                        when {
+                            day < today -> stringResource(R.string.team_licence_expired)
+                            day - today <= LICENCE_WARN_DAYS -> stringResource(
+                                R.string.team_licence_soon,
+                                com.example.fieldtrack.feature.dayMonth(com.example.fieldtrack.feature.machine.dayStartMillis(day)),
+                            )
+                            else -> null
+                        }
+                    },
                     stringResource(R.string.team_cash_held, money(member.cashHeldMinor)).takeIf { member.cashHeldMinor > 0 },
                     stringResource(R.string.team_advance_left, money(member.advanceMinor)).takeIf { member.advanceMinor > 0 },
                     stringResource(R.string.team_hire_left, money(member.hireLeftMinor)).takeIf { member.hireLeftMinor > 0 },
@@ -419,3 +431,6 @@ private fun MemberCard(member: TeamMemberRow, state: TeamState, onOpen: (String)
         }
     }
 }
+
+/** How close a licence's end has to be before the team list mentions it. */
+private const val LICENCE_WARN_DAYS = 30L

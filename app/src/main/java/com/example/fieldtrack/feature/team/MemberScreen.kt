@@ -96,6 +96,7 @@ fun MemberScreen(
     onJob: (String) -> Unit = {},
     /** Writes down cash this person handed over: the amount and an optional note. */
     onHandover: (Long, String?) -> Unit = { _, _ -> },
+    details: MemberDetailsActions = MemberDetailsActions(),
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -278,7 +279,7 @@ fun MemberScreen(
                         when (it) {
                             MemberTab.Work -> R.string.member_tab_work
                             MemberTab.Money -> R.string.member_tab_money
-                            MemberTab.Access -> R.string.member_tab_access
+                            MemberTab.Access -> R.string.member_tab_details
                         }
                     )
                 },
@@ -288,9 +289,12 @@ fun MemberScreen(
             when (shown) {
                 MemberTab.Work -> WorkPart(state, onJob)
                 MemberTab.Money -> pay?.let {
+                    PayArrangements(state, details)
                     com.example.fieldtrack.feature.money.PersonPayContent(state = it, onPay = onPay, onTakeBack = onTakeBack)
                 }
                 MemberTab.Access -> {
+                    // ---- About them first: who they are, then what they may do.
+                    AboutThem(state, onName, onPhone, details)
                     if (state.editable) {
                         // A job, not seven switches. An owner knows what a senior
                         // driver is; they do not know which four of seven permissions
@@ -469,20 +473,6 @@ fun MemberScreen(
                             }
                         }
 
-                        FtSectionLabel(
-                            stringResource(R.string.team_details),
-                            Modifier.padding(top = 4.dp),
-                        )
-                        FtTextField(
-                            label = stringResource(R.string.team_member_name),
-                            value = state.displayName,
-                            onValueChange = onName,
-                        )
-                        PhoneField(
-                            label = stringResource(R.string.edit_business_phone),
-                            value = state.phone.orEmpty(),
-                            onValueChange = onPhone,
-                        )
                     } else {
                         FtCard(background = colors.surfaceMuted, borderColor = colors.line) {
                             Text(
@@ -990,4 +980,227 @@ private fun minorAsText(minor: Long): String {
     val style = com.example.fieldtrack.designsystem.format.Money.style
     return if (style.showsDecimals) "%.2f".format(java.util.Locale.ROOT, minor / style.unit.toDouble())
     else (minor / style.unit).toString()
+}
+
+/** What the member page can do with a person's particulars and pay, grouped as one argument. */
+class MemberDetailsActions(
+    val onParticulars: ((Particulars) -> Particulars) -> Unit = {},
+    val onSavePayout: (upi: String?, bank: String?) -> Unit = { _, _ -> },
+    val onSavePayTerms: (com.example.fieldtrack.data.db.PayBasis, Long, Long) -> Unit = { _, _, _ -> },
+)
+
+/**
+ * Who they are: name and phone, their driving licence and when it runs out, and who to call if
+ * something happens. Fields for somebody who runs the team; plain facts for anybody else.
+ */
+@Composable
+private fun AboutThem(
+    state: MemberState,
+    onName: (String) -> Unit,
+    onPhone: (String) -> Unit,
+    details: MemberDetailsActions,
+) {
+    val colors = FieldTrackTheme.colors
+    val p = state.particulars
+    var pickingDay by rememberSaveable { mutableStateOf(false) }
+    FtSectionLabel(stringResource(R.string.team_details))
+    if (!state.editable) {
+        // Facts, not fields: a page that cannot be changed should not look as if it could.
+        val lines = listOfNotNull(
+            p.licenceNumber.takeIf { it.isNotBlank() }?.let { number ->
+                stringResource(R.string.member_licence_line, number) +
+                    (p.licenceExpiresDay?.let { " · " + stringResource(R.string.member_licence_until, dayMonthYear(com.example.fieldtrack.feature.machine.dayStartMillis(it))) } ?: "")
+            },
+            p.emergencyName.takeIf { it.isNotBlank() }?.let { name ->
+                stringResource(R.string.member_emergency_line, name, p.emergencyPhone)
+            },
+        )
+        if (lines.isNotEmpty()) FtCard {
+            lines.forEach { Text(it, style = FieldTrackTheme.type.bodySmall, color = colors.ink) }
+        }
+        return
+    }
+    FtTextField(
+        label = stringResource(R.string.team_member_name),
+        value = state.displayName,
+        onValueChange = onName,
+    )
+    PhoneField(
+        label = stringResource(R.string.edit_business_phone),
+        value = state.phone.orEmpty(),
+        onValueChange = onPhone,
+    )
+    FtTextField(
+        label = stringResource(R.string.member_licence),
+        value = p.licenceNumber,
+        onValueChange = { v -> details.onParticulars { it.copy(licenceNumber = v.take(30)) } },
+        helper = stringResource(R.string.member_licence_note),
+    )
+    if (p.licenceNumber.isNotBlank()) {
+        FtCard(padding = 0.dp) {
+            com.example.fieldtrack.designsystem.component.FtListRow(
+                title = stringResource(R.string.member_licence_expires),
+                subtitle = p.licenceExpiresDay?.let { dayMonthYear(com.example.fieldtrack.feature.machine.dayStartMillis(it)) }
+                    ?: stringResource(R.string.paper_pick_day),
+                showChevron = true,
+                onClick = { pickingDay = true },
+            )
+        }
+    }
+    FtTextField(
+        label = stringResource(R.string.member_emergency_name),
+        value = p.emergencyName,
+        onValueChange = { v -> details.onParticulars { it.copy(emergencyName = v.take(60)) } },
+    )
+    if (p.emergencyName.isNotBlank()) {
+        PhoneField(
+            label = stringResource(R.string.member_emergency_phone),
+            value = p.emergencyPhone,
+            onValueChange = { v -> details.onParticulars { it.copy(emergencyPhone = v) } },
+        )
+    }
+    if (pickingDay) {
+        com.example.fieldtrack.feature.machine.AnyDaySheet(
+            p.licenceExpiresDay,
+            onDismiss = { pickingDay = false },
+            onPicked = { day -> pickingDay = false; details.onParticulars { it.copy(licenceExpiresDay = day) } },
+        )
+    }
+}
+
+/** How they are paid and where the money goes: two lines, each changed in its own sheet. */
+@Composable
+private fun PayArrangements(state: MemberState, details: MemberDetailsActions) {
+    var editingTerms by rememberSaveable { mutableStateOf(false) }
+    var editingPayout by rememberSaveable { mutableStateOf(false) }
+    val terms = state.payTerms
+    val payTo = state.payoutUpi ?: state.payoutBank
+    FtCard(padding = 0.dp) {
+        com.example.fieldtrack.designsystem.component.FtListRow(
+            title = stringResource(R.string.member_pay_terms),
+            subtitle = terms?.let { payTermsText(it.basis, it.rateMinor) } ?: stringResource(R.string.profile_not_set),
+            showChevron = state.canSetPay,
+            onClick = if (state.canSetPay) ({ editingTerms = true }) else null,
+        )
+        FtRowDivider()
+        com.example.fieldtrack.designsystem.component.FtListRow(
+            title = stringResource(R.string.member_pay_to),
+            subtitle = payTo ?: stringResource(R.string.profile_not_set),
+            showChevron = state.editable,
+            onClick = if (state.editable) ({ editingPayout = true }) else null,
+        )
+    }
+    if (editingTerms) PayTermsSheet(
+        current = terms,
+        onSave = { basis, rate, from -> editingTerms = false; details.onSavePayTerms(basis, rate, from) },
+        onDismiss = { editingTerms = false },
+    )
+    if (editingPayout) PayoutSheet(
+        name = state.displayName,
+        upi = state.payoutUpi.orEmpty(),
+        bank = state.payoutBank.orEmpty(),
+        onSave = { upi, bank -> editingPayout = false; details.onSavePayout(upi, bank) },
+        onDismiss = { editingPayout = false },
+    )
+}
+
+/** "₹600 a day", in the words of the basis. */
+@Composable
+internal fun payTermsText(basis: com.example.fieldtrack.data.db.PayBasis, rateMinor: Long): String = stringResource(
+    when (basis) {
+        com.example.fieldtrack.data.db.PayBasis.PerDay -> R.string.wages_per_day
+        com.example.fieldtrack.data.db.PayBasis.PerHour -> R.string.wages_per_hour
+        com.example.fieldtrack.data.db.PayBasis.PerAcre -> R.string.wages_per_area
+        com.example.fieldtrack.data.db.PayBasis.Monthly -> R.string.wages_per_month
+    },
+    com.example.fieldtrack.designsystem.format.money(rateMinor),
+)
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun PayTermsSheet(
+    current: com.example.fieldtrack.data.db.entity.MemberPayTermsEntity?,
+    onSave: (com.example.fieldtrack.data.db.PayBasis, Long, Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = FieldTrackTheme.colors
+    val style = com.example.fieldtrack.designsystem.format.Money.style
+    var basis by rememberSaveable { mutableStateOf(current?.basis ?: com.example.fieldtrack.data.db.PayBasis.PerDay) }
+    var rate by rememberSaveable { mutableStateOf(current?.rateMinor?.let { minorAsText(it) }.orEmpty()) }
+    val parsed = com.example.fieldtrack.designsystem.format.MoneyInput.parse(rate) ?: 0L
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.paper, contentColor = colors.ink) {
+        Column(
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(stringResource(R.string.member_pay_terms), style = FieldTrackTheme.type.sectionTitle, color = colors.ink)
+            com.example.fieldtrack.designsystem.component.FtPick(
+                options = com.example.fieldtrack.data.db.PayBasis.entries.toList(),
+                selected = basis,
+                text = {
+                    stringResource(
+                        when (it) {
+                            com.example.fieldtrack.data.db.PayBasis.PerDay -> R.string.pay_basis_day
+                            com.example.fieldtrack.data.db.PayBasis.PerHour -> R.string.pay_basis_hour
+                            com.example.fieldtrack.data.db.PayBasis.PerAcre -> R.string.pay_basis_area
+                            com.example.fieldtrack.data.db.PayBasis.Monthly -> R.string.pay_basis_month
+                        }
+                    )
+                },
+                onPick = { basis = it },
+            )
+            FtTextField(
+                label = stringResource(R.string.member_pay_rate),
+                value = rate,
+                onValueChange = { rate = com.example.fieldtrack.designsystem.format.MoneyInput.clean(it) },
+                prefix = style.symbol,
+                keyboardType = if (style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+            )
+            Text(
+                text = stringResource(R.string.member_pay_terms_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+            FtButton(
+                text = stringResource(R.string.edit_save),
+                // Kept from when it began, so changing the rate does not lose the work before it.
+                onClick = { onSave(basis, parsed, current?.fromMillis ?: System.currentTimeMillis()) },
+                enabled = parsed > 0,
+            )
+        }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun PayoutSheet(name: String, upi: String, bank: String, onSave: (String?, String?) -> Unit, onDismiss: () -> Unit) {
+    val colors = FieldTrackTheme.colors
+    var u by rememberSaveable { mutableStateOf(upi) }
+    var b by rememberSaveable { mutableStateOf(bank) }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.paper, contentColor = colors.ink) {
+        Column(
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(stringResource(R.string.member_pay_to_title, name), style = FieldTrackTheme.type.sectionTitle, color = colors.ink)
+            if (com.example.fieldtrack.designsystem.format.Money.style.currencyCode == "INR") FtTextField(
+                label = stringResource(R.string.edit_business_upi),
+                value = u,
+                onValueChange = { u = it.trim().take(60) },
+                placeholder = stringResource(R.string.edit_business_upi_hint),
+            )
+            FtTextField(
+                label = stringResource(R.string.member_bank),
+                value = b,
+                onValueChange = { b = it.take(120) },
+                helper = stringResource(R.string.member_bank_note),
+            )
+            Text(
+                text = stringResource(R.string.member_pay_to_note),
+                style = FieldTrackTheme.type.caption,
+                color = colors.inkTertiary,
+            )
+            FtButton(text = stringResource(R.string.edit_save), onClick = { onSave(u, b) })
+        }
+    }
 }

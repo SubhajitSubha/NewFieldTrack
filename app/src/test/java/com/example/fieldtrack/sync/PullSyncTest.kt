@@ -69,6 +69,14 @@ class PullSyncTest {
         override suspend fun fetchMyMembership(orgId: String, personId: String): RemoteRow? = null
         override suspend fun isAccountDisabled(personId: String) = false
 
+        /** What a narrow, by-person request returns, and who asked. */
+        var mine = listOf<RemoteRow>()
+        var mineAskedFor: String? = null
+        override suspend fun fetchMine(orgId: String, personId: String): List<RemoteRow> {
+            mineAskedFor = personId
+            return mine
+        }
+
         override suspend fun fetchChangesSince(orgId: String, since: Long): PullPage {
             calls++
             failWith?.let { throw it }
@@ -381,5 +389,30 @@ class PullSyncTest {
         restore.changed = false
         sync().pull(ORG, force = true)
         assertEquals(1, restore.fullFetches)
+    }
+
+    @Test
+    fun `somebody refused the business's payments still gets their own`() = runTest {
+        restore.pages += PullPage(emptyList(), watermark = 100L, refused = setOf("payouts"))
+        restore.mine = listOf(
+            RemoteRow(
+                table = "payouts", entityId = "p1",
+                fields = mapOf(
+                    "id" to "p1", "orgId" to ORG, "amountMinor" to 60_000L, "atMillis" to 5L, "covers" to "Day",
+                    "toPersonId" to "driver-1", "toName" to "Jaswant", "headcount" to 1L, "recoversAdvanceMinor" to 0L,
+                    "createdAt" to 5L, "syncState" to "Synced",
+                ),
+            )
+        )
+        sync().pull(ORG, personId = "driver-1")
+        assertEquals("driver-1", restore.mineAskedFor)
+        assertEquals(60_000L, db.orgDao().findPayout(ORG, "p1")?.amountMinor)
+    }
+
+    @Test
+    fun `nobody is asked for by name when nothing was refused`() = runTest {
+        restore.pages += PullPage(emptyList(), watermark = 100L)
+        sync().pull(ORG, personId = "owner-1")
+        assertEquals(null, restore.mineAskedFor)
     }
 }

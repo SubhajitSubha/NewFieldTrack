@@ -29,6 +29,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -277,6 +281,8 @@ internal object Routes {
     /** Everything about money, behind one door. */
     const val MONEY = "more/money"
     const val MONEY_REPORTS = "more/money/reports"
+    /** A team member's own pay, for somebody who may not see anybody else's. */
+    const val MY_PAY = "more/my-pay"
     const val EXPORT = "more/export"
     const val REMINDERS = "more/reminders"
     const val HELP = "more/help"
@@ -905,6 +911,7 @@ private fun SideMenu(
         onRequests = go(Routes.REQUESTS),
         onSettings = go(Routes.SETTINGS),
         onHelp = go(Routes.HELP),
+        onMyPay = go(Routes.MY_PAY),
     )
     if (choosingBusiness) {
         val orgs: OrgSwitcherViewModel = appViewModel { OrgSwitcherViewModel(it) }
@@ -2424,6 +2431,11 @@ private fun MainNavHost(navController: NavHostController) {
                     onTakeBack = payVm::takeBack,
                     onJob = { navController.navigate("jobs/$it") },
                     onHandover = vm::recordHandover,
+                    details = com.example.fieldtrack.feature.team.MemberDetailsActions(
+                        onParticulars = vm::setParticulars,
+                        onSavePayout = vm::savePayout,
+                        onSavePayTerms = vm::savePayTerms,
+                    ),
                     // Stays on the page: the Save button goes away and the page shows what was saved.
                     onSave = { vm.save {} },
                     onSetActive = { active ->
@@ -2652,6 +2664,7 @@ private fun MainNavHost(navController: NavHostController) {
                         onUpiId = vm::setUpiId,
                         onSave = { vm.save() },
                         onDiscard = vm::discard,
+                        onParticulars = vm::setParticulars,
                     ),
                     onBack = { navController.popBackStack() },
                 )
@@ -2683,6 +2696,31 @@ private fun MainNavHost(navController: NavHostController) {
                             onReports = { navController.navigate(Routes.MONEY_REPORTS) },
                         ),
                     )
+                }
+            }
+
+            composable(Routes.MY_PAY) {
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                val me = session ?: return@composable
+                val id = com.example.fieldtrack.data.db.entity.membershipId(me.orgId, me.personId)
+                val vm: com.example.fieldtrack.feature.money.PersonPayViewModel =
+                    appViewModel(key = "pay-$id") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, id) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                Column(Modifier.fillMaxSize().background(FieldTrackTheme.colors.paper)) {
+                    com.example.fieldtrack.designsystem.component.FtTopBar(
+                        title = stringResource(R.string.my_pay_title),
+                        onBack = { navController.popBackStack() },
+                        backContentDescription = stringResource(R.string.action_back_cd),
+                    )
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = FieldTrackTheme.dimens.screenPadding),
+                    ) {
+                        com.example.fieldtrack.feature.money.PersonPayContent(state = state, onPay = {}, onTakeBack = {})
+                        Box(Modifier.height(FieldTrackTheme.dimens.space4))
+                    }
                 }
             }
 
