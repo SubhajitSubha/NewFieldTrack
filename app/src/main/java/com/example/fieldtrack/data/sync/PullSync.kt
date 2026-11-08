@@ -48,7 +48,7 @@ class PullSync(
     private val lastSweep = mutableMapOf<String, Long>()
 
     /** Returns how many rows were written. [force] ignores the interval. */
-    suspend fun pull(orgId: String, force: Boolean = false): Int {
+    suspend fun pull(orgId: String, force: Boolean = false, personId: String? = null): Int {
         val now = clock.now()
 
         // A business never read in full is never made to wait. The interval is
@@ -108,6 +108,12 @@ class PullSync(
             // bring back what changed since the mark, and everything written
             // while the door was shut would stay invisible for ever. So the
             // business is read from scratch once, on the next pass.
+            // Refused the business's payments or particulars as a whole: ask for this
+            // person's own, by who they are about.
+            if (personId != null && page.refused.any { it in PERSONAL_TABLES }) {
+                written += applier.apply(restore.fetchMine(orgId, personId))
+            }
+
             val wasRefused = marks.refused(orgId)
             if (wasRefused.any { it !in page.refused }) marks.markUnseeded(orgId)
             marks.rememberRefused(orgId, page.refused)
@@ -123,6 +129,13 @@ class PullSync(
 
     private companion object {
         const val TAG = "PullSync"
+
+        /** Collections a person may be refused whole and still own some of. */
+        val PERSONAL_TABLES = setOf(
+            com.example.fieldtrack.data.db.SyncQueue.TABLE_PAYOUTS,
+            com.example.fieldtrack.data.db.SyncQueue.TABLE_MEMBER_DETAILS,
+            com.example.fieldtrack.data.db.SyncQueue.TABLE_PAY_TERMS,
+        )
     }
 }
 

@@ -135,5 +135,7 @@ private fun sentenceFor(change: TeamChange): String {
             R.string.changes_code_cancelled, change.byName, change.detail.orEmpty(),
         )
         TeamEventKind.Merged -> stringResource(R.string.changes_merged, who, change.byName)
+        TeamEventKind.DetailsChanged -> stringResource(R.string.changes_details, change.byName, who)
+        TeamEventKind.PayTermsChanged -> stringResource(R.string.changes_pay_terms, change.byName, who)
     }
 }

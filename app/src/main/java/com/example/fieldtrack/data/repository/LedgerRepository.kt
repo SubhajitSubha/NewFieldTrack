@@ -282,12 +282,12 @@ class LedgerRepository(
      * payment that settles a job's cost stops settling it, so the cost reads as owed again.
      * Taking back something already taken back changes nothing.
      */
-    suspend fun voidPayout(orgId: String, can: Capabilities, payoutId: String) {
+    suspend fun voidPayout(orgId: String, can: Capabilities, payoutId: String, byPersonId: String? = null) {
         can.require(Capability.PayOut)
         db.withTransaction {
             val payout = db.orgDao().findPayout(orgId, payoutId) ?: return@withTransaction
             if (payout.voidedAt != null) return@withTransaction
-            val voided = payout.copy(voidedAt = clock.now())
+            val voided = payout.copy(voidedAt = clock.now(), voidedByPersonId = byPersonId)
             db.orgDao().upsertPayout(voided)
             syncQueue.enqueueUpsert(
                 orgId, SyncQueue.TABLE_PAYOUTS, voided.id, OutboxJson.encodeToString(voided)

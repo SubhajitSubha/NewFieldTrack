@@ -717,8 +717,40 @@ val MIGRATION_28_29 = object : Migration(28, 29) {
     }
 }
 
+/**
+ * Trust and money: who took a payment back, cash handed over, each person's particulars and
+ * how they are paid.
+ */
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `payouts` ADD COLUMN `voidedByPersonId` TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `cash_handovers` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, " +
+                "`fromPersonId` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `atMillis` INTEGER NOT NULL, " +
+                "`byPersonId` TEXT, `note` TEXT, `voidedAt` INTEGER, `voidedByPersonId` TEXT, " +
+                "`createdAt` INTEGER NOT NULL, `syncState` TEXT NOT NULL, `deviceId` TEXT, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cash_handovers_orgId` ON `cash_handovers` (`orgId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cash_handovers_fromPersonId` ON `cash_handovers` (`fromPersonId`)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `member_details` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, " +
+                "`personId` TEXT NOT NULL, `payoutUpi` TEXT, `payoutBank` TEXT, `licenceNumber` TEXT, " +
+                "`licenceExpiresDay` INTEGER, `emergencyName` TEXT, `emergencyPhone` TEXT, " +
+                "`updatedAt` INTEGER NOT NULL, `updatedByPersonId` TEXT, `syncState` TEXT NOT NULL, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_member_details_orgId` ON `member_details` (`orgId`)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `member_pay_terms` (`id` TEXT NOT NULL, `orgId` TEXT NOT NULL, " +
+                "`personId` TEXT NOT NULL, `basis` TEXT NOT NULL, `rateMinor` INTEGER NOT NULL, " +
+                "`fromMillis` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `updatedByPersonId` TEXT, " +
+                "`syncState` TEXT NOT NULL, PRIMARY KEY(`id`))"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_member_pay_terms_orgId` ON `member_pay_terms` (`orgId`)")
+    }
+}
+
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
     MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29,
+    MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30,
 )

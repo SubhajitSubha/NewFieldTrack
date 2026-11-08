@@ -94,6 +94,8 @@ fun MemberScreen(
     onPay: () -> Unit = {},
     onTakeBack: (String) -> Unit = {},
     onJob: (String) -> Unit = {},
+    /** Writes down cash this person handed over: the amount and an optional note. */
+    onHandover: (Long, String?) -> Unit = { _, _ -> },
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -108,6 +110,7 @@ fun MemberScreen(
     // already answered all seven of these, and seven switches on open invites
     // an owner to fiddle with permissions they were not asked about.
     var showSwitches by rememberSaveable { mutableStateOf(false) }
+    var handingOver by rememberSaveable { mutableStateOf(false) }
     val tabs = listOfNotNull(MemberTab.Work, MemberTab.Money.takeIf { pay != null }, MemberTab.Access)
     val shown = tab.takeIf { it in tabs } ?: MemberTab.Work
 
@@ -239,6 +242,32 @@ fun MemberScreen(
                 }
             }
 
+
+            // ---- The business's cash in their hands, said where an owner first looks.
+            if (state.cashHeldMinor > 0) {
+                FtCard(background = colors.dueWash, borderColor = colors.dueWash) {
+                    Text(
+                        text = stringResource(R.string.member_cash_held, com.example.fieldtrack.designsystem.format.money(state.cashHeldMinor)),
+                        style = FieldTrackTheme.type.rowTitle,
+                        color = colors.dueInk,
+                    )
+                    Text(
+                        text = stringResource(R.string.member_cash_held_note),
+                        style = FieldTrackTheme.type.caption,
+                        color = colors.dueInk,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                    if (state.canReceiveCash && !state.isYou) {
+                        FtButton(
+                            text = stringResource(R.string.member_cash_handed),
+                            onClick = { handingOver = true },
+                            tone = FtButtonTone.Secondary,
+                            height = 46.dp,
+                            modifier = Modifier.padding(top = 10.dp),
+                        )
+                    }
+                }
+            }
 
             // ---- Three parts, so the page answers one question at a time.
             com.example.fieldtrack.designsystem.component.FtPick(
@@ -497,6 +526,15 @@ fun MemberScreen(
                 )
             }
         }
+    }
+
+    if (handingOver) {
+        HandoverSheet(
+            name = state.displayName,
+            heldMinor = state.cashHeldMinor,
+            onSave = { amount, note -> handingOver = false; onHandover(amount, note) },
+            onDismiss = { handingOver = false },
+        )
     }
 
     if (confirmOwner) {
@@ -901,4 +939,55 @@ private fun WorkPart(state: MemberState, onJob: (String) -> Unit) {
             )
         }
     }
+}
+
+/** Cash handed over: the amount (the whole of what they hold, to start with) and a note. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun HandoverSheet(name: String, heldMinor: Long, onSave: (Long, String?) -> Unit, onDismiss: () -> Unit) {
+    val colors = FieldTrackTheme.colors
+    val style = com.example.fieldtrack.designsystem.format.Money.style
+    var amount by rememberSaveable { mutableStateOf(minorAsText(heldMinor)) }
+    var note by rememberSaveable { mutableStateOf("") }
+    val parsed = com.example.fieldtrack.designsystem.format.MoneyInput.parse(amount) ?: 0L
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = colors.paper,
+        contentColor = colors.ink,
+    ) {
+        Column(
+            Modifier.padding(horizontal = 18.dp).padding(bottom = 24.dp).imePadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.member_cash_sheet_title, name),
+                style = FieldTrackTheme.type.sectionTitle,
+                color = colors.ink,
+            )
+            FtTextField(
+                label = stringResource(R.string.payout_amount),
+                value = amount,
+                onValueChange = { amount = com.example.fieldtrack.designsystem.format.MoneyInput.clean(it) },
+                prefix = style.symbol,
+                keyboardType = if (style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
+            )
+            FtTextField(
+                label = stringResource(R.string.member_cash_note),
+                value = note,
+                onValueChange = { note = it.take(120) },
+            )
+            FtButton(
+                text = stringResource(R.string.member_cash_save, com.example.fieldtrack.designsystem.format.money(parsed)),
+                onClick = { onSave(parsed, note) },
+                enabled = parsed > 0,
+            )
+        }
+    }
+}
+
+/** An amount as somebody would type it: whole units where the currency has no paise. */
+private fun minorAsText(minor: Long): String {
+    val style = com.example.fieldtrack.designsystem.format.Money.style
+    return if (style.showsDecimals) "%.2f".format(java.util.Locale.ROOT, minor / style.unit.toDouble())
+    else (minor / style.unit).toString()
 }

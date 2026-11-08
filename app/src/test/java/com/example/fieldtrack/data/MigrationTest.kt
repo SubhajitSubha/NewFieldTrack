@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(29, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(30, c.getInt(0))
         }
     }
 
@@ -564,6 +564,23 @@ class MigrationTest {
         }
         db.query("SELECT COUNT(*) FROM organisations WHERE customRoles IS NOT NULL").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0))
+        }
+    }
+
+    @Test
+    fun `every payment, its taking back, and the new records of people stand after version 30`() {
+        create(29) {
+            it.execSQL(
+                "INSERT INTO payouts (id, orgId, amountMinor, atMillis, covers, headcount, recoversAdvanceMinor, createdAt, syncState, voidedAt) " +
+                    "VALUES ('p1', 'o1', 50000, 1, 'Day', 1, 0, 1, 'Synced', 5)"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT amountMinor, voidedAt, voidedByPersonId FROM payouts").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(50_000L, c.getLong(0)); assertEquals(5L, c.getLong(1)); assertTrue(c.isNull(2))
+        }
+        for (table in listOf("cash_handovers", "member_details", "member_pay_terms")) {
+            db.query("SELECT COUNT(*) FROM $table").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
         }
     }
 }

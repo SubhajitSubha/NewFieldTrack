@@ -15,6 +15,9 @@ import com.example.fieldtrack.data.db.dao.ExportDao
 import com.example.fieldtrack.data.db.dao.OutboxDao
 import com.example.fieldtrack.data.db.dao.SampleDao
 import com.example.fieldtrack.data.db.entity.BookingEntity
+import com.example.fieldtrack.data.db.entity.CashHandoverEntity
+import com.example.fieldtrack.data.db.entity.MemberDetailsEntity
+import com.example.fieldtrack.data.db.entity.MemberPayTermsEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
 import com.example.fieldtrack.data.db.entity.CustomerEntity
 import com.example.fieldtrack.data.db.entity.FieldEntity
@@ -54,6 +57,9 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         MembershipEntity::class,
         TeamEventEntity::class,
         PayoutEntity::class,
+        CashHandoverEntity::class,
+        MemberDetailsEntity::class,
+        MemberPayTermsEntity::class,
         JobCostEntity::class,
         InviteEntity::class,
         CustomerEntity::class,
@@ -73,7 +79,7 @@ import com.example.fieldtrack.data.db.entity.PayoutEntity
         BookingEntity::class,
         OutboxEntity::class,
     ],
-    version = 29,
+    version = 30,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

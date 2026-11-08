@@ -133,7 +133,7 @@ fun DriverHomeScreen(
                 FigureCard(
                     label = stringResource(R.string.home_cash_with_you),
                     value = money(cash),
-                    note = stringResource(R.string.home_cash_with_you_note),
+                    note = stringResource(R.string.home_cash_held_note),
                     onClick = null,
                 )
             })

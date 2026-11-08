@@ -235,6 +235,30 @@ Needs the owner's yes before P1 (defaults in brackets): "team switch" means swit
 four tabs stay [yes]; Profile is the form itself [yes]; diesel and repairs get their own visibility switch [yes, but if it needs a
 rules change I will say so first].
 
+## Q. Trust and money that moves by itself (2026-11-08) - agreed, in progress
+Why: the app is full of trust and money; if every rupee is typed by hand it stays a data-entry app. The owner asked for the
+details we should hold on people and the business, the owner's power to check and change them, and money handled in the app.
+Decisions from the owner: add this before the release blockers; a driving licence is optional.
+
+- [x] **Q1. Who did what with the money.** Every line of the money page says who recorded it; a payment taken back says who
+  took it back and when; a correction says what it corrects; typing a person's name finds everything they recorded.
+- [x] **Q2. Cash in hand.** Cash a team member takes from a farmer is "held by them" until the owner records that it was
+  handed over. Shown on the team card, the member page, the money page, and to the person holding it.
+- [ ] **Q3. A team member sees their own pay** (rules change: a payout readable by the person it was paid to; a second
+  restore query for them). From the menu: "My pay".
+- [ ] **Q4. Member details.** How to pay them (UPI id or bank), how they are paid and at what rate (per day, per acre, per
+  hour, monthly) with what that adds up to from their work, driving licence number and expiry (optional), an emergency
+  contact. Personal details in a record the owner, the team managers and the person can read; pay terms where only the
+  money people and the person can read. Every change is in Team changes and shown to the person.
+- [ ] **Q5. UPI, India first.** Pay a person: opens the UPI app with their id and the amount filled in, and records the
+  payment when the UPI app says it went through (asks when it cannot tell). Get paid: a QR code with the amount on the
+  farmer's page and on the bill, drawn by our own code, and one tap to record it once the money is seen.
+  Other countries keep "tap Paid" until their own route (Pix, M-Pesa) is done.
+- [ ] **Q6. Close-out.** The whole rules file for the console, translations, screen matrix, full suite, emulator check.
+
+Later, decided after the closed test: payment links through a payment company from our server (bills mark themselves
+paid; each owner does that company's KYC; fees per payment). Not planned: holding or paying out money on owners' behalf.
+
 Suggestions kept for later (not built unless asked):
 - A team member seeing their own pay. Needs three things together: `payouts` rule allowing a read when `resource.data.toPersonId`
   is the signed-in person, a Firestore composite index (`toPersonId` + `serverAt`) in `firestore.indexes.json`, and a second

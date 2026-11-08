@@ -872,7 +872,7 @@ class TeamRepository(
      * after the fact, and a sentence about who let whom see the money has to go
      * on saying that even if either of them is renamed afterwards.
      */
-    private suspend fun record(
+    internal suspend fun record(
         orgId: String,
         kind: TeamEventKind,
         by: MembershipEntity?,

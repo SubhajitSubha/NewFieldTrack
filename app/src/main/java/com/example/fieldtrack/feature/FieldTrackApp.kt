@@ -2423,6 +2423,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onPay = { navController.navigate(Routes.payOut(membershipId.substringAfterLast('_'))) },
                     onTakeBack = payVm::takeBack,
                     onJob = { navController.navigate("jobs/$it") },
+                    onHandover = vm::recordHandover,
                     // Stays on the page: the Save button goes away and the page shows what was saved.
                     onSave = { vm.save {} },
                     onSetActive = { active ->

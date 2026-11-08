@@ -189,6 +189,12 @@ enum class MachineOwner { Own, Member, Outsider }
  */
 enum class HireBasis { PerHour, PerDay, PerAcre, Share }
 
+/**
+ * How a team member is paid for their work. What they have earned is worked out from the
+ * work they did as the operator, the way a hired machine's is. Stored by name; new ones at the end.
+ */
+enum class PayBasis { PerDay, PerHour, PerAcre, Monthly }
+
 /** The part of a day a booking is for. Farm work does not keep to the clock, so no finer. */
 enum class DayPart { Morning, Afternoon, WholeDay }
 
@@ -236,6 +242,12 @@ enum class TeamEventKind {
     CodeSent,
     CodeCancelled,
     Merged,
+
+    /** A person's particulars changed: how to pay them, their licence, who to call. Added after release. */
+    DetailsChanged,
+
+    /** How a person is paid changed. The figure itself is not in the log, which every member can read. */
+    PayTermsChanged,
 }
 
 enum class BreakdownCategory { Hydraulics, Engine, Tyre, Electrical, Implement, Other }

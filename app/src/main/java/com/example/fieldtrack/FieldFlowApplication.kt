@@ -88,6 +88,10 @@ class FieldFlowApplication : Application() {
     }
 
     /** What is owed for machines that belong to somebody else. */
+    val peopleRepository: com.example.fieldtrack.data.repository.PeopleRepository by lazy {
+        com.example.fieldtrack.data.repository.PeopleRepository(db = db, syncQueue = syncQueue, team = teamRepository)
+    }
+
     val hireRepository: com.example.fieldtrack.data.repository.HireRepository by lazy {
         com.example.fieldtrack.data.repository.HireRepository(db)
     }

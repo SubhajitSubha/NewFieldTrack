@@ -49,7 +49,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /** What kind of movement a line is. */
-enum class HistoryKind { Received, Billed, Corrected, PaidOut, Fuel, Repairs }
+enum class HistoryKind {
+    Received, Billed, Corrected, PaidOut, Fuel, Repairs,
+
+    /** Cash a team member handed to whoever keeps the money: moves inside the business, so in no total. */
+    HandedOver,
+}
 
 /** Which lines are shown. */
 enum class HistoryFilter { All, Received, Billed, PaidOut, Costs }
@@ -75,6 +80,10 @@ data class HistoryRow(
     val open: HistoryOpen? = null,
     /** For a payment out: what it was for (a job, a day, an advance, machine hire). */
     val covers: PayoutCovers? = null,
+    /** Who wrote it down. Every line says so: the record of the money is a record of people. */
+    val byName: String? = null,
+    /** Who took it back, when it was. */
+    val voidedByName: String? = null,
 )
 
 data class MoneyHistoryState(
@@ -94,6 +103,8 @@ data class MoneyHistoryState(
     val canPayOut: Boolean = false,
     /** What farmers still owe, all told. */
     val toCollectMinor: Long = 0,
+    /** The business's cash team members took from farmers and have not handed over. */
+    val cashWithTeamMinor: Long = 0,
     /** For choosing whose payment came in; empty for somebody who may not take one. */
     val customers: List<com.example.fieldtrack.data.db.entity.CustomerEntity> = emptyList(),
 ) {
@@ -127,6 +138,7 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
         val seesMoney = s.canSeeMoney
         val seesPeople = Capability.SeePeopleCost in s.can
         val now = System.currentTimeMillis()
+        val cash = if (seesMoney) app.peopleRepository.observeCashHeld(s.orgId) else kotlinx.coroutines.flow.flowOf(emptyMap())
         form.flatMapLatest { (filter, period, query) ->
             val from = period.days?.let { now - it * 86_400_000L } ?: 0L
             combine(
@@ -139,8 +151,9 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                     app.directoryRepository.observeMachines(s.orgId),
                     app.teamRepository.observeEveryone(s.orgId),
                     app.ledgerRepository.observeBalances(s.orgId),
-                ) { c, m, t, b -> Lists(c, m, t, b) },
-            ) { ledger, payouts, fuel, service, (customers, machines, team, balances) ->
+                    app.peopleRepository.observeHandovers(s.orgId),
+                ) { c, m, t, b, h -> Lists(c, m, t, b, h) },
+            ) { ledger, payouts, fuel, service, (customers, machines, team, balances, handovers) ->
                 if (!seesMoney && !seesPeople) return@combine MoneyHistoryState(loaded = true, filter = filter, period = period, query = query)
                 val customerName = customers.associate { it.id to it.name }
                 val machineName = machines.associate { it.id to it.name }
@@ -160,6 +173,21 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                                     detail = it.note?.takeIf { n -> n.isNotBlank() },
                                     amountMinor = kotlin.math.abs(it.amountMinor),
                                     open = HistoryOpen.Customer(it.customerId),
+                                    byName = it.byPersonId?.let { id -> personName[id] },
+                                )
+                            )
+                        }
+                        // Cash moving from the person who took it to the one who keeps it.
+                        handovers.forEach {
+                            add(
+                                HistoryRow(
+                                    id = "h-" + it.id, atMillis = it.atMillis, kind = HistoryKind.HandedOver,
+                                    who = personName[it.fromPersonId].orEmpty(),
+                                    detail = it.note,
+                                    amountMinor = it.amountMinor, voided = it.voidedAt != null,
+                                    open = HistoryOpen.Person(membershipId(s.orgId, it.fromPersonId)),
+                                    byName = it.byPersonId?.let { id -> personName[id] },
+                                    voidedByName = it.voidedByPersonId?.let { id -> personName[id] },
                                 )
                             )
                         }
@@ -173,6 +201,7 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                                     id = "f-" + it.id, atMillis = it.atMillis, kind = HistoryKind.Fuel,
                                     who = machineName[it.machineId].orEmpty(), detail = null, amountMinor = it.costMinor,
                                     open = HistoryOpen.Machine(it.machineId),
+                                    byName = it.byPersonId?.let { id -> personName[id] },
                                 )
                             )
                         }
@@ -194,6 +223,8 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                                     who = it.toPersonId?.let { id -> personName[id] } ?: it.toName.orEmpty(),
                                     detail = it.note?.takeIf { n -> n.isNotBlank() },
                                     amountMinor = it.amountMinor, voided = it.voidedAt != null, covers = it.covers,
+                                    byName = it.byPersonId?.let { id -> personName[id] },
+                                    voidedByName = it.voidedByPersonId?.let { id -> personName[id] },
                                     open = it.toPersonId?.let { id -> HistoryOpen.Person(membershipId(s.orgId, id)) },
                                 )
                             )
@@ -211,7 +242,11 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                             HistoryFilter.Costs -> it.kind == HistoryKind.Fuel || it.kind == HistoryKind.Repairs
                         }
                     }
-                    .filter { q.isEmpty() || it.who.lowercase().contains(q) || it.detail.orEmpty().lowercase().contains(q) }
+                    // A name finds what was done to them and what they did: the second is the audit.
+                    .filter {
+                        q.isEmpty() || it.who.lowercase().contains(q) || it.detail.orEmpty().lowercase().contains(q) ||
+                            it.byName.orEmpty().lowercase().contains(q) || it.voidedByName.orEmpty().lowercase().contains(q)
+                    }
                     .sortedByDescending { it.atMillis }
                 val counted = shown.filter { !it.voided }
                 MoneyHistoryState(
@@ -227,7 +262,7 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
                     outMinor = counted.filter { it.kind == HistoryKind.PaidOut || it.kind == HistoryKind.Fuel || it.kind == HistoryKind.Repairs }
                         .sumOf { it.amountMinor },
                 )
-            }
+            }.combine(cash) { st, held -> st.copy(cashWithTeamMinor = held.values.sum()) }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MoneyHistoryState())
 
@@ -236,12 +271,13 @@ class MoneyHistoryViewModel(private val app: FieldFlowApplication) : ViewModel()
     fun setQuery(text: String) = form.update { it.copy(third = text.take(40)) }
 }
 
-/** The four lists the money page reads besides the money itself. */
+/** The lists the money page reads besides the money itself. */
 private data class Lists(
     val customers: List<com.example.fieldtrack.data.db.entity.CustomerEntity>,
     val machines: List<com.example.fieldtrack.data.db.entity.MachineEntity>,
     val team: List<com.example.fieldtrack.data.db.entity.MembershipEntity>,
     val balances: List<com.example.fieldtrack.data.db.dao.CustomerBalance>,
+    val handovers: List<com.example.fieldtrack.data.db.entity.CashHandoverEntity>,
 )
 
 /** Where the money page leads, grouped so it travels as one argument. */
@@ -311,6 +347,14 @@ fun MoneyHistoryScreen(
                                 style = FieldTrackTheme.type.bodySmall,
                                 color = colors.onDarkMuted,
                                 modifier = Modifier.padding(top = 10.dp),
+                            )
+                        }
+                        if (state.cashWithTeamMinor > 0) {
+                            Text(
+                                text = stringResource(R.string.money_cash_with_team, money(state.cashWithTeamMinor)),
+                                style = FieldTrackTheme.type.bodySmall,
+                                color = colors.onDarkMuted,
+                                modifier = Modifier.padding(top = 2.dp),
                             )
                         }
                     }
@@ -468,6 +512,7 @@ private fun HistoryLine(row: HistoryRow, onOpen: (HistoryOpen) -> Unit) {
             }
             HistoryKind.Fuel -> R.string.mh_k_fuel
             HistoryKind.Repairs -> R.string.mh_k_repairs
+            HistoryKind.HandedOver -> R.string.mh_k_handover
         }
     )
     // Paid to nobody on the team and not named: the day's labourers.
@@ -480,8 +525,14 @@ private fun HistoryLine(row: HistoryRow, onOpen: (HistoryOpen) -> Unit) {
         title = who.ifBlank { label },
         subtitle = listOfNotNull(
             label.takeIf { who.isNotBlank() }, row.detail,
-            if (row.voided) stringResource(R.string.person_pay_taken_back) else null,
+            row.byName?.let { stringResource(R.string.mh_by, it) },
+            when {
+                !row.voided -> null
+                row.voidedByName != null -> stringResource(R.string.mh_taken_back_by, row.voidedByName)
+                else -> stringResource(R.string.person_pay_taken_back)
+            },
         ).joinToString(" · ").ifBlank { null },
+        subtitleMaxLines = 2,
         leading = {
             FtIconTile(
                 icon = when (row.kind) {
@@ -490,6 +541,7 @@ private fun HistoryLine(row: HistoryRow, onOpen: (HistoryOpen) -> Unit) {
                     HistoryKind.PaidOut -> FieldTrackIcons.Team
                     HistoryKind.Fuel -> FieldTrackIcons.Fuel
                     HistoryKind.Repairs -> FieldTrackIcons.Service
+                    HistoryKind.HandedOver -> FieldTrackIcons.Swap
                 },
                 size = 40.dp,
                 background = if (incoming) colors.moneyWash else colors.surfaceMuted,

@@ -69,6 +69,10 @@ data class MemberState(
     val customRoles: List<com.example.fieldtrack.data.session.CustomRole> = emptyList(),
     val canSeeTheirEarnings: Boolean = true,
     val saving: Boolean = false,
+    /** The business's cash they hold: farmers' money they took and have not handed over. */
+    val cashHeldMinor: Long = 0,
+    /** Whether whoever is looking receives cash, and so may write a hand-over down. */
+    val canReceiveCash: Boolean = false,
     /** Their latest work for this business, newest first. */
     val recentJobs: List<RecentJob> = emptyList(),
     /** What is saved: the page offers Save only once something differs from it. */
@@ -221,6 +225,35 @@ class MemberViewModel(
                     customRoles = app.teamRepository.observeCustomRoles(s.orgId).first(),
                 )
             }
+        }
+    }
+
+    private var personId: String = ""
+
+    init {
+        // Watched, not read once: a hand-over written here has to show on this page at once.
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            val member = app.teamRepository.find(s.orgId, membershipId) ?: return@launch
+            personId = member.personId
+            if (!s.canSeeMoney) return@launch
+            app.peopleRepository.observeCashHeld(s.orgId).collect { held ->
+                _state.update {
+                    it.copy(
+                        cashHeldMinor = held[member.personId] ?: 0L,
+                        canReceiveCash = Capability.TakePayment in s.can || Capability.PayOut in s.can,
+                    )
+                }
+            }
+        }
+    }
+
+    /** Writes down that this person handed over [amountMinor] of cash to whoever is using the phone. */
+    fun recordHandover(amountMinor: Long, note: String?) = viewModelScope.launch {
+        val s = app.sessionStore.load() ?: return@launch
+        if (personId.isBlank() || amountMinor <= 0) return@launch
+        runCatching {
+            app.peopleRepository.recordHandover(s.orgId, s.can, personId, amountMinor, byPersonId = s.personId, note = note)
         }
     }
 

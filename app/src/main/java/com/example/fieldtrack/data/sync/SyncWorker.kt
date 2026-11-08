@@ -103,7 +103,7 @@ class SyncWorker(
             // see what the others did; the ten-minute pause between reads is for the
             // saves that arrive all morning, and is not made to stand in their way.
             val somebodyAsked = inputData.getBoolean(KEY_PERSON_ASKED, false)
-            runCatching { app.pullSync.pull(session.orgId, force = somebodyAsked) }
+            runCatching { app.pullSync.pull(session.orgId, force = somebodyAsked, personId = session.personId) }
             // What the pull brought may have changed who this person is here: what
             // they may do, what the business is called. See refreshFromStorage.
             runCatching { app.sessionStore.refreshFromStorage() }

@@ -142,6 +142,29 @@ class FirestoreRestore(
             )
         }
 
+    override suspend fun fetchMine(orgId: String, personId: String): List<RemoteRow> =
+        withTimeout(TIMEOUT_MILLIS) {
+            val rows = mutableListOf<RemoteRow>()
+            val org = firestore.collection(ORGS).document(orgId)
+            // A person's payments are few, so all of them each time: no range, and so no
+            // second index to keep on the server.
+            runCatching {
+                org.collection(SyncQueue.TABLE_PAYOUTS).whereEqualTo("toPersonId", personId)
+                    .get(Source.SERVER).await().documents.forEach { doc ->
+                        rows += RemoteRow(SyncQueue.TABLE_PAYOUTS, doc.id, doc.data.orEmpty())
+                    }
+            }.onFailure { Log.d(TAG, "Could not read own payouts in $orgId", it) }
+            val id = membershipId(orgId, personId)
+            for (table in listOf(SyncQueue.TABLE_MEMBER_DETAILS, SyncQueue.TABLE_PAY_TERMS)) {
+                runCatching {
+                    org.collection(table).document(id).get(Source.SERVER).await()
+                        .takeIf { it.exists() }
+                        ?.let { rows += RemoteRow(table, id, it.data.orEmpty()) }
+                }.onFailure { Log.d(TAG, "Could not read own $table in $orgId", it) }
+            }
+            rows
+        }
+
     override suspend fun changedSince(orgId: String, since: Long): Boolean? = try {
         withTimeout(TIMEOUT_MILLIS) {
             val marker = firestore.collection(ORGS).document(orgId)
@@ -209,6 +232,9 @@ class FirestoreRestore(
             SyncQueue.TABLE_SERVICE,
             SyncQueue.TABLE_TEAM_EVENTS,
             SyncQueue.TABLE_PAYOUTS,
+            SyncQueue.TABLE_CASH_HANDOVERS,
+            SyncQueue.TABLE_MEMBER_DETAILS,
+            SyncQueue.TABLE_PAY_TERMS,
             SyncQueue.TABLE_JOB_COSTS,
             SyncQueue.TABLE_JOB_COST_AMOUNTS,
             SyncQueue.TABLE_FIELDS,

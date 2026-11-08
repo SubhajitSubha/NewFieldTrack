@@ -8,6 +8,9 @@ import androidx.room.Upsert
 import com.example.fieldtrack.data.db.JobCostKind
 import com.example.fieldtrack.data.db.JobStatus
 import com.example.fieldtrack.data.db.entity.BookingEntity
+import com.example.fieldtrack.data.db.entity.CashHandoverEntity
+import com.example.fieldtrack.data.db.entity.MemberDetailsEntity
+import com.example.fieldtrack.data.db.entity.MemberPayTermsEntity
 import com.example.fieldtrack.data.db.entity.BookingRequestEntity
 import com.example.fieldtrack.data.db.entity.EntitlementEntity
 import com.example.fieldtrack.data.db.entity.BreakdownEntity
@@ -78,6 +81,91 @@ END, j.minimumMinor) + j.arrivalMinor + j.fuelBilledMinor + j.waitingMinor - j.d
 
 @Dao
 interface OrgDao {
+    // ------------------------------------------------------------ cash in hand
+
+    @Upsert suspend fun upsertHandover(handover: CashHandoverEntity)
+
+    @Query("SELECT * FROM cash_handovers WHERE orgId = :orgId AND id = :id")
+    suspend fun findHandover(orgId: String, id: String): CashHandoverEntity?
+
+    @Query("SELECT * FROM cash_handovers WHERE orgId = :orgId ORDER BY atMillis DESC")
+    fun observeHandovers(orgId: String): Flow<List<CashHandoverEntity>>
+
+    /**
+     * Cash each person took from farmers and recorded themselves, less any of it put right since.
+     * A payment that was reversed is not money anybody is holding.
+     */
+    @Query(
+        """
+        SELECT l.byPersonId AS personId, SUM(l.amountMinor) AS amountMinor FROM ledger_entries l
+        WHERE l.orgId = :orgId AND l.kind = 'Payment' AND l.method = 'Cash' AND l.byPersonId IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM ledger_entries r WHERE r.orgId = l.orgId AND r.reversesEntryId = l.id)
+        GROUP BY l.byPersonId
+        """
+    )
+    fun observeCashTaken(orgId: String): Flow<List<PersonAmount>>
+
+    @Query(
+        """
+        SELECT fromPersonId AS personId, SUM(amountMinor) AS amountMinor FROM cash_handovers
+        WHERE orgId = :orgId AND voidedAt IS NULL GROUP BY fromPersonId
+        """
+    )
+    fun observeCashHandedOver(orgId: String): Flow<List<PersonAmount>>
+
+    // ------------------------------------------------------------ a person's particulars and pay
+
+    @Upsert suspend fun upsertMemberDetails(details: MemberDetailsEntity)
+
+    @Query("SELECT * FROM member_details WHERE orgId = :orgId AND personId = :personId")
+    fun observeMemberDetails(orgId: String, personId: String): Flow<MemberDetailsEntity?>
+
+    @Query("SELECT * FROM member_details WHERE orgId = :orgId")
+    fun observeAllMemberDetails(orgId: String): Flow<List<MemberDetailsEntity>>
+
+    @Upsert suspend fun upsertPayTerms(terms: MemberPayTermsEntity)
+
+    @Query("SELECT * FROM member_pay_terms WHERE orgId = :orgId AND personId = :personId")
+    fun observePayTerms(orgId: String, personId: String): Flow<MemberPayTermsEntity?>
+
+    @Query("SELECT * FROM member_pay_terms WHERE orgId = :orgId")
+    fun observeAllPayTerms(orgId: String): Flow<List<MemberPayTermsEntity>>
+
+    /**
+     * For each person with pay terms: the work they did as the operator since the terms began.
+     * [offsetMillis] is the business's time zone, so a day is the business's day.
+     */
+    @Query(
+        """
+        SELECT t.personId AS personId,
+            COALESCE((SELECT SUM(j.elapsedSeconds) FROM jobs j
+                WHERE j.operatorPersonId = t.personId AND j.orgId = t.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= t.fromMillis), 0) AS seconds,
+            COALESCE((SELECT SUM(j.quantity) FROM jobs j
+                WHERE j.operatorPersonId = t.personId AND j.orgId = t.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= t.fromMillis
+                  AND j.unit IN ('Acre','Bigha','Kanal','Guntha','Katha','Hectare','SquareMetre')), 0.0) AS landQuantity,
+            (SELECT COUNT(DISTINCT (j.workedAt + :offsetMillis) / 86400000) FROM jobs j
+                WHERE j.operatorPersonId = t.personId AND j.orgId = t.orgId AND j.status = 'Completed'
+                  AND j.deletedAt IS NULL AND j.completedAt >= t.fromMillis) AS days
+        FROM member_pay_terms t
+        WHERE t.orgId = :orgId
+        """
+    )
+    fun observeWageFacts(orgId: String, offsetMillis: Long): Flow<List<WageFacts>>
+
+    /** Wages paid to each person since their terms began: the cash, and any advance it took back. */
+    @Query(
+        """
+        SELECT p.toPersonId AS personId, SUM(p.amountMinor + p.recoversAdvanceMinor) AS amountMinor
+        FROM payouts p JOIN member_pay_terms t ON t.orgId = p.orgId AND t.personId = p.toPersonId
+        WHERE p.orgId = :orgId AND p.voidedAt IS NULL AND p.covers IN ('Job', 'Day', 'Period')
+          AND p.atMillis >= t.fromMillis
+        GROUP BY p.toPersonId
+        """
+    )
+    fun observeWagesPaid(orgId: String): Flow<List<PersonAmount>>
+
     @Upsert suspend fun upsertEntitlement(entitlement: EntitlementEntity)
 
     @Query("SELECT * FROM entitlements WHERE orgId = :orgId LIMIT 1")
@@ -1483,6 +1571,19 @@ data class MachineWithWork(
  * What a hired machine did since its hire began, as the figures a rate is applied to.
  * Only finished work counts, and only work that finished after the hire was agreed.
  */
+/** A sum of money against one person. */
+data class PersonAmount(val personId: String, val amountMinor: Long)
+
+/** What one person did as the operator since their pay terms began. */
+data class WageFacts(
+    val personId: String,
+    val seconds: Long,
+    /** Land covered, in whatever land unit each job was measured in. */
+    val landQuantity: Double,
+    /** Distinct days they did any work. */
+    val days: Int,
+)
+
 data class HireFacts(
     val machineId: String,
     val seconds: Long,
@@ -1812,6 +1913,9 @@ interface SampleDao {
     @Query("DELETE FROM machine_finance WHERE orgId = :orgId") suspend fun finance(orgId: String)
     @Query("DELETE FROM machine_papers WHERE orgId = :orgId") suspend fun papers(orgId: String)
     @Query("DELETE FROM payouts WHERE orgId = :orgId") suspend fun payouts(orgId: String)
+    @Query("DELETE FROM cash_handovers WHERE orgId = :orgId") suspend fun handovers(orgId: String)
+    @Query("DELETE FROM member_details WHERE orgId = :orgId") suspend fun memberDetails(orgId: String)
+    @Query("DELETE FROM member_pay_terms WHERE orgId = :orgId") suspend fun payTerms(orgId: String)
     @Query("DELETE FROM job_costs WHERE orgId = :orgId") suspend fun jobCosts(orgId: String)
     @Query("DELETE FROM team_events WHERE orgId = :orgId") suspend fun teamEvents(orgId: String)
     @Query("DELETE FROM breakdowns WHERE orgId = :orgId") suspend fun breakdowns(orgId: String)
@@ -1828,6 +1932,7 @@ interface SampleDao {
     /** Every row the business owns, and the business. Callers wrap it in a transaction. */
     suspend fun wipe(orgId: String) {
         memberships(orgId); invites(orgId); customers(orgId); fields(orgId); machines(orgId); fuel(orgId)
+        handovers(orgId); memberDetails(orgId); payTerms(orgId)
         services(orgId); finance(orgId); papers(orgId); payouts(orgId); jobCosts(orgId); teamEvents(orgId); breakdowns(orgId)
         rates(orgId); jobs(orgId); jobEvents(orgId); ledger(orgId); bookings(orgId); requests(orgId); entitlements(orgId); outbox(orgId); org(orgId)
     }

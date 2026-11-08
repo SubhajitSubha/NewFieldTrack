@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -114,8 +115,10 @@ class DriverHomeViewModel(private val app: FieldFlowApplication) : ViewModel() {
         ) { jobs, live, customers, machines, pending ->
             Basics(jobs, live, customers.associate { it.id to it.name }, machines, pending)
         }
+        // What they hold of the business's cash: everything taken and not yet handed over, not
+        // only today's. Tuesday's cash is still in the pocket on Thursday until somebody says so.
         val cash = if (Capability.TakePayment in s.can) {
-            app.ledgerRepository.observeCashTakenBy(s.orgId, s.personId, dayStart, Long.MAX_VALUE)
+            app.peopleRepository.observeCashHeld(s.orgId).map { held -> held[s.personId] ?: 0L }
         } else {
             flowOf(null)
         }

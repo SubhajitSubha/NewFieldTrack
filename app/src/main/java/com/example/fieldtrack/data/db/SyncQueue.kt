@@ -144,6 +144,11 @@ class SyncQueue(
         const val TABLE_SERVICE = "service_records"
         const val TABLE_TEAM_EVENTS = "team_events"
         const val TABLE_PAYOUTS = "payouts"
+        const val TABLE_CASH_HANDOVERS = "cash_handovers"
+        /** A person's particulars: read by the money and team people and the person, nobody else. */
+        const val TABLE_MEMBER_DETAILS = "member_details"
+        /** How a person is paid: read by the money people and the person, nobody else. */
+        const val TABLE_PAY_TERMS = "member_pay_terms"
         const val TABLE_JOB_COSTS = "job_costs"
         const val TABLE_JOB_COST_AMOUNTS = "job_cost_amounts"
         const val TABLE_MACHINE_FINANCE = "machine_finance"

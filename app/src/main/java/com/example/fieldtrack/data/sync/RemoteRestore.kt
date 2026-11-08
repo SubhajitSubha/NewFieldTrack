@@ -101,6 +101,16 @@ interface RemoteRestore {
     suspend fun changedSince(orgId: String, since: Long): Boolean? = null
 
     /**
+     * What belongs to this one person in a business they may not read whole: the payments made
+     * to them, their own particulars and their pay terms.
+     *
+     * A driver is refused the business's payments as a collection, rightly, and a refused
+     * collection used to mean they saw none of their own pay either. These are asked for by
+     * who they are about, which the server can check document by document.
+     */
+    suspend fun fetchMine(orgId: String, personId: String): List<RemoteRow> = emptyList()
+
+    /**
      * Whether this account has been turned off outright.
      *
      * Separate from membership, because the two answer different questions. Being

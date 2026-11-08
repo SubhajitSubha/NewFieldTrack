@@ -149,6 +149,12 @@ class RestoreApplier(
                     db.machineDao().upsertBreakdown(decode<BreakdownEntity>(json))
                 SyncQueue.TABLE_PAYOUTS ->
                     db.orgDao().upsertPayout(decode<PayoutEntity>(json))
+                SyncQueue.TABLE_CASH_HANDOVERS ->
+                    db.orgDao().upsertHandover(decode<com.example.fieldtrack.data.db.entity.CashHandoverEntity>(json))
+                SyncQueue.TABLE_MEMBER_DETAILS ->
+                    db.orgDao().upsertMemberDetails(decode<com.example.fieldtrack.data.db.entity.MemberDetailsEntity>(json))
+                SyncQueue.TABLE_PAY_TERMS ->
+                    db.orgDao().upsertPayTerms(decode<com.example.fieldtrack.data.db.entity.MemberPayTermsEntity>(json))
                 // Two documents make one row. The facts arrive without a
                 // figure, so an existing row is updated in place rather than
                 // replaced — overwriting it would blank the amount on the

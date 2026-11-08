@@ -533,6 +533,8 @@ data class PayoutEntity(
      * total, in what is owed, or against an advance.
      */
     val voidedAt: Long? = null,
+    /** Who took it back: the record says what was done about a payment and by whom. */
+    val voidedByPersonId: String? = null,
 )
 
 /**

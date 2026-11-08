@@ -2595,4 +2595,20 @@
     <string name="money_hub_reports">Reports</string>
     <string name="money_hub_prices">Your prices</string>
     <string name="money_hub_rates_note">What you charge for each kind of work</string>
+
+    <!-- Q-series: trust and money that moves by itself -->
+    <string name="changes_details">%1$s changed %2$s\'s payment details, licence or emergency contact</string>
+    <string name="changes_pay_terms">%1$s changed how %2$s is paid</string>
+    <string name="mh_by">by %1$s</string>
+    <string name="mh_taken_back_by">taken back by %1$s</string>
+    <string name="mh_k_handover">Cash handed over</string>
+    <string name="team_cash_held">Holds %1$s cash</string>
+    <string name="member_cash_held">Holding %1$s of the business\'s cash</string>
+    <string name="member_cash_held_note">Cash they took from farmers and have not handed over yet</string>
+    <string name="member_cash_handed">They handed it over</string>
+    <string name="member_cash_sheet_title">Cash %1$s handed over</string>
+    <string name="member_cash_note">A note, if you like</string>
+    <string name="member_cash_save">Received %1$s</string>
+    <string name="money_cash_with_team">Cash with the team: %1$s</string>
+    <string name="home_cash_held_note">The business\'s cash you took and have not handed over yet</string>
 </resources>

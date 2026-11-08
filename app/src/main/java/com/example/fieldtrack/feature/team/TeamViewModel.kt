@@ -38,6 +38,8 @@ data class TeamMemberRow(
     val advanceMinor: Long = 0,
     /** What the business still owes them for a machine of theirs. Zero for whoever may not see pay. */
     val hireLeftMinor: Long = 0,
+    /** The business's cash they are holding. Zero for whoever may not see farmers' money. */
+    val cashHeldMinor: Long = 0,
 ) {
     val working: Boolean get() = workingOn != null
 }
@@ -120,8 +122,9 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 dismissedDuplicates,
                 app.teamRepository.observeCustomRoles(s.orgId),
                 app.hireRepository.observe(s.orgId),
-            ) { d, r, h -> Triple(d, r, h) },
-        ) { members, liveJobs, machines, openCodes, (dismissed, roles, hire) ->
+                app.peopleRepository.observeCashHeld(s.orgId),
+            ) { d, r, h, c -> TeamExtras(d, r, h, c) },
+        ) { members, liveJobs, machines, openCodes, (dismissed, roles, hire, cash) ->
             val machineNames = machines.associate { it.id to it.name }
             // What is owed either way is for whoever may see what people are paid, and nobody else.
             val seesPay = Capability.SeePeopleCost in s.can
@@ -151,6 +154,7 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         advanceMinor = if (seesPay && member.active) {
                             app.ledgerRepository.observeAdvanceOutstanding(s.orgId, member.personId).first()
                         } else 0,
+                        cashHeldMinor = if (s.canSeeMoney) cash[member.personId] ?: 0L else 0L,
                         hireLeftMinor = if (seesPay) {
                             hire.firstOrNull { it.personId == member.personId }?.balanceMinor?.coerceAtLeast(0) ?: 0
                         } else 0,
@@ -225,6 +229,13 @@ internal fun duplicateAmong(
     }
     return null
 }
+
+private data class TeamExtras(
+    val dismissed: Set<String>,
+    val roles: List<com.example.fieldtrack.data.session.CustomRole>,
+    val hire: List<com.example.fieldtrack.data.repository.HireBalance>,
+    val cash: Map<String, Long>,
+)
 
 /** Order-independent, so answering once answers it whichever way round it is seen. */
 fun duplicateKey(a: String, b: String): String = listOf(a, b).sorted().joinToString("|")

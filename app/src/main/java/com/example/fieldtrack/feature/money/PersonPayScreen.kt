@@ -111,7 +111,7 @@ class PersonPayViewModel(
 
     fun takeBack(payoutId: String) = viewModelScope.launch {
         val s = app.sessionStore.load() ?: return@launch
-        runCatching { app.ledgerRepository.voidPayout(s.orgId, s.can, payoutId) }
+        runCatching { app.ledgerRepository.voidPayout(s.orgId, s.can, payoutId, byPersonId = s.personId) }
     }
 }
 

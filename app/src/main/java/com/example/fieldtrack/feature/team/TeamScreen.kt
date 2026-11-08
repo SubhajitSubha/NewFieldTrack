@@ -396,6 +396,7 @@ private fun MemberCard(member: TeamMemberRow, state: TeamState, onOpen: (String)
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 val owed = listOfNotNull(
+                    stringResource(R.string.team_cash_held, money(member.cashHeldMinor)).takeIf { member.cashHeldMinor > 0 },
                     stringResource(R.string.team_advance_left, money(member.advanceMinor)).takeIf { member.advanceMinor > 0 },
                     stringResource(R.string.team_hire_left, money(member.hireLeftMinor)).takeIf { member.hireLeftMinor > 0 },
                 )
