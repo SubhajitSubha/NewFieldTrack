@@ -6,6 +6,11 @@ bottom of ROADMAP.md.
 
 1. **Rules.** `firestore.rules` has changed (viewer role, account deletion requests, the
    version document, per-phone notification rows). Publish the **whole file**.
+   **Changed again with the trust-and-money round (Q):** a person may read payments made to them;
+   new blocks for `cash_handovers`, `member_details` and `member_pay_terms`; the blanket grant leaves
+   all three out. Until it is published, those three are covered by the blanket grant (every member
+   may read them), so publish it before anybody real enters a bank account or a wage. No index is
+   needed: a person's own payments are asked for by `toPersonId` alone.
 2. **Version document.** Create `appConfig/android` with two numbers:
    `minVersionCode` (the oldest app version still allowed to share data) and
    `latestVersionCode` (the newest one in the store). Leave both at 0 until a first

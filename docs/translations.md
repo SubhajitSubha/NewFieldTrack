@@ -55,6 +55,13 @@ two lines that say what a role may not see (`mh_hidden_*`). Spanish, Portuguese 
 team member as "she/elle/ela" in `team_add_*` where the word is "persona/pessoa/personne"; check it reads
 naturally.
 
+## Added with the trust-and-money round (`strings_12.xml`, Indonesian `strings_13.xml`)
+59 more entries for cash in hand, a person's particulars and pay terms, My pay, and UPI, drafted the
+same way and unread. Read first: **cash handed over** (`member_cash_*`, `mh_k_handover`: a driver giving
+the business's cash to the owner, not a payment to anybody), the **pay basis** words (`pay_basis_*`,
+`wages_per_*`), **take back / taken back by** (`mh_taken_back_by`), and the UPI lines (`upi_*`,
+`payout_upi_*`), which are only ever shown in India, so the Hindi and Bengali matter most there.
+
 ## Things the translations cannot yet do
 - The amount in words at the foot of a bill is English-only (and only for rupees). A bill in
   another language leaves that line off rather than print English number-words.

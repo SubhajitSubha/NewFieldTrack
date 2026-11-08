@@ -451,7 +451,7 @@ abstract class ScreenMatrix(
         listOf(
             "home" to Routes.HOME, "my-work" to Routes.JOBS, "machines" to Routes.MACHINES,
             "more" to Routes.MORE, "price" to Routes.PRICE, "profile" to Routes.PROFILE,
-            "seasons-edit" to Routes.SEASONS_EDIT, "notices" to Routes.NOTICES, "history" to Routes.MONEY_HISTORY,
+            "seasons-edit" to Routes.SEASONS_EDIT, "notices" to Routes.NOTICES, "history" to Routes.MONEY_HISTORY, "my-pay" to Routes.MY_PAY,
             "plan" to Routes.PLAN, "plan-settings" to Routes.PLAN_SETTINGS, "money-settings" to Routes.MONEY_SETTINGS, "settings" to Routes.SETTINGS, "money" to Routes.MONEY, "booking-new" to Routes.booking(),
             "booking" to Routes.booking(ids.bookingId), "start-booking" to Routes.startBooking(ids.missedBookingId),
             "job" to "jobs/${ids.doneJobId}", "live" to Routes.live(ids.crewJobId),
@@ -898,6 +898,8 @@ abstract class ScreenMatrix(
         "money-reports" to Routes.MONEY_REPORTS,
         "team" to Routes.TEAM,
         "member" to "more/team/${ids.driverMembershipId}",
+        "member-money" to "more/team/${ids.driverMembershipId}?tab=Money",
+        "member-details" to "more/team/${ids.driverMembershipId}?tab=Access",
         "invite" to Routes.INVITE,
         "sent-codes" to Routes.SENT_CODES,
         "hand-over" to Routes.HAND_OVER,

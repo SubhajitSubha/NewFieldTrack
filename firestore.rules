@@ -532,8 +532,54 @@ service cloud.firestore {
       // Never deleted from a handset. A payment recorded wrongly is corrected
       // the way the customer ledger corrects one — by a further entry that
       // says so — not by making the first one disappear.
+      //
+      // The person a payment was made to may read it too: trust runs both ways, and a
+      // driver who cannot see what he was paid has only the owner's word for it. Each
+      // such read is checked against the document itself, which is why the app asks for
+      // them by `toPersonId` rather than for the collection.
       match /payouts/{payoutId} {
-        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost');
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && resource.data.toPersonId == request.auth.uid);
+        allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // Cash a team member handed over to whoever keeps the business's money.
+      //
+      // Read by the whole team: what a driver is holding is his business as much as the
+      // owner's, and he must be able to see a hand-over written down for him. Written only
+      // by somebody who receives money (an owner, or one who closes bills or pays people),
+      // and always in their own name, so a hand-over is never recorded by the person it
+      // clears. Taken back, not deleted.
+      match /cash_handovers/{handoverId} {
+        allow read: if isMember(orgId);
+        allow create: if (isOwner(orgId) || may(orgId, 'canCloseBills') || may(orgId, 'canPayOut'))
+                      && request.resource.data.byPersonId == request.auth.uid;
+        allow update: if isOwner(orgId) || may(orgId, 'canCloseBills') || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // One person's particulars: where their pay goes, their licence, who to call.
+      //
+      // The id is the membership's, so a person can be told apart by the path alone. They
+      // read and write their own; whoever runs the team or pays people may read them, and
+      // whoever runs the team may change them, always in their own name so the person can
+      // be told who changed where their pay goes.
+      match /member_details/{memberId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canEditTeam') || may(orgId, 'canPayOut')
+                    || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && memberId == orgId + '_' + request.auth.uid);
+        allow create, update: if (isOwner(orgId) || may(orgId, 'canEditTeam')
+                                   || (signedIn() && memberId == orgId + '_' + request.auth.uid))
+                              && request.resource.data.updatedByPersonId == request.auth.uid;
+        allow delete: if false;
+      }
+
+      // How one person is paid. The same secret as a payment: read by the money people
+      // and the person, set only by somebody who pays people.
+      match /member_pay_terms/{memberId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && memberId == orgId + '_' + request.auth.uid);
         allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
         allow delete: if false;
       }
@@ -615,6 +661,9 @@ service cloud.firestore {
         allow read: if isMember(orgId)
                     && collection != 'memberships'
                     && collection != 'payouts'
+                    && collection != 'cash_handovers'
+                    && collection != 'member_details'
+                    && collection != 'member_pay_terms'
                     && collection != 'job_costs'
                     && collection != 'job_cost_amounts'
                     && collection != 'machine_finance'
@@ -627,6 +676,9 @@ service cloud.firestore {
                      && !isViewer(orgId)
                      && collection != 'memberships'
                      && collection != 'payouts'
+                     && collection != 'cash_handovers'
+                     && collection != 'member_details'
+                     && collection != 'member_pay_terms'
                      && collection != 'job_costs'
                      && collection != 'job_cost_amounts'
                      && collection != 'machine_finance'
