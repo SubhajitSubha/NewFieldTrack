@@ -24,6 +24,8 @@ data class OnboardingState(
     val name: String = "",
     val businessName: String = "",
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The name of the business's own land unit, when it chose one. */
+    val ownLandUnit: String = "",
     /** The currency the business keeps its books in; guessed from the phone, confirmed on the Region step. */
     val currencyCode: String = "INR",
     /** The country the phone guessed, which puts that country's currency first in the picker. */
@@ -74,6 +76,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setBusinessName(v: String) = _state.update { it.copy(businessName = v) }
     fun setLandUnit(unit: MeasureUnit) = _state.update { it.copy(landUnit = unit) }
+    fun setOwnLandUnit(v: String) = _state.update { it.copy(ownLandUnit = v) }
     fun setCurrency(code: String) = _state.update { it.copy(currencyCode = code) }
     fun setMachineKind(kind: MachineKind) = _state.update { it.copy(machineKind = kind) }
     fun setMachineName(v: String) = _state.update { it.copy(machineName = v) }
@@ -106,6 +109,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
             currencyCode = current.currencyCode,
             moneyStepMinor = MoneyStyle.defaultStepMinor(current.currencyCode),
             fiscalStartMonth = current.fiscalStartMonth,
+            ownLandUnit = current.ownLandUnit.takeIf { current.landUnit == MeasureUnit.OwnLand },
         )
 
         if (current.machineName.isNotBlank()) {

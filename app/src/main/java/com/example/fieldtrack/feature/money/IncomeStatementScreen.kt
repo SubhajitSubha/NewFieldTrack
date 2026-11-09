@@ -140,7 +140,7 @@ class IncomeStatementViewModel(private val app: FieldFlowApplication) : ViewMode
         }
         val facts = buildList {
             add(context.getString(R.string.income_f_jobs) to jobs.size.toString())
-            if (area > 0) add(context.getString(R.string.income_f_land) to "${com.example.fieldtrack.designsystem.format.quantity(area)} ${context.getString(unit.labelRes)}")
+            if (area > 0) add(context.getString(R.string.income_f_land) to "${com.example.fieldtrack.designsystem.format.quantity(area)} ${com.example.fieldtrack.feature.unitName(context, unit)}")
             add(context.getString(R.string.income_f_customers) to jobs.map { it.customerId }.distinct().size.toString())
             add(context.getString(R.string.income_f_received) to money(received))
             add(context.getString(R.string.income_f_owed) to money(owed))

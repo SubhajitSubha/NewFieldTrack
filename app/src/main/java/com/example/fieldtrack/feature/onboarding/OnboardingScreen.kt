@@ -70,6 +70,7 @@ fun OnboardingScreen(
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
     onMachineTypeLabel: (String) -> Unit = {},
+    onOwnLandUnit: (String) -> Unit = {},
 ) {
     if (state.step == OnboardingStep.Welcome) {
         WelcomeStep(onNext, modifier)
@@ -109,7 +110,7 @@ fun OnboardingScreen(
                 OnboardingStep.Role -> RoleStep(state, onOwnerKind)
                 OnboardingStep.You -> YouStep(state, onName)
                 OnboardingStep.Business -> BusinessStep(state, onBusinessName)
-                OnboardingStep.Region -> RegionStep(state, onCurrency, onLandUnit)
+                OnboardingStep.Region -> RegionStep(state, onCurrency, onLandUnit, onOwnLandUnit)
                 OnboardingStep.Machine -> MachineStep(state, onMachineKind, onMachineName, onMachineTypeLabel)
                 else -> DoneStep(state)
             }
@@ -319,6 +320,7 @@ private fun ColumnScope.RegionStep(
     state: OnboardingState,
     onCurrency: (String) -> Unit,
     onLandUnit: (MeasureUnit) -> Unit,
+    onOwnLandUnit: (String) -> Unit,
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     Text(
@@ -335,7 +337,7 @@ private fun ColumnScope.RegionStep(
             onClick = { picking = true },
         )
     }
-    LandUnitPicker(state, onLandUnit)
+    LandUnitPicker(state, onLandUnit, onOwnLandUnit)
     if (picking) {
         CurrencyPickerSheet(
             current = state.currencyCode,
@@ -346,24 +348,21 @@ private fun ColumnScope.RegionStep(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ColumnScope.LandUnitPicker(state: OnboardingState, onLandUnit: (MeasureUnit) -> Unit) {
+private fun ColumnScope.LandUnitPicker(
+    state: OnboardingState,
+    onLandUnit: (MeasureUnit) -> Unit,
+    onOwnLandUnit: (String) -> Unit,
+) {
     FtSectionLabel(stringResource(R.string.onboard_land_unit))
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        listOf(
-            MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha
-        ).forEach { unit ->
-            FtChip(
-                label = stringResource(unit.labelRes),
-                selected = state.landUnit == unit,
-                onClick = { onLandUnit(unit) },
-            )
-        }
-    }
+    com.example.fieldtrack.feature.region.LandUnitChoice(
+        selected = state.landUnit,
+        ownName = state.ownLandUnit,
+        onUnit = onLandUnit,
+        onOwnName = onOwnLandUnit,
+        chips = true,
+        label = stringResource(R.string.onboard_land_unit),
+    )
 }
 
 @Composable

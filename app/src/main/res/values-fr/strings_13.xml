@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">Vignette</string>
     <string name="method_other">Autre</string>
     <string name="method_other_name">Comment a-t-il été payé ?</string>
+    <string name="unit_decimal">Décimal</string>
+    <string name="unit_cent">Cent</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Are</string>
+    <string name="unit_dunam">Dounam</string>
+    <string name="unit_feddan">Feddan</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Unité locale</string>
+    <string name="land_more">Autre unité</string>
+    <string name="land_own_name">Comment l\'appelez-vous ?</string>
+    <string name="land_own_note">La première fois que vous mesurez un champ avec, l\'appli demande combien il en faut pour un acre.</string>
 </resources>

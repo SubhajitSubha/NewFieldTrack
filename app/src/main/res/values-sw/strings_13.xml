@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">Kodi ya barabara</string>
     <string name="method_other">Nyingine</string>
     <string name="method_other_name">Ililipwa vipi?</string>
+    <string name="unit_decimal">Desimali</string>
+    <string name="unit_cent">Senti</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Ari</string>
+    <string name="unit_dunam">Dunam</string>
+    <string name="unit_feddan">Fedani</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Kipimo cha hapa</string>
+    <string name="land_more">Kipimo kingine</string>
+    <string name="land_own_name">Mnakiitaje?</string>
+    <string name="land_own_note">Mara ya kwanza ukipima shamba kwacho, programu itauliza ngapi zinafanya ekari moja.</string>
 </resources>

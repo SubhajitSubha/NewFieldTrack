@@ -207,7 +207,7 @@ fun JobDetailScreen(
 @Composable
 private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
     val colors = FieldTrackTheme.colors
-    val unitLabel = stringResource(state.unit.labelRes)
+    val unitLabel = com.example.fieldtrack.feature.unitName(state.unit)
 
     FtCard(
         background = colors.deepGreen,
@@ -380,7 +380,7 @@ private fun JobEventRow.dotColour(): Color = when (type) {
 /** What happened, in the words a farmer would use for it. */
 @Composable
 private fun JobEventRow.title(state: JobDetailState): String {
-    val unitLabel = stringResource(state.unit.labelRes)
+    val unitLabel = com.example.fieldtrack.feature.unitName(state.unit)
     return when (type) {
         JobEventType.Started -> stringResource(R.string.event_started)
         JobEventType.Paused -> stringResource(R.string.event_paused)

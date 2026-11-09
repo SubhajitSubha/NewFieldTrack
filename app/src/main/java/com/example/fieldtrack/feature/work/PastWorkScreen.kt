@@ -80,7 +80,7 @@ fun PastWorkScreen(
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
-    val unitLabel = stringResource(state.unit.labelRes)
+    val unitLabel = com.example.fieldtrack.feature.unitName(state.unit)
     val today = remember0()
     val yesterday = today - DAY
 
@@ -230,7 +230,7 @@ fun PastWorkScreen(
                     FtPick(
                         options = units,
                         selected = units.firstOrNull { it == state.unit },
-                        text = { stringResource(it.labelRes) },
+                        text = { com.example.fieldtrack.feature.unitName(it) },
                         onPick = onUnit,
                         searchHint = stringResource(R.string.pick_search),
                     )

@@ -2676,4 +2676,19 @@
     <string name="paper_other_name_hint">Road tax</string>
     <string name="method_other">Other</string>
     <string name="method_other_name">How was it paid?</string>
+    <string name="unit_decimal">Decimal</string>
+    <string name="unit_cent">Cent</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Are</string>
+    <string name="unit_dunam">Dunam</string>
+    <string name="unit_feddan">Feddan</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Local unit</string>
+    <string name="land_more">Another unit</string>
+    <string name="land_own_name">What do you call it?</string>
+    <string name="land_own_note">The first time you measure a field in it, the app asks how many make an acre.</string>
 </resources>

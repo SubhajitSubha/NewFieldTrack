@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">ضريبة الطرق</string>
     <string name="method_other">أخرى</string>
     <string name="method_other_name">كيف دُفع؟</string>
+    <string name="unit_decimal">ديسمل</string>
+    <string name="unit_cent">سنت</string>
+    <string name="unit_marla">مارلا</string>
+    <string name="unit_are">آر</string>
+    <string name="unit_dunam">دونم</string>
+    <string name="unit_feddan">فدان</string>
+    <string name="unit_rai">راي</string>
+    <string name="unit_mu">مو</string>
+    <string name="unit_manzana">مانزانا</string>
+    <string name="unit_tarea">تاريا</string>
+    <string name="unit_alqueire">ألكيري</string>
+    <string name="unit_own">وحدة محلية</string>
+    <string name="land_more">وحدة أخرى</string>
+    <string name="land_own_name">ماذا تسمّونها؟</string>
+    <string name="land_own_note">في أول مرة تقيس بها حقلًا يسأل التطبيق كم منها في الإيكر.</string>
 </resources>

@@ -49,8 +49,18 @@ object Region {
      * What land is usually measured in where the guess lands. Settable: it is a habit,
      * not a law, and a bigha or a kanal is something only a person can say.
      */
-    fun landUnitOf(country: String?): MeasureUnit =
-        if (country == null || country in ACRE_COUNTRIES) MeasureUnit.Acre else MeasureUnit.Hectare
+    fun landUnitOf(country: String?): MeasureUnit = when {
+        country == null || country in ACRE_COUNTRIES -> MeasureUnit.Acre
+        // Where the everyday unit is not the hectare, and has one size the whole country over.
+        country in FEDDAN_COUNTRIES -> MeasureUnit.Feddan
+        country in DUNAM_COUNTRIES -> MeasureUnit.Dunam
+        country == "TH" -> MeasureUnit.Rai
+        country == "CN" -> MeasureUnit.Mu
+        else -> MeasureUnit.Hectare
+    }
+
+    private val FEDDAN_COUNTRIES = setOf("EG", "SD")
+    private val DUNAM_COUNTRIES = setOf("JO", "PS", "IL", "LB", "SY", "IQ", "TR", "CY")
 
     fun guess(simCountry: String?, networkCountry: String?, locale: Locale = Locale.getDefault()): Guess {
         val country = countryOf(simCountry, networkCountry, locale)

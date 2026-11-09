@@ -87,7 +87,7 @@ fun LiveWorkScreen(
     }
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
-    val unitLabel = stringResource(state.unit.labelRes)
+    val unitLabel = com.example.fieldtrack.feature.unitName(state.unit)
 
     val header: @Composable () -> Unit = {
         Row(
@@ -412,7 +412,7 @@ private fun MoneyLine(state: LiveWorkState) {
                 stringResource(
                     R.string.statement_rate_note,
                     money(state.rateMinor),
-                    stringResource(state.unit.labelRes),
+                    com.example.fieldtrack.feature.unitName(state.unit),
                 )
             } else if (state.billingMode == BillingMode.PerTrip) {
                 // Trips are priced one at a time, so "3 × ₹400" would be a lie the

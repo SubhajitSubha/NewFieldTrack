@@ -146,7 +146,7 @@ private fun ActionMenu(state: LiveWorkState, onOpen: (WorkSheet) -> Unit) {
             title = stringResource(R.string.work_rate_title),
             subtitle = stringResource(
                 R.string.work_rate_caption,
-                "${money(state.rateMinor)} ${stringResource(R.string.start_rate_per, stringResource(state.unit.labelRes))}",
+                "${money(state.rateMinor)} ${stringResource(R.string.start_rate_per, com.example.fieldtrack.feature.unitName(state.unit))}",
             ),
             onClick = { onOpen(WorkSheet.Rate) },
         )
@@ -342,7 +342,7 @@ private fun AmountPanel(state: LiveWorkState, onSave: (Double) -> Unit) {
     var text by rememberSaveable { mutableStateOf("") }
 
     FtTextField(
-        label = stringResource(state.unit.labelRes),
+        label = com.example.fieldtrack.feature.unitName(state.unit),
         value = text,
         onValueChange = { v -> text = v.filter { it.isDigit() || it == '.' } },
         keyboardType = KeyboardType.Decimal,
@@ -385,7 +385,7 @@ private fun RatePanel(state: LiveWorkState, onSave: (Long) -> Unit) {
         value = rate,
         onValueChange = { v -> rate = MoneyInput.clean(v) },
         prefix = Money.style.symbol,
-        suffix = stringResource(R.string.start_rate_per, stringResource(state.unit.labelRes)),
+        suffix = stringResource(R.string.start_rate_per, com.example.fieldtrack.feature.unitName(state.unit)),
         keyboardType = if (Money.style.showsDecimals) KeyboardType.Decimal else KeyboardType.Number,
         focused = true,
     )

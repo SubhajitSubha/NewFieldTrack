@@ -72,6 +72,8 @@ data class OrgEntity(
     val upiId: String? = null,
     /** What this business measures land in by default. Overridable per job. */
     val defaultLandUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The name of the business's own land unit, the one written [MeasureUnit.OwnLand]. */
+    val ownLandUnit: String? = null,
     /**
      * The currency this business keeps its books in, an ISO 4217 code. Every amount in
      * every table is a whole number of that currency's minor unit.

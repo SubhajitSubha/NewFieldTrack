@@ -48,6 +48,8 @@ data class NewBusinessState(
     val currencyCode: String = "INR",
     val guessedCurrency: String? = null,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The name of the business's own land unit, when it chose one. */
+    val ownLandUnit: String = "",
     val fiscalStartMonth: Int = 4,
     val saving: Boolean = false,
 ) {
@@ -77,6 +79,7 @@ class NewBusinessViewModel(private val app: FieldFlowApplication) : ViewModel() 
     fun setName(v: String) = _state.update { it.copy(name = v) }
     fun setCurrency(code: String) = _state.update { it.copy(currencyCode = code) }
     fun setLandUnit(unit: MeasureUnit) = _state.update { it.copy(landUnit = unit) }
+    fun setOwnLandUnit(v: String) = _state.update { it.copy(ownLandUnit = v) }
 
     fun create(onDone: () -> Unit) = viewModelScope.launch {
         val s = _state.value
@@ -88,6 +91,7 @@ class NewBusinessViewModel(private val app: FieldFlowApplication) : ViewModel() 
             currencyCode = s.currencyCode,
             moneyStepMinor = MoneyStyle.defaultStepMinor(s.currencyCode),
             fiscalStartMonth = s.fiscalStartMonth,
+            ownLandUnit = s.ownLandUnit.takeIf { s.landUnit == MeasureUnit.OwnLand },
         )
         _state.update { it.copy(saving = false) }
         onDone()
@@ -104,6 +108,7 @@ fun NewBusinessScreen(
     onLandUnit: (MeasureUnit) -> Unit,
     onCreate: () -> Unit,
     modifier: Modifier = Modifier,
+    onOwnLandUnit: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -143,20 +148,14 @@ fun NewBusinessScreen(
                 )
             }
             FtSectionLabel(stringResource(R.string.onboard_land_unit))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf(
-                    MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha,
-                ).forEach { unit ->
-                    FtChip(
-                        label = stringResource(unit.labelRes),
-                        selected = state.landUnit == unit,
-                        onClick = { onLandUnit(unit) },
-                    )
-                }
-            }
+            com.example.fieldtrack.feature.region.LandUnitChoice(
+                selected = state.landUnit,
+                ownName = state.ownLandUnit,
+                onUnit = onLandUnit,
+                onOwnName = onOwnLandUnit,
+                chips = true,
+                label = stringResource(R.string.onboard_land_unit),
+            )
             Box(Modifier.padding(bottom = dimens.space4))
         }
         Box(Modifier.padding(dimens.screenPadding)) {

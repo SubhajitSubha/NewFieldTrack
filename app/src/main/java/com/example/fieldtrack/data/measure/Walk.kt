@@ -106,6 +106,16 @@ object Land {
         MeasureUnit.Guntha -> 40.0
         MeasureUnit.Hectare -> ACRE_SQUARE_METRES / 10_000.0
         MeasureUnit.SquareMetre -> ACRE_SQUARE_METRES
+        // A hundredth of an acre, called a decimal in Bengal and a cent in the south.
+        MeasureUnit.Decimal, MeasureUnit.Cent -> 100.0
+        // Twenty to the kanal.
+        MeasureUnit.Marla -> 160.0
+        MeasureUnit.Are -> ACRE_SQUARE_METRES / 100.0
+        MeasureUnit.Dunam -> ACRE_SQUARE_METRES / 1_000.0
+        MeasureUnit.Feddan -> ACRE_SQUARE_METRES / 4_200.0
+        MeasureUnit.Rai -> ACRE_SQUARE_METRES / 1_600.0
+        MeasureUnit.Mu -> ACRE_SQUARE_METRES / (10_000.0 / 15.0)
+        // Manzana, tarea, alqueire, bigha and the business's own unit differ by place: asked.
         else -> null
     }
 

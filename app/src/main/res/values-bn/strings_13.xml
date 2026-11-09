@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">রোড ট্যাক্স</string>
     <string name="method_other">অন্য</string>
     <string name="method_other_name">কীভাবে দিলেন?</string>
+    <string name="unit_decimal">শতক</string>
+    <string name="unit_cent">সেন্ট</string>
+    <string name="unit_marla">মারলা</string>
+    <string name="unit_are">আর</string>
+    <string name="unit_dunam">দুনাম</string>
+    <string name="unit_feddan">ফেদ্দান</string>
+    <string name="unit_rai">রাই</string>
+    <string name="unit_mu">মু</string>
+    <string name="unit_manzana">মানসানা</string>
+    <string name="unit_tarea">তারেয়া</string>
+    <string name="unit_alqueire">আলকেইরে</string>
+    <string name="unit_own">স্থানীয় একক</string>
+    <string name="land_more">অন্য একক</string>
+    <string name="land_own_name">একে কী বলেন?</string>
+    <string name="land_own_note">প্রথমবার এতে জমি মাপলে অ্যাপ জিজ্ঞেস করবে এক একরে কত হয়।</string>
 </resources>

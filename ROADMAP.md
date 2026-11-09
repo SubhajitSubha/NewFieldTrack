@@ -275,7 +275,7 @@ Suggestions kept for later (not built unless asked):
   WhatsApp. (A team member's own pay and a wage rate per person were built in Q3 and Q4; the own-pay query asks only for
   `toPersonId`, so it needs no extra index.)
 
-## R. Work that follows the machine, and every "Other" nameable (2026-11-09)
+## R. Work that follows the machine, and every "Other" nameable (2026-11-09) - done
 Why: the owner saw Start work and Add past work list all fourteen kinds of work whatever the machine, the implement asked
 last and folded under "terms", and "Other" printed as "Other" on the bill. Real use: a tractor's work is whatever is on the
 back; a rotavator can go out alone behind a farmer's own tractor; one machine is charged several ways; two combines are two
@@ -303,9 +303,15 @@ default, and the person may name it whatever they like; same everywhere an "Othe
   just tapped jumped away), so only one the person picks does; the implement now shows as out working while its tractor
   is, and the job reads "tractor + rotavator"; a fixed-price bill no longer says "0 Piece"; the pay-out form now asks how
   it was paid (it always saved cash); "Other" is always offered as a way of paying, last, like cash is first.
-- [ ] **R7. Land units:** every land unit offered when the business is set up and in Settings (Katha, square metre were
+- [x] **R7. Land units:** every land unit offered when the business is set up and in Settings (Katha, square metre were
   missing), the common units of other countries added, and a business's own unit with a name and its size.
-- [ ] **R8. Close-out:** translations, screen matrix, full suite, emulator check of each screen touched in light and dark.
+  Built: decimal, cent, marla, are, dunam, feddan, rai, mu (fixed sizes), and manzana, tarea, alqueire (asked, as a
+  bigha is); "Local unit" named by the business and called that on every screen, bill and export; a country's everyday
+  unit as the first guess (feddan in Egypt, dunam in the Levant, rai in Thailand, mu in China). Room v32. The Arabic
+  acre had been written as the feddan, a different unit; corrected.
+- [x] **R8. Close-out:** translations (drafts, in docs/translations.md), screen matrix (the work step with a tractor
+  and its implement, in every size, light, dark and Arabic), full suite, emulator check (start work with tractor,
+  rotavator and "Other" named; past work with the rotavator alone; bill; Settings own land unit).
 
 ---
 

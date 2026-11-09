@@ -73,7 +73,7 @@ fun rememberSimpleFactory(create: () -> ViewModel): ViewModelProvider.Factory =
 fun areaWithUnit(value: Double, unit: MeasureUnit): String = androidx.compose.ui.res.stringResource(
     R.string.area_with_unit,
     com.example.fieldtrack.designsystem.format.quantity(value),
-    androidx.compose.ui.res.stringResource(unit.labelRes),
+    unitName(unit),
 )
 
 /** Whether a moment falls inside the day the reader is having. */
@@ -183,7 +183,7 @@ fun workLabel(context: android.content.Context, workType: String): String =
 @Composable
 fun measure(amount: Double, unit: MeasureUnit): String =
     if (unit == MeasureUnit.Hour) spokenDuration(Math.round(amount * 3600))
-    else stringResource(R.string.measure_value, quantity(amount), stringResource(unit.labelRes))
+    else stringResource(R.string.measure_value, quantity(amount), unitName(unit))
 
 /** "10" — the day, for a list read down its dates. */
 @Composable
@@ -383,7 +383,33 @@ val MeasureUnit.labelRes: Int
         MeasureUnit.Kilogram -> R.string.unit_kg
         MeasureUnit.Litre -> R.string.unit_litre
         MeasureUnit.Day -> R.string.unit_day
+        MeasureUnit.Decimal -> R.string.unit_decimal
+        MeasureUnit.Cent -> R.string.unit_cent
+        MeasureUnit.Marla -> R.string.unit_marla
+        MeasureUnit.Are -> R.string.unit_are
+        MeasureUnit.Dunam -> R.string.unit_dunam
+        MeasureUnit.Feddan -> R.string.unit_feddan
+        MeasureUnit.Rai -> R.string.unit_rai
+        MeasureUnit.Mu -> R.string.unit_mu
+        MeasureUnit.Manzana -> R.string.unit_manzana
+        MeasureUnit.Tarea -> R.string.unit_tarea
+        MeasureUnit.Alqueire -> R.string.unit_alqueire
+        MeasureUnit.OwnLand -> R.string.unit_own
     }
+
+/**
+ * A unit's name as read: ours in the reader's language, or the name the business gave its own land unit.
+ * Every screen names a unit through this, so an own unit reads the same everywhere.
+ */
+@Composable
+fun unitName(unit: MeasureUnit): String =
+    com.example.fieldtrack.data.region.OwnLandUnit.name?.takeIf { unit == MeasureUnit.OwnLand }
+        ?: stringResource(unit.labelRes)
+
+/** The same, outside a composable. */
+fun unitName(context: android.content.Context, unit: MeasureUnit): String =
+    com.example.fieldtrack.data.region.OwnLandUnit.name?.takeIf { unit == MeasureUnit.OwnLand }
+        ?: context.getString(unit.labelRes)
 
 /** How a payment is named on screen. One place, so a new way of paying cannot read as "Cash" somewhere. */
 val PaymentMethod?.labelRes: Int
@@ -460,7 +486,7 @@ fun billingLabel(mode: BillingMode, landUnit: MeasureUnit): String =
  */
 @Composable
 fun unitInPhrase(unit: MeasureUnit): String =
-    stringResource(unit.labelRes).lowercase(Locale.getDefault())
+    unitName(unit).lowercase(Locale.getDefault())
 
 val BillingMode.captionRes: Int
     get() = when (this) {
@@ -498,10 +524,10 @@ fun iconForWork(workType: String, machineKind: MachineKind): ImageVector =
 
 /** The units that make sense for a billing mode. */
 fun unitsFor(mode: BillingMode): List<MeasureUnit> = when (mode) {
-    BillingMode.PerAcre -> listOf(
-        MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal,
-        MeasureUnit.Guntha, MeasureUnit.Katha, MeasureUnit.SquareMetre,
-    )
+    // Every land unit; the business's own only once it has one.
+    BillingMode.PerAcre -> MeasureUnit.LAND.filter {
+        it != MeasureUnit.OwnLand || com.example.fieldtrack.data.region.OwnLandUnit.name != null
+    }
     BillingMode.PerHour -> listOf(MeasureUnit.Hour)
     BillingMode.PerTrip -> listOf(MeasureUnit.Trip)
     BillingMode.PerUnit -> listOf(

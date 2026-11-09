@@ -559,6 +559,7 @@ fun FieldTrackApp(
                     onMachineKind = vm::setMachineKind,
                     onMachineName = vm::setMachineName,
                     onMachineTypeLabel = vm::setMachineTypeLabel,
+                    onOwnLandUnit = vm::setOwnLandUnit,
                     onNext = {
                         // The last step writes everything; the rest just advance.
                         if (state.step == OnboardingStep.Machine) vm.finishSetup() else vm.next()
@@ -2583,6 +2584,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onName = vm::setName,
                     onCurrency = vm::setCurrency,
                     onLandUnit = vm::setLandUnit,
+                    onOwnLandUnit = vm::setOwnLandUnit,
                     // The switch builds a fresh history for the new business, which starts at Home.
                     onCreate = { vm.create {} },
                 )
@@ -2617,8 +2619,10 @@ private fun MainNavHost(navController: NavHostController) {
                     lockOn = lock.enabled.collectAsStateWithLifecycle().value,
                     lockAfter = lock.after.collectAsStateWithLifecycle().value,
                 )
+                // The own unit's name as typed, ahead of the save that waits for a pause.
+                val ownLandTyping by vm.ownLandTyping.collectAsStateWithLifecycle()
                 SettingsScreen(
-                    state = state,
+                    state = ownLandTyping?.let { state.copy(ownLandUnit = it) } ?: state,
                     prefs = prefs,
                     onBack = { navController.popBackStack() },
                     actions = SettingsActions(
@@ -2634,6 +2638,7 @@ private fun MainNavHost(navController: NavHostController) {
                         onNotifications = { navController.navigate(Routes.REMINDERS) },
                         onNumbers = { navController.navigate(Routes.DISPLAY) },
                         onLandUnit = { vm.setLandUnit(it) },
+                        onOwnLandUnit = vm::setOwnLandUnit,
                         onMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
                         onSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
                         onPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
@@ -2980,7 +2985,7 @@ private fun billDocumentFor(
     method: com.example.fieldtrack.data.db.PaymentMethod?,
     methodOwnName: String? = null,
 ): Document.Bill {
-    val unit = stringResource(state.unit.labelRes)
+    val unit = unitName(state.unit)
     val dateLabel = dayMonthYear(state.billedAtMillis ?: System.currentTimeMillis())
     val methodLabel = methodName(method ?: com.example.fieldtrack.data.db.PaymentMethod.Cash, methodOwnName)
     return Document.Bill(
@@ -3053,7 +3058,7 @@ private fun receiptFor(
     receivedMinor: Long,
     finalBalanceMinor: Long,
 ): String {
-    val unit = stringResource(state.unit.labelRes)
+    val unit = unitName(state.unit)
     val remaining = finalBalanceMinor.coerceAtLeast(0)
     return buildString {
         appendLine(state.businessName.ifBlank { stringResource(R.string.app_name) })

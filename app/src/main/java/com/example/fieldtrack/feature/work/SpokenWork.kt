@@ -94,7 +94,7 @@ fun spokenWords(context: android.content.Context): Pair<Map<String, WorkTypeOpti
     }
     val units = buildMap {
         MeasureUnit.entries.forEach { unit ->
-            val label = context.getString(unit.labelRes).lowercase()
+            val label = com.example.fieldtrack.feature.unitName(context, unit).lowercase()
             for (word in listOf(unit.name.lowercase(), label)) {
                 put(word, unit)
                 put(word + "s", unit)

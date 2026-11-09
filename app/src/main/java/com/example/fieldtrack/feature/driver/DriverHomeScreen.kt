@@ -119,7 +119,7 @@ fun DriverHomeScreen(
                         label = stringResource(R.string.home_stat_covered),
                         value = if (state.areaToday > 0) quantity(state.areaToday) else NOT_YET,
                         note = if (state.areaToday > 0) {
-                            stringResource(state.areaUnit.labelRes)
+                            com.example.fieldtrack.feature.unitName(state.areaUnit)
                         } else {
                             null
                         },

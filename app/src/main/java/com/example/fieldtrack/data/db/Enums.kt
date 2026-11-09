@@ -33,7 +33,17 @@ enum class MeasureUnit {
     Hectare, SquareMetre, Bale, Tonne, Bushel, Kilogram, Litre,
 
     /** Hired by the day. */
-    Day;
+    Day,
+
+    /**
+     * Land as other countries measure it: the decimal and cent of Bengal and the south, the marla of Punjab,
+     * the are, the dunam and feddan of the Arab world, the rai, the mu, and the manzana, tarea and alqueire of
+     * Latin America (the last two differ from one district to the next, so their size is asked, as a bigha's is).
+     */
+    Decimal, Cent, Marla, Are, Dunam, Feddan, Rai, Mu, Manzana, Tarea, Alqueire,
+
+    /** A land unit the business named itself; how many make an acre is asked when a field is measured. */
+    OwnLand;
 
     /**
      * Whether this measures ground.
@@ -43,8 +53,19 @@ enum class MeasureUnit {
      * land units can be totalled into "how much ground did I cover today".
      */
     val isLand: Boolean
-        get() = this == Acre || this == Bigha || this == Kanal ||
-            this == Guntha || this == Katha || this == Hectare || this == SquareMetre
+        get() = this in LAND
+
+    companion object {
+        /** Every land unit, the commonest first. Kept in step with [LAND_SQL]. */
+        val LAND: List<MeasureUnit> = listOf(
+            Acre, Hectare, Bigha, Kanal, Guntha, Katha, Marla, Decimal, Cent, Are, Dunam, Feddan, Rai, Mu,
+            Manzana, Tarea, Alqueire, SquareMetre, OwnLand,
+        )
+
+        /** The same, for a query that sums land; a test holds the two together. */
+        const val LAND_SQL = "('Acre','Hectare','Bigha','Kanal','Guntha','Katha','Marla','Decimal','Cent','Are'," +
+            "'Dunam','Feddan','Rai','Mu','Manzana','Tarea','Alqueire','SquareMetre','OwnLand')"
+    }
 }
 
 /**

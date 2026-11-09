@@ -144,7 +144,7 @@ interface OrgDao {
             COALESCE((SELECT SUM(j.quantity) FROM jobs j
                 WHERE j.operatorPersonId = t.personId AND j.orgId = t.orgId AND j.status = 'Completed'
                   AND j.deletedAt IS NULL AND j.completedAt >= t.fromMillis
-                  AND j.unit IN ('Acre','Bigha','Kanal','Guntha','Katha','Hectare','SquareMetre')), 0.0) AS landQuantity,
+                  AND j.unit IN ${MeasureUnit.LAND_SQL}), 0.0) AS landQuantity,
             (SELECT COUNT(DISTINCT (j.workedAt + :offsetMillis) / 86400000) FROM jobs j
                 WHERE j.operatorPersonId = t.personId AND j.orgId = t.orgId AND j.status = 'Completed'
                   AND j.deletedAt IS NULL AND j.completedAt >= t.fromMillis) AS days
@@ -857,7 +857,7 @@ interface MachineDao {
             COALESCE((SELECT SUM(j.quantity) FROM jobs j
                 WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
                   AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to
-                  AND j.unit IN ('Acre','Bigha','Kanal','Guntha','Katha','Hectare','SquareMetre')), 0.0) AS landQuantity,
+                  AND j.unit IN ${MeasureUnit.LAND_SQL}), 0.0) AS landQuantity,
             (SELECT COUNT(DISTINCT (j.workedAt + :offsetMillis) / 86400000) FROM jobs j
                 WHERE j.machineId = f.id AND j.orgId = f.orgId AND j.status = 'Completed'
                   AND j.deletedAt IS NULL AND j.completedAt >= MAX(f.hireFrom, :from) AND j.completedAt <= :to) AS days,

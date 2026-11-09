@@ -256,7 +256,7 @@ private fun ReviewStep(
                 state.billingMode == BillingMode.Fixed -> money(state.rateMinor)
                 else -> stringResource(
                     R.string.start_rate_per,
-                    stringResource(state.unit.labelRes)
+                    com.example.fieldtrack.feature.unitName(state.unit)
                 ).let { per -> "${money(state.rateMinor)} $per" }
             },
         )

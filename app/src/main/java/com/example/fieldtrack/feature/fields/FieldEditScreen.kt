@@ -136,7 +136,7 @@ fun FieldEditScreen(
             FtPick(
                 options = MeasureUnit.entries.filter { it.isLand },
                 selected = state.unit,
-                text = { stringResource(it.labelRes) },
+                text = { com.example.fieldtrack.feature.unitName(it) },
                 onPick = onUnit,
                 searchHint = stringResource(R.string.pick_search),
             )

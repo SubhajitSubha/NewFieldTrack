@@ -176,7 +176,7 @@ private fun rateNoteFor(job: JobEntity?): String? {
     return stringResource(
         R.string.statement_rate_note,
         money(job.rateMinor),
-        stringResource(job.unit.labelRes),
+        com.example.fieldtrack.feature.unitName(job.unit),
     )
 }
 

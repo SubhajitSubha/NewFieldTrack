@@ -230,7 +230,7 @@ private fun Questions(
         FtPick(
             options = units,
             selected = input.unit,
-            text = { stringResource(it.labelRes) },
+            text = { com.example.fieldtrack.feature.unitName(it) },
             onPick = onUnit,
             label = stringResource(R.string.start_counted_in),
             searchHint = stringResource(R.string.pick_search),

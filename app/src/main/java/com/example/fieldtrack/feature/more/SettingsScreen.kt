@@ -88,6 +88,8 @@ data class SettingsState(
     /** Advance this person still owes the business, said when they are about to leave it. */
     val advanceOwedMinor: Long = 0,
     val landUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The name of the business's own land unit, as saved. */
+    val ownLandUnit: String = "",
     /** The currency the business keeps its books in. */
     val currencyCode: String = "INR",
     /** When the business's seasons begin, as the owner set them (or the usual dates). */
@@ -137,6 +139,7 @@ class SettingsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 role = s.role,
                 businessName = org?.name.orEmpty(),
                 landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
+                ownLandUnit = org?.ownLandUnit.orEmpty(),
                 currencyCode = org?.currencyCode ?: "INR",
                 seasonStarts = SeasonCalendar.parse(org?.seasons).starts,
                 plan = PlanSettings(PlanSettings.cleanHour(org?.planDayStartHour), org?.driversSeeAll ?: false),
@@ -171,6 +174,32 @@ class SettingsViewModel(private val app: FieldFlowApplication) : ViewModel() {
         runCatching { app.sessionStore.setLandUnit(unit) }
     }
 
+    /** What is being typed for the own unit's name, ahead of the saved one. */
+    val ownLandTyping = MutableStateFlow<String?>(null)
+    private var ownLandSave: kotlinx.coroutines.Job? = null
+
+    /**
+     * Names the business's own land unit. Saved once the typing pauses, not on every letter: each
+     * save goes to every phone in the business.
+     */
+    fun setOwnLandUnit(name: String) {
+        ownLandTyping.value = name
+        ownLandSave?.cancel()
+        ownLandSave = viewModelScope.launch {
+            kotlinx.coroutines.delay(OWN_LAND_SAVE_DELAY_MS)
+            runCatching { app.sessionStore.setLandUnit(MeasureUnit.OwnLand, name) }
+            ownLandSave = null
+        }
+    }
+
+    /** A name typed just before leaving the screen is still saved. */
+    override fun onCleared() {
+        val pending = ownLandTyping.value
+        if (ownLandSave != null && pending != null) {
+            app.runInBackground { runCatching { app.sessionStore.setLandUnit(MeasureUnit.OwnLand, pending) } }
+        }
+    }
+
     /** Set when switching proof of work on needs the paid plan. */
     val needsPlan = MutableStateFlow(false)
 
@@ -194,6 +223,7 @@ class SettingsActions(
     val onNotifications: () -> Unit,
     val onNumbers: () -> Unit,
     val onLandUnit: (MeasureUnit) -> Unit,
+    val onOwnLandUnit: (String) -> Unit = {},
     val onMoney: () -> Unit,
     val onSeasons: () -> Unit,
     val onPlan: () -> Unit,
@@ -210,9 +240,6 @@ class SettingsActions(
     val onDeleteAccount: (() -> Unit)?,
 )
 
-private val LandUnitsOffered = listOf(
-    MeasureUnit.Acre, MeasureUnit.Hectare, MeasureUnit.Bigha, MeasureUnit.Kanal, MeasureUnit.Guntha,
-)
 
 /**
  * Every preference in one place, and nothing else.
@@ -343,13 +370,13 @@ fun SettingsScreen(
             if (state.canEditBusiness) {
                 FtSectionLabel(stringResource(R.string.profile_business), Modifier.padding(top = 8.dp))
                 FtCard {
-                    FtPick(
-                        options = LandUnitsOffered,
+                    com.example.fieldtrack.feature.region.LandUnitChoice(
                         selected = state.landUnit,
-                        text = { stringResource(it.labelRes) },
-                        onPick = actions.onLandUnit,
+                        ownName = state.ownLandUnit,
+                        onUnit = actions.onLandUnit,
+                        onOwnName = actions.onOwnLandUnit,
+                        chips = false,
                         label = stringResource(R.string.profile_land_measured_in),
-                        searchHint = stringResource(R.string.pick_search),
                     )
                     Text(
                         text = stringResource(R.string.edit_unit_note),
@@ -615,3 +642,6 @@ private fun LinkCard(links: List<Link>) {
         }
     }
 }
+
+/** Long enough to finish a word, short enough that leaving the screen rarely beats it. */
+private const val OWN_LAND_SAVE_DELAY_MS = 800L

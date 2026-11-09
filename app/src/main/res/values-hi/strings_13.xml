@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">रोड टैक्स</string>
     <string name="method_other">दूसरा</string>
     <string name="method_other_name">कैसे दिए?</string>
+    <string name="unit_decimal">डेसिमल</string>
+    <string name="unit_cent">सेंट</string>
+    <string name="unit_marla">मरला</string>
+    <string name="unit_are">आर</string>
+    <string name="unit_dunam">दुनम</string>
+    <string name="unit_feddan">फ़द्दान</string>
+    <string name="unit_rai">राय</string>
+    <string name="unit_mu">मू</string>
+    <string name="unit_manzana">मानसाना</string>
+    <string name="unit_tarea">तारेआ</string>
+    <string name="unit_alqueire">अलकेइरे</string>
+    <string name="unit_own">स्थानीय इकाई</string>
+    <string name="land_more">दूसरी इकाई</string>
+    <string name="land_own_name">इसे क्या कहते हैं?</string>
+    <string name="land_own_note">पहली बार इसमें खेत नापने पर ऐप पूछेगा कि एक एकड़ में कितने होते हैं।</string>
 </resources>

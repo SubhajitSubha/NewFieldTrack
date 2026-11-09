@@ -216,9 +216,9 @@
     <string name="measure_result_label">مساحة هذا الحقل نحو</string>
     <string name="measure_area">%1$s %2$s</string>
     <string name="measure_round">%1$s م حول الحافة</string>
-    <string name="measure_per_acre_label">في منطقتك، الفدان الواحد كم %1$s؟</string>
+    <string name="measure_per_acre_label">في منطقتك، الإيكر الواحد كم %1$s؟</string>
     <string name="measure_per_acre_hint">مثلًا 1.6</string>
-    <string name="measure_per_acre_note">%1$s ليس بنفس الحجم في كل مكان، فقل كم منه يساوي فدانًا حيث تعيش. وسيُحفظ ذلك.</string>
+    <string name="measure_per_acre_note">%1$s ليس بنفس الحجم في كل مكان، فقل كم منه يساوي إيكرًا حيث تعيش. وسيُحفظ ذلك.</string>
     <string name="measure_not_enough">هذا أصغر من أن يكون حقلًا. امشِ حوله كاملًا، ثم اضغط إنهاء.</string>
     <string name="measure_crosses">المسار يقطع نفسه، فستكون المساحة خاطئة. ابدأ من جديد وامشِ حول الحافة مرة واحدة دون أن تقطع طريقك.</string>
     <string name="measure_gap">انتهيت على بعد %1$s م من مكان بدايتك. ارجع إلى الركن الذي بدأت منه لتحصل على مساحة أدق.</string>

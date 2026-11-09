@@ -69,6 +69,11 @@ for rice; `work_type_hire`, a machine and its driver for the day), **What is att
 including a farmer's own), and the boxes that name an "Other" (`work_other_name*`, `paper_other_name`,
 `method_other_name`), whose note must use the same word for "Other" as the chip above it.
 
+Land units added with the same round: decimal, cent, marla, are, dunam, feddan, rai, mu, manzana, tarea,
+alqueire, and the business's own ("Local unit"). **Arabic:** the acre had been written «فدان», which is the feddan, a
+different and slightly larger unit; now that both are offered the acre is «إيكر». Check that word, and that the
+Bengali decimal reads as «শতক».
+
 ## Things the translations cannot yet do
 - The amount in words at the foot of a bill is English-only (and only for rupees). A bill in
   another language leaves that line off rather than print English number-words.

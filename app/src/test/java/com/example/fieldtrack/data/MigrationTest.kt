@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(31, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(32, c.getInt(0))
         }
     }
 
@@ -608,6 +608,21 @@ class MigrationTest {
         }
         db.query("SELECT COUNT(*) FROM payouts WHERE methodLabel IS NOT NULL").use { c ->
             assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0))
+        }
+    }
+
+    @Test
+    fun `a business keeps its land unit when it learns to name its own`() {
+        create(31) {
+            it.execSQL(
+                "INSERT INTO organisations (id, name, defaultLandUnit, driversSeeAll, proofOfWork, bookingLink, " +
+                    "bookingShowRates, createdAt, updatedAt, syncState) " +
+                    "VALUES ('o1', 'Harpal Agro', 'Bigha', 0, 0, 0, 0, 1, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT defaultLandUnit, ownLandUnit FROM organisations").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals("Bigha", c.getString(0)); assertTrue(c.isNull(1))
         }
     }
 }

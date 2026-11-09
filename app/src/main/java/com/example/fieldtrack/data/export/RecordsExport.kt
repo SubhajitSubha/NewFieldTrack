@@ -106,7 +106,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
         }
         files["fields.csv"] = table(
             listOf("Field", "Customer", "Area", "Unit", "Crop"),
-            fields.map { listOf(it.name, customerName[it.customerId], it.area.toString(), it.unit.name, it.crop) },
+            fields.map { listOf(it.name, customerName[it.customerId], it.area.toString(), unitWord(it.unit), it.crop) },
         )
         val finance = if (scope.peopleCost) dao.finance(orgId).associateBy { it.id } else emptyMap()
         val today = java.time.LocalDate.now(zone).toEpochDay()
@@ -141,7 +141,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
                 buildList {
                     add(day(j.workedAt)); add(customerName[j.customerId]); add(fieldName[j.fieldId]); add(machineName[j.machineId])
                     add(personName[j.operatorPersonId]); add(j.workType); add(j.billingMode.name)
-                    add(j.quantity.toString()); add(j.unit.name)
+                    add(j.quantity.toString()); add(unitWord(j.unit))
                     add(j.meterStart?.toString()); add(j.meterEnd?.toString())
                     if (scope.money) {
                         add(money(j.rateMinor)); add(money(j.amountMinor))
@@ -226,3 +226,8 @@ class RecordsExport(private val db: FieldTrackDatabase) {
         }
     }
 }
+
+/** A unit as the sheet says it: the business's own name for its own land unit. */
+private fun unitWord(unit: com.example.fieldtrack.data.db.MeasureUnit): String =
+    com.example.fieldtrack.data.region.OwnLandUnit.name
+        ?.takeIf { unit == com.example.fieldtrack.data.db.MeasureUnit.OwnLand } ?: unit.name

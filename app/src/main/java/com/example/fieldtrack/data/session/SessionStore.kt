@@ -50,6 +50,8 @@ data class Session(
     val businessName: String,
     val role: MemberRole,
     val landUnit: MeasureUnit,
+    /** The business's own land unit's name, when it measures in one of its own. */
+    val ownLandUnit: String? = null,
     /** What this person may change here. Computed from their membership on load. */
     val can: Capabilities,
     /** The business's currency, and how its bills are rounded. */
@@ -99,6 +101,7 @@ sealed interface Startup {
             Money.style = session.money
             BusinessClock.use(session.timeZoneId, session.fiscalStartMonth)
             Money.methods = session.methodsOffered
+            com.example.fieldtrack.data.region.OwnLandUnit.name = session.ownLandUnit
         }
     }
 }
@@ -196,6 +199,7 @@ class SessionStore(
             businessName = org?.name.orEmpty(),
             role = membership.role,
             landUnit = org?.defaultLandUnit ?: MeasureUnit.Acre,
+            ownLandUnit = org?.ownLandUnit,
             can = Capabilities.of(membership),
             currencyCode = org?.currencyCode ?: "INR",
             moneyStepMinor = org?.moneyStepMinor ?: 100L,
@@ -223,6 +227,8 @@ class SessionStore(
         currencyCode: String = "INR",
         moneyStepMinor: Long = 100,
         fiscalStartMonth: Int = 4,
+        /** The name of the business's own land unit, when it measures in one. */
+        ownLandUnit: String? = null,
     ): Session {
         val now = clock.now()
         val personId = prefs.getString(KEY_PERSON, null) ?: ids.newId()
@@ -232,6 +238,7 @@ class SessionStore(
             id = orgId,
             name = businessName.trim(),
             defaultLandUnit = landUnit,
+            ownLandUnit = ownLandName(ownLandUnit),
             currencyCode = currencyCode,
             moneyStepMinor = moneyStepMinor,
             fiscalStartMonth = fiscalStartMonth,
@@ -283,6 +290,7 @@ class SessionStore(
             businessName = businessName.trim(),
             role = MemberRole.Owner,
             landUnit = landUnit,
+            ownLandUnit = org.ownLandUnit,
             can = Capabilities.of(membership),
             currencyCode = currencyCode,
             moneyStepMinor = moneyStepMinor,
@@ -509,17 +517,19 @@ class SessionStore(
      * Work already recorded keeps the unit it was measured in; only what is quoted
      * from now on changes.
      */
-    suspend fun setLandUnit(unit: MeasureUnit) {
+    suspend fun setLandUnit(unit: MeasureUnit, ownName: String? = null) {
         val session = current() ?: return
         session.can.require(Capability.EditBusiness)
         val org = db.orgDao().observeOrg(session.orgId).first() ?: return
-        if (org.defaultLandUnit == unit) return
-        val updated = org.copy(defaultLandUnit = unit, updatedAt = clock.now())
+        // The own unit keeps its name when another is chosen, so going back to it does not ask again.
+        val name = ownLandName(ownName) ?: org.ownLandUnit
+        if (org.defaultLandUnit == unit && org.ownLandUnit == name) return
+        val updated = org.copy(defaultLandUnit = unit, ownLandUnit = name, updatedAt = clock.now())
         db.orgDao().upsertOrg(updated)
         syncQueue.enqueueUpsert(
             session.orgId, SyncQueue.TABLE_ORGS, updated.id, OutboxJson.encodeToString(updated)
         )
-        _startup.value = Startup.Ready(session.copy(landUnit = unit))
+        _startup.value = Startup.Ready(session.copy(landUnit = unit, ownLandUnit = name))
     }
 
     /**
@@ -1046,6 +1056,7 @@ class SessionStore(
         fiscalStartMonth: Int,
         /** A practice business: marked before anything is queued, so nothing of it ever leaves the phone. */
         sample: Boolean = false,
+        ownLandUnit: String? = null,
     ): String? {
         val personId = prefs.getString(KEY_PERSON, null) ?: return null
         val displayName = current()?.displayName ?: return null
@@ -1056,6 +1067,7 @@ class SessionStore(
             id = orgId,
             name = businessName.trim(),
             defaultLandUnit = landUnit,
+            ownLandUnit = ownLandName(ownLandUnit),
             currencyCode = currencyCode,
             moneyStepMinor = moneyStepMinor,
             fiscalStartMonth = fiscalStartMonth,
@@ -1177,6 +1189,7 @@ class SessionStore(
             businessName = org?.name ?: session.businessName,
             role = membership.role,
             landUnit = org?.defaultLandUnit ?: session.landUnit,
+            ownLandUnit = org?.ownLandUnit ?: session.ownLandUnit,
             can = Capabilities.of(membership),
             currencyCode = org?.currencyCode ?: session.currencyCode,
             moneyStepMinor = org?.moneyStepMinor ?: session.moneyStepMinor,
@@ -1230,3 +1243,8 @@ class SessionStore(
         const val KEY_NOT_DUPLICATES = "notDuplicateMembershipPairs"
     }
 }
+
+/** A land unit's own name: a word or two, never blank. */
+internal fun ownLandName(name: String?): String? = name?.trim()?.ifBlank { null }?.take(MAX_LAND_NAME)
+
+private const val MAX_LAND_NAME = 24

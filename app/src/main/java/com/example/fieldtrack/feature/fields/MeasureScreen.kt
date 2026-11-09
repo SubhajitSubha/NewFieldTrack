@@ -336,7 +336,7 @@ private fun Result(state: MeasureState, actions: MeasureActions) {
     FtPick(
         options = MeasureUnit.entries.filter { it.isLand },
         selected = state.unit,
-        text = { stringResource(it.labelRes) },
+        text = { com.example.fieldtrack.feature.unitName(it) },
         onPick = actions.onUnit,
         searchHint = stringResource(R.string.pick_search),
     )

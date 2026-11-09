@@ -19,4 +19,19 @@
     <string name="paper_other_name_hint">Pajak kendaraan</string>
     <string name="method_other">Lainnya</string>
     <string name="method_other_name">Dibayar dengan cara apa?</string>
+    <string name="unit_decimal">Desimal</string>
+    <string name="unit_cent">Sen</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Are</string>
+    <string name="unit_dunam">Dunam</string>
+    <string name="unit_feddan">Feddan</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Satuan setempat</string>
+    <string name="land_more">Satuan lain</string>
+    <string name="land_own_name">Apa namanya?</string>
+    <string name="land_own_note">Saat pertama kali mengukur lahan dengannya, aplikasi menanyakan berapa banyak dalam satu acre.</string>
 </resources>

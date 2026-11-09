@@ -54,7 +54,7 @@ fun AmendJobScreen(
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
-    val unitLabel = stringResource(state.unit.labelRes)
+    val unitLabel = com.example.fieldtrack.feature.unitName(state.unit)
 
     Column(
         modifier
