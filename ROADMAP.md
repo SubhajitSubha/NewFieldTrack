@@ -283,7 +283,8 @@ prices; and the world has work, papers, payment ways and land units this app has
 default, and the person may name it whatever they like; same everywhere an "Other" exists. Fix it final, screens and data.
 
 - [x] **R1. The machine decides which work comes first.** Its own history first, then what that kind of machine is for (a
-  table: tractor by what is attached, rotavator, harvester, tanker, JCB...), the rest one tap away under "More work". With
+  table: tractor by what is attached, rotavator, harvester, tanker, JCB...), the rest below it in the same one-line list as
+  the machine type (owner, 2026-11-09: a list, not a stack of cards). With
   no machine, the business's usual work. The work is charged the way it was last time (mode and unit), not a fixed default.
 - [x] **R2. Tractor and implement asked where the machine is.** A tractor: "What is attached?" (the rotavator filled in when
   there is one). A tool picked on its own: "Pulled by?" (the one tractor filled in, "Not one of ours" for a farmer's own

@@ -6,7 +6,6 @@
     <string name="work_type_loading">Carregamento</string>
     <string name="work_type_water">Entrega de água</string>
     <string name="work_type_hire">Aluguel de máquina</string>
-    <string name="work_more_kinds">Mais serviços</string>
     <string name="work_other_name">Como se chama este serviço?</string>
     <string name="work_other_name_note">Aparece na cobrança. Deixe vazio para chamar de Outro.</string>
     <string name="work_attached">O que está engatado?</string>

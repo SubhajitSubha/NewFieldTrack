@@ -6,7 +6,6 @@
     <string name="work_type_loading">মাল তোলা</string>
     <string name="work_type_water">জল পৌঁছানো</string>
     <string name="work_type_hire">মেশিন ভাড়া</string>
-    <string name="work_more_kinds">আরও কাজ</string>
     <string name="work_other_name">এই কাজের নাম কী?</string>
     <string name="work_other_name_note">বিলে এটাই ছাপা হবে। খালি রাখলে \"অন্য\" লেখা হবে।</string>
     <string name="work_attached">পেছনে কী লাগানো?</string>

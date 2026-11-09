@@ -6,7 +6,6 @@
     <string name="work_type_loading">लदाई</string>
     <string name="work_type_water">पानी पहुँचाना</string>
     <string name="work_type_hire">मशीन किराये पर</string>
-    <string name="work_more_kinds">और काम</string>
     <string name="work_other_name">इस काम का नाम क्या है?</string>
     <string name="work_other_name_note">बिल पर यही छपेगा। खाली छोड़ें तो \"दूसरा\" लिखा जाएगा।</string>
     <string name="work_attached">पीछे क्या लगा है?</string>

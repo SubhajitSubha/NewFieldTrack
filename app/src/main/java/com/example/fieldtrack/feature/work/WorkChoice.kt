@@ -7,20 +7,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.MachineStatus
-import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
 import com.example.fieldtrack.designsystem.component.FtChipTone
-import com.example.fieldtrack.designsystem.component.FtChoiceCard
-import com.example.fieldtrack.designsystem.component.FtListRow
+import com.example.fieldtrack.designsystem.component.FtPick
 import com.example.fieldtrack.designsystem.component.FtSectionLabel
 import com.example.fieldtrack.designsystem.component.FtTextField
 import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
@@ -29,11 +23,12 @@ import com.example.fieldtrack.feature.WorkTypeOption
 import com.example.fieldtrack.feature.title
 
 /**
- * The work, asked the same way wherever it is asked.
+ * The work, asked the same way wherever it is asked: one line, opening a list like the
+ * machine type does.
  *
- * What this machine usually does first; everything else one tap away, so nothing anybody does
- * is ever missing, only further down. "Other" opens a box for the work's own name, which may
- * be left empty.
+ * What this machine usually does comes first in the list; everything else follows, so nothing
+ * anybody does is ever missing, only further down. "Other" opens a box for the work's own
+ * name, which may be left empty.
  */
 @Composable
 fun WorkChoice(
@@ -44,48 +39,20 @@ fun WorkChoice(
     onOtherName: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showAll by rememberSaveable { mutableStateOf(false) }
-    // A work chosen from the rest, by a booking or by voice, is never hidden behind "More work".
-    val open = showAll || menu.usual.isEmpty() || menu.rest.any { it.key == selected.key }
-    Column(modifier) {
-        FtSectionLabel(stringResource(R.string.start_work_type), Modifier.padding(bottom = 9.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            menu.usual.forEach { WorkCard(it, selected, otherName, onPick, onOtherName) }
-            if (open) {
-                menu.rest.forEach { WorkCard(it, selected, otherName, onPick, onOtherName) }
-            } else if (menu.rest.isNotEmpty()) {
-                val names = menu.rest.map { it.title() }
-                FtCard(padding = 0.dp) {
-                    FtListRow(
-                        title = stringResource(R.string.work_more_kinds),
-                        subtitle = names.joinToString(", "),
-                        subtitleMaxLines = 2,
-                        showChevron = true,
-                        onClick = { showAll = true },
-                    )
-                }
-            }
+    val options = menu.usual + menu.rest
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        FtPick(
+            options = options,
+            selected = options.firstOrNull { it.key == selected.key } ?: selected,
+            text = { it.title() },
+            icon = { it.icon },
+            onPick = onPick,
+            label = stringResource(R.string.start_work_type),
+            searchHint = stringResource(R.string.pick_search),
+        )
+        if (selected.key == WorkCatalog.OTHER) {
+            OtherWorkName(otherName, onOtherName)
         }
-    }
-}
-
-@Composable
-private fun WorkCard(
-    option: WorkTypeOption,
-    selected: WorkTypeOption,
-    otherName: String,
-    onPick: (WorkTypeOption) -> Unit,
-    onOtherName: (String) -> Unit,
-) {
-    val chosen = selected.key == option.key
-    FtChoiceCard(
-        title = option.title(),
-        selected = chosen,
-        onClick = { onPick(option) },
-        icon = option.icon,
-    )
-    if (chosen && option.key == WorkCatalog.OTHER) {
-        OtherWorkName(otherName, onOtherName)
     }
 }
 

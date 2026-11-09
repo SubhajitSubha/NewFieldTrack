@@ -6,7 +6,6 @@
     <string name="work_type_loading">Chargement</string>
     <string name="work_type_water">Livraison d\'eau</string>
     <string name="work_type_hire">Location de machine</string>
-    <string name="work_more_kinds">Autres travaux</string>
     <string name="work_other_name">Comment s\'appelle ce travail ?</string>
     <string name="work_other_name_note">Il figure sur la facture. Laissez vide pour l\'appeler Autre.</string>
     <string name="work_attached">Qu\'est-ce qui est attelé ?</string>

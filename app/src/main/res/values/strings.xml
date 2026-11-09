@@ -2663,7 +2663,6 @@
     <string name="work_type_loading">Loading</string>
     <string name="work_type_water">Water supply</string>
     <string name="work_type_hire">Machine hire</string>
-    <string name="work_more_kinds">More work</string>
     <string name="work_other_name">What is this work called?</string>
     <string name="work_other_name_note">Shown on the bill. Leave it empty to call it Other.</string>
     <string name="work_attached">What is attached?</string>
