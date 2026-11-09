@@ -48,7 +48,6 @@
     <string name="terms_waiting">গ্রাহকের জন্য অপেক্ষা</string>
     <string name="terms_per_hour">ঘণ্টায়</string>
     <string name="terms_waiting_note">কাজ যতক্ষণ থামানো থাকে সেই সময় এই দরে বিল হয়। অপেক্ষার বিল না চাইলে ফাঁকা রাখুন।</string>
-    <string name="terms_implement">সঙ্গের যন্ত্র</string>
     <string name="terms_no_implement">নেই</string>
     <string name="terms_implement_note">বিলের আয় ট্রাক্টরের; ঘণ্টা পায় সঙ্গের যন্ত্র, যাতে তার সার্ভিস ঠিক সময়ে আসে।</string>
     <string name="terms_crew">এই কাজে আরও যাঁরা</string>

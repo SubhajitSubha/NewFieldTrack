@@ -92,7 +92,7 @@ class WorkClockNotifier(private val context: Context) {
             // simply that much earlier.
             val zero = (job.runningSince ?: System.currentTimeMillis()) - job.elapsedSeconds * 1000
             builder
-                .setContentText(context.getString(R.string.notify_clock_running, job.workType))
+                .setContentText(context.getString(R.string.notify_clock_running, com.example.fieldtrack.feature.workLabel(context, job.workType)))
                 .setUsesChronometer(true)
                 .setWhen(zero)
                 .setShowWhen(true)
@@ -104,7 +104,7 @@ class WorkClockNotifier(private val context: Context) {
                 .setContentText(
                     context.getString(
                         R.string.notify_clock_paused,
-                        job.workType,
+                        com.example.fieldtrack.feature.workLabel(context, job.workType),
                         // With seconds: "0:01" alone reads as a minute past midnight.
                         duration(job.elapsedSeconds, withSeconds = true),
                     )

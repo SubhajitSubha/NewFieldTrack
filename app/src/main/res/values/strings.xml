@@ -1901,7 +1901,6 @@
     <string name="terms_waiting">Waiting for the customer</string>
     <string name="terms_per_hour">an hour</string>
     <string name="terms_waiting_note">Time the job sits paused is billed at this. Leave empty to bill no waiting.</string>
-    <string name="terms_implement">Implement</string>
     <string name="terms_no_implement">None</string>
     <string name="terms_implement_note">The tractor earns the bill; the implement gets the hours, so its service comes round on time.</string>
     <string name="terms_crew">Also on this job</string>
@@ -2657,4 +2656,24 @@
     <string name="payout_upi_ask_body">The UPI app did not say. Check it, and save the payment here only if it went.</string>
     <string name="payout_upi_ask_yes">It went, save it</string>
     <string name="payout_upi_ask_no">It did not</string>
+
+    <!-- R series: work that follows the machine, and every "Other" nameable. -->
+    <string name="work_type_puddling">Puddling</string>
+    <string name="work_type_ridging">Ridging</string>
+    <string name="work_type_loading">Loading</string>
+    <string name="work_type_water">Water supply</string>
+    <string name="work_type_hire">Machine hire</string>
+    <string name="work_more_kinds">More work</string>
+    <string name="work_other_name">What is this work called?</string>
+    <string name="work_other_name_note">Shown on the bill. Leave it empty to call it Other.</string>
+    <string name="work_attached">What is attached?</string>
+    <string name="work_pulled_by">Pulled by</string>
+    <string name="work_pulled_none">Not one of ours</string>
+    <string name="plan_advance_note">Advance for %1$s</string>
+    <string name="onboard_machine_more">Another kind</string>
+    <string name="plan_reason_other_what">What happened?</string>
+    <string name="paper_other_name">What is this paper called?</string>
+    <string name="paper_other_name_hint">Road tax</string>
+    <string name="method_other">Other</string>
+    <string name="method_other_name">How was it paid?</string>
 </resources>

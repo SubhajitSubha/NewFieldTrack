@@ -57,6 +57,8 @@ data class PersonPayRow(
     val method: PaymentMethod?,
     val note: String?,
     val voided: Boolean,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String? = null,
 )
 
 data class PersonPayState(
@@ -112,7 +114,7 @@ class PersonPayViewModel(
                 advanceOutstandingMinor = advance,
                 hire = hire.firstOrNull { it.personId == personId },
                 rows = payouts.map {
-                    PersonPayRow(it.id, it.atMillis, it.amountMinor, it.covers, it.method, it.note, it.voidedAt != null)
+                    PersonPayRow(it.id, it.atMillis, it.amountMinor, it.covers, it.method, it.note, it.voidedAt != null, it.methodLabel)
                 },
             )
         }
@@ -226,7 +228,7 @@ fun PersonPayContent(
                             )
                             Text(
                                 text = listOfNotNull(
-                                    row.method?.let { stringResource(it.labelRes) },
+                                    row.method?.let { com.example.fieldtrack.feature.methodName(it, row.methodLabel) },
                                     row.note?.takeIf { it.isNotBlank() },
                                     if (row.voided) stringResource(R.string.person_pay_taken_back) else null,
                                 ).joinToString(" · "),

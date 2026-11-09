@@ -512,7 +512,7 @@ class PlanFlowTest {
         form(id) { f, ready ->
             ready { customer != null }
             var left = false
-            f.cancel(CancelReason.Rain) { left = true }
+            f.cancel(CancelReason.Rain, null) { left = true }
             until { left }
         }
         planScreen { vm, ready ->

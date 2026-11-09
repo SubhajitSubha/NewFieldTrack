@@ -196,7 +196,8 @@ fun CustomerJobCard(row: CustomerJobRow, onClick: (() -> Unit)?) {
 /** "Rotavator · 3.5 Bigha", or just the work when nothing was measured. */
 @Composable
 private fun CustomerJobRow.title(): String {
-    val base = workType.ifBlank { stringResource(R.string.finish_this_job) }
+    // The charge carries the work as it was saved; said in the reader's language.
+    val base = workType.ifBlank { null }?.let { com.example.fieldtrack.feature.workLabel(it) } ?: stringResource(R.string.finish_this_job)
     if (billingMode == BillingMode.Fixed || quantity <= 0.0) return base
     return "$base · ${measure(quantity, unit)}"
 }
@@ -216,7 +217,7 @@ fun CustomerPaymentCard(row: CustomerPaymentRow, againstLabel: String?, onReceip
     val colors = FieldTrackTheme.colors
     FtCard(padding = 0.dp, shape = FieldTrackTheme.shapes.medium) {
         FtListRow(
-            title = stringResource(row.method.labelRes()),
+            title = com.example.fieldtrack.feature.methodName(row.method, row.methodLabel),
             subtitle = listOfNotNull(
                 dayMonth(row.atMillis),
                 againstLabel?.let { stringResource(R.string.customer_payment_against, it) }

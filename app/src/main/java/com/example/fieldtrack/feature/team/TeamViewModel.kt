@@ -150,7 +150,7 @@ class TeamViewModel(private val app: FieldFlowApplication) : ViewModel() {
                         isYou = member.personId == s.personId,
                         active = member.active,
                         workingOn = job?.let {
-                            machineNames[it.machineId] ?: it.workType
+                            machineNames[it.machineId] ?: com.example.fieldtrack.feature.workLabel(app, it.workType)
                         },
                         elapsedSeconds = job?.let { app.workRepository.elapsedSeconds(it) } ?: 0,
                         paused = job?.status == JobStatus.Paused,

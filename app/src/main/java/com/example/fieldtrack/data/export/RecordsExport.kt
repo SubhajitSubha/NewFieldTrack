@@ -129,7 +129,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
         )
         files["papers.csv"] = table(
             listOf("Machine", "Paper", "Number", "Runs out on", "Note"),
-            dao.papers(orgId).map { listOf(machineName[it.machineId], it.kind.name, it.number, dayNumber(it.expiresDay), it.note) },
+            dao.papers(orgId).map { listOf(machineName[it.machineId], it.label ?: it.kind.name, it.number, dayNumber(it.expiresDay), it.note) },
         )
         files["jobs.csv"] = table(
             buildList {
@@ -156,7 +156,7 @@ class RecordsExport(private val db: FieldTrackDatabase) {
             files["money.csv"] = table(
                 listOf("Date", "Customer", "What", "Amount", "How paid", "Note"),
                 dao.ledger(orgId).filter { inRange(it.atMillis) }.map {
-                    listOf(day(it.atMillis), customerName[it.customerId], it.kind.name, money(it.amountMinor), it.method?.name, it.note)
+                    listOf(day(it.atMillis), customerName[it.customerId], it.kind.name, money(it.amountMinor), it.methodLabel?.takeIf { _ -> it.method == com.example.fieldtrack.data.db.PaymentMethod.Other } ?: it.method?.name, it.note)
                 },
             )
             files["fuel.csv"] = table(

@@ -107,6 +107,11 @@ data class JobDetailState(
         get() = costs.filter { it.cost.kind == JobCostKind.Other }
             .sumOf { it.cost.amountMinor ?: 0 }
 
+    /** Each "other" spending with what it was for, as the person wrote it: a toll is not a repair. */
+    val otherCosts: List<Pair<String?, Long>>
+        get() = costs.filter { it.cost.kind == JobCostKind.Other && (it.cost.amountMinor ?: 0) > 0 }
+            .map { it.cost.note?.trim()?.ifBlank { null } to it.cost.amountMinor!! }
+
     /** What is still owed on this job. Shown beside the total, never taken off it. */
     val owedMinor: Long get() = costs.sumOf { it.owedMinor ?: 0 }
 
@@ -201,7 +206,10 @@ class JobDetailViewModel(
                 rateMinor = job.rateMinor,
                 amountMinor = app.workRepository.billableMinor(job),
                 elapsedSeconds = app.workRepository.elapsedSeconds(job),
-                machineName = machines.firstOrNull { it.id == job.machineId }?.name,
+                // The tractor and what was on the back of it: "Mahindra 575 + Rotavator".
+                machineName = listOfNotNull(job.machineId, job.implementMachineId)
+                    .mapNotNull { id -> machines.firstOrNull { it.id == id }?.name }
+                    .joinToString(" + ").ifBlank { null },
                 operatorName = operator?.displayName,
                 operatorPhone = operator?.phone,
                 billNumber = job.billFy?.let { fy ->

@@ -558,6 +558,7 @@ fun FieldTrackApp(
                     onLandUnit = vm::setLandUnit,
                     onMachineKind = vm::setMachineKind,
                     onMachineName = vm::setMachineName,
+                    onMachineTypeLabel = vm::setMachineTypeLabel,
                     onNext = {
                         // The last step writes everything; the rest just advance.
                         if (state.step == OnboardingStep.Machine) vm.finishSetup() else vm.next()
@@ -1105,6 +1106,7 @@ private fun MainNavHost(navController: NavHostController) {
                         onNewFarmer = { navController.navigate(Routes.NEW_CUSTOMER) },
                         onField = vm::selectField,
                         onWork = vm::selectWorkType,
+                        onOtherName = vm::nameOther,
                         onDay = vm::setDay,
                         onPart = vm::setPart,
                         onTime = vm::setStartMinute,
@@ -1113,8 +1115,9 @@ private fun MainNavHost(navController: NavHostController) {
                         onNote = vm::setNote,
                         onAdvance = vm::setAdvance,
                         onAdvanceMethod = vm::setAdvanceMethod,
+                        onAdvanceMethodLabel = vm::setAdvanceMethodLabel,
                         onSave = { vm.save(leave) },
-                        onCancel = { vm.cancel(it, leave) },
+                        onCancel = { reason, note -> vm.cancel(reason, note, leave) },
                         onDone = { vm.markDone(leave) },
                         onReopen = { vm.reopen(leave) },
                     ),
@@ -1209,6 +1212,7 @@ private fun MainNavHost(navController: NavHostController) {
                     state = state,
                     onKind = vm::setKind,
                     onNumber = vm::setNumber,
+                    onLabel = vm::setLabel,
                     onExpires = vm::setExpires,
                     onNote = vm::setNote,
                     onSave = { vm.save { navController.popBackStack() } },
@@ -1524,6 +1528,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onPickCustomer = { picking = true },
                     onMachine = vm::selectMachine,
                     onWorkType = vm::selectWorkType,
+                    onPartner = vm::selectPartner,
+                    onOtherName = vm::nameOther,
                     onBillingMode = vm::setBillingMode,
                     onUnit = vm::setUnit,
                     onQuantity = vm::setQuantity,
@@ -1628,7 +1634,7 @@ private fun MainNavHost(navController: NavHostController) {
                         ledgerScope.launch {
                             vm.receiptFor(
                                 paymentId = paymentId,
-                                methodLabel = context.getString(row?.method.labelRes),
+                                methodLabel = methodName(context, row?.method, row?.methodLabel),
                                 dateLabel = dayMonthYear(row?.atMillis ?: System.currentTimeMillis()),
                             )?.let {
                                 runCatching {
@@ -1643,7 +1649,7 @@ private fun MainNavHost(navController: NavHostController) {
                     // ledger entry id here would silently match nothing.
                     jobTitles = state.jobs.mapNotNull { job ->
                         job.jobId?.to(buildString {
-                            append(job.workType)
+                            append(workLabel(job.workType))
                             if (job.billingMode != BillingMode.Fixed && job.quantity > 0) {
                                 append(" ")
                                 append(measure(job.quantity, job.unit))
@@ -1784,6 +1790,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onTakeAll = vm::takeAll,
                     onMethod = vm::setMethod,
                     onInKind = vm::setInKind,
+                    onMethodLabel = vm::setMethodLabel,
                     onSaveAndSend = {
                         vm.save { paid ->
                             val text = context.getString(
@@ -1877,7 +1884,7 @@ private fun MainNavHost(navController: NavHostController) {
                                 context = context,
                                 language = state.customerLanguage,
                                 businessName = state.businessName,
-                                workTitle = state.workType,
+                                workTitle = workLabel(context, state.workType),
                                 measureLabel = summaryMeasure,
                                 dateLabel = dayMonthYear(state.workedAtMillis),
                                 quote = state.quote,
@@ -2158,6 +2165,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onDraftUnit = vm::setUnit,
                     onDraftAmount = vm::setAmount,
                     onDraftLabel = vm::setLabel,
+                    onDraftOtherName = vm::nameOther,
                     onDraftTerms = vm::setTerms,
                     onDraftSave = vm::saveDraft,
                     onDraftDismiss = vm::dismissDraft,
@@ -2259,6 +2267,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onStartHirePay = vm::startHirePay,
                     onHireAmount = vm::setHireAmount,
                     onHireMethod = vm::setHireMethod,
+                    onHireMethodLabel = vm::setHireMethodLabel,
                     onSaveHirePay = vm::saveHirePay,
                     onDismissHirePay = vm::dismissHirePay,
                 )
@@ -2306,6 +2315,8 @@ private fun MainNavHost(navController: NavHostController) {
                     onCovers = vm::setCovers,
                     onRecover = vm::setRecover,
                     onJob = vm::setJob,
+                    onMethod = vm::setMethod,
+                    onMethodLabel = vm::setMethodLabel,
                     onSave = { vm.save { navController.popBackStack() } },
                 )
                 upiNote?.let { note ->
@@ -2864,6 +2875,7 @@ private fun MainNavHost(navController: NavHostController) {
                     receivedMinor = received,
                     finalBalanceMinor = finalBalance ?: 0L,
                     method = payment.method,
+                    methodOwnName = payment.methodLabel,
                 )
                 val scope = rememberCoroutineScope()
                 var makingPdf by remember { mutableStateOf(false) }
@@ -2884,6 +2896,7 @@ private fun MainNavHost(navController: NavHostController) {
                     onChooseNothing = vm::chooseNothing,
                     onAmount = vm::setAmount,
                     onMethod = vm::setMethod,
+                    onMethodLabel = vm::setMethodLabel,
                     discountText = discountText,
                     onDiscount = vm::setDiscount,
                     labour = labour,
@@ -2965,10 +2978,11 @@ private fun billDocumentFor(
     receivedMinor: Long,
     finalBalanceMinor: Long,
     method: com.example.fieldtrack.data.db.PaymentMethod?,
+    methodOwnName: String? = null,
 ): Document.Bill {
     val unit = stringResource(state.unit.labelRes)
     val dateLabel = dayMonthYear(state.billedAtMillis ?: System.currentTimeMillis())
-    val methodLabel = stringResource((method ?: com.example.fieldtrack.data.db.PaymentMethod.Cash).labelRes)
+    val methodLabel = methodName(method ?: com.example.fieldtrack.data.db.PaymentMethod.Cash, methodOwnName)
     return Document.Bill(
         style = com.example.fieldtrack.designsystem.format.Money.style,
         letterhead = Letterhead(
@@ -2992,11 +3006,11 @@ private fun billDocumentFor(
         machineLabel = state.machineName,
         lines = listOf(
             WorkLine(
-                title = state.workType,
+                title = workLabel(state.workType),
                 detail = if (state.fuelTerms == com.example.fieldtrack.data.db.FuelTerms.CustomerSupplies) {
                     stringResource(R.string.bill_diesel_theirs)
                 } else null,
-                measure = measure(state.quantity, state.unit),
+                measure = if (state.billingMode == BillingMode.Fixed) null else measure(state.quantity, state.unit),
                 rate = if (state.ratesVaried) {
                     stringResource(R.string.finish_rate_varies)
                 } else {
@@ -3050,7 +3064,10 @@ private fun receiptFor(
         ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
         appendLine()
         appendLine("${state.customerName}")
-        appendLine("${state.workType} ${measure(state.quantity, state.unit)} — ${money(state.jobAmountMinor)}")
+        appendLine(
+            listOfNotNull(workLabel(state.workType), measure(state.quantity, state.unit).takeIf { state.billingMode != BillingMode.Fixed })
+                .joinToString(" ") + " — ${money(state.jobAmountMinor)}"
+        )
         if (state.previousBalanceMinor != 0L) {
             appendLine("${stringResource(R.string.money_old_balance)} — ${money(state.previousBalanceMinor)}")
         }
@@ -3172,6 +3189,8 @@ private fun StartWorkDestination(
                 onRate = vm::setRate,
                 onTerms = vm::setTerms,
                 onSuggestion = vm::applySuggestion,
+                onSelectPartner = vm::selectPartner,
+                onOtherName = vm::nameOther,
                 onNext = vm::next,
                 onStart = {
                     scope.launch {
@@ -3187,8 +3206,8 @@ private fun StartWorkDestination(
             if (addingMachine) {
                 NewMachineSheet(
                     onDismiss = { addingMachine = false },
-                    onAdd = { name, kind ->
-                        vm.createMachine(name, kind)
+                    onAdd = { name, kind, typeLabel ->
+                        vm.createMachine(name, kind, typeLabel)
                         addingMachine = false
                     },
                 )

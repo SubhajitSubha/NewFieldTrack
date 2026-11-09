@@ -39,6 +39,8 @@ data class PayOutState(
     val covers: PayoutCovers = PayoutCovers.Day,
     val jobId: String? = null,
     val method: PaymentMethod = PaymentMethod.Cash,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String = "",
     /** What the chosen person has been advanced and not yet settled. */
     val advanceOutstandingMinor: Long = 0,
     /** How much of it this pay takes off, as typed. */
@@ -122,6 +124,8 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setCovers(covers: PayoutCovers) = form.update { it.copy(covers = covers) }
     fun setJob(jobId: String?) = form.update { it.copy(jobId = jobId) }
     fun setMethod(method: PaymentMethod) = form.update { it.copy(method = method) }
+
+    fun setMethodLabel(text: String) = form.update { it.copy(methodLabel = text) }
     fun setRecover(text: String) = form.update { it.copy(recoverText = MoneyInput.clean(text)) }
     fun setNote(text: String) = form.update { it.copy(note = text.take(120)) }
 
@@ -166,6 +170,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     headcount = if (now.payingLabourers) now.headcount else 1,
                     note = toName,
                     method = now.method,
+                    methodLabel = now.methodLabel,
                 )
             } else {
                 app.ledgerRepository.recordPayout(
@@ -179,6 +184,7 @@ class PayOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     toName = toName,
                     headcount = if (now.payingLabourers) now.headcount else 1,
                     method = now.method,
+                    methodLabel = now.methodLabel,
                     note = now.note.trim().ifBlank { null },
                     recoversAdvanceMinor = now.recoverMinor,
                 )

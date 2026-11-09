@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">কাদা করা (ধানের জমি)</string>
+    <string name="work_type_ridging">আল বাঁধা</string>
+    <string name="work_type_loading">মাল তোলা</string>
+    <string name="work_type_water">জল পৌঁছানো</string>
+    <string name="work_type_hire">মেশিন ভাড়া</string>
+    <string name="work_more_kinds">আরও কাজ</string>
+    <string name="work_other_name">এই কাজের নাম কী?</string>
+    <string name="work_other_name_note">বিলে এটাই ছাপা হবে। খালি রাখলে \"অন্য\" লেখা হবে।</string>
+    <string name="work_attached">পেছনে কী লাগানো?</string>
+    <string name="work_pulled_by">কে টানল</string>
+    <string name="work_pulled_none">আমাদের নয়</string>
+    <string name="plan_advance_note">%1$s-এর অগ্রিম</string>
+    <string name="onboard_machine_more">অন্য ধরন</string>
+    <string name="plan_reason_other_what">কী হয়েছিল?</string>
+    <string name="paper_other_name">এই কাগজের নাম কী?</string>
+    <string name="paper_other_name_hint">রোড ট্যাক্স</string>
+    <string name="method_other">অন্য</string>
+    <string name="method_other_name">কীভাবে দিলেন?</string>
+</resources>

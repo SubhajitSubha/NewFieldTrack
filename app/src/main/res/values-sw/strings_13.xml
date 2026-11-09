@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">Kutifua shamba la mpunga</string>
+    <string name="work_type_ridging">Kutengeneza matuta</string>
+    <string name="work_type_loading">Kupakia</string>
+    <string name="work_type_water">Kusambaza maji</string>
+    <string name="work_type_hire">Kukodisha mashine</string>
+    <string name="work_more_kinds">Kazi zaidi</string>
+    <string name="work_other_name">Kazi hii inaitwaje?</string>
+    <string name="work_other_name_note">Inaonekana kwenye bili. Acha wazi iitwe Nyingine.</string>
+    <string name="work_attached">Nini kimefungwa nyuma?</string>
+    <string name="work_pulled_by">Inavutwa na</string>
+    <string name="work_pulled_none">Si yetu</string>
+    <string name="plan_advance_note">Malipo ya awali ya %1$s</string>
+    <string name="onboard_machine_more">Aina nyingine</string>
+    <string name="plan_reason_other_what">Nini kilitokea?</string>
+    <string name="paper_other_name">Karatasi hii inaitwaje?</string>
+    <string name="paper_other_name_hint">Kodi ya barabara</string>
+    <string name="method_other">Nyingine</string>
+    <string name="method_other_name">Ililipwa vipi?</string>
+</resources>

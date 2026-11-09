@@ -75,6 +75,8 @@ class LedgerRepository(
         customerId: String,
         amountMinor: Long,
         method: PaymentMethod,
+        /** The payer's own name for the way, when [method] is Other. */
+        methodLabel: String? = null,
         byPersonId: String? = null,
         note: String? = null,
         /**
@@ -90,6 +92,7 @@ class LedgerRepository(
         kind = LedgerKind.Payment,
         amountMinor = amountMinor,
         method = method,
+        methodLabel = ownMethodName(method, methodLabel),
         jobId = jobId,
         note = note,
         byPersonId = byPersonId,
@@ -174,6 +177,8 @@ class LedgerRepository(
         byPersonId: String?,
         atMillis: Long,
         method: PaymentMethod? = null,
+        /** The payer's own name for the way, when [method] is Other. */
+        methodLabel: String? = null,
         jobId: String? = null,
         reversesEntryId: String? = null,
     ): String {
@@ -185,6 +190,7 @@ class LedgerRepository(
             kind = kind,
             amountMinor = amountMinor,
             method = method,
+            methodLabel = ownMethodName(method, methodLabel),
             jobId = jobId,
             note = note,
             atMillis = atMillis,
@@ -223,6 +229,8 @@ class LedgerRepository(
         jobId: String? = null,
         jobCostId: String? = null,
         method: PaymentMethod? = null,
+        /** The payer's own name for the way, when [method] is Other. */
+        methodLabel: String? = null,
         note: String? = null,
         /** How much of the person's outstanding advance this pay takes off, on top of the cash. */
         recoversAdvanceMinor: Long = 0,
@@ -252,6 +260,7 @@ class LedgerRepository(
             jobId = jobId,
             jobCostId = jobCostId,
             method = method,
+            methodLabel = ownMethodName(method, methodLabel),
             note = note,
             byPersonId = byPersonId,
             recoversAdvanceMinor = recoversAdvanceMinor,
@@ -494,6 +503,8 @@ class LedgerRepository(
         atMillis: Long,
         byPersonId: String?,
         method: PaymentMethod? = null,
+        /** The payer's own name for the way, when [method] is Other. */
+        methodLabel: String? = null,
     ): PayoutEntity {
         can.require(Capability.PayOut)
         val cost = db.orgDao().findJobCost(orgId, costId)
@@ -509,6 +520,7 @@ class LedgerRepository(
             jobId = cost.jobId,
             jobCostId = cost.id,
             method = method,
+            methodLabel = ownMethodName(method, methodLabel),
             note = cost.note,
         )
     }
@@ -531,6 +543,8 @@ class LedgerRepository(
         headcount: Int? = null,
         note: String? = null,
         method: PaymentMethod? = null,
+        /** The payer's own name for the way, when [method] is Other. */
+        methodLabel: String? = null,
     ): PayoutEntity {
         can.require(Capability.PayOut)
         val cost = recordJobCost(
@@ -552,7 +566,14 @@ class LedgerRepository(
             atMillis = atMillis,
             byPersonId = byPersonId,
             method = method,
+            methodLabel = ownMethodName(method, methodLabel),
         )
     }
 
 }
+
+/** A way of paying's own name: kept only for "Other", a word or two, never blank. */
+internal fun ownMethodName(method: PaymentMethod?, label: String?): String? =
+    label?.trim()?.ifBlank { null }?.take(MAX_METHOD_NAME)?.takeIf { method == PaymentMethod.Other }
+
+private const val MAX_METHOD_NAME = 40

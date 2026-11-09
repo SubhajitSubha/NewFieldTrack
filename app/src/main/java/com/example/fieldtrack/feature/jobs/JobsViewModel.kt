@@ -137,7 +137,9 @@ class JobsViewModel(private val app: FieldFlowApplication) : ViewModel() {
                     }.filter { card ->
                         q.isEmpty() || card.customerName.contains(q, ignoreCase = true) ||
                             card.operatorName.orEmpty().contains(q, ignoreCase = true) ||
-                            card.workType.contains(q, ignoreCase = true)
+                            card.workType.contains(q, ignoreCase = true) ||
+                            // Found by the name the reader sees, not only the stored key.
+                            com.example.fieldtrack.feature.workLabel(app, card.workType).contains(q, ignoreCase = true)
                     },
                 )
             }

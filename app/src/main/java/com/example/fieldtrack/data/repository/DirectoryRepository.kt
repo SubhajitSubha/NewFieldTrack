@@ -477,6 +477,8 @@ class DirectoryRepository(
         note: String?,
         photoId: String? = null,
         paperId: String? = null,
+        /** The owner's name for it when [kind] is Other. */
+        label: String? = null,
     ): String {
         can.require(Capability.EditMachines)
         val paper = MachinePaperEntity(
@@ -484,6 +486,7 @@ class DirectoryRepository(
             orgId = orgId,
             machineId = machineId,
             kind = kind,
+            label = label?.trim()?.ifBlank { null }?.take(MAX_PAPER_LABEL)?.takeIf { kind == PaperKind.Other },
             number = number?.trim()?.ifBlank { null },
             expiresDay = expiresDay,
             note = note?.trim()?.ifBlank { null },
@@ -531,6 +534,23 @@ class DirectoryRepository(
     }
 
     fun observeWorkKinds(orgId: String, machineId: String) = machines.observeWorkKinds(orgId, machineId)
+
+    /** What the machines have been used for and how it was charged, for offering the work. */
+    fun observeWorkHistory(orgId: String): Flow<WorkHistory> = combine(
+        jobs.observeWorkUse(orgId),
+        jobs.observeLastCharge(orgId),
+        jobs.observeWorkNames(orgId),
+    ) { use, last, names -> WorkHistory.of(use, last, names) }.distinctUntilChanged()
+
+    /** The rate this work was last charged at on this machine, this customer's first. */
+    suspend fun lastRateOn(
+        orgId: String,
+        machineId: String,
+        workType: String,
+        billingMode: BillingMode,
+        unit: MeasureUnit,
+        customerId: String?,
+    ) = jobs.lastRateOn(orgId, machineId, workType, billingMode, unit, customerId)
 
     private companion object {
         const val MAX_HOURS_PER_YEAR = 8_760
@@ -814,3 +834,6 @@ class DirectoryRepository(
     fun observeFieldWork(orgId: String, customerId: String): Flow<List<FieldWorkTotals>> =
         customers.observeFieldWork(orgId, customerId)
 }
+
+/** A paper's own name: a word or two, as on a chip. */
+private const val MAX_PAPER_LABEL = 40

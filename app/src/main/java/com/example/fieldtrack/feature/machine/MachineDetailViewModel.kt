@@ -56,6 +56,8 @@ data class PaperRow(
     val number: String?,
     val expiresDay: Long?,
     val status: PaperStatus,
+    /** The owner's name for an "Other" paper. */
+    val label: String? = null,
 )
 
 data class MachineDetailState(
@@ -161,7 +163,7 @@ class MachineDetailViewModel(
                 recentJobs = jobs.map { it.asRow(names[it.customerId].orEmpty()) },
                 canEdit = Capability.EditMachines in s.can,
                 canSeeMoney = s.canSeeMoney,
-                papers = extra.first.map { PaperRow(it.id, it.kind, it.number, it.expiresDay, Papers.status(it, today, warn)) },
+                papers = extra.first.map { PaperRow(it.id, it.kind, it.number, it.expiresDay, Papers.status(it, today, warn), it.label) },
                 canSeeWorth = Capability.SeePeopleCost in s.can,
                 worthMinor = if (Capability.SeePeopleCost in s.can) {
                     Assets.bookValue(extra.second.firstOrNull { it.id == machineId }, today)

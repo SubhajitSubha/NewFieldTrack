@@ -251,7 +251,6 @@
     <string name="terms_waiting">Espera por el cliente</string>
     <string name="terms_per_hour">por hora</string>
     <string name="terms_waiting_note">El tiempo que el trabajo está en pausa se factura a esto. Déjelo vacío para no facturar espera.</string>
-    <string name="terms_implement">Implemento</string>
     <string name="terms_no_implement">Ninguno</string>
     <string name="terms_implement_note">El tractor genera la factura; el implemento suma las horas, para que su mantenimiento llegue a tiempo.</string>
     <string name="terms_crew">También en este trabajo</string>

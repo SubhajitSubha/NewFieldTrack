@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">Pelumpuran sawah</string>
+    <string name="work_type_ridging">Membuat guludan</string>
+    <string name="work_type_loading">Memuat</string>
+    <string name="work_type_water">Antar air</string>
+    <string name="work_type_hire">Sewa mesin</string>
+    <string name="work_more_kinds">Pekerjaan lain</string>
+    <string name="work_other_name">Apa nama pekerjaan ini?</string>
+    <string name="work_other_name_note">Tercantum di tagihan. Biarkan kosong agar tertulis Lainnya.</string>
+    <string name="work_attached">Apa yang terpasang?</string>
+    <string name="work_pulled_by">Ditarik oleh</string>
+    <string name="work_pulled_none">Bukan milik kami</string>
+    <string name="plan_advance_note">Uang muka untuk %1$s</string>
+    <string name="onboard_machine_more">Jenis lain</string>
+    <string name="plan_reason_other_what">Apa yang terjadi?</string>
+    <string name="paper_other_name">Apa nama surat ini?</string>
+    <string name="paper_other_name_hint">Pajak kendaraan</string>
+    <string name="method_other">Lainnya</string>
+    <string name="method_other_name">Dibayar dengan cara apa?</string>
+</resources>

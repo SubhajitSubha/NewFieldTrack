@@ -944,7 +944,7 @@ private fun AlertRow(alert: HomeAlert, actions: AlertActions) {
         is HomeAlert.PaperDue -> {
             tone = if (alert.daysLeft < 0) Tone.Stop else Tone.Wait
             icon = FieldTrackIcons.Bill
-            title = stringResource(R.string.home_alert_paper, stringResource(alert.kind.labelRes), alert.machineName)
+            title = stringResource(R.string.home_alert_paper, com.example.fieldtrack.feature.machine.paperName(alert.kind, alert.label), alert.machineName)
             note = when {
                 alert.daysLeft < 0 -> pluralStringResource(R.plurals.paper_expired, (-alert.daysLeft).toInt(), (-alert.daysLeft).toInt())
                 alert.daysLeft == 0L -> stringResource(R.string.paper_last_day)

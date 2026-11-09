@@ -316,7 +316,7 @@ class PlanTest {
         val cancelled = h.db.outboxDao().nextBatch(500).last { it.tableName == SyncQueue.TABLE_BOOKINGS }
         val statusKeys = kotlinx.serialization.json.Json.parseToJsonElement(cancelled.payloadJson)
             .let { (it as kotlinx.serialization.json.JsonObject).keys }
-        assertEquals(setOf("id", "orgId", "status", "cancelReason", "updatedAt"), statusKeys)
+        assertEquals(setOf("id", "orgId", "status", "cancelReason", "cancelNote", "updatedAt"), statusKeys)
 
         plan.reopen(owner, org, id)
         book(id = id, note = "second", machine = "t1")
@@ -325,7 +325,7 @@ class PlanTest {
             as kotlinx.serialization.json.JsonObject).keys
         assertTrue("note" in editKeys && "machineId" in editKeys)
         assertFalse("an edit leaves the status to whoever last set it", "status" in editKeys)
-        assertFalse("status" in editKeys || "cancelReason" in editKeys || "createdAt" in editKeys)
+        assertFalse("status" in editKeys || "cancelReason" in editKeys || "cancelNote" in editKeys || "createdAt" in editKeys)
     }
 
     @Test

@@ -360,7 +360,7 @@ private fun LedgerRow.title(): String = when (kind) {
     LedgerKind.Opening -> stringResource(R.string.ledger_opening_label)
     LedgerKind.Payment -> stringResource(
         R.string.ledger_payment_label,
-        stringResource(method.labelRes()),
+        com.example.fieldtrack.feature.methodName(method, methodLabel),
     )
     LedgerKind.Adjustment -> label.ifBlank { stringResource(R.string.ledger_adjustment_label) }
     LedgerKind.Charge -> label.ifBlank { stringResource(R.string.finish_this_job) }

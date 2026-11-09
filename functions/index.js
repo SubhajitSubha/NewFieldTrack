@@ -213,8 +213,18 @@ exports.onDeletionRequest = onDocumentWritten("deletionRequests/{personId}", asy
 
 const WORK_TYPES = [
   "Rotavator", "Ploughing", "Harvesting", "Levelling", "Spraying", "Hauling", "Sowing",
-  "Planting", "Baling", "Threshing", "Mulching", "Digging", "Pumping", "Other",
+  "Planting", "Baling", "Threshing", "Mulching", "Digging", "Pumping",
+  "Puddling", "Ridging", "Loading", "WaterSupply", "MachineHire", "Other",
 ];
+// The stored keys as a person reads them. A key that is not here is a business's own name for
+// its work, and is shown as it is.
+const WORK_NAMES = { WaterSupply: "Water supply", MachineHire: "Machine hire" };
+const workName = (key) => WORK_NAMES[key] || key;
+// The business's own names for its work, from its rate card, offered beside ours.
+async function ownWork(org) {
+  const snap = await org.ref.collection("rates").get();
+  return [...new Set(snap.docs.map((d) => String(d.get("workType") || "")).filter((w) => w && w.length <= 40 && !WORK_TYPES.includes(w)))];
+}
 const MAX_PER_ORG_PER_DAY = 40;
 const MAX_PER_PHONE_PER_DAY = 3;
 
@@ -250,10 +260,12 @@ exports.bookingPage = onRequest({ cors: false }, async (req, res) => {
     let digits = 2;
     try { digits = new Intl.NumberFormat("en", { style: "currency", currency: data.currencyCode || "USD" }).resolvedOptions().maximumFractionDigits; } catch (e) { /* unknown code: hundredths */ }
     const lines = snap.docs.map((d) => d.data()).filter((r) => !r.customerId && r.amountMinor > 0)
-      .map((r) => `<div style="display:flex;justify-content:space-between;padding:4px 0"><span>${esc(r.workType)}</span><span>${esc((r.amountMinor / Math.pow(10, digits)).toFixed(digits))} ${esc(data.currencyCode || "")} / ${esc(String(r.unit || "").toLowerCase())}</span></div>`);
+      .map((r) => `<div style="display:flex;justify-content:space-between;padding:4px 0"><span>${esc(workName(r.workType))}</span><span>${esc((r.amountMinor / Math.pow(10, digits)).toFixed(digits))} ${esc(data.currencyCode || "")} / ${esc(String(r.unit || "").toLowerCase())}</span></div>`);
     if (lines.length) rates = `<div class="card"><strong>Usual rates</strong>${lines.join("")}</div>`;
   }
-  const options = WORK_TYPES.map((w) => `<option value="${w}">${w}</option>`).join("");
+  const own = await ownWork(org);
+  const offered = [...WORK_TYPES.filter((w) => w !== "Other"), ...own, "Other"];
+  const options = offered.map((w) => `<option value="${esc(w)}">${esc(workName(w))}</option>`).join("");
   res.status(200).send(page(`<h1>${esc(data.name)}</h1><p class="sub">Tell us what work you need. We will call you to confirm; nothing is booked until we do.</p>${rates}
 <form method="post" action="/api/request"><input type="hidden" name="slug" value="${esc(slug)}">
 <input class="hp" name="website" tabindex="-1" autocomplete="off">
@@ -279,7 +291,9 @@ exports.bookingRequest = onRequest({ cors: false }, async (req, res) => {
     res.status(400).send(page("<h1>Please give a name and a phone number</h1><p class='sub'>Go back and try again.</p>"));
     return;
   }
-  const workType = WORK_TYPES.includes(b.workType) ? b.workType : "Other";
+  // Ours, or one of the business's own names from its rate card; anything else is "Other".
+  const asked = String(b.workType || "");
+  const workType = WORK_TYPES.includes(asked) || (await ownWork(org)).includes(asked) ? asked : "Other";
   const day = /^\d{4}-\d{2}-\d{2}$/.test(b.day || "") ? Math.floor(Date.parse(b.day + "T00:00:00Z") / 86400000) : null;
 
   // A day's limits, kept as counters on the business so one link cannot flood an inbox.

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">कद्दू (धान का खेत)</string>
+    <string name="work_type_ridging">मेड़ बनाना</string>
+    <string name="work_type_loading">लदाई</string>
+    <string name="work_type_water">पानी पहुँचाना</string>
+    <string name="work_type_hire">मशीन किराये पर</string>
+    <string name="work_more_kinds">और काम</string>
+    <string name="work_other_name">इस काम का नाम क्या है?</string>
+    <string name="work_other_name_note">बिल पर यही छपेगा। खाली छोड़ें तो \"दूसरा\" लिखा जाएगा।</string>
+    <string name="work_attached">पीछे क्या लगा है?</string>
+    <string name="work_pulled_by">किससे खींचा</string>
+    <string name="work_pulled_none">हमारा नहीं</string>
+    <string name="plan_advance_note">%1$s का अग्रिम</string>
+    <string name="onboard_machine_more">दूसरी किस्म</string>
+    <string name="plan_reason_other_what">क्या हुआ?</string>
+    <string name="paper_other_name">इस कागज़ का नाम क्या है?</string>
+    <string name="paper_other_name_hint">रोड टैक्स</string>
+    <string name="method_other">दूसरा</string>
+    <string name="method_other_name">कैसे दिए?</string>
+</resources>

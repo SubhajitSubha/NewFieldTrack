@@ -462,6 +462,8 @@ data class MachinePaperEntity(
     val orgId: String,
     val machineId: String,
     val kind: PaperKind,
+    /** What the owner calls a paper the list has no word for, when [kind] is Other. */
+    val label: String? = null,
     val number: String? = null,
     /** The last day it is valid, as an epoch day in the business's own calendar. */
     val expiresDay: Long? = null,
@@ -513,6 +515,8 @@ data class PayoutEntity(
      */
     val jobCostId: String? = null,
     val method: PaymentMethod? = null,
+    /** The payer's own name for the way, when [method] is Other. */
+    val methodLabel: String? = null,
     val note: String? = null,
     val byPersonId: String? = null,
     /**
@@ -909,6 +913,8 @@ data class LedgerEntryEntity(
     val amountMinor: Long,
     val jobId: String? = null,
     val method: PaymentMethod? = null,
+    /** The payer's own name for the way, when [method] is Other. */
+    val methodLabel: String? = null,
     val note: String? = null,
     val atMillis: Long,
     val byPersonId: String? = null,
@@ -952,6 +958,8 @@ data class BookingEntity(
     val note: String? = null,
     val status: BookingStatus = BookingStatus.Planned,
     val cancelReason: CancelReason? = null,
+    /** The reason in the planner's own words, when it was "something else". */
+    val cancelNote: String? = null,
     /** How many times it has been moved to another day. Farmers reschedule; the owner should see how often. */
     val movedCount: Int = 0,
     /** A token taken when the work was booked, already on the customer's account as a payment. */

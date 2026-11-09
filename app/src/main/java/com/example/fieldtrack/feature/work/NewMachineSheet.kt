@@ -44,10 +44,12 @@ import com.example.fieldtrack.feature.machine.nameHintRes
 @Composable
 fun NewMachineSheet(
     onDismiss: () -> Unit,
-    onAdd: (String, MachineKind) -> Unit,
+    /** The name, the kind, and what the owner calls the kind when it is "Other". */
+    onAdd: (String, MachineKind, String?) -> Unit,
 ) {
     val colors = FieldTrackTheme.colors
     var name by rememberSaveable { mutableStateOf("") }
+    var typeLabel by rememberSaveable { mutableStateOf("") }
     var kind by rememberSaveable { mutableStateOf(MachineKind.Tractor) }
 
     ModalBottomSheet(
@@ -83,6 +85,16 @@ fun NewMachineSheet(
                 searchHint = stringResource(R.string.machines_kind_search),
             )
 
+            // "Other" is a kind this app has no word for; the owner's own word, as on the full form.
+            if (kind == MachineKind.Other) {
+                FtTextField(
+                    label = stringResource(R.string.machines_type_label),
+                    value = typeLabel,
+                    onValueChange = { typeLabel = it.take(MAX_TYPE_LABEL) },
+                    placeholder = stringResource(R.string.machines_type_label_hint),
+                )
+            }
+
             FtTextField(
                 label = stringResource(R.string.machines_name),
                 value = name,
@@ -93,9 +105,12 @@ fun NewMachineSheet(
 
             FtButton(
                 text = stringResource(R.string.start_new_machine_save),
-                onClick = { onAdd(name, kind) },
+                onClick = { onAdd(name, kind, typeLabel.trim().ifBlank { null }.takeIf { kind == MachineKind.Other }) },
                 enabled = name.isNotBlank(),
             )
         }
     }
 }
+
+/** As on the full machine form. */
+private const val MAX_TYPE_LABEL = 40

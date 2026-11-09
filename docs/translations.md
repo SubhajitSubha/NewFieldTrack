@@ -62,6 +62,13 @@ the business's cash to the owner, not a payment to anybody), the **pay basis** w
 `wages_per_*`), **take back / taken back by** (`mh_taken_back_by`), and the UPI lines (`upi_*`,
 `payout_upi_*`), which are only ever shown in India, so the Hindi and Bengali matter most there.
 
+## Added with the work-follows-the-machine round (`strings_13.xml`, Indonesian `strings_14.xml`)
+18 more entries, drafted the same way and unread. Read first: the new kinds of work (`work_type_puddling`, wet tillage
+for rice; `work_type_hire`, a machine and its driver for the day), **What is attached? / Pulled by / Not one of ours**
+(`work_attached`, `work_pulled_by`, `work_pulled_none`: the tool behind a tractor, and the tractor in front of a tool,
+including a farmer's own), and the boxes that name an "Other" (`work_other_name*`, `paper_other_name`,
+`method_other_name`), whose note must use the same word for "Other" as the chip above it.
+
 ## Things the translations cannot yet do
 - The amount in words at the foot of a bill is English-only (and only for rupees). A bill in
   another language leaves that line off rather than print English number-words.

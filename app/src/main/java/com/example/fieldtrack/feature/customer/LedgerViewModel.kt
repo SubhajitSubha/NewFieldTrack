@@ -45,6 +45,8 @@ data class LedgerRow(
     /** Who wrote this line, by name; only filled in where more than one person writes here. */
     val byName: String? = null,
     val byPersonId: String? = null,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String? = null,
 ) {
     /** True when this line increases what the customer owes. */
     val isDebit: Boolean get() = kind == LedgerKind.Charge || kind == LedgerKind.Opening
@@ -76,6 +78,8 @@ data class CustomerPaymentRow(
     val jobId: String?,
     val atMillis: Long,
     val amountMinor: Long,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String? = null,
 )
 
 data class LedgerState(
@@ -141,6 +145,7 @@ fun buildKhata(entries: List<LedgerEntryEntity>): List<LedgerRow> {
             isReversal = entry.reversesEntryId != null || entry.id in reversedIds,
             jobId = entry.jobId,
             byPersonId = entry.byPersonId,
+            methodLabel = entry.methodLabel,
         )
     }.asReversed()
 }
@@ -317,6 +322,7 @@ class LedgerViewModel(
                         jobId = it.jobId,
                         atMillis = it.atMillis,
                         amountMinor = it.amountMinor,
+                        methodLabel = it.methodLabel,
                     )
                 }
 

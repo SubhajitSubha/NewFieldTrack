@@ -146,7 +146,7 @@ class AmendJobViewModel(
                 quantity = current.quantity,
                 rateMinor = current.rateMinor,
                 byPersonId = s.personId,
-                reason = current.reason.ifBlank { current.workType },
+                reason = current.reason.ifBlank { com.example.fieldtrack.feature.workLabel(app, current.workType) },
             )
         }.onFailure { _state.update { st -> st.copy(allowed = false) } }
         _state.update { it.copy(saving = false) }

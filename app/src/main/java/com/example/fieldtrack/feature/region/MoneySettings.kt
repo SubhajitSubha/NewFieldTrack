@@ -262,7 +262,8 @@ fun MoneySettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PaymentMethod.entries.forEach { method ->
+                // "Other" is always offered, so it is not something to switch on or off.
+                PaymentMethod.entries.filter { it != PaymentMethod.Other }.forEach { method ->
                     FtChip(
                         label = stringResource(method.labelRes),
                         selected = method in state.methods,

@@ -1,6 +1,7 @@
 package com.example.fieldtrack.feature.money
 
 import com.example.fieldtrack.designsystem.format.Money
+import com.example.fieldtrack.feature.labelRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,8 @@ fun PayOutScreen(
     modifier: Modifier = Modifier,
     /** Opens the person's UPI app with this link. */
     onPayByUpi: (String) -> Unit = {},
+    onMethod: (com.example.fieldtrack.data.db.PaymentMethod) -> Unit = {},
+    onMethodLabel: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -157,6 +160,19 @@ fun PayOutScreen(
                     color = colors.inkSecondary,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
+            }
+
+            // How it was paid: it used to be saved as cash whatever it was.
+            com.example.fieldtrack.designsystem.component.FtPick(
+                options = Money.methods,
+                selected = state.method,
+                text = { stringResource(it.labelRes) },
+                onPick = onMethod,
+                label = stringResource(R.string.hire_pay_method),
+                searchHint = stringResource(R.string.pick_search),
+            )
+            if (state.method == com.example.fieldtrack.data.db.PaymentMethod.Other) {
+                com.example.fieldtrack.feature.OtherMethodName(state.methodLabel, onMethodLabel)
             }
 
             FtTextField(

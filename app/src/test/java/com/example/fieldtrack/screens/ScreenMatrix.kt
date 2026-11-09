@@ -143,7 +143,10 @@ abstract class ScreenMatrix(
         settle()
         tap("Ramesh Singh")
         tap("Swaraj 855", substring = true)
-        tap("Next")
+        // The tractor's work step: what is attached, and its usual work first.
+        capture("sheets", "start-work-tractor")
+        tap("Rotavator")
+        capture("sheets", "start-work-rotavator-on")
         tap("Next")
         capture("sheets", "start-hint-no-rate")
         // The rate arrives filled in from the last time (₹1,000); typing replaces it.
@@ -717,6 +720,8 @@ abstract class ScreenMatrix(
         val swaraj = dir.addMachine(ORG, "Swaraj 855", MachineKind.Tractor, plate = "PB 10 AB 1234")
         val deere = dir.addMachine(ORG, "John Deere 5050", MachineKind.Tractor)
         val kartar = dir.addMachine(ORG, "Kartar 4000", MachineKind.Harvester)
+        // A tool, so a tractor's work step asks what is on the back of it.
+        dir.addMachine(ORG, "Rotavator 7ft", MachineKind.Rotavator)
         dir.setRate(ORG, "Rotavator", BillingMode.PerAcre, MeasureUnit.Bigha, 1_000)
 
         val driverPerson = "driver-gurmeet"

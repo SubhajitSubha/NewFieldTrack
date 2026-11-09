@@ -167,6 +167,12 @@ fun workLabel(workType: String): String =
         ?.let { stringResource(it.labelRes) }
         ?: workType
 
+/** The same, outside a composable: for bills, notifications and anything else made in code. */
+fun workLabel(context: android.content.Context, workType: String): String =
+    workTypeOptions.firstOrNull { it.key == workType }
+        ?.let { context.getString(it.labelRes) }
+        ?: workType
+
 /**
  * "3.5 acre" — a quantity and its unit, ordered by the language, not by Kotlin.
  *
@@ -300,10 +306,19 @@ data class WorkTypeOption(
      * per-acre rate — a number that is wrong in a way the khata cannot later explain.
      */
     val billingModes: List<BillingMode>,
+    /**
+     * The business's own name for this work, for work this app has no word for. Null for ours.
+     * An own-named work is charged any way at all, as "Other" is.
+     */
+    val name: String? = null,
 ) {
     /** What the picker lands on. Always one of [billingModes], by construction. */
     val defaultMode: BillingMode get() = billingModes.first()
 }
+
+/** What this work is called on screen: ours in the reader's language, or the business's own name. */
+@Composable
+fun WorkTypeOption.title(): String = name ?: stringResource(labelRes)
 
 private val AREA = BillingMode.PerAcre
 private val HOUR = BillingMode.PerHour
@@ -336,6 +351,13 @@ val workTypeOptions = listOf(
     WorkTypeOption(R.string.work_type_mulching, "Mulching", FieldTrackIcons.Rotavator, listOf(AREA, HOUR, FIXED)),
     WorkTypeOption(R.string.work_type_digging, "Digging", FieldTrackIcons.Tractor, listOf(HOUR, DAY, LOAD, TRIP, FIXED)),
     WorkTypeOption(R.string.work_type_pumping, "Pumping", FieldTrackIcons.PowerTiller, listOf(HOUR, DAY, FIXED)),
+    // Wet tillage for rice, done with a rotavator or a power tiller, and priced on its own.
+    WorkTypeOption(R.string.work_type_puddling, "Puddling", FieldTrackIcons.Rotavator, listOf(AREA, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_ridging, "Ridging", FieldTrackIcons.Cultivator, listOf(AREA, HOUR, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_loading, "Loading", FieldTrackIcons.Tractor, listOf(HOUR, TRIP, LOAD, DAY, FIXED)),
+    WorkTypeOption(R.string.work_type_water, "WaterSupply", FieldTrackIcons.Trolley, listOf(TRIP, LOAD, HOUR, DAY, FIXED)),
+    // The machine and its driver for the day, for whatever the farmer needs doing.
+    WorkTypeOption(R.string.work_type_hire, "MachineHire", FieldTrackIcons.Tractor, listOf(DAY, HOUR, FIXED)),
     WorkTypeOption(R.string.work_type_other, "Other", FieldTrackIcons.More, listOf(FIXED, AREA, HOUR, DAY, TRIP, LOAD, DISTANCE)),
 )
 
@@ -373,10 +395,34 @@ val PaymentMethod?.labelRes: Int
         PaymentMethod.MobileMoney -> R.string.method_mobile_money
         PaymentMethod.Card -> R.string.method_card
         PaymentMethod.InKind -> R.string.method_in_kind
+        PaymentMethod.Other -> R.string.method_other
     }
 
 /** The same, for call sites that read better as a call. */
 fun PaymentMethod?.labelRes(): Int = labelRes
+
+/** How a payment was made, as read: the payer's own name for an "Other" way, ours otherwise. */
+@Composable
+fun methodName(method: PaymentMethod?, label: String?): String =
+    label?.takeIf { method == PaymentMethod.Other && it.isNotBlank() } ?: stringResource(method.labelRes)
+
+/** The same, outside a composable. */
+fun methodName(context: android.content.Context, method: PaymentMethod?, label: String?): String =
+    label?.takeIf { method == PaymentMethod.Other && it.isNotBlank() } ?: context.getString(method.labelRes)
+
+/** The box under "Other" when it is chosen as the way of paying: its own name, or nothing. */
+@Composable
+fun OtherMethodName(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    com.example.fieldtrack.designsystem.component.FtTextField(
+        label = stringResource(R.string.method_other_name),
+        value = value,
+        onValueChange = { onChange(it.take(MAX_METHOD_NAME)) },
+        placeholder = stringResource(R.string.method_other),
+        modifier = modifier,
+    )
+}
+
+private const val MAX_METHOD_NAME = 40
 
 val BillingMode.labelRes: Int
     get() = when (this) {

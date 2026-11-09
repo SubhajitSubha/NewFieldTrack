@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">تلويط حقل الأرز</string>
+    <string name="work_type_ridging">عمل الخطوط</string>
+    <string name="work_type_loading">التحميل</string>
+    <string name="work_type_water">توصيل المياه</string>
+    <string name="work_type_hire">تأجير آلة</string>
+    <string name="work_more_kinds">أعمال أخرى</string>
+    <string name="work_other_name">ما اسم هذا العمل؟</string>
+    <string name="work_other_name_note">يظهر في الفاتورة. اتركه فارغًا ليُكتب «أخرى».</string>
+    <string name="work_attached">ما الموصول بها؟</string>
+    <string name="work_pulled_by">يجرّها</string>
+    <string name="work_pulled_none">ليست لنا</string>
+    <string name="plan_advance_note">عربون لـ %1$s</string>
+    <string name="onboard_machine_more">نوع آخر</string>
+    <string name="plan_reason_other_what">ماذا حدث؟</string>
+    <string name="paper_other_name">ما اسم هذه الورقة؟</string>
+    <string name="paper_other_name_hint">ضريبة الطرق</string>
+    <string name="method_other">أخرى</string>
+    <string name="method_other_name">كيف دُفع؟</string>
+</resources>

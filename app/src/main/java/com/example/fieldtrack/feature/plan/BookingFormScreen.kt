@@ -51,7 +51,7 @@ import com.example.fieldtrack.feature.WorkTypeOption
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.work.ClockSheet
 import com.example.fieldtrack.feature.work.PickCustomerSheet
-import com.example.fieldtrack.feature.workTypeOptions
+import com.example.fieldtrack.feature.title
 
 /** What a booking screen can ask of whatever is behind it. */
 class BookingFormActions(
@@ -60,6 +60,7 @@ class BookingFormActions(
     val onNewFarmer: () -> Unit,
     val onField: (String?) -> Unit,
     val onWork: (WorkTypeOption) -> Unit,
+    val onOtherName: (String) -> Unit = {},
     val onDay: (Long) -> Unit,
     val onPart: (DayPart) -> Unit,
     val onTime: (Int?) -> Unit,
@@ -68,8 +69,10 @@ class BookingFormActions(
     val onNote: (String) -> Unit,
     val onAdvance: (String) -> Unit = {},
     val onAdvanceMethod: (PaymentMethod) -> Unit = {},
+    val onAdvanceMethodLabel: (String) -> Unit = {},
     val onSave: () -> Unit,
-    val onCancel: (CancelReason) -> Unit,
+    /** The reason, and the planner's own words for it when it is "something else". */
+    val onCancel: (CancelReason, String?) -> Unit,
     val onDone: () -> Unit,
     val onReopen: () -> Unit,
 )
@@ -95,6 +98,8 @@ fun BookingFormScreen(
     var choosingDay by rememberSaveable { mutableStateOf(false) }
     var choosingTime by rememberSaveable { mutableStateOf(false) }
     var cancelling by rememberSaveable { mutableStateOf(false) }
+    // Null until "something else" is tapped; then the box for what it was.
+    var otherReason by rememberSaveable { mutableStateOf<String?>(null) }
 
     AdaptiveScreen(modifier.imePadding()) {
         FtTopBar(
@@ -179,15 +184,21 @@ fun BookingFormScreen(
                 }
             }
 
+            // What the chosen machine usually does first; the business's own names among the rest.
+            val menu = state.workMenu
+            val options = menu.usual + menu.rest
             FtPick(
-                options = workTypeOptions,
-                selected = workTypeOptions.firstOrNull { it.key == state.workType.key },
-                text = { stringResource(it.labelRes) },
+                options = options,
+                selected = options.firstOrNull { it.key == state.workType.key } ?: state.workType,
+                text = { it.title() },
                 icon = { it.icon },
                 onPick = { if (state.editable) actions.onWork(it) },
                 label = stringResource(R.string.plan_form_work),
                 searchHint = stringResource(R.string.pick_search),
             )
+            if (state.editable && state.workType.key == com.example.fieldtrack.feature.WorkCatalog.OTHER) {
+                com.example.fieldtrack.feature.work.OtherWorkName(state.otherName, actions.onOtherName)
+            }
 
             FtSectionLabel(stringResource(R.string.plan_form_day))
             FlowRow(
@@ -319,6 +330,9 @@ fun BookingFormScreen(
                             )
                         }
                     }
+                    if (state.advanceMethod == PaymentMethod.Other) {
+                        com.example.fieldtrack.feature.OtherMethodName(state.advanceMethodLabel, actions.onAdvanceMethodLabel)
+                    }
                 }
             }
             state.advanceTakenMinor?.let { taken ->
@@ -398,23 +412,44 @@ fun BookingFormScreen(
         )
     }
     if (cancelling) {
+        val close = { cancelling = false; otherReason = null }
         AlertDialog(
-            onDismissRequest = { cancelling = false },
+            onDismissRequest = close,
             title = { Text(stringResource(R.string.plan_cancel_why)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CancelReason.entries.forEach { reason ->
+                    val typing = otherReason
+                    if (typing == null) {
+                        CancelReason.entries.forEach { reason ->
+                            FtButton(
+                                text = stringResource(reasonText(reason)),
+                                onClick = {
+                                    // "Something else" asks what, which may be left empty.
+                                    if (reason == CancelReason.Other) otherReason = ""
+                                    else { close(); actions.onCancel(reason, null) }
+                                },
+                                tone = FtButtonTone.Secondary,
+                                height = 48.dp,
+                            )
+                        }
+                    } else {
+                        FtTextField(
+                            label = stringResource(R.string.plan_reason_other_what),
+                            value = typing,
+                            onValueChange = { otherReason = it.take(MAX_CANCEL_REASON) },
+                            placeholder = stringResource(R.string.plan_reason_other),
+                            takeFocus = true,
+                        )
                         FtButton(
-                            text = stringResource(reasonText(reason)),
-                            onClick = { cancelling = false; actions.onCancel(reason) },
-                            tone = FtButtonTone.Secondary,
+                            text = stringResource(R.string.plan_cancel_booking),
+                            onClick = { close(); actions.onCancel(CancelReason.Other, typing) },
                             height = 48.dp,
                         )
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { cancelling = false }) { Text(stringResource(R.string.plan_keep_booking)) }
+                TextButton(onClick = close) { Text(stringResource(R.string.plan_keep_booking)) }
             },
         )
     }
@@ -441,7 +476,8 @@ private fun Banner(state: BookingFormState) {
         Text(text = stringResource(text), style = FieldTrackTheme.type.bodySmall, color = colors.inkSecondary)
         state.cancelReason?.takeIf { state.status == BookingStatus.Cancelled }?.let {
             Text(
-                text = stringResource(reasonText(it)),
+                // The planner's own words when they gave some.
+                text = state.cancelNote?.takeIf { _ -> it == CancelReason.Other } ?: stringResource(reasonText(it)),
                 style = FieldTrackTheme.type.caption,
                 color = colors.inkTertiary,
                 modifier = Modifier.padding(top = 4.dp),
@@ -490,3 +526,6 @@ private fun Warnings(state: BookingFormState) {
 private fun WarningLine(text: String) {
     Text(text = text, style = FieldTrackTheme.type.bodySmall, color = FieldTrackTheme.colors.dueInk)
 }
+
+/** As the repository keeps it. */
+private const val MAX_CANCEL_REASON = 80

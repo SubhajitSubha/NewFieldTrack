@@ -69,6 +69,8 @@ data class RecordPaymentState(
     val method: PaymentMethod = PaymentMethod.Cash,
     /** What was handed over when it was grain or produce, such as "20 bags of wheat". */
     val inKindNote: String = "",
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String = "",
     val saving: Boolean = false,
     /** The business's UPI id and name, for a code the farmer can scan to pay. */
     val upiId: String? = null,
@@ -122,7 +124,7 @@ class RecordPaymentViewModel(
         state.copy(
             clears = clearedBy(entries, state.amountMinor).map {
                 ClearedLine(
-                    title = it.entry.note.orEmpty(),
+                    title = com.example.fieldtrack.feature.workLabel(app, it.entry.note.orEmpty()),
                     dateLabel = dayMonth(it.entry.atMillis),
                     clearedMinor = it.clearedMinor,
                     fully = it.fully,
@@ -134,6 +136,8 @@ class RecordPaymentViewModel(
 
     fun setInKind(text: String) = _state.update { it.copy(inKindNote = text.take(80)) }
 
+    fun setMethodLabel(text: String) = _state.update { it.copy(methodLabel = text) }
+
     fun save(onDone: (Long) -> Unit) = viewModelScope.launch {
         val current = _state.value
         if (!current.canSave) return@launch
@@ -144,6 +148,7 @@ class RecordPaymentViewModel(
             customerId = customerId,
             amountMinor = current.amountMinor,
             method = current.method,
+            methodLabel = current.methodLabel,
             byPersonId = s.personId,
             // What was handed over, since the amount is only what it was worth that day.
             note = current.inKindNote.trim().ifBlank { null }.takeIf { current.method == PaymentMethod.InKind },
@@ -162,6 +167,7 @@ fun RecordPaymentScreen(
     onTakeAll: () -> Unit,
     onMethod: (PaymentMethod) -> Unit,
     onInKind: (String) -> Unit = {},
+    onMethodLabel: (String) -> Unit = {},
     onSaveAndSend: () -> Unit,
     onJustSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -346,6 +352,10 @@ fun RecordPaymentScreen(
                         color = colors.inkTertiary,
                     )
                 }
+            }
+
+            if (state.method == PaymentMethod.Other) {
+                com.example.fieldtrack.feature.OtherMethodName(state.methodLabel, onMethodLabel)
             }
 
             if (state.method == PaymentMethod.InKind) {

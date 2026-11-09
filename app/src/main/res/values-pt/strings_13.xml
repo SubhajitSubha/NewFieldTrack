@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">Lameamento</string>
+    <string name="work_type_ridging">Amontoa</string>
+    <string name="work_type_loading">Carregamento</string>
+    <string name="work_type_water">Entrega de água</string>
+    <string name="work_type_hire">Aluguel de máquina</string>
+    <string name="work_more_kinds">Mais serviços</string>
+    <string name="work_other_name">Como se chama este serviço?</string>
+    <string name="work_other_name_note">Aparece na cobrança. Deixe vazio para chamar de Outro.</string>
+    <string name="work_attached">O que está engatado?</string>
+    <string name="work_pulled_by">Puxado por</string>
+    <string name="work_pulled_none">Não é nosso</string>
+    <string name="plan_advance_note">Adiantamento de %1$s</string>
+    <string name="onboard_machine_more">Outro tipo</string>
+    <string name="plan_reason_other_what">O que aconteceu?</string>
+    <string name="paper_other_name">Como se chama este documento?</string>
+    <string name="paper_other_name_hint">IPVA</string>
+    <string name="method_other">Outro</string>
+    <string name="method_other_name">Como foi pago?</string>
+</resources>

@@ -69,6 +69,7 @@ fun OnboardingScreen(
     onNext: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
+    onMachineTypeLabel: (String) -> Unit = {},
 ) {
     if (state.step == OnboardingStep.Welcome) {
         WelcomeStep(onNext, modifier)
@@ -109,7 +110,7 @@ fun OnboardingScreen(
                 OnboardingStep.You -> YouStep(state, onName)
                 OnboardingStep.Business -> BusinessStep(state, onBusinessName)
                 OnboardingStep.Region -> RegionStep(state, onCurrency, onLandUnit)
-                OnboardingStep.Machine -> MachineStep(state, onMachineKind, onMachineName)
+                OnboardingStep.Machine -> MachineStep(state, onMachineKind, onMachineName, onMachineTypeLabel)
                 else -> DoneStep(state)
             }
             Box(Modifier.height(dimens.space4))
@@ -370,6 +371,7 @@ private fun ColumnScope.MachineStep(
     state: OnboardingState,
     onMachineKind: (MachineKind) -> Unit,
     onMachineName: (String) -> Unit,
+    onMachineTypeLabel: (String) -> Unit,
 ) {
     Text(
         text = stringResource(R.string.onboard_machine_caption),
@@ -391,6 +393,25 @@ private fun ColumnScope.MachineStep(
                 )
             }
         }
+    }
+    // The six above are the common ones; every other kind, and "Other" with its own name, is here.
+    com.example.fieldtrack.designsystem.component.FtDropdown(
+        options = com.example.fieldtrack.feature.machine.MachineKinds.filter { it !in kinds },
+        selected = state.machineKind.takeIf { it !in kinds },
+        text = { stringResource(it.labelRes()) },
+        icon = { iconFor(it) },
+        onPick = onMachineKind,
+        placeholder = stringResource(R.string.onboard_machine_more),
+        searchHint = stringResource(R.string.machines_kind_search),
+        sheetTitle = stringResource(R.string.machines_kind),
+    )
+    if (state.machineKind == MachineKind.Other) {
+        FtTextField(
+            label = stringResource(R.string.machines_type_label),
+            value = state.machineTypeLabel,
+            onValueChange = onMachineTypeLabel,
+            placeholder = stringResource(R.string.machines_type_label_hint),
+        )
     }
     FtTextField(
         label = stringResource(R.string.onboard_machine_name),

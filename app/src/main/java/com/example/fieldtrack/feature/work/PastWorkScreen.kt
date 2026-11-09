@@ -45,7 +45,6 @@ import com.example.fieldtrack.feature.captionRes
 import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.feature.unitsFor
-import com.example.fieldtrack.feature.workTypeOptions
 
 /**
  * Recording work that happened before anybody pressed start.
@@ -76,6 +75,8 @@ fun PastWorkScreen(
     onForgetTimes: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onPartner: (String?) -> Unit = {},
+    onOtherName: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -178,23 +179,7 @@ fun PastWorkScreen(
                 )
             }
 
-            Column {
-                FtSectionLabel(
-                    stringResource(R.string.start_work_type),
-                    Modifier.padding(bottom = 9.dp),
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    workTypeOptions.forEach { option ->
-                        FtChoiceCard(
-                            title = stringResource(option.labelRes),
-                            selected = state.workType.key == option.key,
-                            onClick = { onWorkType(option) },
-                            icon = option.icon,
-                        )
-                    }
-                }
-            }
-
+            // The machine first: what it is decides which work comes first, and what went with it.
             if (state.machines.isNotEmpty()) {
                 MachineChoice(
                     machines = state.machines,
@@ -204,6 +189,16 @@ fun PastWorkScreen(
                     label = stringResource(R.string.start_machine),
                 )
             }
+
+            PartnerChoice(state.pick, onPartner, showBusy = false)
+
+            WorkChoice(
+                menu = state.pick.menu,
+                selected = state.workType,
+                otherName = state.pick.otherName,
+                onPick = onWorkType,
+                onOtherName = onOtherName,
+            )
 
             Column {
                 FtSectionLabel(
@@ -255,7 +250,6 @@ fun PastWorkScreen(
             TermsSection(
                 draft = state.terms,
                 onChange = onTerms,
-                implements = state.machines.filter { it.id != state.machineId },
             )
 
             TimesSection(state, onPickFrom, onPickTo, onForgetTimes)

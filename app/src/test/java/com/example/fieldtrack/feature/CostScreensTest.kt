@@ -53,7 +53,7 @@ class CostScreensTest {
         mode: BillingMode = BillingMode.PerAcre,
         unit: MeasureUnit = MeasureUnit.Bigha,
     ) = StartWorkState(
-        workType = com.example.fieldtrack.feature.workTypeOptions.first { it.key == "Rotavator" },
+        pick = com.example.fieldtrack.feature.work.WorkPick(work = com.example.fieldtrack.feature.WorkCatalog.option("Rotavator")),
         billingMode = mode, unit = unit, rateText = rate,
         machineCost = cost, machineKinds = kinds,
     )

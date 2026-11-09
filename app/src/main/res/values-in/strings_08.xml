@@ -59,7 +59,6 @@
     <string name="terms_waiting">Menunggu pelanggan</string>
     <string name="terms_per_hour">per jam</string>
     <string name="terms_waiting_note">Waktu pekerjaan dijeda ditagih dengan tarif ini. Kosongkan agar tidak menagih waktu menunggu.</string>
-    <string name="terms_implement">Alat pengolah</string>
     <string name="terms_no_implement">Tidak ada</string>
     <string name="terms_implement_note">Traktor yang menghasilkan tagihan; alat pengolah mendapat jam kerjanya, jadi servisnya datang tepat waktu.</string>
     <string name="terms_crew">Juga dalam pekerjaan ini</string>

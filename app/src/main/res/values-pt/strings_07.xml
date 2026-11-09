@@ -243,7 +243,6 @@
     <string name="terms_waiting">Espera pelo cliente</string>
     <string name="terms_per_hour">por hora</string>
     <string name="terms_waiting_note">O tempo em que o serviço fica pausado é cobrado por este valor. Deixe vazio para não cobrar espera.</string>
-    <string name="terms_implement">Implemento</string>
     <string name="terms_no_implement">Nenhum</string>
     <string name="terms_implement_note">O trator gera a cobrança; o implemento recebe as horas, para a revisão dele chegar na hora certa.</string>
     <string name="terms_crew">Também neste serviço</string>

@@ -49,6 +49,7 @@ import com.example.fieldtrack.feature.dayMonthYear
 import com.example.fieldtrack.feature.dayMonth
 import com.example.fieldtrack.feature.initialsOf
 import com.example.fieldtrack.feature.labelRes
+import com.example.fieldtrack.data.db.BreakdownCategory
 import com.example.fieldtrack.data.auth.formatPhone
 import androidx.compose.foundation.layout.Spacer
 import com.example.fieldtrack.designsystem.component.FtRowDivider
@@ -245,7 +246,7 @@ private fun SummaryCard(state: JobDetailState, onOpenCustomer: () -> Unit) {
                 )
             }
             Text(
-                text = listOfNotNull(state.workType, state.fieldLabel).joinToString(" · "),
+                text = listOfNotNull(com.example.fieldtrack.feature.workLabel(state.workType), state.fieldLabel).joinToString(" · "),
                 style = FieldTrackTheme.type.caption,
                 color = colors.onDarkMuted,
                 modifier = Modifier.padding(top = 3.dp),
@@ -403,7 +404,9 @@ private fun JobEventRow.title(state: JobDetailState): String {
         )
         JobEventType.BreakdownReported -> stringResource(
             R.string.event_breakdown,
-            textValue.orEmpty(),
+            // A kind of ours, translated; otherwise the reporter's own words.
+            textValue?.let { t -> BreakdownCategory.entries.firstOrNull { it.name == t } }
+                ?.let { stringResource(it.labelRes) } ?: textValue.orEmpty(),
         )
         JobEventType.NoteAdded -> textValue.orEmpty()
             .ifBlank { stringResource(R.string.work_note_title) }
@@ -540,13 +543,15 @@ private fun CostCard(
             )
         }
 
-        if (state.seesPeopleCost && state.otherMinor > 0) {
-            Spacer(Modifier.height(9.dp))
-            CostLine(
-                label = stringResource(R.string.cost_other),
-                amount = "−" + money(state.otherMinor),
-                cost = true,
-            )
+        if (state.seesPeopleCost) {
+            state.otherCosts.forEach { (note, amount) ->
+                Spacer(Modifier.height(9.dp))
+                CostLine(
+                    label = note ?: stringResource(R.string.cost_other),
+                    amount = "−" + money(amount),
+                    cost = true,
+                )
+            }
         }
 
         if (state.canTotal) {

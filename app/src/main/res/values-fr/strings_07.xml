@@ -169,7 +169,6 @@
     <string name="terms_waiting">Attente du client</string>
     <string name="terms_per_hour">de l\'heure</string>
     <string name="terms_waiting_note">Le temps où le travail reste en pause est facturé à ce prix. Laissez vide pour ne pas facturer l\'attente.</string>
-    <string name="terms_implement">Outil attelé</string>
     <string name="terms_no_implement">Aucun</string>
     <string name="terms_implement_note">Le tracteur rapporte la facture ; l\'outil reçoit les heures, pour que son entretien arrive à temps.</string>
     <string name="terms_crew">Aussi sur ce travail</string>

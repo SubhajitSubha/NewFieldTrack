@@ -18,7 +18,10 @@ object PaymentMethods {
         "PHP", "IDR", "MMK", "KHR", "LAK", "NGN",
     )
 
-    /** What is usual where a currency is used. */
+    /**
+     * What is usual where a currency is used, and "Other" last for the way nobody here
+     * thought of, which the payer then names.
+     */
     fun defaultsFor(currencyCode: String): List<PaymentMethod> = when {
         currencyCode == "INR" ->
             listOf(PaymentMethod.Cash, PaymentMethod.Upi, PaymentMethod.Bank, PaymentMethod.Cheque)
@@ -26,7 +29,7 @@ object PaymentMethods {
             listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.Bank)
         else ->
             listOf(PaymentMethod.Cash, PaymentMethod.Bank, PaymentMethod.Card, PaymentMethod.Cheque)
-    }
+    } + PaymentMethod.Other
 
     /** The methods a business offers: what it chose, else what is usual for its money. */
     fun offered(stored: String?, currencyCode: String): List<PaymentMethod> {
@@ -35,8 +38,13 @@ object PaymentMethods {
             ?.distinct()
             .orEmpty()
         val list = chosen.ifEmpty { defaultsFor(currencyCode) }
-        return if (PaymentMethod.Cash in list) list else listOf(PaymentMethod.Cash) + list
+        // Cash first and "Other" last are always there: the first payment is nearly always cash,
+        // and a way nobody listed still has to go somewhere, under the payer's own name.
+        val withCash = if (PaymentMethod.Cash in list) list else listOf(PaymentMethod.Cash) + list
+        return withCash.filter { it != PaymentMethod.Other } + PaymentMethod.Other
     }
 
-    fun encode(methods: List<PaymentMethod>): String = methods.joinToString(",") { it.name }
+    /** "Other" is always offered, so it is never part of what a business chose. */
+    fun encode(methods: List<PaymentMethod>): String =
+        methods.filter { it != PaymentMethod.Other }.joinToString(",") { it.name }
 }

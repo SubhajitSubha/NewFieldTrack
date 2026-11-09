@@ -78,8 +78,8 @@ data class StartWorkState(
      */
     val fields: List<FieldEntity> = emptyList(),
     val fieldId: String? = null,
-    val machineId: String? = null,
-    val workType: WorkTypeOption = workTypeOptions.first(),
+    /** The machine, what goes out with it, and the work, which move together. */
+    val pick: WorkPick = WorkPick(),
     val billingMode: BillingMode = BillingMode.PerAcre,
     val unit: MeasureUnit = MeasureUnit.Acre,
     /** What this business measures land in, which names the area billing mode. */
@@ -111,6 +111,10 @@ data class StartWorkState(
     val planToday: Long = 0,
 ) {
     val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
+
+    /** The machine picked, as the person picked it: a tractor, or a tool. */
+    val machineId: String? get() = pick.machineId
+    val workType: WorkTypeOption get() = pick.work
 
     /**
      * What this machine costs for the work being set up, if enough is known.
@@ -260,10 +264,25 @@ class StartWorkViewModel(
                 }
                 .collect { fields -> _state.update { state -> state.copy(fields = fields) } }
         }
+        // What the machines have done and how it was charged: the order of the work list, and
+        // the way a work is charged when it is picked. The first time it comes, the work already
+        // showing is charged that way too.
+        viewModelScope.launch {
+            var first = true
+            app.sessionStore.session
+                .flatMapLatest { app.directoryRepository.observeWorkHistory(it.orgId) }
+                .collect { history ->
+                    changePick(recharge = first) { it.withHistory(history) }
+                    first = false
+                }
+        }
         viewModelScope.launch {
             app.sessionStore.session
                 .flatMapLatest { app.directoryRepository.observeMachines(it.orgId) }
-                .collect { machines -> _state.update { state -> state.copy(machines = machines) } }
+                .collect { machines ->
+                    changePick { it.withMachines(machines) }
+                    _state.update { state -> state.copy(machines = machines) }
+                }
         }
         // What the chosen machine costs to run, for the hint under the rate. Only
         // for somebody who sees what the business pays: the loan is part of it, and
@@ -272,7 +291,7 @@ class StartWorkViewModel(
         viewModelScope.launch {
             combine(
                 app.sessionStore.session,
-                _state.map { it.machineId }.distinctUntilChanged(),
+                _state.map { it.pick.jobMachineId }.distinctUntilChanged(),
             ) { s, machineId -> s to machineId }
                 .flatMapLatest { (s, machineId) ->
                     val allowed = Capability.SeeMoney in s.can && Capability.SeePeopleCost in s.can
@@ -333,38 +352,42 @@ class StartWorkViewModel(
     fun dropBooking() = _state.update { it.copy(bookingId = null) }
 
     private fun applyBooking(b: BookingEntity, machines: List<MachineEntity>) {
-        val option = workTypeOptions.firstOrNull { it.key == b.workType } ?: _state.value.workType
-        _state.update {
-            it.copy(
-                bookingId = b.id,
-                fieldId = b.fieldId,
-                // A machine since removed is not carried into a job that could not name it.
-                machineId = b.machineId?.takeIf { id -> machines.any { m -> m.id == id } },
-                workType = option,
-                billingMode = option.defaultMode,
-                unit = resolveUnit(option.defaultMode, orgLandUnit),
-            )
+        _state.update { it.copy(bookingId = b.id, fieldId = b.fieldId) }
+        // A machine since removed is not carried into a job that could not name it. The work is
+        // the booking's, own name and all.
+        changePick {
+            it.withMachines(machines.ifEmpty { it.machines })
+                .fromBooking(b.machineId?.takeIf { id -> machines.any { m -> m.id == id } }, b.workType)
+        }
+    }
+
+    fun selectMachine(id: String?) = changePick { it.pickMachine(id) }
+
+    fun selectPartner(id: String?) = changePick { it.pickPartner(id) }
+
+    fun nameOther(text: String) = _state.update { it.copy(pick = it.pick.nameOther(text)) }
+
+    /**
+     * Moves the machine, partner and work together, and when that changes the work, charges it
+     * the way this business last charged that work.
+     */
+    private fun changePick(recharge: Boolean = false, change: (WorkPick) -> WorkPick) {
+        val before = _state.value.pick.work.key
+        _state.update { it.copy(pick = change(it.pick)) }
+        val after = _state.value.pick
+        if (recharge || after.work.key != before) {
+            val (mode, unit) = chargeFor(after.work, after.history, orgLandUnit)
+            _state.update { it.copy(billingMode = mode, unit = unit, rateText = "") }
         }
         refreshSuggestedRate()
     }
-
-    fun selectMachine(id: String?) = _state.update { it.copy(machineId = id) }
 
     /**
      * Picking the work also sets a sensible billing mode, which the next step can
      * still override. Most contractors charge harvesting by the acre and hauling by
      * the trip; making them say so every time is friction for nothing.
      */
-    fun selectWorkType(option: WorkTypeOption) {
-        _state.update {
-            it.copy(
-                workType = option,
-                billingMode = option.defaultMode,
-                unit = resolveUnit(option.defaultMode, orgLandUnit),
-            )
-        }
-        refreshSuggestedRate()
-    }
+    fun selectWorkType(option: WorkTypeOption) = changePick { it.pickWork(option) }
 
     fun setBillingMode(mode: BillingMode) {
         // Refuse a mode this work is not sold by, rather than trusting the caller.
@@ -415,13 +438,13 @@ class StartWorkViewModel(
     }
 
     /** Adds a machine mid-flow and selects it, so the job can carry on. */
-    fun createMachine(name: String, kind: MachineKind) = viewModelScope.launch {
-        if (name.isNotBlank()) addMachine(name.trim(), kind)
+    fun createMachine(name: String, kind: MachineKind, typeLabel: String? = null) = viewModelScope.launch {
+        if (name.isNotBlank()) addMachine(name.trim(), kind, typeLabel)
     }
 
-    suspend fun addMachine(name: String, kind: MachineKind) {
+    suspend fun addMachine(name: String, kind: MachineKind, typeLabel: String? = null) {
         val s = app.sessionStore.load() ?: return
-        selectMachine(app.directoryRepository.addMachine(s.orgId, name, kind))
+        selectMachine(app.directoryRepository.addMachine(s.orgId, name, kind, typeLabel = typeLabel))
     }
 
     /** Creates the job and returns its id, or null if the session is not ready. */
@@ -431,28 +454,30 @@ class StartWorkViewModel(
         val customer = current.customer ?: return null
         _state.update { it.copy(starting = true) }
 
+        val workKey = current.pick.workKey { app.getString(it.labelRes) }
         val jobId = app.workRepository.startJob(
             orgId = s.orgId,
             customerId = customer.id,
-            workType = current.workType.key,
+            workType = workKey,
             billingMode = current.billingMode,
             unit = current.unit,
             rateMinor = current.rateMinor,
-            machineId = current.machineId,
+            // The tractor, with the tool behind it, whichever of the two was picked.
+            machineId = current.pick.jobMachineId,
             operatorPersonId = s.personId,
             // The whole reason fields exist. Without this the plot screens
             // would show nought earned on every field, for ever. Not a plot that has
             // since been deleted: a booking made last week can name one.
             fieldId = current.fieldId?.takeIf { app.directoryRepository.observeField(s.orgId, it).first() != null },
             bookingId = current.bookingId,
-            terms = current.terms.toTerms(),
+            terms = current.terms.toTerms().copy(implementMachineId = current.pick.implementId),
         )
         // Remember what was charged, against this customer, so "what I charged Ramesh
         // last time" is the number offered first next time. Switched off on the rate
         // card, the rate is kept for the business as a whole instead.
         app.directoryRepository.rememberRate(
             orgId = s.orgId,
-            workType = current.workType.key,
+            workType = workKey,
             billingMode = current.billingMode,
             unit = current.unit,
             amountMinor = current.rateMinor,
@@ -465,37 +490,48 @@ class StartWorkViewModel(
     private fun refreshSuggestedRate() = viewModelScope.launch {
         val s = app.sessionStore.load() ?: return@launch
         val current = _state.value
+        val perCustomer = app.sessionStore.rememberPerCustomer.value
         // Every rate that could apply, not just the first — one kind of work can
         // carry several, and picking one of them silently is how a contractor ends
         // up billing paddy at the wheat rate.
         val candidates = app.directoryRepository.ratesFor(
             orgId = s.orgId,
             workType = current.workType.key,
-            customerId = current.customer?.id.takeIf {
-                app.sessionStore.rememberPerCustomer.value
-            },
+            customerId = current.customer?.id.takeIf { perCustomer },
             // Only rates for how this work is being charged, in the unit it is
             // counted in: a per-hour rate is no answer to "per acre".
             billingMode = current.billingMode,
             unit = current.unit,
         )
-        if (candidates.isEmpty()) {
-            _state.update { it.copy(suggestedRates = emptyList()) }
-            return@launch
+        // What this machine was last charged out at for this work. Two combines are two prices.
+        val machineId = current.pick.jobMachineId
+        val onMachine = machineId?.let {
+            app.directoryRepository.lastRateOn(
+                s.orgId, it, current.workType.key, current.billingMode, current.unit,
+                current.customer?.id.takeIf { perCustomer },
+            )
         }
-
+        val suggestions = SuggestedRates.order(
+            candidates = candidates,
+            machineRate = onMachine?.rateMinor,
+            machineRateForCustomer = onMachine?.sameCustomer == true,
+            machineName = current.pick.machines.firstOrNull { it.id == machineId }?.name,
+        )
         _state.update {
+            // Only the answer to what is on screen now: a slower lookup for a work since changed is dropped.
+            if (it.workType.key != current.workType.key || it.billingMode != current.billingMode ||
+                it.unit != current.unit || it.pick.jobMachineId != machineId
+            ) return@update it
+            if (suggestions.isEmpty()) return@update it.copy(suggestedRates = emptyList())
+            val best = suggestions.first()
             it.copy(
-                suggestedRates = candidates.map { rate ->
-                    RateSuggestion(rate.amountMinor, rate.label, rate)
-                },
+                suggestedRates = suggestions,
                 // Prefill only when the person has not typed anything yet, and only
                 // from the best match — offering a choice does not mean guessing.
-                rateText = if (it.rateText.isBlank()) MoneyInput.text(candidates.first().amountMinor)
-                else it.rateText,
+                rateText = if (it.rateText.isBlank()) MoneyInput.text(best.amountMinor) else it.rateText,
                 // The terms that usually come with that rate, unless some were typed already.
                 terms = if (it.rateText.isBlank() && it.terms.isPlain) {
-                    TermsDraft.of(candidates.first(), keep = it.terms)
+                    TermsDraft.of(best.rate, keep = it.terms)
                 } else it.terms,
             )
         }

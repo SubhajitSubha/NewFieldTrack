@@ -251,7 +251,6 @@
     <string name="terms_waiting">ग्राहक का इंतज़ार</string>
     <string name="terms_per_hour">प्रति घंटा</string>
     <string name="terms_waiting_note">काम जितनी देर रुका रहता है उसका बिल इसी हिसाब से बनता है। इंतज़ार का पैसा न लेना हो तो खाली छोड़ें।</string>
-    <string name="terms_implement">औज़ार</string>
     <string name="terms_no_implement">कोई नहीं</string>
     <string name="terms_implement_note">बिल ट्रैक्टर कमाता है; औज़ार के घंटे जुड़ते हैं, ताकि उसकी सर्विस समय पर आए।</string>
 </resources>

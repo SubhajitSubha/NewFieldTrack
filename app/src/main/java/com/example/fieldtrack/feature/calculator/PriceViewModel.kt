@@ -63,6 +63,8 @@ data class PriceState(
     val input: PriceInput = PriceInput(),
     /** Rates from the rate card that fit exactly what is chosen, offered as one tap each. */
     val usualRates: List<RateSuggestion> = emptyList(),
+    /** Every work to price: ours, and the business's own names from its rate card. */
+    val works: List<WorkTypeOption> = com.example.fieldtrack.feature.WorkCatalog.all(emptyList()),
 ) {
     val rateMinor: Long get() = MoneyInput.parse(input.rateText) ?: 0L
 
@@ -142,6 +144,7 @@ class PriceViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 landUnit = s.landUnit,
                 input = typed,
                 usualRates = typed.fittingRates(rates),
+                works = com.example.fieldtrack.feature.WorkCatalog.all(rates.map { it.workType }),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PriceState())
@@ -160,10 +163,13 @@ class PriceViewModel(private val app: FieldFlowApplication) : ViewModel() {
     }
 
     fun selectWorkType(option: WorkTypeOption) = input.update {
+        // An own-named work is priced the way its rate card line is.
+        val mode = card.firstOrNull { r -> r.workType == option.key && r.billingMode in option.billingModes }?.billingMode
+            ?: option.defaultMode
         it.copy(
             workType = option,
-            billingMode = option.defaultMode,
-            unit = resolveUnit(option.defaultMode, landUnit),
+            billingMode = mode,
+            unit = resolveUnit(mode, landUnit),
         ).withRateFrom(card).recleaned()
     }
 

@@ -57,6 +57,8 @@ data class HirePay(
     val balance: com.example.fieldtrack.data.repository.HireBalance,
     val amountText: String,
     val method: com.example.fieldtrack.data.db.PaymentMethod,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String = "",
 ) {
     val amountMinor: Long get() = com.example.fieldtrack.designsystem.format.MoneyInput.parse(amountText) ?: 0L
     val canSave: Boolean get() = amountMinor > 0
@@ -86,6 +88,7 @@ class MoneyOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setHireAmount(text: String) = payForm.update { it?.copy(amountText = com.example.fieldtrack.designsystem.format.MoneyInput.clean(text)) }
     fun setHireMethod(method: com.example.fieldtrack.data.db.PaymentMethod) = payForm.update { it?.copy(method = method) }
+    fun setHireMethodLabel(text: String) = payForm.update { it?.copy(methodLabel = text) }
     fun dismissHirePay() { payForm.value = null }
 
     fun saveHirePay() = viewModelScope.launch {
@@ -102,6 +105,7 @@ class MoneyOutViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 toPersonId = pay.balance.personId,
                 toName = pay.balance.name,
                 method = pay.method,
+                methodLabel = pay.methodLabel,
             )
         }
         payForm.value = null

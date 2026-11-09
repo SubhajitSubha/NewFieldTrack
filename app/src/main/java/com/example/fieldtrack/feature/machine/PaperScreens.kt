@@ -121,7 +121,7 @@ fun PapersCard(papers: List<PaperRow>, canEdit: Boolean, onOpen: (String?) -> Un
                 if (index > 0) FtRowDivider()
                 val warn = paper.status is PaperStatus.Soon || paper.status is PaperStatus.Expired
                 FtListRow(
-                    title = stringResource(paper.kind.labelRes) + (paper.number?.let { " · $it" } ?: ""),
+                    title = paperName(paper.kind, paper.label) + (paper.number?.let { " · $it" } ?: ""),
                     subtitle = buildString {
                         paper.expiresDay?.let { append(dayMonthYear(dayStartMillis(it))).append(" · ") }
                         append(paperStatusText(paper.status))
@@ -150,6 +150,8 @@ data class PaperEditState(
     val machineName: String = "",
     val exists: Boolean = false,
     val kind: PaperKind = PaperKind.Insurance,
+    /** What the owner calls an "Other" paper. Empty keeps "Other". */
+    val label: String = "",
     val number: String = "",
     val expiresDay: Long? = null,
     val note: String = "",
@@ -176,6 +178,7 @@ class PaperEditViewModel(
                     machineName = machine?.name.orEmpty(),
                     exists = paper != null,
                     kind = paper?.kind ?: it.kind,
+                    label = paper?.label.orEmpty(),
                     number = paper?.number.orEmpty(),
                     expiresDay = paper?.expiresDay,
                     note = paper?.note.orEmpty(),
@@ -186,6 +189,7 @@ class PaperEditViewModel(
     }
 
     fun setKind(v: PaperKind) = _state.update { it.copy(kind = v) }
+    fun setLabel(v: String) = _state.update { it.copy(label = v.take(40)) }
     fun setNumber(v: String) = _state.update { it.copy(number = v.take(40)) }
     fun setExpires(v: Long?) = _state.update { it.copy(expiresDay = v) }
     fun setNote(v: String) = _state.update { it.copy(note = v.take(200)) }
@@ -196,7 +200,7 @@ class PaperEditViewModel(
         _state.update { it.copy(saving = true) }
         runCatching {
             app.directoryRepository.savePaper(
-                s.orgId, s.can, machineId, c.kind, c.number, c.expiresDay, c.note, paperId = paperId,
+                s.orgId, s.can, machineId, c.kind, c.number, c.expiresDay, c.note, paperId = paperId, label = c.label,
             )
         }
         _state.update { it.copy(saving = false) }
@@ -216,6 +220,7 @@ fun PaperEditScreen(
     state: PaperEditState,
     onKind: (PaperKind) -> Unit,
     onNumber: (String) -> Unit,
+    onLabel: (String) -> Unit = {},
     onExpires: (Long?) -> Unit,
     onNote: (String) -> Unit,
     onSave: () -> Unit,
@@ -245,6 +250,15 @@ fun PaperEditScreen(
                 PaperKind.entries.forEach { kind ->
                     FtChip(label = stringResource(kind.labelRes), selected = state.kind == kind, onClick = { onKind(kind) })
                 }
+            }
+            // A paper this list has no word for gets the owner's own.
+            if (state.kind == PaperKind.Other) {
+                FtTextField(
+                    value = state.label,
+                    onValueChange = onLabel,
+                    label = stringResource(R.string.paper_other_name),
+                    placeholder = stringResource(R.string.paper_other_name_hint),
+                )
             }
             FtTextField(
                 value = state.number,
@@ -542,3 +556,8 @@ fun AssetRegisterScreen(
         }
     }
 }
+
+/** A paper's name: the owner's own for an "Other" one, ours in the reader's language otherwise. */
+@Composable
+fun paperName(kind: PaperKind, label: String?): String =
+    label?.takeIf { kind == PaperKind.Other && it.isNotBlank() } ?: stringResource(kind.labelRes)

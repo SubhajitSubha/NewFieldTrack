@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.example.fieldtrack.R
 import com.example.fieldtrack.data.billing.JobTerms
 import com.example.fieldtrack.data.db.FuelTerms
-import com.example.fieldtrack.data.db.entity.MachineEntity
 import com.example.fieldtrack.data.db.entity.RateEntity
 import com.example.fieldtrack.designsystem.component.FtCard
 import com.example.fieldtrack.designsystem.component.FtChip
@@ -37,7 +36,6 @@ data class TermsDraft(
     val arrivalText: String = "",
     val waitingText: String = "",
     val fuelTerms: FuelTerms = FuelTerms.Included,
-    val implementMachineId: String? = null,
     val coOperatorIds: Set<String> = emptySet(),
     val open: Boolean = false,
 ) {
@@ -46,7 +44,6 @@ data class TermsDraft(
         arrivalMinor = MoneyInput.parse(arrivalText) ?: 0L,
         fuelTerms = fuelTerms,
         waitingRateMinor = MoneyInput.parse(waitingText) ?: 0L,
-        implementMachineId = implementMachineId,
         coOperatorIds = coOperatorIds.sorted().joinToString(",").ifBlank { null },
     )
 
@@ -68,8 +65,8 @@ data class TermsDraft(
 data class Crew(val id: String, val name: String)
 
 /**
- * "Terms": a minimum, an arrival charge, who pays for the diesel, waiting time, the
- * implement, and anyone else on the job.
+ * "Terms": a minimum, an arrival charge, who pays for the diesel, waiting time, and anyone
+ * else on the job. The implement is asked beside the machine, where it belongs.
  *
  * Folded away until asked for, because most jobs are just a rate and a quantity and a
  * farmer handing over a phone should not be walked past five questions that do not apply.
@@ -81,8 +78,6 @@ fun TermsSection(
     draft: TermsDraft,
     onChange: (TermsDraft) -> Unit,
     modifier: Modifier = Modifier,
-    /** Machines that can be the implement. Empty hides the question (the rate card has no job to put one on). */
-    implements: List<MachineEntity> = emptyList(),
     /** People who can be added to the job. Empty hides the question. */
     crew: List<Crew> = emptyList(),
 ) {
@@ -97,7 +92,6 @@ fun TermsSection(
             FuelTerms.CustomerSupplies -> stringResource(R.string.terms_sum_fuel_theirs)
             FuelTerms.BilledExtra -> stringResource(R.string.terms_sum_fuel_billed)
         },
-        terms.implementMachineId?.let { id -> implements.firstOrNull { it.id == id }?.name },
         terms.coOperatorIds?.let { stringResource(R.string.terms_sum_crew, it.split(',').size) },
     ).joinToString(" · ").ifBlank { stringResource(R.string.terms_none) }
 
@@ -166,31 +160,6 @@ fun TermsSection(
                 keyboardType = amountKeyboard,
                 helper = stringResource(R.string.terms_waiting_note),
             )
-            if (implements.isNotEmpty()) {
-                FtSectionLabel(stringResource(R.string.terms_implement))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FtChip(
-                        label = stringResource(R.string.terms_no_implement),
-                        selected = draft.implementMachineId == null,
-                        onClick = { onChange(draft.copy(implementMachineId = null)) },
-                    )
-                    implements.forEach { machine ->
-                        FtChip(
-                            label = machine.name,
-                            selected = draft.implementMachineId == machine.id,
-                            onClick = { onChange(draft.copy(implementMachineId = machine.id)) },
-                        )
-                    }
-                }
-                Text(
-                    text = stringResource(R.string.terms_implement_note),
-                    style = FieldTrackTheme.type.caption,
-                    color = colors.inkTertiary,
-                )
-            }
             if (crew.isNotEmpty()) {
                 FtSectionLabel(stringResource(R.string.terms_crew))
                 FlowRow(

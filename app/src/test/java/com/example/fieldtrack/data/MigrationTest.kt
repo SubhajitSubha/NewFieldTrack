@@ -237,7 +237,7 @@ class MigrationTest {
         // Opening is the assertion: Room validates every table against this build.
         val db = open().openHelper.writableDatabase
         db.query("PRAGMA user_version").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(30, c.getInt(0))
+            assertTrue(c.moveToFirst()); assertEquals(31, c.getInt(0))
         }
     }
 
@@ -581,6 +581,33 @@ class MigrationTest {
         }
         for (table in listOf("cash_handovers", "member_details", "member_pay_terms")) {
             db.query("SELECT COUNT(*) FROM $table").use { c -> assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0)) }
+        }
+    }
+
+    @Test
+    fun `papers, cancelled bookings and payments keep their rows when "Other" learns to carry a name`() {
+        create(30) {
+            it.execSQL(
+                "INSERT INTO machine_papers (id, orgId, machineId, kind, updatedAt, syncState) " +
+                    "VALUES ('pp1', 'o1', 'm1', 'Other', 1, 'Synced')"
+            )
+            it.execSQL(
+                "INSERT INTO ledger_entries (id, orgId, customerId, kind, amountMinor, method, atMillis, createdAt, syncState) " +
+                    "VALUES ('l1', 'o1', 'c1', 'Payment', 3000, 'Cash', 1, 1, 'Synced')"
+            )
+        }
+        val db = open().openHelper.writableDatabase
+        db.query("SELECT kind, label FROM machine_papers").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals("Other", c.getString(0)); assertTrue(c.isNull(1))
+        }
+        db.query("SELECT amountMinor, methodLabel FROM ledger_entries").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(3000L, c.getLong(0)); assertTrue(c.isNull(1))
+        }
+        db.query("SELECT COUNT(*) FROM bookings WHERE cancelNote IS NOT NULL").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM payouts WHERE methodLabel IS NOT NULL").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(0, c.getInt(0))
         }
     }
 }

@@ -179,7 +179,6 @@
     <string name="terms_waiting">الانتظار للعميل</string>
     <string name="terms_per_hour">في الساعة</string>
     <string name="terms_waiting_note">الوقت الذي يبقى فيه العمل متوقفًا يُحاسب بهذا. اتركه فارغًا إن لم تحاسب على الانتظار.</string>
-    <string name="terms_implement">المعدّة الملحقة</string>
     <string name="terms_no_implement">لا شيء</string>
     <string name="terms_implement_note">الجرار يكسب الفاتورة؛ والمعدّة الملحقة تأخذ الساعات، ليأتي موعد صيانتها في وقته.</string>
     <string name="terms_crew">معه في هذا العمل أيضًا</string>

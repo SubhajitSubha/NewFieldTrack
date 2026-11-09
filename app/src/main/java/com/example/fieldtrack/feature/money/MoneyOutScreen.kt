@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,7 @@ fun MoneyOutScreen(
     onStartHirePay: (com.example.fieldtrack.data.repository.HireBalance) -> Unit = {},
     onHireAmount: (String) -> Unit = {},
     onHireMethod: (com.example.fieldtrack.data.db.PaymentMethod) -> Unit = {},
+    onHireMethodLabel: (String) -> Unit = {},
     onSaveHirePay: () -> Unit = {},
     onDismissHirePay: () -> Unit = {},
 ) {
@@ -219,7 +221,7 @@ fun MoneyOutScreen(
             }
         }
         state.paying?.let { pay ->
-            HirePaySheet(pay, onHireAmount, onHireMethod, onSaveHirePay, onDismissHirePay)
+            HirePaySheet(pay, onHireAmount, onHireMethod, onSaveHirePay, onDismissHirePay, onHireMethodLabel)
         }
     }
 }
@@ -232,6 +234,7 @@ private fun HirePaySheet(
     onMethod: (com.example.fieldtrack.data.db.PaymentMethod) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
+    onMethodLabel: (String) -> Unit,
 ) {
     val colors = FieldTrackTheme.colors
     androidx.compose.material3.ModalBottomSheet(
@@ -244,6 +247,8 @@ private fun HirePaySheet(
             Modifier
                 .padding(horizontal = 18.dp)
                 .padding(bottom = 10.dp)
+                // Scrolls, so a name typed under "Other" never pushes Save under the keyboard.
+                .then(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()))
                 .navigationBarsPadding()
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -270,6 +275,9 @@ private fun HirePaySheet(
                 label = stringResource(R.string.hire_pay_method),
                 searchHint = stringResource(R.string.pick_search),
             )
+            if (pay.method == com.example.fieldtrack.data.db.PaymentMethod.Other) {
+                com.example.fieldtrack.feature.OtherMethodName(pay.methodLabel, onMethodLabel)
+            }
             FtButton(text = stringResource(R.string.hire_pay_save), onClick = onSave, enabled = pay.canSave)
         }
     }

@@ -58,7 +58,7 @@ import com.example.fieldtrack.feature.billingLabel
 import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.feature.unitInPhrase
 import com.example.fieldtrack.feature.unitsFor
-import com.example.fieldtrack.feature.workTypeOptions
+import com.example.fieldtrack.feature.title
 
 /**
  * The price list, and the one place it can be corrected.
@@ -88,6 +88,7 @@ fun RateCardScreen(
     onConfirmDelete: () -> Unit,
     onDismissDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onDraftOtherName: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -234,6 +235,8 @@ fun RateCardScreen(
     if (draft != null) {
         RateSheet(
             draft = draft,
+            works = state.works,
+            onOtherName = onDraftOtherName,
             onWorkType = onDraftWorkType,
             onBillingMode = onDraftBillingMode,
             onUnit = onDraftUnit,
@@ -296,8 +299,8 @@ private fun RateListRow(rate: RateRow, onClick: (() -> Unit)?) {
     val colors = FieldTrackTheme.colors
     FtListRow(
         title = rate.label?.let {
-            stringResource(R.string.rates_label_for, stringResource(rate.workType.labelRes), it)
-        } ?: stringResource(rate.workType.labelRes),
+            stringResource(R.string.rates_label_for, rate.workType.title(), it)
+        } ?: rate.workType.title(),
         subtitle = billingLabel(rate.billingMode, rate.unit),
         leading = {
             FtIconTile(
@@ -323,6 +326,8 @@ private fun RateListRow(rate: RateRow, onClick: (() -> Unit)?) {
 @Composable
 private fun RateSheet(
     draft: RateDraft,
+    works: List<WorkTypeOption>,
+    onOtherName: (String) -> Unit,
     onWorkType: (WorkTypeOption) -> Unit,
     onBillingMode: (BillingMode) -> Unit,
     onUnit: (com.example.fieldtrack.data.db.MeasureUnit) -> Unit,
@@ -359,14 +364,17 @@ private fun RateSheet(
             )
 
             FtPick(
-                options = workTypeOptions,
-                selected = workTypeOptions.firstOrNull { it.key == draft.workType.key },
-                text = { stringResource(it.labelRes) },
+                options = works,
+                selected = works.firstOrNull { it.key == draft.workType.key } ?: draft.workType,
+                text = { it.title() },
                 icon = { it.icon },
                 onPick = onWorkType,
                 label = stringResource(R.string.rates_work),
                 searchHint = stringResource(R.string.pick_search),
             )
+            if (draft.workType.key == com.example.fieldtrack.feature.WorkCatalog.OTHER) {
+                com.example.fieldtrack.feature.work.OtherWorkName(draft.otherName, onOtherName)
+            }
 
             // Only the modes that make sense for this work. Charging rotavating by
             // the trip is not a choice anybody should be offered.

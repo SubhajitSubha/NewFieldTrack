@@ -275,6 +275,38 @@ Suggestions kept for later (not built unless asked):
   WhatsApp. (A team member's own pay and a wage rate per person were built in Q3 and Q4; the own-pay query asks only for
   `toPersonId`, so it needs no extra index.)
 
+## R. Work that follows the machine, and every "Other" nameable (2026-11-09)
+Why: the owner saw Start work and Add past work list all fourteen kinds of work whatever the machine, the implement asked
+last and folded under "terms", and "Other" printed as "Other" on the bill. Real use: a tractor's work is whatever is on the
+back; a rotavator can go out alone behind a farmer's own tractor; one machine is charged several ways; two combines are two
+prices; and the world has work, papers, payment ways and land units this app has never heard of. Owner's rule: "Other" by
+default, and the person may name it whatever they like; same everywhere an "Other" exists. Fix it final, screens and data.
+
+- [x] **R1. The machine decides which work comes first.** Its own history first, then what that kind of machine is for (a
+  table: tractor by what is attached, rotavator, harvester, tanker, JCB...), the rest one tap away under "More work". With
+  no machine, the business's usual work. The work is charged the way it was last time (mode and unit), not a fixed default.
+- [x] **R2. Tractor and implement asked where the machine is.** A tractor: "What is attached?" (the rotavator filled in when
+  there is one). A tool picked on its own: "Pulled by?" (the one tractor filled in, "Not one of ours" for a farmer's own
+  tractor or a self-driven one). Saved as tractor + implement either way. Start work and Add past work; the old question
+  under "terms" goes.
+- [x] **R3. Missing work:** puddling, ridging, loading, water supply, machine hire (by the day or hour). Server's list too.
+- [x] **R4. Work names.** "Other" by default; a box to name it, empty keeps "Other". A typed name that matches one of ours
+  becomes ours. The business's own names are offered next time everywhere work is picked (start, past, booking, rate card,
+  price calculator, the public booking page). Fixed on the way: a booking with an own name was saved back as "Other", a
+  job started from one took the default work, the rate card hid own-named rates, and many screens, the bill, the clock
+  notification, statements and the advance note printed the English key instead of the translated name.
+- [x] **R5. The machine's own rate first:** the rate last charged on this machine (this customer's first) leads the chips.
+- [x] **R6. Every other "Other" nameable and shown:** machine type in the quick-add sheet and onboarding; a paper's own name;
+  a breakdown's kind translated in the job's history with its note; a cancelled booking's own reason; each "other"
+  spending's note on the job page; a payment way of their own ("Other" + name).
+  Built for R1-R6, and found on the emulator: an implement filled in by itself must not reorder the list (the card
+  just tapped jumped away), so only one the person picks does; the implement now shows as out working while its tractor
+  is, and the job reads "tractor + rotavator"; a fixed-price bill no longer says "0 Piece"; the pay-out form now asks how
+  it was paid (it always saved cash); "Other" is always offered as a way of paying, last, like cash is first.
+- [ ] **R7. Land units:** every land unit offered when the business is set up and in Settings (Katha, square metre were
+  missing), the common units of other countries added, and a business's own unit with a name and its size.
+- [ ] **R8. Close-out:** translations, screen matrix, full suite, emulator check of each screen touched in light and dark.
+
 ---
 
 ## Decisions

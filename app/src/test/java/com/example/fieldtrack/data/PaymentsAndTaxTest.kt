@@ -53,8 +53,8 @@ class PaymentsAndTaxTest {
 
     @Test
     fun `each currency offers what is usual where it is used`() {
-        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.Upi, PaymentMethod.Bank, PaymentMethod.Cheque), PaymentMethods.defaultsFor("INR"))
-        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.Bank), PaymentMethods.defaultsFor("KES"))
+        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.Upi, PaymentMethod.Bank, PaymentMethod.Cheque, PaymentMethod.Other), PaymentMethods.defaultsFor("INR"))
+        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.Bank, PaymentMethod.Other), PaymentMethods.defaultsFor("KES"))
         assertTrue(PaymentMethod.Upi !in PaymentMethods.defaultsFor("USD"))
         assertTrue(PaymentMethod.Card in PaymentMethods.defaultsFor("USD"))
     }
@@ -62,12 +62,12 @@ class PaymentsAndTaxTest {
     @Test
     fun `what a business chose is what it is offered, with cash always there`() {
         assertEquals(
-            listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney),
+            listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.Other),
             PaymentMethods.offered("Cash,MobileMoney", "INR"),
         )
         assertEquals(
-            "cash is put back if somebody left it out",
-            listOf(PaymentMethod.Cash, PaymentMethod.Bank),
+            "cash is put back if somebody left it out, and a way nobody listed is always there last",
+            listOf(PaymentMethod.Cash, PaymentMethod.Bank, PaymentMethod.Other),
             PaymentMethods.offered("Bank", "USD"),
         )
         assertEquals(PaymentMethods.defaultsFor("KES"), PaymentMethods.offered(null, "KES"))
@@ -86,7 +86,7 @@ class PaymentsAndTaxTest {
         assertEquals("M-Pesa 0712 345 678", org.payDetails)
         assertEquals("VAT", org.taxName)
         assertEquals(1600, org.taxPercentBps)
-        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.InKind), Money.methods)
+        assertEquals(listOf(PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.InKind, PaymentMethod.Other), Money.methods)
     }
 
     @Test

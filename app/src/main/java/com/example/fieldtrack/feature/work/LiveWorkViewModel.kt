@@ -159,7 +159,10 @@ class LiveWorkViewModel(
             LiveWorkState(
                 loaded = true,
                 customerName = customers.firstOrNull { it.id == job.customerId }?.name.orEmpty(),
-                machineName = machines.firstOrNull { it.id == job.machineId }?.name,
+                // The tractor and what was on the back of it: "Mahindra 575 + Rotavator".
+                machineName = listOfNotNull(job.machineId, job.implementMachineId)
+                    .mapNotNull { id -> machines.firstOrNull { it.id == id }?.name }
+                    .joinToString(" + ").ifBlank { null },
                 workType = job.workType,
                 billingMode = job.billingMode,
                 unit = job.unit,

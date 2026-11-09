@@ -58,7 +58,6 @@ import com.example.fieldtrack.feature.plan.partName
 import com.example.fieldtrack.feature.plan.workName
 import com.example.fieldtrack.feature.unitInPhrase
 import com.example.fieldtrack.feature.unitsFor
-import com.example.fieldtrack.feature.workTypeOptions
 
 @Composable
 fun StartWorkScreen(
@@ -81,6 +80,8 @@ fun StartWorkScreen(
     onDropBooking: () -> Unit = {},
     onTerms: (TermsDraft) -> Unit = {},
     onSuggestion: (RateSuggestion) -> Unit = {},
+    onSelectPartner: (String?) -> Unit = {},
+    onOtherName: (String) -> Unit = {},
 ) {
     val colors = FieldTrackTheme.colors
     val dimens = FieldTrackTheme.dimens
@@ -109,7 +110,7 @@ fun StartWorkScreen(
                 0 -> CustomerStep(state, onQuery, onNewCustomer, onSelectCustomer)
                 1 -> WorkStep(
                     state, onSelectMachine, onSelectField, onSelectWorkType, onNewMachine,
-                    onUseBooking, onDropBooking,
+                    onUseBooking, onDropBooking, onSelectPartner, onOtherName,
                 )
                 else -> RateStep(state, onBillingMode, onUnit, onRate, onTerms, onSuggestion)
             }
@@ -279,6 +280,8 @@ private fun WorkStep(
     onNewMachine: () -> Unit,
     onUseBooking: (BookingRow) -> Unit,
     onDropBooking: () -> Unit,
+    onSelectPartner: (String?) -> Unit,
+    onOtherName: (String) -> Unit,
 ) {
     val dimens = FieldTrackTheme.dimens
     Column(
@@ -364,15 +367,16 @@ private fun WorkStep(
             )
         }
 
-        FtSectionLabel(stringResource(R.string.start_work_type), Modifier.padding(top = 4.dp))
-        workTypeOptions.forEach { option ->
-            FtChoiceCard(
-                title = stringResource(option.labelRes),
-                selected = state.workType.key == option.key,
-                onClick = { onSelectWorkType(option) },
-                icon = option.icon,
-            )
-        }
+        PartnerChoice(state.pick, onSelectPartner, showBusy = true)
+
+        WorkChoice(
+            menu = state.pick.menu,
+            selected = state.workType,
+            otherName = state.pick.otherName,
+            onPick = onSelectWorkType,
+            onOtherName = onOtherName,
+            modifier = Modifier.padding(top = 4.dp),
+        )
         Box(Modifier.height(dimens.space4))
     }
 }
@@ -446,7 +450,6 @@ private fun RateStep(
         TermsSection(
             draft = state.terms,
             onChange = onTerms,
-            implements = state.machines.filter { it.id != state.machineId },
             crew = state.crew,
         )
 
@@ -480,7 +483,8 @@ private fun RateStep(
 private fun CostHintCard(state: StartWorkState) {
     val hint = state.costHint ?: return
     val colors = FieldTrackTheme.colors
-    val machine = state.machines.firstOrNull { it.id == state.machineId }?.name.orEmpty()
+    // The machine the cost is for: the tractor, when a tool was picked and the tractor named.
+    val machine = state.machines.firstOrNull { it.id == state.pick.jobMachineId }?.name.orEmpty()
     val unit = stringResource(R.string.start_rate_per, unitInPhrase(state.unit))
 
     FtCard(background = colors.surfaceMuted, borderColor = colors.line) {

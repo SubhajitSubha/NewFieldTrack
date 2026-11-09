@@ -32,6 +32,8 @@ data class OnboardingState(
     val fiscalStartMonth: Int = 4,
     val machineKind: MachineKind = MachineKind.Tractor,
     val machineName: String = "",
+    /** What the owner calls a kind of machine the list does not have. */
+    val machineTypeLabel: String = "",
     val saving: Boolean = false,
 ) {
     /** A solo owner bills under their own name unless they give the business one. */
@@ -75,6 +77,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setCurrency(code: String) = _state.update { it.copy(currencyCode = code) }
     fun setMachineKind(kind: MachineKind) = _state.update { it.copy(machineKind = kind) }
     fun setMachineName(v: String) = _state.update { it.copy(machineName = v) }
+    fun setMachineTypeLabel(v: String) = _state.update { it.copy(machineTypeLabel = v.take(MAX_TYPE_LABEL)) }
 
     fun next() = _state.update { it.copy(step = it.step.next(it.ownerKind)) }
 
@@ -110,6 +113,7 @@ class OnboardingViewModel(private val app: FieldFlowApplication) : ViewModel() {
                 orgId = session.orgId,
                 name = current.machineName,
                 kind = current.machineKind,
+                typeLabel = current.machineTypeLabel.trim().ifBlank { null }.takeIf { current.machineKind == MachineKind.Other },
             )
         }
 
@@ -142,3 +146,6 @@ private fun OnboardingStep.previous(kind: OwnerKind): OnboardingStep? = when (th
     OnboardingStep.Machine -> OnboardingStep.Region
     OnboardingStep.Done -> OnboardingStep.Machine
 }
+
+/** As on the full machine form. */
+private const val MAX_TYPE_LABEL = 40

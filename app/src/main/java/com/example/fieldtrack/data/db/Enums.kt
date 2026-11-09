@@ -132,7 +132,12 @@ enum class LedgerKind {
  * their like, [InKind] is grain or produce handed over instead of money.
  * Stored by name, so new ones are added at the end and none is renamed.
  */
-enum class PaymentMethod { Cash, Upi, Bank, Cheque, MobileMoney, Card, InKind }
+enum class PaymentMethod {
+    Cash, Upi, Bank, Cheque, MobileMoney, Card, InKind,
+
+    /** A way this app has no word for; the payer's own name for it goes with the payment. */
+    Other,
+}
 
 /**
  * What a payment out can be laid against.

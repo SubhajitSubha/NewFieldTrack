@@ -44,7 +44,7 @@ import com.example.fieldtrack.feature.labelRes
 import com.example.fieldtrack.feature.spokenDuration
 import com.example.fieldtrack.feature.unitInPhrase
 import com.example.fieldtrack.feature.unitsFor
-import com.example.fieldtrack.feature.workTypeOptions
+import com.example.fieldtrack.feature.title
 import java.util.Locale
 
 /**
@@ -207,9 +207,9 @@ private fun Questions(
     val input = state.input
 
     FtPick(
-        options = workTypeOptions,
-        selected = workTypeOptions.firstOrNull { it.key == input.workType.key },
-        text = { stringResource(it.labelRes) },
+        options = state.works,
+        selected = state.works.firstOrNull { it.key == input.workType.key } ?: input.workType,
+        text = { it.title() },
         icon = { it.icon },
         onPick = onWorkType,
         label = stringResource(R.string.start_work_type),

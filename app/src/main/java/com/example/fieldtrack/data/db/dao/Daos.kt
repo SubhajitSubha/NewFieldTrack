@@ -1102,7 +1102,7 @@ interface JobDao {
     @Query(
         """
         SELECT COUNT(*) FROM jobs
-        WHERE orgId = :orgId AND machineId = :machineId AND deletedAt IS NULL
+        WHERE orgId = :orgId AND (machineId = :machineId OR implementMachineId = :machineId) AND deletedAt IS NULL
           AND status IN ('Running', 'Paused')
         """
     )
@@ -1428,7 +1428,92 @@ interface JobDao {
     /** Scoped to the organisation: an id alone is not permission to delete a row. */
     @Query("DELETE FROM rates WHERE id = :rateId AND orgId = :orgId")
     suspend fun deleteRate(orgId: String, rateId: String)
+
+    /**
+     * What each machine has done, counted the same whether it drove or was pulled.
+     *
+     * The work a machine has really been used for is a better first offer than any table
+     * of what such a machine is for, so this decides the top of the work list. A machine
+     * of null is the work done with no machine named.
+     */
+    @Query(
+        """
+        SELECT machineId AS machineId, workType AS workType, COUNT(*) AS jobs, MAX(workedAt) AS lastAt, 0 AS pulled
+        FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status != 'Discarded'
+        GROUP BY machineId, workType
+        UNION ALL
+        SELECT implementMachineId AS machineId, workType AS workType, COUNT(*) AS jobs, MAX(workedAt) AS lastAt, 1 AS pulled
+        FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status != 'Discarded'
+          AND implementMachineId IS NOT NULL
+        GROUP BY implementMachineId, workType
+        """
+    )
+    fun observeWorkUse(orgId: String): Flow<List<WorkUse>>
+
+    /**
+     * How each kind of work was last charged, so the next job of it starts the same way.
+     * SQLite takes the other columns from the row that holds the MAX, which is the point.
+     */
+    @Query(
+        """
+        SELECT workType AS workType, billingMode AS billingMode, unit AS unit, MAX(workedAt) AS lastAt
+        FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status != 'Discarded'
+        GROUP BY workType
+        """
+    )
+    fun observeLastCharge(orgId: String): Flow<List<LastCharge>>
+
+    /** Every name this business has given its work: on jobs, bookings and the rate card. */
+    @Query(
+        """
+        SELECT workType FROM jobs WHERE orgId = :orgId AND deletedAt IS NULL AND status != 'Discarded'
+        UNION SELECT workType FROM rates WHERE orgId = :orgId
+        UNION SELECT workType FROM bookings WHERE orgId = :orgId AND deletedAt IS NULL
+        """
+    )
+    fun observeWorkNames(orgId: String): Flow<List<String>>
+
+    /**
+     * The rate last charged for this work on this machine, the given customer's first.
+     *
+     * Two combines in one business are often two prices; the rate card knows the work but not
+     * the machine, and the jobs do.
+     */
+    @Query(
+        """
+        SELECT rateMinor AS rateMinor, (customerId = :customerId) AS sameCustomer FROM jobs
+        WHERE orgId = :orgId AND machineId = :machineId AND workType = :workType
+          AND billingMode = :billingMode AND unit = :unit AND rateMinor > 0
+          AND deletedAt IS NULL AND status != 'Discarded'
+        ORDER BY sameCustomer DESC, workedAt DESC
+        LIMIT 1
+        """
+    )
+    suspend fun lastRateOn(
+        orgId: String,
+        machineId: String,
+        workType: String,
+        billingMode: BillingMode,
+        unit: MeasureUnit,
+        customerId: String?,
+    ): MachineRate?
 }
+
+/** How often one machine did one kind of work, and when it last did. */
+data class WorkUse(
+    val machineId: String?,
+    val workType: String,
+    val jobs: Int,
+    val lastAt: Long,
+    /** Counted as the implement behind another machine; the same job is also counted for that machine. */
+    val pulled: Boolean = false,
+)
+
+/** How one kind of work was last charged. */
+data class LastCharge(val workType: String, val billingMode: BillingMode, val unit: MeasureUnit, val lastAt: Long)
+
+/** A rate a machine was last used at, and whether it was for the same customer. */
+data class MachineRate(val rateMinor: Long, val sameCustomer: Boolean?)
 
 /**
  * The khata.

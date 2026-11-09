@@ -242,7 +242,6 @@
     <string name="terms_waiting">Kumsubiri mteja</string>
     <string name="terms_per_hour">kwa saa</string>
     <string name="terms_waiting_note">Muda ambao kazi inakaa imesimamishwa unatozwa kwa hiki. Acha wazi kutotoza kusubiri.</string>
-    <string name="terms_implement">Kifaa cha kazi</string>
     <string name="terms_no_implement">Hakuna</string>
     <string name="terms_implement_note">Trekta ndiyo inayoingiza bili; kifaa cha kazi kinapewa saa, ili huduma yake ifike kwa wakati.</string>
     <string name="terms_crew">Pia kwenye kazi hii</string>

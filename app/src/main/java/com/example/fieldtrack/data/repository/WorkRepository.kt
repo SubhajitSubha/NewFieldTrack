@@ -204,6 +204,8 @@ class WorkRepository(
             addEvent(job, JobEventType.Started, operatorPersonId, at = now)
             enqueue(job)
             markMachine(orgId, machineId, MachineStatus.Working)
+            // The rotavator behind the tractor is out in the field too, not free in the yard.
+            markMachine(orgId, job.implementMachineId, MachineStatus.Working)
         }
         return job.id
     }
@@ -341,8 +343,11 @@ class WorkRepository(
         }
         // The machine may have been left Down by a breakdown or Idle by its repair.
         // Either way it is out in a field again now.
-        val machineId = jobs.find(orgId, jobId)?.machineId
-        db.withTransaction { refreshMachineStatus(orgId, machineId) }
+        val job = jobs.find(orgId, jobId)
+        db.withTransaction {
+            refreshMachineStatus(orgId, job?.machineId)
+            refreshMachineStatus(orgId, job?.implementMachineId)
+        }
     }
 
     /**
@@ -606,7 +611,9 @@ class WorkRepository(
                 job = paused,
                 type = JobEventType.BreakdownReported,
                 byPersonId = breakdown.reportedByPersonId,
-                textValue = category.name,
+                // "Something else" is said in the reporter's own words when they gave some;
+                // a kind of ours is kept as its key and named in the reader's language.
+                textValue = breakdown.note?.takeIf { category == BreakdownCategory.Other } ?: category.name,
                 at = now,
             )
             enqueue(paused)
@@ -742,6 +749,7 @@ class WorkRepository(
             addEvent(billable, JobEventType.Completed, byPersonId, at = now)
             enqueue(billable)
             refreshMachineStatus(orgId, billable.machineId)
+            refreshMachineStatus(orgId, billable.implementMachineId)
 
             if (charged > 0) {
                 val entry = LedgerEntryEntity(
@@ -853,11 +861,14 @@ class WorkRepository(
 
     /** Throw the job away. Soft-deleted so a sync cannot resurrect it. */
     suspend fun discard(orgId: String, jobId: String) {
-        val machineId = jobs.find(orgId, jobId)?.machineId
+        val old = jobs.find(orgId, jobId)
         mutate(orgId, jobId) { job ->
             job.copy(status = JobStatus.Discarded, deletedAt = clock.now()) to null
         }
-        db.withTransaction { refreshMachineStatus(orgId, machineId) }
+        db.withTransaction {
+            refreshMachineStatus(orgId, old?.machineId)
+            refreshMachineStatus(orgId, old?.implementMachineId)
+        }
     }
 
     /**

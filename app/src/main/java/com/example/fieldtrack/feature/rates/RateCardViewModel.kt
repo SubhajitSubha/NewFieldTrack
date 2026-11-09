@@ -43,6 +43,8 @@ data class RateCardState(
     val canEdit: Boolean = true,
     /** False for a driver the owner did not trust with money. */
     val canSeeRates: Boolean = true,
+    /** Every work there is to price: ours, the business's own names, then "Other". */
+    val works: List<WorkTypeOption> = com.example.fieldtrack.feature.WorkCatalog.all(emptyList()),
 )
 
 /** What is being typed into the add/edit sheet, if anything. */
@@ -54,6 +56,8 @@ data class RateDraft(
     val unit: MeasureUnit = MeasureUnit.Acre,
     val amountText: String = "",
     val label: String = "",
+    /** What "Other" work is called. Empty keeps "Other". */
+    val otherName: String = "",
     /** The terms this price usually comes with: minimum, arrival, diesel, waiting. */
     val terms: com.example.fieldtrack.feature.work.TermsDraft = com.example.fieldtrack.feature.work.TermsDraft(),
 ) {
@@ -85,8 +89,10 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             app.directoryRepository.observeRateCard(s.orgId),
             app.directoryRepository.observeCustomerRates(s.orgId),
             app.sessionStore.rememberPerCustomer,
-        ) { card, customerRates, perCustomer ->
+            app.directoryRepository.observeWorkHistory(s.orgId),
+        ) { card, customerRates, perCustomer, history ->
             RateCardState(
+                works = com.example.fieldtrack.feature.WorkCatalog.all(history.names),
                 loaded = true,
                 rates = card.mapNotNull { it.asRow() },
                 // Counted by customer, not by row: one farmer with three agreed
@@ -99,16 +105,21 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RateCardState())
 
+    /** What the business measures land in, so a new rate is not offered per acre to a bigha business. */
+    private var landUnit: MeasureUnit = MeasureUnit.Acre
+
     init {
-        viewModelScope.launch { app.sessionStore.load() }
+        viewModelScope.launch { app.sessionStore.load()?.let { landUnit = it.landUnit } }
     }
+
+    private fun unitFor(mode: BillingMode) = com.example.fieldtrack.feature.work.resolveUnit(mode, landUnit)
 
     fun add() {
         val work = workTypeOptions.first()
         _draft.value = RateDraft(
             workType = work,
             billingMode = work.defaultMode,
-            unit = unitsFor(work.defaultMode).first(),
+            unit = unitFor(work.defaultMode),
         )
     }
 
@@ -136,13 +147,13 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
             billingMode = if (it.billingMode in option.billingModes) it.billingMode
             else option.defaultMode,
             unit = if (it.billingMode in option.billingModes) it.unit
-            else unitsFor(option.defaultMode).first(),
+            else unitFor(option.defaultMode),
         )
     }
 
     fun setBillingMode(mode: BillingMode) = _draft.update {
         if (it == null || mode !in it.workType.billingModes) it
-        else it.copy(billingMode = mode, unit = unitsFor(mode).first())
+        else it.copy(billingMode = mode, unit = unitFor(mode))
     }
 
     fun setUnit(unit: MeasureUnit) = _draft.update { it?.copy(unit = unit) }
@@ -153,15 +164,22 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
 
     fun setLabel(value: String) = _draft.update { it?.copy(label = value) }
 
+    fun nameOther(value: String) = _draft.update { it?.copy(otherName = value.take(com.example.fieldtrack.feature.WorkCatalog.MAX_NAME)) }
+
     fun setTerms(terms: com.example.fieldtrack.feature.work.TermsDraft) = _draft.update { it?.copy(terms = terms) }
 
     fun saveDraft() = viewModelScope.launch {
         val draft = _draft.value ?: return@launch
         if (!draft.canSave) return@launch
         val s = app.sessionStore.load() ?: return@launch
+        val workKey = if (draft.workType.key == com.example.fieldtrack.feature.WorkCatalog.OTHER) {
+            com.example.fieldtrack.feature.WorkCatalog.keyForName(
+                draft.otherName, state.value.works.map { it.key },
+            ) { app.getString(it.labelRes) }
+        } else draft.workType.key
         app.directoryRepository.setRate(
             orgId = s.orgId,
-            workType = draft.workType.key,
+            workType = workKey,
             billingMode = draft.billingMode,
             unit = draft.unit,
             amountMinor = draft.amountMinor,
@@ -191,14 +209,11 @@ class RateCardViewModel(private val app: FieldFlowApplication) : ViewModel() {
     fun setPerCustomer(enabled: Boolean) = app.sessionStore.setRememberPerCustomer(enabled)
 
     /**
-     * Drops a rate whose work type this build no longer knows.
-     *
-     * A row saved by a newer version, or left behind by a renamed work type, has no
-     * icon and no name to draw. Hiding it beats rendering a blank row, and it stays
-     * in the database untouched rather than being cleaned up on sight.
+     * A saved rate as a row. Work this build has no word for is the business's own name for
+     * it, and is shown by that name: hiding it hid rates the business had set itself.
      */
     private fun RateEntity.asRow(): RateRow? {
-        val option = workTypeOptions.firstOrNull { it.key == workType } ?: return null
+        val option = com.example.fieldtrack.feature.WorkCatalog.option(workType)
         return RateRow(
             id = id,
             workType = option,

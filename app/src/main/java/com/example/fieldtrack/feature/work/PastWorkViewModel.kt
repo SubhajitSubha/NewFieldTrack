@@ -33,9 +33,9 @@ data class PastWorkState(
     val customer: CustomerEntity? = null,
     val customers: List<CustomerEntity> = emptyList(),
     val query: String = "",
-    val machineId: String? = null,
     val machines: List<MachineEntity> = emptyList(),
-    val workType: WorkTypeOption = workTypeOptions.first(),
+    /** The machine, what went out with it, and the work. The day is past, so a busy machine is no reason to skip it. */
+    val pick: WorkPick = WorkPick(now = false),
     val billingMode: BillingMode = BillingMode.PerAcre,
     val unit: MeasureUnit = MeasureUnit.Acre,
     val quantityText: String = "",
@@ -51,6 +51,8 @@ data class PastWorkState(
     val saving: Boolean = false,
 ) {
     val quantity: Double get() = quantityText.toDoubleOrNull() ?: 0.0
+    val machineId: String? get() = pick.machineId
+    val workType: WorkTypeOption get() = pick.work
     val rateMinor: Long get() = MoneyInput.parse(rateText) ?: 0L
 
     val amountMinor: Long
@@ -113,18 +115,48 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             val s = app.sessionStore.load() ?: return@launch
             orgId = s.orgId
             landUnit = s.landUnit
+            val machines = app.directoryRepository.observeMachines(s.orgId).first()
             _state.update {
                 it.copy(
                     loaded = true,
                     // Yesterday to begin with: today's work would have been timed.
                     dayMillis = startOfDay(System.currentTimeMillis()) - DAY_MILLIS,
                     customers = app.directoryRepository.observeCustomers(s.orgId).first(),
-                    machines = app.directoryRepository.observeMachines(s.orgId).first(),
+                    machines = machines,
                     unit = resolveUnit(it.billingMode, s.landUnit),
                 )
             }
+            val history = app.directoryRepository.observeWorkHistory(s.orgId).first()
+            changePick(recharge = true) { it.withMachines(machines).withHistory(history) }
         }
     }
+
+    /**
+     * Moves the machine, partner and work together, and when that changes the work, charges it
+     * the way this business last charged that work.
+     */
+    private fun changePick(recharge: Boolean = false, change: (WorkPick) -> WorkPick) {
+        val before = _state.value.pick.work.key
+        _state.update { it.copy(pick = change(it.pick)) }
+        val after = _state.value.pick
+        if (recharge || after.work.key != before) {
+            val (mode, unit) = chargeFor(after.work, after.history, landUnit)
+            _state.update {
+                it.copy(
+                    billingMode = mode,
+                    unit = unit,
+                    quantityText = if (unit.countsWhole) it.quantityText.substringBefore('.') else it.quantityText,
+                    rateText = "",
+                )
+            }
+        }
+        suggestRate()
+        checkOverlaps()
+    }
+
+    fun selectPartner(id: String?) = changePick { it.pickPartner(id) }
+
+    fun nameOther(text: String) = _state.update { it.copy(pick = it.pick.nameOther(text)) }
 
     fun setDay(millis: Long) {
         _state.update { it.copy(dayMillis = startOfDay(millis)) }
@@ -157,21 +189,9 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
         suggestRate()
     }
 
-    fun selectMachine(id: String?) {
-        _state.update { it.copy(machineId = id) }
-        checkOverlaps()
-    }
+    fun selectMachine(id: String?) = changePick { it.pickMachine(id) }
 
-    fun selectWorkType(option: WorkTypeOption) {
-        _state.update {
-            it.copy(
-                workType = option,
-                billingMode = option.defaultMode,
-                unit = resolveUnit(option.defaultMode, landUnit),
-            )
-        }
-        suggestRate()
-    }
+    fun selectWorkType(option: WorkTypeOption) = changePick { it.pickWork(option) }
 
     fun setBillingMode(mode: BillingMode) {
         if (mode !in _state.value.workType.billingModes) return
@@ -228,7 +248,8 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
     private fun checkOverlaps() {
         overlapCheck?.cancel()
         val current = _state.value
-        val machineId = current.machineId
+        // The tractor's time, which is what two jobs cannot both have had.
+        val machineId = current.pick.jobMachineId
         val from = current.fromMinutes
         val to = current.toMinutes
         if (machineId == null || from == null || to == null || to <= from) {
@@ -246,20 +267,24 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
         }
     }
 
-    /** What this customer was charged last time for this work, if anything. */
+    /** What this customer was charged last time for this work, on this machine first, if anything. */
     private fun suggestRate() = viewModelScope.launch {
         val current = _state.value
-        if (current.rateText.isNotBlank()) return@launch
-        val remembered = app.directoryRepository.suggestedRate(
-            orgId,
-            current.workType.key,
-            current.customer?.id.takeIf { app.sessionStore.rememberPerCustomer.value },
-            billingMode = current.billingMode,
-            unit = current.unit,
-        ) ?: return@launch
+        if (current.rateText.isNotBlank() || orgId.isEmpty()) return@launch
+        val customerId = current.customer?.id.takeIf { app.sessionStore.rememberPerCustomer.value }
+        val candidates = app.directoryRepository.ratesFor(
+            orgId, current.workType.key, customerId, billingMode = current.billingMode, unit = current.unit,
+        )
+        val machineId = current.pick.jobMachineId
+        val onMachine = machineId?.let {
+            app.directoryRepository.lastRateOn(orgId, it, current.workType.key, current.billingMode, current.unit, customerId)
+        }
+        val best = SuggestedRates.order(candidates, onMachine?.rateMinor, onMachine?.sameCustomer == true, null)
+            .firstOrNull() ?: return@launch
         _state.update {
-            if (it.rateText.isBlank()) it.copy(rateText = MoneyInput.text(remembered.amountMinor))
-            else it
+            val same = it.workType.key == current.workType.key && it.billingMode == current.billingMode &&
+                it.unit == current.unit && it.pick.jobMachineId == machineId
+            if (same && it.rateText.isBlank()) it.copy(rateText = MoneyInput.text(best.amountMinor)) else it
         }
     }
 
@@ -275,10 +300,11 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
         val startedAt = current.fromMinutes?.let { current.dayMillis + it * MINUTE_MILLIS }
         val completedAt = current.toMinutes?.let { current.dayMillis + it * MINUTE_MILLIS }
 
+        val workKey = current.pick.workKey { app.getString(it.labelRes) }
         val jobId = app.workRepository.recordPastWork(
             orgId = s.orgId,
             customerId = current.customer!!.id,
-            workType = current.workType.key,
+            workType = workKey,
             billingMode = current.billingMode,
             unit = current.unit,
             rateMinor = current.rateMinor,
@@ -288,13 +314,14 @@ class PastWorkViewModel(private val app: FieldFlowApplication) : ViewModel() {
             workedAt = current.dayMillis + MIDDAY_MILLIS,
             startedAt = startedAt,
             completedAt = completedAt,
-            machineId = current.machineId,
+            // The tractor, with the tool behind it, whichever of the two was picked.
+            machineId = current.pick.jobMachineId,
             operatorPersonId = s.personId,
-            terms = current.terms.toTerms(),
+            terms = current.terms.toTerms().copy(implementMachineId = current.pick.implementId),
         )
         app.directoryRepository.rememberRate(
             orgId = s.orgId,
-            workType = current.workType.key,
+            workType = workKey,
             billingMode = current.billingMode,
             unit = current.unit,
             amountMinor = current.rateMinor,

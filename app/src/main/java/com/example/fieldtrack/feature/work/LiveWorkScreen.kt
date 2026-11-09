@@ -104,7 +104,7 @@ fun LiveWorkScreen(
                     color = colors.onDark,
                 )
                 Text(
-                    text = listOfNotNull(state.workType, state.machineName).joinToString(" · "),
+                    text = listOfNotNull(com.example.fieldtrack.feature.workLabel(state.workType), state.machineName).joinToString(" · "),
                     style = FieldTrackTheme.type.caption,
                     color = colors.onDarkMuted,
                     modifier = Modifier.padding(top = 2.dp),

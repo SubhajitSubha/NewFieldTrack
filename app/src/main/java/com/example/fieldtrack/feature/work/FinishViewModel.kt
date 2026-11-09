@@ -97,6 +97,8 @@ data class PaymentState(
     val choice: PaymentChoice = PaymentChoice.Nothing,
     val amountText: String = "",
     val method: PaymentMethod = PaymentMethod.Cash,
+    /** The payer's own name for an "Other" way of paying. */
+    val methodLabel: String = "",
     val saving: Boolean = false,
 ) {
     val amountMinor: Long get() = MoneyInput.parse(amountText) ?: 0L
@@ -263,6 +265,10 @@ class FinishViewModel(
         _payment.value = _payment.value.copy(method = method)
     }
 
+    fun setMethodLabel(text: String) {
+        _payment.value = _payment.value.copy(methodLabel = text)
+    }
+
     /**
      * Completes the job and records whatever was paid.
      *
@@ -328,6 +334,7 @@ class FinishViewModel(
                 customerId = customerId,
                 amountMinor = paid,
                 method = pay.method,
+                methodLabel = pay.methodLabel,
                 byPersonId = s.personId,
                 jobId = jobId,
             )

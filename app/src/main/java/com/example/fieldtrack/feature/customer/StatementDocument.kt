@@ -157,7 +157,9 @@ private fun lineTitle(entry: LedgerEntryEntity, jobs: Map<String, JobEntity>): S
 
 @Composable
 private fun jobTitle(note: String, jobId: String?, jobs: Map<String, JobEntity>): String {
-    val base = note.ifBlank { stringResource(R.string.finish_this_job) }
+    // The charge carries the work as it was saved; said in the reader's language.
+    val base = note.ifBlank { null }?.let { com.example.fieldtrack.feature.workLabel(it) }
+        ?: stringResource(R.string.finish_this_job)
     val job = jobId?.let { jobs[it] } ?: return base
     if (job.billingMode == BillingMode.Fixed || job.quantity <= 0.0) return base
     return "$base · ${measure(job.quantity, job.unit)}"
@@ -191,14 +193,13 @@ private fun describe(entry: LedgerEntryEntity): String = when (entry.kind) {
     LedgerKind.Opening -> stringResource(R.string.ledger_opening_label)
     LedgerKind.Payment -> stringResource(
         R.string.statement_payment_line,
-        stringResource((entry.method ?: PaymentMethod.Cash).labelRes),
+        com.example.fieldtrack.feature.methodName(entry.method, entry.methodLabel),
     )
     LedgerKind.Adjustment -> entry.note.orEmpty().ifBlank {
         stringResource(R.string.ledger_adjustment_label)
     }
-    LedgerKind.Charge -> entry.note.orEmpty().ifBlank {
-        stringResource(R.string.finish_this_job)
-    }
+    LedgerKind.Charge -> entry.note.orEmpty().ifBlank { null }?.let { com.example.fieldtrack.feature.workLabel(it) }
+        ?: stringResource(R.string.finish_this_job)
 }
 
 @Composable

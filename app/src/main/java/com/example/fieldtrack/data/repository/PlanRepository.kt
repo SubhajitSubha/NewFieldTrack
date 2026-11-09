@@ -154,7 +154,11 @@ class PlanRepository(
         /** A token taken with a new booking. It goes on the customer's account at once, as a payment. */
         advanceMinor: Long? = null,
         advanceMethod: PaymentMethod = PaymentMethod.Cash,
+        /** The payer's own name for an "Other" way of paying the advance. */
+        advanceMethodLabel: String? = null,
         byPersonId: String? = null,
+        /** How the advance reads on the account, in the business's language. */
+        advanceNote: String = "Advance for $workType",
     ): String {
         can.require(Capability.PlanWork)
         val now = clock.now()
@@ -203,28 +207,33 @@ class PlanRepository(
                     customerId = customerId,
                     amountMinor = booking.advanceMinor,
                     method = advanceMethod,
+                    methodLabel = advanceMethodLabel,
                     byPersonId = byPersonId,
-                    note = "Advance for $workType",
+                    note = advanceNote,
                 )
             }
             booking.id
         }
     }
 
-    suspend fun cancel(can: Capabilities, orgId: String, id: String, reason: CancelReason) =
+    suspend fun cancel(can: Capabilities, orgId: String, id: String, reason: CancelReason, note: String? = null) =
         change(can, orgId, id, guardStarted = true) {
-            it.copy(status = BookingStatus.Cancelled, cancelReason = reason)
+            it.copy(
+                status = BookingStatus.Cancelled,
+                cancelReason = reason,
+                cancelNote = note?.trim()?.ifBlank { null }?.take(MAX_CANCEL_NOTE)?.takeIf { reason == CancelReason.Other },
+            )
         }
 
     /** The work happened without the app's clock and was entered afterwards. */
     suspend fun markDone(can: Capabilities, orgId: String, id: String) =
         change(can, orgId, id, guardStarted = true) {
-            it.copy(status = BookingStatus.Done, cancelReason = null)
+            it.copy(status = BookingStatus.Done, cancelReason = null, cancelNote = null)
         }
 
     /** Back on the plan, for a booking cancelled or marked done by mistake. */
     suspend fun reopen(can: Capabilities, orgId: String, id: String) =
-        change(can, orgId, id) { it.copy(status = BookingStatus.Planned, cancelReason = null) }
+        change(can, orgId, id) { it.copy(status = BookingStatus.Planned, cancelReason = null, cancelNote = null) }
 
     private suspend fun change(
         can: Capabilities,
@@ -249,6 +258,7 @@ class PlanRepository(
                     put("orgId", changed.orgId)
                     put("status", changed.status.name)
                     put("cancelReason", changed.cancelReason?.name)
+                    put("cancelNote", changed.cancelNote)
                     put("updatedAt", changed.updatedAt)
                 },
             )
@@ -297,3 +307,6 @@ class PlanRepository(
         const val MAX_NOTE = 300
     }
 }
+
+/** A reason, not a story: what fits on the booking's line. */
+private const val MAX_CANCEL_NOTE = 80

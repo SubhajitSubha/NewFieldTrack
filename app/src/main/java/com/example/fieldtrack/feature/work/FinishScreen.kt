@@ -69,6 +69,7 @@ fun FinishScreen(
     onChooseNothing: () -> Unit,
     onAmount: (String) -> Unit,
     onMethod: (PaymentMethod) -> Unit,
+    onMethodLabel: (String) -> Unit = {},
     labour: FinishLabour,
     onAnyLabour: (Boolean) -> Unit,
     onLabourHeadcount: (Int) -> Unit,
@@ -122,7 +123,7 @@ fun FinishScreen(
                     onUncounted = onLabourUncounted,
                     onCounted = onLabourCounted,
                 )
-                1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod, discountText, onDiscount)
+                1 -> BillStep(state, payment, onChooseAll, onChooseSome, onChooseNothing, onAmount, onMethod, discountText, onDiscount, onMethodLabel)
                 else -> SavedStep(state, receivedMinor, finalBalanceMinor)
             }
             Box(Modifier.height(dimens.space4))
@@ -391,6 +392,7 @@ private fun BillStep(
     onMethod: (PaymentMethod) -> Unit,
     discountText: String,
     onDiscount: (String) -> Unit,
+    onMethodLabel: (String) -> Unit,
 ) {
     FtCard {
         FtSectionLabel(stringResource(R.string.finish_bill_for))
@@ -463,6 +465,9 @@ private fun BillStep(
                     onClick = { onMethod(method) },
                 )
             }
+        }
+        if (payment.method == PaymentMethod.Other) {
+            com.example.fieldtrack.feature.OtherMethodName(payment.methodLabel, onMethodLabel)
         }
         Row(
             Modifier
@@ -549,7 +554,9 @@ private fun SavedStep(state: FinishState, receivedMinor: Long, finalBalanceMinor
                 color = FieldTrackTheme.colors.ink,
                 modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
             )
-            JobBillLines(state, "${state.workType} · ${measure(state.quantity, state.unit)}")
+            // A fixed price has nothing measured: "0 Piece" beside it read as a mistake.
+            val work = com.example.fieldtrack.feature.workLabel(state.workType)
+            JobBillLines(state, if (state.billingMode == BillingMode.Fixed) work else "$work · ${measure(state.quantity, state.unit)}")
             if (state.previousBalanceMinor != 0L) {
                 AmountLine(stringResource(if (state.previousBalanceMinor < 0) R.string.money_advance_paid else R.string.money_old_balance), state.previousBalanceMinor)
             }

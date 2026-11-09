@@ -64,7 +64,7 @@ fun AmendJobScreen(
     ) {
         FtTopBar(
             title = stringResource(R.string.amend_title),
-            subtitle = listOf(state.customerName, state.workType)
+            subtitle = listOf(state.customerName, com.example.fieldtrack.feature.workLabel(state.workType))
                 .filter { it.isNotBlank() }
                 .joinToString(" · ")
                 .ifBlank { null },

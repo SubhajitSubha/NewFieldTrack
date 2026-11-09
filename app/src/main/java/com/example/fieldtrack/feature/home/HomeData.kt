@@ -67,6 +67,8 @@ sealed interface HomeAlert {
         val kind: com.example.fieldtrack.data.db.PaperKind,
         /** Negative once it has run out. */
         val daysLeft: Long,
+        /** The owner's name for an "Other" paper. */
+        val label: String? = null,
     ) : HomeAlert {
         override val rank get() = if (daysLeft < 0) 1 else 3
     }
@@ -157,7 +159,7 @@ fun paperAlerts(
     val names = machines.associateBy { it.id }
     return com.example.fieldtrack.data.costing.Papers.needingAttention(papers, today, warnDays).mapNotNull { paper ->
         val machine = names[paper.machineId] ?: return@mapNotNull null
-        HomeAlert.PaperDue(machine.id, machine.name, paper.kind, (paper.expiresDay ?: return@mapNotNull null) - today)
+        HomeAlert.PaperDue(machine.id, machine.name, paper.kind, (paper.expiresDay ?: return@mapNotNull null) - today, paper.label)
     }
 }
 

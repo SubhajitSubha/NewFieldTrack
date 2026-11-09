@@ -7,6 +7,7 @@ import com.example.fieldtrack.designsystem.format.MoneyInput
 import com.example.fieldtrack.data.db.PaymentMethod
 import androidx.lifecycle.viewModelScope
 import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.R
 import com.example.fieldtrack.data.db.BookingStatus
 import com.example.fieldtrack.data.db.CancelReason
 import com.example.fieldtrack.data.db.DayPart
@@ -41,6 +42,7 @@ data class BookingFormState(
     val id: String? = null,
     val status: BookingStatus = BookingStatus.Planned,
     val cancelReason: CancelReason? = null,
+    val cancelNote: String? = null,
     /** Somebody has started the work, so the booking is what it was and is no longer to be edited. */
     val started: Boolean = false,
     val query: String = "",
@@ -50,6 +52,12 @@ data class BookingFormState(
     val fields: List<FieldEntity> = emptyList(),
     val fieldId: String? = null,
     val workType: WorkTypeOption = workTypeOptions.first(),
+    /** What "Other" work was called. Empty keeps "Other". */
+    val otherName: String = "",
+    /** Whether the person (or the booking being changed) said the work, so the machine no longer suggests it. */
+    val workPicked: Boolean = false,
+    /** What the machines have done, for putting the likely work first. */
+    val history: com.example.fieldtrack.data.repository.WorkHistory = com.example.fieldtrack.data.repository.WorkHistory(),
     val day: Long = 0,
     val part: DayPart = DayPart.Morning,
     val startMinute: Int? = null,
@@ -63,6 +71,7 @@ data class BookingFormState(
     val creditWarning: CreditWarning? = null,
     val advanceText: String = "",
     val advanceMethod: PaymentMethod = PaymentMethod.Cash,
+    val advanceMethodLabel: String = "",
     val canTakeMoney: Boolean = false,
     /** What was taken when the booking was made, shown once it exists. */
     val advanceTakenMinor: Long? = null,
@@ -71,6 +80,14 @@ data class BookingFormState(
     val saving: Boolean = false,
 ) {
     /** Open to change: still a plan, and nobody has started it. */
+    /** Until the work is said, what the machine (or the business) usually does. */
+    fun suggestWork(): BookingFormState =
+        if (workPicked) this else copy(workType = workMenu.usual.firstOrNull() ?: workType)
+
+    /** The work, what the chosen machine usually does first. */
+    val workMenu: com.example.fieldtrack.feature.WorkCatalog.Menu
+        get() = com.example.fieldtrack.feature.WorkCatalog.menu(machines.firstOrNull { it.id == machineId }, null, machines, history)
+
     val editable: Boolean get() = canPlan && status == BookingStatus.Planned && !started
 
     val canSave: Boolean get() = editable && !saving && customer != null && day >= today
@@ -143,9 +160,12 @@ class BookingFormViewModel(
                         id = b.id,
                         status = b.status,
                         cancelReason = b.cancelReason,
+                        cancelNote = b.cancelNote,
                         started = existing.jobStatus != null,
                         fieldId = b.fieldId,
-                        workType = workTypeOptions.firstOrNull { it.key == b.workType } ?: workTypeOptions.last(),
+                        // The business's own name for the work is kept, never saved back as "Other".
+                        workType = com.example.fieldtrack.feature.WorkCatalog.option(b.workType),
+                        workPicked = true,
                         part = b.part,
                         startMinute = b.startMinute,
                         machineId = b.machineId,
@@ -177,6 +197,7 @@ class BookingFormViewModel(
                     it.copy(
                         status = row.booking.status,
                         cancelReason = row.booking.cancelReason,
+                        cancelNote = row.booking.cancelNote,
                         started = row.jobStatus != null,
                     )
                 }
@@ -195,9 +216,13 @@ class BookingFormViewModel(
             ) { machines, team, customers -> Triple(machines, team, customers) }
                 .collect { (machines, team, customers) ->
                     _state.update {
-                        it.copy(machines = machines, team = team, customerNames = customers.associate { c -> c.id to c.name })
+                        it.copy(machines = machines, team = team, customerNames = customers.associate { c -> c.id to c.name }).suggestWork()
                     }
                 }
+        }
+        viewModelScope.launch {
+            val s = app.sessionStore.load() ?: return@launch
+            app.directoryRepository.observeWorkHistory(s.orgId).collect { h -> _state.update { it.copy(history = h).suggestWork() } }
         }
         viewModelScope.launch {
             val s = app.sessionStore.load() ?: return@launch
@@ -233,11 +258,12 @@ class BookingFormViewModel(
     }
 
     fun selectField(id: String?) = _state.update { it.copy(fieldId = id) }
-    fun selectWorkType(option: WorkTypeOption) = _state.update { it.copy(workType = option) }
+    fun selectWorkType(option: WorkTypeOption) = _state.update { it.copy(workType = option, workPicked = true) }
+    fun nameOther(text: String) = _state.update { it.copy(otherName = text.take(com.example.fieldtrack.feature.WorkCatalog.MAX_NAME)) }
     fun setDay(day: Long) = _state.update { it.copy(day = day) }
     fun setPart(part: DayPart) = _state.update { it.copy(part = part) }
     fun setStartMinute(minute: Int?) = _state.update { it.copy(startMinute = minute) }
-    fun selectMachine(id: String?) = _state.update { it.copy(machineId = id) }
+    fun selectMachine(id: String?) = _state.update { it.copy(machineId = id).suggestWork() }
     fun selectDriver(id: String?) = _state.update { it.copy(driverId = id) }
     fun setNote(text: String) = _state.update { it.copy(note = text.take(MAX_NOTE)) }
 
@@ -245,29 +271,38 @@ class BookingFormViewModel(
 
     fun setAdvanceMethod(method: PaymentMethod) = _state.update { it.copy(advanceMethod = method) }
 
+    fun setAdvanceMethodLabel(text: String) = _state.update { it.copy(advanceMethodLabel = text) }
+
     fun save(onSaved: () -> Unit) = viewModelScope.launch {
         val current = _state.value
         val customer = current.customer ?: return@launch
         if (!current.canSave) return@launch
         _state.update { it.copy(saving = true) }
         val s = app.sessionStore.load() ?: return@launch
+        val workKey = if (current.workType.key == com.example.fieldtrack.feature.WorkCatalog.OTHER) {
+            com.example.fieldtrack.feature.WorkCatalog.keyForName(current.otherName, current.history.names) { app.getString(it.labelRes) }
+        } else current.workType.key
         runCatching {
             app.planRepository.save(
                 can = s.can, orgId = s.orgId, id = current.id, customerId = customer.id,
-                fieldId = current.fieldId, workType = current.workType.key, day = current.day,
+                fieldId = current.fieldId,
+                workType = workKey,
+                day = current.day,
                 part = current.part, startMinute = current.startMinute, machineId = current.machineId,
                 operatorPersonId = current.driverId, note = current.note,
                 advanceMinor = if (current.id == null && current.canTakeMoney) MoneyInput.parse(current.advanceText) else null,
                 advanceMethod = current.advanceMethod,
+                advanceMethodLabel = current.advanceMethodLabel,
                 byPersonId = s.personId,
+                advanceNote = app.getString(R.string.plan_advance_note, com.example.fieldtrack.feature.workLabel(app, workKey)),
             )
         }.onSuccess { _state.update { it.copy(saving = false) }; onSaved() }
             // Refused: the permission was taken away while this was open.
             .onFailure { _state.update { it.copy(saving = false, canPlan = false) } }
     }
 
-    fun cancel(reason: CancelReason, onDone: () -> Unit) = change(onDone) { s, id ->
-        app.planRepository.cancel(s.can, s.orgId, id, reason)
+    fun cancel(reason: CancelReason, note: String?, onDone: () -> Unit) = change(onDone) { s, id ->
+        app.planRepository.cancel(s.can, s.orgId, id, reason, note)
     }
 
     fun markDone(onDone: () -> Unit) = change(onDone) { s, id -> app.planRepository.markDone(s.can, s.orgId, id) }
