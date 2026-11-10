@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+
+    <string name="finish_print">Imprimir</string>
+    <string name="finish_pdf_making">Gerando a cobrança…</string>
+    <string name="finish_pdf_failed">Não foi possível gerar o PDF. A cobrança continua salva.</string>
+    <string name="finish_pdf_chooser">Enviar a cobrança</string>
+    <string name="finish_copy">Copiar</string>
+    <string name="finish_copied">Cobrança copiada</string>
+    <string name="finish_made_with">feito com FieldTrack</string>
+    <string name="finish_pay_upi">Pagar por UPI: %1$s</string>
+
+    <string name="customer_new_title">Novo cliente</string>
+    <string name="customer_name">Nome</string>
+    <string name="customer_name_hint">Nome do agricultor</string>
+    <string name="customer_speak_name_cd">Falar o nome em vez de digitar</string>
+    <string name="customer_mobile">Número de celular</string>
+    <string name="customer_whatsapp_note">As cobranças serão enviadas para este WhatsApp</string>
+    <string name="customer_village">Povoado</string>
+    <string name="customer_already_owes">Ele já deve a você?</string>
+    <string name="customer_already_owes_note">Saldo antigo do seu caderno. Deixe 0 se não houver.</string>
+    <string name="customer_save">Salvar cliente</string>
+
+    <string name="machine_tractor">Trator</string>
+    <string name="machine_harvester">Colheitadeira</string>
+    <string name="machine_rotavator">Rotavator</string>
+    <string name="machine_cultivator">Cultivador</string>
+    <string name="machine_trolley">Carreta</string>
+    <string name="machine_thresher">Debulhadora</string>
+    <string name="machine_sprayer">Pulverizador</string>
+    <string name="machine_transplanter">Transplantadora</string>
+    <string name="machine_power_tiller">Motocultivador</string>
+    <string name="machine_baler">Enfardadeira</string>
+    <string name="machine_leveller">Niveladora</string>
+    <string name="machine_other">Outro</string>
+
+    <string name="onboard_tagline">Seu trabalho. Seu dinheiro.\nTudo anotado.</string>
+    <string name="onboard_welcome_title">Chega de caderno.</string>
+    <string name="onboard_welcome_body">Tudo o que você faz no campo, em ordem — e pago.</string>
+    <string name="onboard_point_start">Um toque para começar</string>
+    <string name="onboard_point_start_body">O cronômetro roda enquanto você trabalha</string>
+    <string name="onboard_point_owed">Saiba quem deve a você</string>
+    <string name="onboard_point_owed_body">Cada cliente, cada centavo</string>
+    <string name="onboard_point_bill">Envie a cobrança</string>
+    <string name="onboard_point_bill_body">Direto no WhatsApp deles</string>
+    <string name="onboard_get_started">Começar</string>
+    <string name="onboard_no_signup">Tudo é salvo neste celular. Não precisa de sinal.</string>
+
+    <string name="onboard_role_title">Como você trabalha?</string>
+    <string name="onboard_role_caption">Isso só muda o que a tela inicial mostra. Todo dono também pode dirigir e registrar trabalho.</string>
+    <string name="onboard_role_solo">Eu trabalho com minhas máquinas</string>
+    <string name="onboard_role_solo_body">Você tem um trator ou colheitadeira e faz o serviço você mesmo para outros agricultores.</string>
+    <string name="onboard_role_business">Eu tenho um negócio</string>
+    <string name="onboard_role_business_body">Várias máquinas e motoristas. Veja quem está trabalhando onde — e dirija uma você mesmo quando quiser.</string>
+    <string name="onboard_role_driver_note">Dirige para outra pessoa? Entrar no negócio dela com um código vem em breve.</string>
+
+    <string name="onboard_you_title">Conte sobre você</string>
+    <string name="onboard_you_caption">Seus clientes vão ver este nome na cobrança.</string>
+    <string name="onboard_your_name">Seu nome</string>
+    <string name="onboard_your_name_hint">Seu nome completo</string>
+    <string name="onboard_speak_name_cd">Falar seu nome em vez de digitar</string>
+
+    <string name="onboard_business_title">Dê um nome ao seu negócio</string>
+    <string name="onboard_business_caption">Aparece em toda cobrança que você enviar.</string>
+    <string name="onboard_business_name">Nome do negócio</string>
+    <string name="onboard_business_name_hint">Singh Agro Services</string>
+    <string name="onboard_land_unit">Você mede a terra em</string>
+
+    <string name="onboard_machine_title">O que você tem?</string>
+    <string name="onboard_machine_caption">Toque na sua máquina. Você pode adicionar mais depois.</string>
+    <string name="onboard_machine_name">Dê o nome que você dá a ela</string>
+    <string name="onboard_machine_name_hint">Mahindra 575</string>
+    <string name="onboard_machine_skip">Vou adicionar depois</string>
+
+    <string name="onboard_done_title">Tudo pronto</string>
+    <string name="onboard_done_body">%1$s está pronto. Inicie seu primeiro serviço quando quiser.</string>
+    <string name="onboard_done_action">Começar a trabalhar</string>
+    <string name="onboard_finish">Finalizar</string>
+
+    <string name="jobs_title">Serviços</string>
+    <string name="jobs_filter_running">Em andamento</string>
+    <string name="jobs_filter_today">Feitos hoje</string>
+    <string name="jobs_filter_week">Esta semana</string>
+    <string name="jobs_none_running">Ninguém está trabalhando agora.</string>
+    <string name="jobs_none_today">Nenhum trabalho terminado hoje ainda.</string>
+    <string name="jobs_none_week">Nada registrado esta semana.</string>
+    <string name="jobs_driving">%1$s dirigindo</string>
+    <string name="jobs_by">por %1$s</string>
+    <string name="jobs_working_now">Trabalhando agora</string>
+
+    <string name="fleet_title">Frota</string>
+    <string name="fleet_working">Trabalhando</string>
+    <string name="fleet_idle">Paradas</string>
+    <string name="fleet_down">Quebradas</string>
+    <string name="fleet_hours_week">Horas usadas esta semana</string>
+    <string name="fleet_hours_total">%1$s h</string>
+    <string name="fleet_attention">Precisa de atenção</string>
+    <string name="fleet_all_well">Nada precisa de atenção.</string>
+    <string name="fleet_see_all">Ver todas as máquinas</string>
+    <string name="fleet_breakdown_since">Quebrada desde %1$s</string>
+    <string name="fleet_empty_title">Nenhuma máquina ainda</string>
+    <string name="fleet_empty_body">Adicione suas máquinas para ver quem está trabalhando onde.</string>
+    <string name="day_mon">S</string>
+    <string name="day_tue">T</string>
+    <string name="day_wed">Q</string>
+    <string name="day_thu">Q</string>
+    <string name="day_fri">S</string>
+    <string name="day_sat">S</string>
+    <string name="day_sun">D</string>
+
+    <string name="machines_title">Máquinas</string>
+    <string name="machines_add_cd">Adicionar uma máquina</string>
+    <string name="machines_empty_title">Nenhuma máquina ainda</string>
+    <string name="machines_empty_body">Adicione o trator ou a colheitadeira com que você trabalha. Você ainda pode registrar serviços sem uma.</string>
+    <string name="machines_hours">%1$s h</string>
+    <string name="machines_service_due">Revisão em %1$s h</string>
+    <string name="machines_service_overdue">Revisão atrasada</string>
+    <string name="machines_new_title">Adicionar uma máquina</string>
+    <string name="machines_kind">Tipo</string>
+    <string name="machines_name">Nome</string>
+    <string name="machines_name_hint">Mahindra 575</string>
+    <string name="machines_plate">Placa</string>
+    <string name="machines_plate_hint">ABC1D23</string>
+    <string name="machines_hours_used">Horas que ela tem agora</string>
+    <string name="machines_service_every">Revisão a cada</string>
+    <string name="machines_service_every_hint">250</string>
+    <string name="machines_service_unit">horas</string>
+    <string name="machines_own_title">Quanto custa ter ela</string>
+    <string name="machines_own_monthly">Financiamento ou parcela</string>
+    <string name="machines_own_per_month">por mês</string>
+    <string name="machines_own_hours_year">Horas que ela trabalha por ano</string>
+    <string name="machines_own_note">Serve para calcular quanto realmente custa uma hora desta máquina. Só você e seus gerentes veem isto. Se deixar as horas em branco, usamos o último ano de trabalho.</string>
+    <string name="machines_own_too_many">Um ano só tem 8.760 horas. Confira este número.</string>
+    <string name="machines_save">Salvar máquina</string>
+
+    <string name="more_title">Mais</string>
+    <string name="more_owner">Dono</string>
+    <string name="more_operator">Motorista</string>
+    <string name="more_your_work">Seu trabalho</string>
+    <string name="more_machines_count">%1$s</string>
+    <string name="more_customers_count">%1$s</string>
+    <string name="more_settings">Configurações</string>
+    <string name="more_language">Idioma</string>
+    <string name="more_backup">Backup</string>
+    <string name="more_help">Ajuda</string>
+    <string name="more_help_offline_title">Sem sinal no campo?</string>
+    <string name="more_help_offline_body">Tudo continua funcionando. Seus serviços e pagamentos ficam salvos no celular e são enviados sozinhos quando você tiver internet de novo.</string>
+    <string name="more_version">FieldTrack %1$s</string>
+
+    <string name="edit_cd">Editar</string>
+    <string name="edit_customer_title">Editar cliente</string>
+    <string name="edit_machine_title">Editar máquina</string>
+    <string name="team_title">Minha equipe</string>
+    <string name="team_add_cd">Adicionar alguém à equipe</string>
+    <string name="team_working_now">Trabalhando agora</string>
+    <string name="team_everyone_else">Todos os outros</string>
+    <string name="team_no_longer_here">Não estão mais aqui</string>
+    <string name="team_you">você</string>
+    <string name="team_free">Livre</string>
+    <string name="team_left">Saiu</string>
+    <string name="team_driver">Motorista</string>
+    <string name="team_joined">entrou %1$s</string>
+    <string name="team_empty_title">Só você até agora</string>
+    <string name="team_empty_body">Adicione um motorista e você pode passar serviços para ele, ver quem está em qual máquina e decidir o que cada um pode fazer.</string>
+    <string name="team_add_title">Adicionar um motorista</string>
+    <string name="team_add_note">O que ele pode fazer é definido depois, na tela dele.</string>
+    <string name="team_add_name_hint">Jaswant Kumar</string>
+    <string name="team_add_save">Adicionar</string>
+    <string name="team_details">Dados dele</string>
+    <string name="team_member_name">Nome</string>
+    <string name="team_allowed_to">Pode</string>
+    <string name="team_perm_money">Ver dinheiro</string>
+    <string name="team_perm_money_note">Ele verá quanto cada cliente deve a você e quanto cada serviço rendeu — não só os serviços que ele fez.</string>
+    <string name="team_perm_customers">Adicionar e corrigir clientes</string>
+    <string name="team_perm_customers_note">Os nomes que ele digitar no campo vão direto para a sua lista de clientes.</string>
+    <string name="team_perm_bills">Fechar cobranças e receber pagamento</string>
+    <string name="team_perm_bills_note">Ele pode finalizar um serviço e receber o dinheiro. O dinheiro que ele marcar como recebido é dinheiro que você não vai cobrar. Inclui ver dinheiro.</string>
+    <string name="team_stat_jobs">SERVIÇOS</string>
+    <string name="team_stat_hours">HORAS</string>
+    <string name="team_stat_brought_in">TROUXE</string>
+    <string name="team_privacy_note">%1$s pode dirigir para outros negócios também. Estes números cobrem só o trabalho dele para você — e ele não vê nada do seu.</string>
+    <string name="team_not_yourself">Você não pode mudar seu próprio acesso aqui. Outro dono pode fazer isso por você.</string>
+    <string name="team_call">Ligar</string>
+    <string name="team_remove">Tirar da equipe</string>
+    <string name="team_take_back">Chamar de volta</string>
+    <string name="more_team">Minha equipe</string>
+    <plurals name="count_members">
+        <item quantity="one">%1$d pessoa</item>
+        <item quantity="many">%1$d pessoas</item>
+        <item quantity="other">%1$d pessoas</item>
+    </plurals>
+
+    <string name="profile_title">Perfil</string>
+    <string name="profile_you">Você</string>
+    <string name="profile_business">Seu negócio</string>
+    <string name="profile_measuring">Como você mede</string>
+    <string name="profile_land_measured_in">Terra medida em</string>
+    <string name="profile_address">Endereço</string>
+    <string name="profile_business_mode">Modo negócio</string>
+    <string name="profile_business_mode_note">Adiciona motoristas, serviços ao vivo e a visão da frota</string>
+    <string name="profile_not_set">Não definido</string>
+    <string name="join_err_already_in">Você já trabalha para este negócio. Digitar o código de novo mudaria o que você pode fazer aqui, então nada foi feito.</string>
+    <plurals name="team_unsent_title">
+        <item quantity="one">%1$d mudança ainda no celular dele</item>
+        <item quantity="many">%1$d mudanças ainda no celular dele</item>
+        <item quantity="other">%1$d mudanças ainda no celular dele</item>
+    </plurals>
+    <string name="team_unsent_note">Trabalho que ele registrou e ainda não chegou até você. Peça para ele abrir o app onde tiver sinal — se você tirar ele da equipe antes de chegar, fica no celular dele.</string>
+    <string name="team_unsent_as_of">Contado %1$s</string>
+    <plurals name="team_codes_waiting">
+        <item quantity="one">%1$d código esperando para ser usado</item>
+        <item quantity="many">%1$d códigos esperando para serem usados</item>
+        <item quantity="other">%1$d códigos esperando para serem usados</item>
+    </plurals>
+    <string name="team_codes_waiting_note">Enviado, ainda sem entrar</string>
+    <string name="invites_sent_title">Códigos que você enviou</string>
+    <string name="invites_sent_intro">Cada código vale para uma pessoa. Envie um diferente para cada motorista — um código novo não faz mais os outros pararem de funcionar.</string>
+    <string name="invites_none">Nada esperando. Todo código que você enviou foi usado ou venceu.</string>
+    <string name="invites_send_again">Enviar de novo</string>
+    <string name="invites_cancel">Cancelar código</string>
+    <string name="invites_used">JÁ USADO</string>
+    <string name="invites_used_by_unknown">Alguém entrou</string>
+    <string name="invites_used_on">%1$s · %2$s</string>
+    <string name="invites_one_more">Convidar mais um</string>
+    <string name="invites_ends_today">Termina hoje</string>
+    <plurals name="invites_days_left">
+        <item quantity="one">falta %1$d dia</item>
+        <item quantity="many">faltam %1$d dias</item>
+        <item quantity="other">faltam %1$d dias</item>
+    </plurals>
+    <plurals name="invites_hours_left">
+        <item quantity="one">falta %1$d hora</item>
+        <item quantity="many">faltam %1$d horas</item>
+        <item quantity="other">faltam %1$d horas</item>
+    </plurals>
+    <string name="invites_terms_plain">Motorista · registra só o próprio trabalho</string>
+    <string name="invites_terms_money">Motorista · pode ver dinheiro e dívidas</string>
+    <string name="invites_terms_payment">Motorista · pode fechar cobranças e receber pagamento</string>
+    <string name="invites_terms_customers">Motorista · pode adicionar clientes</string>
+    <string name="team_remove_title">Tirar %1$s da equipe?</string>
+    <string name="team_remove_running">Ele está trabalhando agora — %1$s em %2$s. Se você tirar ele da equipe, esse serviço para onde está.</string>
+    <string name="team_remove_keeps">O trabalho dele fica com você. Todo serviço, hora e centavo que ele trouxe é seu e não é mexido.</string>
+    <string name="team_remove_closes">Ele deixa de ver seus clientes, máquinas e preços a partir de agora.</string>
+    <string name="team_remove_unsent">O trabalho no celular dele ainda não chegou até você. Peça para ele abrir o app onde tiver sinal primeiro, ou ele fica com ele.</string>
+    <string name="team_remove_back">Você pode convidar ele de volta depois com um código novo.</string>
+    <string name="team_remove_yes">Tirar da equipe</string>
+    <string name="team_remove_keep">Manter</string>
+    <string name="team_quiet_title">O celular dele não chegou até você</string>
+    <string name="team_quiet_note">Última notícia %1$s. Tudo o que ele registrou desde então ainda está no celular dele e não chegou até você.</string>
+    <string name="orgs_title">Para quem você trabalha</string>
+    <string name="orgs_refused_title">Você não trabalha mais para %1$s</string>
+    <string name="orgs_refused_body">Eles tiraram você da equipe. O trabalho que você fez para eles fica neste celular, mas você não pode mais abrir os clientes nem os serviços deles.</string>
+    <string name="orgs_refused_ok">Entendi</string>
+    <string name="orgs_checking">Conferindo…</string>
+    <string name="account_off_title">Esta conta foi desligada</string>
+    <string name="account_off_body">Nada foi apagado. O trabalho neste celular continua aqui e será enviado de novo se a conta for religada. Fale com quem cuida dos seus negócios.</string>
+    <plurals name="orgs_count">
+        <item quantity="one">%1$d negócio</item>
+        <item quantity="many">%1$d negócios</item>
+        <item quantity="other">%1$d negócios</item>
+    </plurals>
+    <string name="orgs_right_now">Agora</string>
+    <string name="orgs_also">Também trabalha para</string>
+    <string name="orgs_join">Entrar em outro negócio</string>
+
+</resources>

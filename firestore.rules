@@ -1,0 +1,716 @@
+rules_version = '2';
+
+// FieldTrack — Cloud Firestore security rules.
+//
+// Two collections, and the difference between them is the whole design:
+//
+//   orgs/{orgId}/...        a business's work. Readable only by its members.
+//   inviteCodes/{code}      how somebody who is not a member yet gets in.
+//
+// Membership is checked by fetching a document at a path built from the caller's own
+// authenticated id. Rules can fetch a known path and cannot search a collection, so
+// the membership id is `{orgId}_{personId}` precisely to make this question
+// answerable — a random id with the person named in a field would be unfindable
+// here, and the only alternative would be leaving every organisation open.
+//
+// Two things to hold on to when editing this file:
+//
+//   The API key ships inside every copy of the app and anonymous sign-in is on, so
+//   `signedIn()` is not a trust boundary. It means "someone", never "someone we
+//   trust". Every real check is a membership check.
+//
+//   Rules are OR-ed across every match block a path falls into. A later block
+//   cannot take away what an earlier one granted, so a wildcard that happens to
+//   cover a collection silently replaces the careful rules written for it.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membershipPath(orgId) {
+      return /databases/$(database)/documents/orgs/$(orgId)/memberships/$(orgId + '_' + request.auth.uid);
+    }
+
+    // Membership is not merely having a row — it is having a row that is still
+    // live. Removing somebody writes `active = false` on their membership, and if
+    // this only asked whether the document existed, that removal would be
+    // decoration: a driver let go last season would keep full read and write to
+    // the business until somebody deleted the row by hand.
+    //
+    // Defaults to true for rows written before the field existed, so an older
+    // membership is not locked out by a rule it predates.
+    function isMember(orgId) {
+      return signedIn()
+             && exists(membershipPath(orgId))
+             && get(membershipPath(orgId)).data.get('active', true) == true;
+    }
+
+    // Who may change the shape of the business rather than merely work in it.
+    //
+    // Mirrors the app exactly: Capabilities.of() hands EditTeam out through
+    // ofOwner() and nowhere else, so "owner" and "may manage the team" are the
+    // same statement on both sides of the wire.
+    function isOwner(orgId) {
+      return isMember(orgId)
+             && get(membershipPath(orgId)).data.get('role', '') == 'Owner';
+    }
+
+    // Whether a member holds one of the switches an owner can grant.
+    //
+    // Reads the flag off the same membership document [isMember] already
+    // fetched, so it costs nothing extra. Defaults to false for a row written
+    // before the flag existed: a permission nobody has granted is not held.
+    function may(orgId, flag) {
+      return isMember(orgId)
+             && get(membershipPath(orgId)).data.get(flag, false) == true;
+    }
+
+    // A member who may look and may not change anything: a partner, an accountant.
+    // Held on the same membership document as every other grant, so it costs no
+    // extra read. Blocks the writes that are open to every member; the writes that
+    // already need a switch (paying people, planning, the team) are refused to a
+    // viewer because none of those switches is ever set on one.
+    function isViewer(orgId) {
+      return isMember(orgId)
+             && get(membershipPath(orgId)).data.get('role', '') == 'Viewer';
+    }
+
+    // Who may run the team: an owner, or somebody an owner has said may.
+    function mayRunTeam(orgId) {
+      return isOwner(orgId) || may(orgId, 'canEditTeam');
+    }
+
+    // Who may plan the work: an owner, or somebody an owner has said may. Not the
+    // same switch as running the team — a trusted senior driver can be allowed to
+    // book the week without being able to take anybody on or let them go.
+    function mayPlan(orgId) {
+      return isOwner(orgId) || may(orgId, 'canPlanWork');
+    }
+
+    /**
+     * Whether an invite code stays within what its maker holds.
+     *
+     * An owner may publish any terms. A manager may not mint a code that makes
+     * an owner, nor one carrying the two switches that would create a peer or
+     * expose what people are paid — otherwise delegating the team would be
+     * delegating the power to hand the business away.
+     */
+    function capsAt(orgId) {
+      return isOwner(orgId)
+             || (
+                  request.resource.data.get('role', 'Operator') != 'Owner'
+                  && request.resource.data.get('canSeePeopleCost', false) == false
+                  && request.resource.data.get('canEditTeam', false) == false
+                );
+    }
+
+    // An invite code, published outside any organisation because the person who
+    // needs it cannot name the organisation yet — finding that out is the point.
+    //
+    // `get` is allowed to any signed-in caller: holding the code IS the
+    // authorisation, and requiring a sign-in keeps a leaked code from being readable
+    // by the whole internet. `list` is refused, because a listable collection of
+    // open invites is a way to enumerate every business accepting drivers and walk
+    // into one. The code has to be the address, never a search result.
+    match /inviteCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Write is split three ways on purpose, because the three verbs do not have
+      // the same documents available to them and one rule covering all of them got
+      // every case wrong.
+      //
+      // Create: a code is a way into the business, so making one is an act of
+      // running the team, not a perk of being on it.
+      //
+      // `isMember` was not enough, and the gap it left was wide. Nothing here
+      // constrains what a code says, so any driver could publish one reading
+      // `role: 'Owner'` and then cite it to raise their own membership to
+      // match — the server would agree, because the terms genuinely did match
+      // the code. Minting is now held to the same bar as the team screen, and
+      // [capsAt] stops a manager writing a code better than themselves.
+      allow create: if mayRunTeam(request.resource.data.orgId)
+                    && capsAt(request.resource.data.orgId);
+
+      // Update: a member of BOTH the business it points at now and the one it
+      // would point at afterwards. Asking for either on its own — which is what
+      // `isMember(request.resource.data.orgId) || isMember(resource.data.orgId)`
+      // did — let anybody with a business of their own rewrite somebody else's
+      // published code to aim at theirs, taking down a competitor's invitations
+      // and capturing whoever typed one.
+      //
+      // The second clause is the person redeeming it. Marking a code spent is
+      // part of joining, and the joiner is by definition not on the team yet,
+      // so the team check above can never be true for them — which meant the
+      // write was refused for ever and, the outbox being ordered, wedged the
+      // new driver's queue on their very first sync. It also left the code
+      // looking unused, so one code let in as many people as held it.
+      //
+      // They may stamp it spent and nothing else: the business it points at,
+      // the terms it carries and its expiry all have to survive untouched, and
+      // the name on the redemption has to be their own.
+      function justRedeems() {
+        return signedIn()
+               && request.resource.data.orgId == resource.data.orgId
+               && request.resource.data.get('role', 'Operator') ==
+                  resource.data.get('role', 'Operator')
+               && request.resource.data.get('canSeeMoney', false) ==
+                  resource.data.get('canSeeMoney', false)
+               && request.resource.data.get('canAddCustomers', false) ==
+                  resource.data.get('canAddCustomers', false)
+               && request.resource.data.get('canCloseBills', false) ==
+                  resource.data.get('canCloseBills', false)
+               && request.resource.data.get('expiresAt', 0) ==
+                  resource.data.get('expiresAt', 0)
+               && request.resource.data.get('redeemedAt', null) != null;
+      }
+
+      allow update: if (
+                         mayRunTeam(resource.data.orgId)
+                         && mayRunTeam(request.resource.data.orgId)
+                         && capsAt(request.resource.data.orgId)
+                       )
+                    || justRedeems();
+
+      // Delete: there is no `request.resource` on a delete. The first version of
+      // this rule read `request.resource.data.orgId` here, dereferenced null, and
+      // the whole expression errored — which denies. Revoking an invite could
+      // therefore never succeed, and because the outbox sends strictly in order,
+      // that one permanent refusal sat at the head of the queue and stopped the
+      // device syncing anything, ever.
+      //
+      // `resource == null` is the second half of the same lesson, found the same
+      // way. A handset can queue the withdrawal of a code whose publication never
+      // reached the server — made and revoked in one stretch without signal — and
+      // then `resource` is null too, so reading `resource.data.orgId` errors
+      // exactly as before and wedges the queue just as hard. Deleting a document
+      // that is not there changes nothing and tells the caller nothing they could
+      // not already learn from `get`, which any signed-in caller is allowed.
+      allow delete: if resource == null || mayRunTeam(resource.data.orgId);
+    }
+
+    // The account itself.
+    //
+    // Holds one thing the app cares about: whether this account has been turned
+    // off. Readable only by the person it describes, and writable by nobody at
+    // all — not even them. A lock the locked-out party can open is not a lock, so
+    // `disabled` is set from the console or a trusted server and from nowhere
+    // else. The app only ever asks.
+    //
+    // Note this is the authority for the app's own behaviour, not for the data:
+    // what actually stops a turned-off account reaching anything is disabling the
+    // user in Firebase Authentication, which refuses their token at the door.
+    // This flag is what lets the app say so, instead of failing silently. No rule
+    // below consults it, and that is deliberate — a flag a rule reads is a flag
+    // somebody has to keep in step with Authentication, and the two drifting
+    // apart is worse than having one source of truth.
+    match /people/{personId} {
+      allow read: if signedIn() && request.auth.uid == personId;
+      allow write: if false;
+    }
+
+    // Which businesses a person belongs to, filed under that person.
+    //
+    // Readable only by them, and only about themselves: this is the one index in
+    // the system that answers "who am I" rather than "what is in this business",
+    // and it exists because a freshly signed-in handset knows its owner's id and
+    // nothing else. Written by the device as it joins or creates a business.
+    match /people/{personId}/orgs/{orgId} {
+      allow read, write: if signedIn() && request.auth.uid == personId;
+    }
+
+    // The phones a person can be reached on, and what each wants to hear about. Read by
+    // the server's own code to decide whom to send a notification to; a person can read
+    // and change only their own, and a phone that signs out removes its row.
+    match /people/{personId}/devices/{deviceId} {
+      allow read, write: if signedIn() && request.auth.uid == personId;
+    }
+
+    match /orgs/{orgId} {
+      // The business's own record: its name, address, UPI id and GSTIN — every
+      // one of which prints at the top of a bill a driver hands to a customer.
+      // Reading it is everybody's business; rewriting it is the owner's, which is
+      // what the app has always said (EditBusiness comes only from ofOwner) and
+      // what `write: if isMember(orgId)` did not enforce.
+      allow read: if isMember(orgId);
+      allow update: if isOwner(orgId);
+
+      // Creation is open to any signed-in caller, and that is not a loosening.
+      // A document can only be created where none exists, so this cannot touch
+      // another business. It exists because of an ordering trap: the founder
+      // writes their organisation and their own membership in the same breath,
+      // and requiring membership here meant the organisation could only be
+      // created after a membership that the rule below would only allow while
+      // the organisation did not exist. Each waiting on the other is how a
+      // business ends up on the server with no record of itself — and an
+      // organisation document that never lands leaves the bootstrap branch
+      // below standing open for anyone who learns the id.
+      allow create: if signedIn();
+
+      // Nothing on a handset deletes a business.
+      allow delete: if false;
+
+      // Creating your own membership is how both routes in actually happen: an
+      // owner setting up a new business, and a driver redeeming a code.
+      //
+      // Both may only write a membership that names themselves, at the path built
+      // from their own id, so this can never add somebody else or add you under a
+      // different identity. Beyond that the two routes are told apart by whether
+      // the organisation already exists:
+      //
+      //   - It does not: you are creating it. Nothing is there to protect yet, and
+      //     the organisation document is written in the same breath.
+      //   - It does: you are joining somebody else's business, and you must hold an
+      //     invite code that points at it, AND take exactly the terms that code
+      //     sets. "A driver says he was invited" is not something a server can take
+      //     on trust, and neither is "a driver says he was invited as an owner".
+      //
+      // Without the second half, anybody signed in who learned an organisation's id
+      // could add themselves to it and read the books — and since the API key ships
+      // inside every copy of the app, signing in is free. The id staying secret is
+      // not a security measure, it is a hope.
+      match /memberships/{memberId} {
+
+        // The document this caller is allowed to be: their own, at their own id.
+        function isMine() {
+          return signedIn() && memberId == orgId + '_' + request.auth.uid;
+        }
+
+        // Falls back to a code that cannot exist rather than an empty string,
+        // because an empty path segment is not a valid document reference and
+        // would error the rule rather than simply failing it.
+        function invitePath() {
+          return /databases/$(database)/documents/inviteCodes/$(request.resource.data.get('joinedWithCode', 'no-such-code'));
+        }
+
+        // The code sets the terms, and the joiner may not improve on them.
+        //
+        // Previously this checked only that the caller held *a* code for this
+        // business. The role and the three capability flags came from the
+        // document the joining handset wrote, so anybody handed an ordinary
+        // driver's code could type it in and arrive as an Owner with full sight
+        // of the money. The owner publishes the terms in the code; this is where
+        // they are enforced.
+        function joinsOnInvitedTerms(targetOrg) {
+          return exists(invitePath())
+                 && get(invitePath()).data.orgId == targetOrg
+                 && request.resource.data.role == get(invitePath()).data.get('role', 'Operator')
+                 && request.resource.data.canSeeMoney == get(invitePath()).data.get('canSeeMoney', false)
+                 && request.resource.data.canAddCustomers == get(invitePath()).data.get('canAddCustomers', false)
+                 && request.resource.data.canCloseBills == get(invitePath()).data.get('canCloseBills', false)
+                 && joinsWithoutOtherSwitches();
+        }
+
+        // The switches a code cannot carry.
+        //
+        // A code sets the role and the first three switches and nothing more, so a
+        // person arriving on one holds none of the rest. Checking only what the
+        // code does carry left the others to whatever the joining handset wrote,
+        // and anybody handed an ordinary code could arrive able to run the team
+        // or read what everybody is paid.
+        function joinsWithoutOtherSwitches() {
+          return request.resource.data.get('canPayOut', false) == false
+                 && request.resource.data.get('canEditTeam', false) == false
+                 && request.resource.data.get('canEditMachines', false) == false
+                 && request.resource.data.get('canPlanWork', false) == false
+                 && request.resource.data.get('canSeePeopleCost', false) == false;
+        }
+
+        // What somebody may change about themselves: how their name is spelled,
+        // and whether they still work here. Never their rank, never any switch an
+        // owner has set — the money, the team, the machines, the plan, what
+        // people are paid — and never their way back in once they have gone.
+        //
+        // Every switch is listed by name, because nothing here can say "all of
+        // them". A new switch added to the app and not to this list is one a
+        // driver can give themselves; a test in the app fails when that happens.
+        function keepsOwnRank() {
+          return request.resource.data.role == resource.data.role
+                 && request.resource.data.canSeeMoney == resource.data.canSeeMoney
+                 && request.resource.data.canAddCustomers == resource.data.canAddCustomers
+                 && request.resource.data.canCloseBills == resource.data.canCloseBills
+                 && request.resource.data.get('canPayOut', false) == resource.data.get('canPayOut', false)
+                 && request.resource.data.get('canEditTeam', false) == resource.data.get('canEditTeam', false)
+                 && request.resource.data.get('canEditMachines', false) == resource.data.get('canEditMachines', false)
+                 && request.resource.data.get('canPlanWork', false) == resource.data.get('canPlanWork', false)
+                 && request.resource.data.get('canSeePeopleCost', false) == resource.data.get('canSeePeopleCost', false)
+                 && (
+                      request.resource.data.active == resource.data.active
+                      || request.resource.data.active == false
+                    );
+        }
+
+        // The row sits at the id its own person is looked up by.
+        //
+        // Not pedantry: every check in this file finds a membership by building
+        // `{orgId}_{personId}` from the caller's uid. A row filed anywhere else
+        // is unfindable, and a row filed under one person carrying another
+        // person's details is worse than unfindable.
+        function filedUnderItsPerson() {
+          return memberId == orgId + '_' + request.resource.data.personId;
+        }
+
+        /** What somebody running the team, but not owning it, may bring in. */
+        function managerMayCreate() {
+          return may(orgId, 'canEditTeam')
+                 && request.resource.data.get('role', 'Operator') != 'Owner'
+                 && request.resource.data.get('canEditTeam', false) == false
+                 && request.resource.data.get('canSeePeopleCost', false) == false;
+        }
+
+        // Three ways a membership is born, and the third was missing.
+        //
+        // The first two are the person themselves: founding a business, or
+        // redeeming a code. Both write their own row at their own id.
+        //
+        // The third is an owner writing somebody down. A contractor adds a
+        // driver by name long before that man ever installs anything — he has
+        // no account, his personId is a uuid this handset invented, and the
+        // owner is the only one who can push the row. `isMine()` is false for
+        // it by definition, so with only the first two clauses that write was
+        // refused for ever. Because the outbox sends in order, that one
+        // permanent refusal stopped the phone syncing anything at all, with
+        // nothing on screen saying which row or why.
+        //
+        // Safe because it reaches no further than the team screen already
+        // does: only into a business you run, only at the id that person is
+        // found by, and a manager may not bring in an owner, nor hand on the
+        // two switches that would make a peer.
+        allow create: if (
+                           isMine()
+                           && request.resource.data.personId == request.auth.uid
+                           && (
+                                !exists(/databases/$(database)/documents/orgs/$(orgId))
+                                || joinsOnInvitedTerms(orgId)
+                              )
+                         )
+                      || (
+                           filedUnderItsPerson()
+                           && (isOwner(orgId) || managerMayCreate())
+                         );
+
+        // You may always read your own membership, live or not.
+        //
+        // Not a convenience. Being removed is delivered by this document and
+        // nothing else: the app reads it on every sync, and a row that comes back
+        // inactive is what tells a phone to stop working from this business.
+        // Gating that read on being active would mean the one person who needs to
+        // see it is the one person refused — their handset would ask, be told no,
+        // treat the refusal as "nothing has changed", and carry on believing it
+        // belongs here. Removal would be silent to the only party it concerns.
+        allow read: if isMember(orgId) || isMine();
+
+        // Managing the team is the owner's job, and used to be everybody's.
+        //
+        // `allow update, delete: if isMember(orgId)` put no condition on which
+        // document was being written or which fields changed, so any driver could
+        // open their own membership and set `role = 'Owner'`, switch on
+        // `canSeeMoney`, or write `active = false` onto the actual owner and lock
+        // them out of their own business. The client enforced none of this on the
+        // server's behalf: TeamRepository's last-owner and not-on-yourself guards
+        // run on the handset doing the asking.
+        //
+        // The carve-out is for the two things a person legitimately does to their
+        // own row: correct the spelling of their name, and resign.
+        // The third clause is for somebody coming back.
+        //
+        // Removal keeps the row and sets `active = false`, so a driver let go in
+        // April and wanted again in June is not creating a membership — they are
+        // raising one that already exists. `keepsOwnRank` forbids exactly that,
+        // and `isOwner` is not true of a driver, so without this the two rules
+        // above make every removal permanent: the invite would be accepted by the
+        // app, refused by the server, and sit at the head of that phone's queue
+        // blocking everything behind it, with nothing on screen saying why.
+        //
+        // Safe for the same reason the create branch is. Coming back requires
+        // holding a real code for this business and taking exactly the terms it
+        // sets, and only a member can publish a code — a removed driver cannot
+        // mint their own way back in.
+        /**
+         * What somebody running the team, but not owning it, may change.
+         *
+         * Never an owner's row, never making one, and never handing on the two
+         * switches that would create a peer or open the wage book. An owner
+         * delegating the team is delegating the drivers, not the business.
+         */
+        function managerMayWrite() {
+          // Never one's own row. Somebody who runs the team may switch things on
+          // for a driver, and without this they could switch them on for
+          // themselves: their own row is theirs to rename or leave, not to promote.
+          return !isMine()
+                 && may(orgId, 'canEditTeam')
+                 && resource.data.get('role', 'Operator') != 'Owner'
+                 && request.resource.data.get('role', 'Operator') != 'Owner'
+                 && request.resource.data.get('canEditTeam', false) == false
+                 && request.resource.data.get('canSeePeopleCost', false) ==
+                    resource.data.get('canSeePeopleCost', false);
+        }
+
+        allow update: if isOwner(orgId)
+                      || (isMine() && keepsOwnRank())
+                      // Coming back is for somebody who is OUT. Without that
+                      // word this branch let anybody still on the team rewrite
+                      // their own terms to match any code they could lay hands
+                      // on — and until a moment ago they could mint one.
+                      || (
+                           isMine()
+                           && resource.data.get('active', true) == false
+                           && joinsOnInvitedTerms(orgId)
+                         )
+                      || managerMayWrite();
+
+        // Nobody deletes a membership, not even an owner.
+        //
+        // Removal is `active = false`, and the row that stays behind is what
+        // puts a name against every job that person ever did. Destroy it and six
+        // months of work goes nameless in the owner's own records, with nothing
+        // left to look the name up from. There is no flow in the app that needs
+        // this, so the server does not offer it.
+        allow delete: if false;
+      }
+
+      // Work booked for a day.
+      //
+      // Readable by every member, because the driver the booking is for has to
+      // see it; who is shown which ones is the app's business, and a booking
+      // holds no money. Written only by those who plan.
+      //
+      // Drivers never write one. Starting the work writes the job, and the job
+      // carries the booking it came from, so a booking is "started" by what
+      // exists rather than by something a handset had to remember to update —
+      // which is also why two phones can never fight over one.
+      //
+      // Never deleted from a handset: a booking that did not happen is
+      // cancelled, with a reason, so "why was nobody sent on Tuesday" has an
+      // answer.
+      match /bookings/{bookingId} {
+        allow read: if isMember(orgId);
+        allow create, update: if mayPlan(orgId);
+        allow delete: if false;
+      }
+
+      // What the business has paid for, written by our server after it has checked the store, and
+      // read by everybody in the business so every phone agrees. No handset writes it, the owner's
+      // included: a plan the owner could write for themselves would not be a plan.
+      match /entitlement/{doc} {
+        allow read: if isMember(orgId);
+        allow write: if false;
+      }
+
+      // A purchase the owner's phone hands over to be checked. Created by the owner and then read
+      // only by the server, which asks the store whether it is real and whose it is.
+      match /purchase_claims/{claimId} {
+        allow create: if isOwner(orgId);
+        allow read, update, delete: if false;
+      }
+
+      // What farmers asked for through the business's public page.
+      //
+      // Written by the server alone (the person asking is nobody in the business), so no
+      // handset may create or delete one. Those who plan read them and settle them: the only
+      // fields a handset may change are the status, the booking it became, and the stamps
+      // every write carries.
+      match /booking_requests/{requestId} {
+        allow read: if mayPlan(orgId);
+        allow update: if mayPlan(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'bookingId', 'updatedAt', 'syncState', '_seq', '_device', '_recordedAt', '_serverAt', '_money']);
+        allow create, delete: if false;
+      }
+
+      // What the business paid out — wages, labour, anything to a person.
+      //
+      // Its own block because the generic grant below would let every member
+      // read it, and what each person earns is the one figure in this app that
+      // cannot be un-seen. In a crew of four that is not a reporting detail,
+      // it is a quarrel. A screen that declines to show it keeps it from
+      // nobody; only the server can, which is why the two switches live on the
+      // membership document where a rule can read them.
+      //
+      // Never deleted from a handset. A payment recorded wrongly is corrected
+      // the way the customer ledger corrects one — by a further entry that
+      // says so — not by making the first one disappear.
+      //
+      // The person a payment was made to may read it too: trust runs both ways, and a
+      // driver who cannot see what he was paid has only the owner's word for it. Each
+      // such read is checked against the document itself, which is why the app asks for
+      // them by `toPersonId` rather than for the collection.
+      match /payouts/{payoutId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && resource.data.toPersonId == request.auth.uid);
+        allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // Cash a team member handed over to whoever keeps the business's money.
+      //
+      // Read by the whole team: what a driver is holding is his business as much as the
+      // owner's, and he must be able to see a hand-over written down for him. Written only
+      // by somebody who receives money (an owner, or one who closes bills or pays people),
+      // and always in their own name, so a hand-over is never recorded by the person it
+      // clears. Taken back, not deleted.
+      match /cash_handovers/{handoverId} {
+        allow read: if isMember(orgId);
+        allow create: if (isOwner(orgId) || may(orgId, 'canCloseBills') || may(orgId, 'canPayOut'))
+                      && request.resource.data.byPersonId == request.auth.uid;
+        allow update: if isOwner(orgId) || may(orgId, 'canCloseBills') || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // One person's particulars: where their pay goes, their licence, who to call.
+      //
+      // The id is the membership's, so a person can be told apart by the path alone. They
+      // read and write their own; whoever runs the team or pays people may read them, and
+      // whoever runs the team may change them, always in their own name so the person can
+      // be told who changed where their pay goes.
+      match /member_details/{memberId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canEditTeam') || may(orgId, 'canPayOut')
+                    || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && memberId == orgId + '_' + request.auth.uid);
+        allow create, update: if (isOwner(orgId) || may(orgId, 'canEditTeam')
+                                   || (signedIn() && memberId == orgId + '_' + request.auth.uid))
+                              && request.resource.data.updatedByPersonId == request.auth.uid;
+        allow delete: if false;
+      }
+
+      // How one person is paid. The same secret as a payment: read by the money people
+      // and the person, set only by somebody who pays people.
+      match /member_pay_terms/{memberId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost')
+                    || (signedIn() && memberId == orgId + '_' + request.auth.uid);
+        allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // What a job cost beyond the machine: the hands on it, and the money
+      // around it.
+      //
+      // Readable by every member, which is deliberate. A headcount is not a
+      // wage — the driver who counted the four men has to be able to see his
+      // own entry — and the rupees on it are a separate permission below.
+      //
+      // Any member may write one, because the person who knows how many
+      // worked is the one who was standing there, and he holds no money
+      // switch.
+      //
+      // The figure is not in this document, and that is the point. A rule
+      // grants or refuses a whole document and cannot hide one field, so the
+      // first version of this — a single row carrying both the headcount and
+      // the rupees, readable by every member — put the crew's wages on the
+      // driver's phone. The screen stripped them before they were drawn; the
+      // database held them all the same. A hidden figure is a courtesy. A
+      // figure that was never sent is a boundary.
+      //
+      // So what a job cost says here is who worked and on what. The money
+      // lives next door under the same id, where only the money people can
+      // read it.
+      //
+      // Never deleted from a handset, the same as a payment. Work that was
+      // done stays done.
+      match /job_costs/{costId} {
+        allow read: if isMember(orgId);
+        allow create, update: if isMember(orgId) && !isViewer(orgId);
+        allow delete: if false;
+      }
+
+      // What that job cost, filed apart from who worked on it.
+      //
+      // Guarded exactly like a payment, because it is the same secret: in a
+      // crew of four, one man learning what another was paid is not a
+      // reporting detail, it is a quarrel, and it cannot be unlearned.
+      //
+      // Absent and not-yet-priced are deliberately indistinguishable to a
+      // reader who may not look. The app shows them "nobody has said what this
+      // cost", which is all they are entitled to know.
+      match /job_cost_amounts/{costId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost');
+        allow create, update: if isOwner(orgId) || may(orgId, 'canPayOut');
+        allow delete: if false;
+      }
+
+      // What a machine costs to own: the loan instalment and the hours it works
+      // in a year.
+      //
+      // Filed apart from the machine for the same reason a crew's wages are filed
+      // apart from the job. A machine document is readable by every member, and a
+      // document cannot hide one of its own fields — so a loan written onto it
+      // would be in the pocket of every driver who opens the app. Here only an
+      // owner, or a manager who sees what the business pays, can read it; and
+      // writing it takes the right to edit machines as well, so nobody can
+      // overwrite figures they are not allowed to look at.
+      //
+      // The id is the machine's id: one record per machine.
+      match /machine_finance/{machineId} {
+        allow read: if isOwner(orgId) || may(orgId, 'canSeePeopleCost');
+        allow create, update: if isOwner(orgId)
+                              || (may(orgId, 'canEditMachines') && may(orgId, 'canSeePeopleCost'));
+        allow delete: if false;
+      }
+
+      // Everything else a business owns: customers, machines, jobs, the money.
+      //
+      // The exclusions are load-bearing. A single-segment wildcard
+      // matches any collection name, memberships included, and because rules are
+      // OR-ed this blanket grant would sit alongside the careful block above and
+      // hand every member full write access to every membership — undoing all of
+      // it. Excluding the name here is the only way to say "everything except",
+      // since a rule cannot revoke what another rule allows.
+      match /{collection}/{document} {
+        allow read: if isMember(orgId)
+                    && collection != 'memberships'
+                    && collection != 'payouts'
+                    && collection != 'cash_handovers'
+                    && collection != 'member_details'
+                    && collection != 'member_pay_terms'
+                    && collection != 'job_costs'
+                    && collection != 'job_cost_amounts'
+                    && collection != 'machine_finance'
+                    && collection != 'booking_requests'
+                    && collection != 'entitlement'
+                    && collection != 'purchase_claims'
+                    && collection != 'bookings';
+        // Anybody on the team may write the work, except somebody who may only look.
+        allow write: if isMember(orgId)
+                     && !isViewer(orgId)
+                     && collection != 'memberships'
+                     && collection != 'payouts'
+                     && collection != 'cash_handovers'
+                     && collection != 'member_details'
+                     && collection != 'member_pay_terms'
+                     && collection != 'job_costs'
+                     && collection != 'job_cost_amounts'
+                     && collection != 'machine_finance'
+                     && collection != 'booking_requests'
+                     && collection != 'entitlement'
+                     && collection != 'purchase_claims'
+                     && collection != 'bookings';
+      }
+    }
+
+    // A person asking for their account, and what is theirs alone, to be deleted.
+    //
+    // Nothing on a handset deletes a business, so this is a request that whoever runs the
+    // data carries out. Each person may write only their own, and may read it back to
+    // see that it landed; it is never deleted from a handset.
+    match /deletionRequests/{personId} {
+      allow create, update: if signedIn() && request.auth.uid == personId;
+      allow read: if signedIn() && request.auth.uid == personId;
+      allow delete: if false;
+    }
+
+    // The oldest app version still allowed to share data, and the newest there is.
+    // Written by hand in the console; no handset ever writes it. Any signed-in person
+    // may read it, which is what lets an old install find out it is too old.
+    match /appConfig/{document} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Anything not laid out above is not something this app writes.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

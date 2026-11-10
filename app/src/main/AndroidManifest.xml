@@ -4,6 +4,49 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      The running clock in the notification shade, and the evening "still
+      working?" question. Asked for when the first clock is started, not at
+      launch: at that moment the reason is on screen. Refused, the app works
+      exactly as before; the clock simply stays inside it.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Dropping a pin on a field, so a driver who has never been there can find
+      it. Coarse is enough and is asked for first: a plot is hundreds of metres
+      across, and street-level precision buys nothing while costing the user a
+      harder permission to say yes to. Fine is declared because a device may
+      only offer the precise choice, and because the fix is quicker when it is
+      granted; neither is required for the app to work, and a field saves
+      perfectly well with no pin at all.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+
+    <!--
+      Speech input. We launch the system recogniser by intent rather than recording
+      audio ourselves, so this app never needs RECORD_AUDIO — the recogniser holds
+      that permission and we only receive the text back.
+
+      The <queries> block is required from Android 11 on: without it, package
+      visibility rules hide every recogniser and the microphone would silently never
+      appear, which is worse than not offering it at all.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <!-- Reading the home screen aloud: the same visibility rule applies to the speech engine. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".FieldFlowApplication"
         android:allowBackup="true"
@@ -13,17 +56,34 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyApplication">
+        android:localeConfig="@xml/locales_config"
+        android:theme="@style/Theme.FieldTrack">
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
             android:label="@string/app_name"
-            android:theme="@style/Theme.MyApplication">
+            android:theme="@style/Theme.FieldTrack.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Instant news from the server: work booked for you, a job handed over, a payment. -->
+        <service
+            android:name=".notify.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Pause and Resume pressed on the clock notification. Ours alone. -->
+        <receiver
+            android:name=".notify.ClockActionReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -1,0 +1,256 @@
+package com.example.fieldtrack.data.sync
+
+import com.example.fieldtrack.data.db.SyncQueue
+import com.example.fieldtrack.data.db.entity.membershipId
+import com.google.android.gms.tasks.Task
+import android.util.Log
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
+import java.util.Date
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+/**
+ * Reads a person's work back out of Firestore.
+ *
+ * Only the collections this app writes, and only under organisations the person is
+ * actually a member of — the rules would refuse anything else, and asking for it
+ * would be this client deciding what it is entitled to rather than the server.
+ *
+ * Every read here asks the server and refuses to be answered from the cache, and
+ * that is not a preference — it is what makes the answers safe to act on.
+ *
+ * Firestore, left to itself, serves a `get` out of the local cache when it cannot
+ * reach the network, and a document missing from an empty cache comes back as a
+ * document that does not exist. Every question this class asks would then get the
+ * most damaging possible answer the moment a phone lost signal: "you have no
+ * businesses" to a restore, "your account is fine" to a lock, and — worst —
+ * "this membership is gone" to the check that decides whether somebody has been
+ * thrown out of the business they are standing in a field working for.
+ *
+ * With [Source.SERVER] an unreachable server raises instead, which every caller
+ * already treats as "nothing has changed". Silence is then silence, and only a
+ * real answer can take anything away from anybody.
+ */
+class FirestoreRestore(
+    private val firestore: FirebaseFirestore = Firestore.instance,
+) : RemoteRestore {
+
+    override suspend fun orgsFor(personId: String): List<RemoteOrg> =
+        withTimeout(TIMEOUT_MILLIS) {
+            firestore.collection(PEOPLE).document(personId).collection(ORGS)
+                .get(Source.SERVER)
+                .await()
+                .documents
+                .map {
+                    RemoteOrg(
+                        orgId = it.getString("orgId") ?: it.id,
+                        orgName = it.getString("orgName").orEmpty(),
+                    )
+                }
+        }
+
+    override suspend fun fetchOrg(orgId: String): List<RemoteRow> =
+        withTimeout(ORG_TIMEOUT_MILLIS) {
+            val rows = mutableListOf<RemoteRow>()
+            val org = firestore.collection(ORGS).document(orgId)
+
+            org.get(Source.SERVER).await().takeIf { it.exists() }?.let { snapshot ->
+                rows += RemoteRow(SyncQueue.TABLE_ORGS, orgId, snapshot.data.orEmpty())
+            }
+
+            // Each collection on its own. One the caller may not read — a
+            // driver has no business in `payouts` — used to throw out of the
+            // loop and take the whole fetch with it, so a driver who could not
+            // see wages received no customers, no machines and no jobs either:
+            // an empty app with nothing on screen saying why.
+            for (table in RESTORED_COLLECTIONS) {
+                runCatching {
+                    org.collection(table).get(Source.SERVER).await().documents.forEach { doc ->
+                        rows += RemoteRow(table, doc.id, doc.data.orEmpty())
+                    }
+                }.onFailure { Log.d(TAG, "Could not read $table in $orgId", it) }
+            }
+            rows
+        }
+
+    override suspend fun fetchMyMembership(orgId: String, personId: String): RemoteRow? =
+        withTimeout(TIMEOUT_MILLIS) {
+            val id = membershipId(orgId, personId)
+            val snapshot = firestore.collection(ORGS).document(orgId)
+                .collection(SyncQueue.TABLE_MEMBERSHIPS).document(id)
+                .get(Source.SERVER)
+                .await()
+            if (!snapshot.exists()) null
+            else RemoteRow(SyncQueue.TABLE_MEMBERSHIPS, id, snapshot.data.orEmpty())
+        }
+
+    override suspend fun fetchChangesSince(orgId: String, since: Long): PullPage =
+        withTimeout(ORG_TIMEOUT_MILLIS) {
+            val rows = mutableListOf<RemoteRow>()
+            val org = firestore.collection(ORGS).document(orgId)
+            var high = since
+
+            // Where each collection that filled its page stopped. See [resumeFrom].
+            val truncatedAt = mutableListOf<Long>()
+
+            // The organisation row is a document, not a collection, so there is no
+            // page to ask for: fetch it and let its own stamp decide. It is one
+            // read, and it carries the name, address and UPI id that print on
+            // every bill the drivers hand out.
+            org.get(Source.SERVER).await().takeIf { it.exists() }?.let { snapshot ->
+                val at = snapshot.serverAt()
+                if (at > since) {
+                    rows += RemoteRow(SyncQueue.TABLE_ORGS, orgId, snapshot.data.orEmpty())
+                    high = maxOf(high, at)
+                }
+            }
+
+            val refused = mutableSetOf<String>()
+
+            for (table in RESTORED_COLLECTIONS) {
+                runCatching {
+                    val page = org.collection(table)
+                        .whereGreaterThan(FIELD_SERVER_AT, Timestamp(Date(since)))
+                        .orderBy(FIELD_SERVER_AT)
+                        .limit(PAGE_LIMIT)
+                        .get(Source.SERVER)
+                        .await()
+
+                    page.documents.forEach { doc ->
+                        rows += RemoteRow(table, doc.id, doc.data.orEmpty())
+                        high = maxOf(high, doc.serverAt())
+                    }
+                    if (page.size().toLong() == PAGE_LIMIT) {
+                        truncatedAt += page.documents.last().serverAt()
+                    }
+                }.onFailure {
+                    // Named rather than swallowed, so the caller can notice the
+                    // day it stops being refused and read the history it missed.
+                    refused += table
+                    Log.d(TAG, "Could not read $table in $orgId", it)
+                }
+            }
+            PullPage(
+                rows = rows,
+                watermark = resumeFrom(since = since, newest = high, truncatedAt = truncatedAt),
+                refused = refused,
+            )
+        }
+
+    override suspend fun fetchMine(orgId: String, personId: String): List<RemoteRow> =
+        withTimeout(TIMEOUT_MILLIS) {
+            val rows = mutableListOf<RemoteRow>()
+            val org = firestore.collection(ORGS).document(orgId)
+            // A person's payments are few, so all of them each time: no range, and so no
+            // second index to keep on the server.
+            runCatching {
+                org.collection(SyncQueue.TABLE_PAYOUTS).whereEqualTo("toPersonId", personId)
+                    .get(Source.SERVER).await().documents.forEach { doc ->
+                        rows += RemoteRow(SyncQueue.TABLE_PAYOUTS, doc.id, doc.data.orEmpty())
+                    }
+            }.onFailure { Log.d(TAG, "Could not read own payouts in $orgId", it) }
+            val id = membershipId(orgId, personId)
+            for (table in listOf(SyncQueue.TABLE_MEMBER_DETAILS, SyncQueue.TABLE_PAY_TERMS)) {
+                runCatching {
+                    org.collection(table).document(id).get(Source.SERVER).await()
+                        .takeIf { it.exists() }
+                        ?.let { rows += RemoteRow(table, id, it.data.orEmpty()) }
+                }.onFailure { Log.d(TAG, "Could not read own $table in $orgId", it) }
+            }
+            rows
+        }
+
+    override suspend fun changedSince(orgId: String, since: Long): Boolean? = try {
+        withTimeout(TIMEOUT_MILLIS) {
+            val marker = firestore.collection(ORGS).document(orgId)
+                .collection(SyncQueue.META).document(SyncQueue.CHANGED)
+                .get(Source.SERVER).await()
+            marker.getTimestamp("at")?.toDate()?.time?.let { it > since }
+        }
+    } catch (failure: Exception) {
+        null
+    }
+
+    override suspend fun isAccountDisabled(personId: String): Boolean =
+        withTimeout(TIMEOUT_MILLIS) {
+            val snapshot = firestore.collection(PEOPLE).document(personId).get(Source.SERVER).await()
+            snapshot.exists() && snapshot.getBoolean(FIELD_DISABLED) == true
+        }
+
+    /**
+     * When the server wrote this row.
+     *
+     * Zero for a document written before the stamp existed. Such a row is invisible
+     * to a ranged query anyway, so it can only arrive through a full restore, where
+     * the mark is not read from it.
+     */
+    private fun DocumentSnapshot.serverAt(): Long =
+        getTimestamp(FIELD_SERVER_AT)?.toDate()?.time ?: 0L
+
+    private companion object {
+        const val ORGS = "orgs"
+        const val FIELD_DISABLED = "disabled"
+
+        /**
+         * How many rows of one collection a single pass will take.
+         *
+         * Deliberately not unbounded: the first pass after an upgrade asks from
+         * zero, and a busy season's job events would otherwise arrive as one
+         * enormous read on a phone with a patchy connection.
+         */
+        const val PAGE_LIMIT = 300L
+        const val PEOPLE = "people"
+        const val TIMEOUT_MILLIS = 20_000L
+
+        /** Longer, because this is a whole business's history in one go. */
+        const val ORG_TIMEOUT_MILLIS = 120_000L
+
+        /**
+         * What comes back, and in this order.
+         *
+         * Customers and machines before jobs, jobs before their events and money:
+         * the local database has foreign keys and an event whose job has not
+         * arrived yet is a row with nothing to point at. Invite codes are left out
+         * deliberately — they are a way in, not a record of work, and a restored
+         * handset has no business re-publishing them.
+         */
+        val RESTORED_COLLECTIONS = listOf(
+            SyncQueue.TABLE_MEMBERSHIPS,
+            SyncQueue.TABLE_CUSTOMERS,
+            SyncQueue.TABLE_MACHINES,
+            SyncQueue.TABLE_RATES,
+            SyncQueue.TABLE_JOBS,
+            SyncQueue.TABLE_JOB_EVENTS,
+            SyncQueue.TABLE_LEDGER,
+            SyncQueue.TABLE_FUEL,
+            SyncQueue.TABLE_BREAKDOWNS,
+            SyncQueue.TABLE_SERVICE,
+            SyncQueue.TABLE_TEAM_EVENTS,
+            SyncQueue.TABLE_PAYOUTS,
+            SyncQueue.TABLE_CASH_HANDOVERS,
+            SyncQueue.TABLE_MEMBER_DETAILS,
+            SyncQueue.TABLE_PAY_TERMS,
+            SyncQueue.TABLE_JOB_COSTS,
+            SyncQueue.TABLE_JOB_COST_AMOUNTS,
+            SyncQueue.TABLE_FIELDS,
+            SyncQueue.TABLE_MACHINE_FINANCE,
+            SyncQueue.TABLE_MACHINE_PAPERS,
+            SyncQueue.TABLE_BOOKING_REQUESTS,
+            SyncQueue.TABLE_ENTITLEMENT,
+            SyncQueue.TABLE_BOOKINGS,
+        )
+    }
+}
+
+private const val TAG = "FirestoreRestore"
+
+private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
+    addOnSuccessListener { continuation.resume(it) }
+    addOnFailureListener { continuation.resumeWithException(it) }
+    addOnCanceledListener { continuation.cancel() }
+}

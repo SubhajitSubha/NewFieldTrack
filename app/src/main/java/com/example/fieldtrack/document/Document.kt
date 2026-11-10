@@ -1,0 +1,203 @@
+package com.example.fieldtrack.document
+
+import com.example.fieldtrack.designsystem.format.MoneyStyle
+
+/**
+ * What a printed document says, with nothing about how it is drawn.
+ *
+ * Deliberately plain data with no Android types in it: the arithmetic and the wording
+ * decisions are the part that can be wrong in a way a customer argues about, so they
+ * are testable without rendering anything.
+ */
+
+/** The business, as it appears in a letterhead. Blank lines are simply not drawn. */
+data class Letterhead(
+    val businessName: String,
+    val addressLine: String? = null,
+    val phone: String? = null,
+    /** The tax registration number, labelled with whatever the business calls its tax. */
+    val gstin: String? = null,
+    val upiId: String? = null,
+    /** What to print under "Pay to": bank or mobile-money details, one per line. */
+    val payDetails: String? = null,
+    /** The business's tax: "GST", "VAT"... and its rate in hundredths of a percent. Null for none. */
+    val taxName: String? = null,
+    val taxPercentBps: Int? = null,
+)
+
+/** Who the document is for. */
+data class Party(
+    val name: String,
+    val addressLine: String? = null,
+    val phone: String? = null,
+)
+
+/** One priced line of work. */
+data class WorkLine(
+    val title: String,
+    val detail: String? = null,
+    val measure: String? = null,
+    val rate: String? = null,
+    val amountMinor: Long,
+)
+
+/** One line of the running khata: what happened and where the balance stood after. */
+data class StatementLine(
+    val date: String,
+    val detail: String,
+    val chargedMinor: Long?,
+    val paidMinor: Long?,
+    val balanceAfterMinor: Long,
+    val isBroughtForward: Boolean = false,
+)
+
+/** One unpaid charge on a dues list. */
+data class DueLine(
+    val date: String,
+    val title: String,
+    val detail: String?,
+    val age: String,
+    val amountMinor: Long,
+)
+
+/** Money received against a bill. */
+data class PaymentLine(
+    val date: String,
+    val method: String,
+    val amountMinor: Long,
+)
+
+/** One line of an income statement: what it is, any word of explanation, and the amount. */
+data class StatementRow(val label: String, val amountMinor: Long, val note: String? = null)
+
+/**
+ * The three documents this app produces.
+ *
+ * They share a letterhead and a footer and differ in the middle, which is why they
+ * are one sealed type rather than three unrelated builders that would drift apart the
+ * first time the business address changed shape.
+ */
+sealed interface Document {
+    val letterhead: Letterhead
+    /** The business's currency and rounding, so a bill never takes another's. */
+    val style: MoneyStyle
+    val customer: Party
+    /** The file name offered when this is saved or shared. */
+    val fileName: String
+
+    /** One job, priced, with what was paid and what is left. */
+    data class Bill(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val billNumber: String?,
+        val dateLabel: String,
+        val workedOnLabel: String?,
+        val machineLabel: String?,
+        val lines: List<WorkLine>,
+        val previousBalanceMinor: Long,
+        val payments: List<PaymentLine>,
+        val balanceMinor: Long,
+        val balanceInWords: String?,
+    ) : Document {
+        val thisBillMinor: Long get() = lines.sumOf { it.amountMinor }
+        val totalMinor: Long get() = thisBillMinor + previousBalanceMinor
+        override val fileName: String
+            get() = "Bill-${billNumber?.replace('/', '-') ?: dateLabel}-${customer.name}"
+                .sanitisedFileName()
+    }
+
+    /** Everything that happened on an account over a period, with a running balance. */
+    data class Statement(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val periodLabel: String,
+        val printedLabel: String,
+        val openingMinor: Long,
+        val billedMinor: Long,
+        val receivedMinor: Long,
+        val closingMinor: Long,
+        val closingInWords: String?,
+        val lines: List<StatementLine>,
+        /**
+         * True when this lists only money received.
+         *
+         * The running column then counts up what they have paid rather than what
+         * they owe, because a column of balances on a page with no charges on it
+         * reads as though the charges were hidden.
+         */
+        val paymentsOnly: Boolean = false,
+    ) : Document {
+        override val fileName: String
+            get() = (if (paymentsOnly) "Payments" else "Statement")
+                .let { "$it-$periodLabel-${customer.name}" }
+                .sanitisedFileName()
+    }
+
+    /** One payment received, and what the customer owes after it. */
+    data class Receipt(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val dateLabel: String,
+        /** How it was paid, as a person reads it: "Cash", "UPI", "In kind (grain or produce)". */
+        val methodLabel: String,
+        val amountMinor: Long,
+        /** What the payment was for or what was handed over, when somebody wrote it down. */
+        val note: String?,
+        /** What the customer owes once this payment is counted. Negative is credit. */
+        val balanceAfterMinor: Long,
+        val amountInWords: String?,
+    ) : Document {
+        override val fileName: String
+            get() = "Receipt-$dateLabel-${customer.name}".sanitisedFileName()
+    }
+
+    /**
+     * What the business made over a period, for a bank, an accountant or a licence.
+     *
+     * [customer] is the business itself, since the document is nobody else's; it is there
+     * because every document has a party. Every figure is the business's own record, and the
+     * notes say plainly which are estimates.
+     */
+    data class IncomeStatement(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val periodLabel: String,
+        val printedLabel: String,
+        val income: List<StatementRow>,
+        val costs: List<StatementRow>,
+        /** What is left once the costs are taken off. */
+        val netMinor: Long,
+        /** Plain facts under the figures: jobs done, land worked, what the machines are worth. */
+        val facts: List<Pair<String, String>>,
+        val notes: List<String>,
+    ) : Document {
+        val incomeMinor: Long get() = income.sumOf { it.amountMinor }
+        val costsMinor: Long get() = costs.sumOf { it.amountMinor }
+        override val fileName: String
+            get() = "Income-statement-$periodLabel-${letterhead.businessName}".sanitisedFileName()
+    }
+
+    /** Only what has not been paid for, which is what gets sent when chasing money. */
+    data class Dues(
+        override val letterhead: Letterhead,
+        override val style: MoneyStyle,
+        override val customer: Party,
+        val asOnLabel: String,
+        val lines: List<DueLine>,
+        val totalMinor: Long,
+        val totalInWords: String?,
+        /** Credit where it is due, so the demand does not look like it ignores them. */
+        val receivedNote: String?,
+    ) : Document {
+        override val fileName: String
+            get() = "Amount-due-$asOnLabel-${customer.name}".sanitisedFileName()
+    }
+}
+
+/** Keeps a customer's name from turning into a path or an unopenable file. */
+private fun String.sanitisedFileName(): String =
+    replace(Regex("[^A-Za-z0-9\\-_ ]"), "").trim().replace(Regex("\\s+"), "-").take(80)

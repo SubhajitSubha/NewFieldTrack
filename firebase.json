@@ -1,0 +1,13 @@
+{
+  "hosting": {
+    "public": "web",
+    "ignore": ["firebase.json", "**/.*"],
+    "rewrites": [
+      { "source": "/b/**", "function": "bookingPage" },
+      { "source": "/api/request", "function": "bookingRequest" }
+    ]
+  },
+  "functions": [{ "source": "functions" }],
+  "firestore": { "rules": "firestore.rules" },
+  "storage": { "rules": "storage.rules" }
+}

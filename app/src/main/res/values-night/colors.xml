@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The dark theme's ground, so the window behind the app does not flash light
+         before the first frame when the phone itself is set to dark. -->
+    <color name="paper">#0D1310</color>
+</resources>

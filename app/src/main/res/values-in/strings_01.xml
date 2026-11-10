@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="app_name">FieldTrack</string>
+
+    <string name="action_continue">Lanjut</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_back_cd">Kembali</string>
+    <string name="action_close_cd">Tutup</string>
+    <string name="action_more_cd">Pilihan lainnya</string>
+    <string name="action_not_now">Nanti saja</string>
+    <string name="action_see_all">Lihat semua</string>
+    <string name="action_change">Ubah</string>
+    <string name="action_try_again">Coba lagi sekarang</string>
+    <string name="action_send_whatsapp">Kirim lewat WhatsApp</string>
+    <string name="action_speak_cd">Bicara, tidak perlu mengetik</string>
+    <string name="action_use_location_cd">Pakai lokasi saya sekarang</string>
+    <string name="action_add_photo">Tambah foto</string>
+    <string name="action_call_cd">Telepon %1$s</string>
+    <string name="action_notifications_cd">Pemberitahuan</string>
+
+    <string name="status_running">Berjalan</string>
+    <string name="status_paused">Dijeda</string>
+    <string name="status_completed">Selesai</string>
+    <string name="status_due">Belum dibayar</string>
+    <string name="status_idle">Menganggur</string>
+    <string name="status_breakdown">Rusak</string>
+    <string name="status_settled">Lunas</string>
+    <string name="status_unpaid">Belum bayar</string>
+    <string name="status_paid">Sudah bayar</string>
+    <string name="status_added_by_hand">Manual</string>
+
+    <string name="nav_home">Beranda</string>
+    <string name="nav_jobs">Pekerjaan</string>
+    <string name="nav_my_work">Kerja saya</string>
+    <string name="nav_customers">Pelanggan</string>
+    <string name="nav_machines">Mesin</string>
+    <string name="nav_fleet">Armada</string>
+    <string name="nav_more">Lainnya</string>
+
+    <string name="work_start">Mulai kerja</string>
+    <string name="work_start_caption">Waktu berjalan selama Anda bekerja</string>
+    <string name="work_start_offline_caption">Bisa tanpa jaringan</string>
+    <string name="work_pause">Jeda</string>
+    <string name="work_resume">Lanjutkan</string>
+    <string name="work_finish">Selesai</string>
+    <string name="work_time_on_job">Waktu untuk pekerjaan ini</string>
+    <string name="work_area_done">Luas yang selesai</string>
+    <string name="work_amount_done">Jumlah yang selesai</string>
+    <string name="work_next_trip_rate">Trip berikutnya %1$s</string>
+    <string name="finish_rate_varies">Tarif berbeda-beda</string>
+    <string name="work_trips_done">Trip selesai</string>
+    <string name="work_earning_so_far">Pendapatan sejauh ini</string>
+    <string name="work_one_more_trip">Tambah satu trip</string>
+    <string name="work_undo_trip_cd">Hapus trip terakhir</string>
+    <string name="work_increase_cd">Tambah %1$s</string>
+    <string name="work_decrease_cd">Kurangi %1$s</string>
+    <string name="work_hand_over_title">Serahkan pekerjaan ini ke orang lain</string>
+    <string name="work_hand_over_caption">Pemilik atau sopir — waktu terus berjalan</string>
+    <string name="work_discard_title">Buang pekerjaan ini</string>
+    <string name="work_discard_caption">Tidak ada yang disimpan</string>
+
+    <string name="work_type_amount_cd">Ketik jumlahnya saja</string>
+    <string name="work_type_amount_title">Berapa yang sudah selesai?</string>
+    <string name="work_type_amount_save">Simpan</string>
+    <string name="work_more">Lainnya</string>
+    <string name="work_more_cd">Hal lain yang bisa dilakukan pada pekerjaan ini</string>
+    <string name="work_actions_title">Tindakan lainnya</string>
+    <string name="work_back_to_work">Kembali bekerja</string>
+    <string name="work_hand_over_nobody">Belum ada orang lain di tim Anda</string>
+    <string name="work_rate_title">Ubah tarif</string>
+    <string name="work_rate_caption">Sekarang %1$s</string>
+    <string name="work_rate_save">Simpan tarif</string>
+    <string name="work_breakdown_title">Mesin rusak</string>
+    <string name="work_breakdown_caption">Menghentikan waktu dan mencatatnya</string>
+    <string name="work_breakdown_what">Apa yang rusak?</string>
+    <string name="work_breakdown_note">Ada lagi? (boleh dikosongkan)</string>
+    <string name="work_breakdown_note_hint">Pengangkat tidak menahan</string>
+    <string name="work_breakdown_save">Catat dan hentikan waktu</string>
+    <string name="work_note_title">Tambah catatan</string>
+    <string name="work_note_short">Catatan</string>
+    <string name="work_note_caption">Disimpan bersama pekerjaan ini</string>
+    <string name="work_note_hint">Lahan sangat basah</string>
+    <string name="work_note_save">Simpan catatan</string>
+    <string name="work_fuel_title">Solar</string>
+    <string name="work_fuel_caption">Solar yang diisi untuk pekerjaan ini</string>
+    <string name="work_fuel_litres">Liter</string>
+    <string name="work_fuel_cost">Biayanya</string>
+    <string name="work_fuel_note">Ini biaya Anda — pelanggan tidak ditagih untuk ini.</string>
+    <string name="work_fuel_save">Simpan solar</string>
+    <string name="work_fuel_no_machine">Pilih mesin pada pekerjaan ini agar solar tercatat untuk mesin itu.</string>
+    <string name="work_discard_confirm">Buang pekerjaan ini?</string>
+    <string name="work_discard_confirm_body">Waktu, ukuran, dan semua catatan pada pekerjaan ini akan hilang. Pelanggan tidak ditagih.</string>
+    <string name="work_discard_confirm_action">Ya, buang</string>
+    <string name="breakdown_hydraulics">Hidrolik</string>
+    <string name="breakdown_engine">Mesin</string>
+    <string name="breakdown_tyre">Ban</string>
+    <string name="breakdown_electrical">Kelistrikan</string>
+    <string name="breakdown_implement">Alat pengolah</string>
+    <string name="breakdown_other">Lainnya</string>
+
+    <string name="billing_per_land">Per %1$s</string>
+    <string name="billing_per_acre_caption">Luas yang dikerjakan</string>
+    <string name="billing_per_hour">Per jam</string>
+    <string name="billing_per_hour_caption">Waktu kerja</string>
+    <string name="billing_per_trip">Per trip</string>
+    <string name="billing_per_trip_caption">Muatan yang diangkut</string>
+    <string name="billing_per_unit">Per satuan</string>
+    <string name="billing_per_unit_caption">Karung, kuintal, buah</string>
+    <string name="billing_per_km">Per km</string>
+    <string name="billing_per_km_caption">Jarak angkut</string>
+    <string name="billing_fixed">Harga tetap</string>
+    <string name="billing_fixed_caption">Satu jumlah yang disepakati</string>
+    <string name="billing_per_day">Per hari</string>
+    <string name="billing_per_day_caption">Mesin dan sopir disewa per hari</string>
+
+    <string name="unit_acre">Acre</string>
+    <string name="unit_bigha">Bigha</string>
+    <string name="unit_kanal">Kanal</string>
+    <string name="unit_guntha">Guntha</string>
+    <string name="unit_katha">Katha</string>
+    <string name="unit_hour">Jam</string>
+    <string name="unit_trip">Trip</string>
+    <string name="unit_piece">Buah</string>
+    <string name="unit_quintal">Kuintal</string>
+    <string name="unit_bag">Karung</string>
+    <string name="unit_km">km</string>
+    <string name="unit_hectare">Hektare</string>
+    <string name="unit_sqm">m²</string>
+    <string name="unit_bale">Bal</string>
+    <string name="unit_tonne">Ton</string>
+    <string name="unit_bushel">Bushel</string>
+    <string name="unit_kg">kg</string>
+    <string name="unit_litre">Liter</string>
+    <string name="unit_day">Hari</string>
+
+    <plurals name="field_earned_jobs">
+        <item quantity="other">dari %d pekerjaan</item>
+    </plurals>
+    <plurals name="fields_count">
+        <item quantity="other">%d petak</item>
+    </plurals>
+    <plurals name="fields_jobs_here">
+        <item quantity="other">%d pekerjaan di sini</item>
+    </plurals>
+    <plurals name="money_out_unpriced">
+        <item quantity="other">%d biaya belum diberi harga</item>
+    </plurals>
+    <plurals name="count_jobs">
+        <item quantity="other">%d pekerjaan</item>
+    </plurals>
+    <plurals name="count_trips">
+        <item quantity="other">%d trip</item>
+    </plurals>
+    <string name="time_today">hari ini</string>
+    <plurals name="count_days">
+        <item quantity="other">%d hari</item>
+    </plurals>
+    <plurals name="count_customers">
+        <item quantity="other">%d pelanggan</item>
+    </plurals>
+    <plurals name="count_machines">
+        <item quantity="other">%d mesin</item>
+    </plurals>
+
+    <string name="money_today">Hari ini</string>
+    <string name="money_owed_to_you">Utang kepada Anda</string>
+    <string name="money_total_due">Total tagihan</string>
+    <string name="money_old_balance">Saldo lama</string>
+    <string name="money_paid_today">Dibayar hari ini</string>
+    <string name="money_balance">Saldo</string>
+    <string name="money_received">Uang diterima</string>
+    <string name="money_did_they_pay">Apakah mereka bayar sekarang?</string>
+    <string name="money_paid_all">Semuanya</string>
+    <string name="money_paid_some">Sebagian</string>
+    <string name="money_paid_none">Belum</string>
+    <string name="money_paid_none_caption">utang dulu</string>
+    <string name="money_how_much_given">Berapa yang mereka bayar?</string>
+    <string name="money_left_after">Masih utang setelah ini</string>
+    <string name="method_cash">Tunai</string>
+    <string name="method_upi">UPI</string>
+    <string name="method_bank">Bank</string>
+    <string name="method_cheque">Cek</string>
+    <string name="method_mobile_money">Uang seluler</string>
+    <string name="method_card">Kartu</string>
+    <string name="method_in_kind">Barang (gabah atau hasil panen)</string>
+
+    <string name="sync_title">Penyimpanan &amp; cadangan</string>
+    <string name="sync_offline_title">Sedang tidak ada jaringan</string>
+    <string name="sync_offline_body">Teruslah bekerja. Semuanya ditulis di ponsel ini dan terkirim sendiri saat sinyal kembali.</string>
+    <string name="sync_automatic">Ini berjalan sendiri. Anda tidak perlu melakukan apa pun.</string>
+    <string name="sync_waiting">Menunggu dikirim</string>
+    <string name="sync_last_backup">Cadangan terakhir %1$s</string>
+    <string name="sync_conflict_title">Dua orang mengubah satu pekerjaan</string>
+    <string name="sync_conflict_action">Selesaikan</string>
+    <string name="sync_all_safe">Semuanya sudah dicadangkan</string>
+    <string name="sync_all_safe_body">Setiap pekerjaan, pembayaran, dan pelanggan di ponsel ini sudah ada di server juga.</string>
+    <string name="sync_sending">Mencadangkan…</string>
+    <string name="sync_sending_body">Mengirim yang masih menunggu. Anda boleh terus bekerja — ini berjalan di latar belakang.</string>
+    <string name="sync_never">Belum pernah dicadangkan</string>
+    <string name="sync_nothing_waiting">Tidak ada yang menunggu dikirim</string>
+    <string name="sync_nothing_waiting_body">Tidak ada data di ponsel ini yang menunggu server. Pekerjaan yang Anda catat mulai sekarang akan terkirim sendiri.</string>
+    <string name="sync_waiting_title">Menunggu sinyal</string>
+    <string name="sync_blocked_title">Satu perubahan tidak bisa disimpan</string>
+    <string name="sync_blocked_body">Pekerjaan Anda aman di ponsel ini dan tidak ada yang hilang. Server tidak mau menerima satu perubahan, jadi perubahan setelahnya ikut menunggu.</string>
+    <string name="sync_no_backend_title">Cadangan belum diaktifkan</string>
+    <string name="sync_no_backend_body">Semuanya tersimpan di ponsel ini dan siap dikirim begitu cadangan disiapkan.</string>
+    <string name="sync_now">Tetap kirim sekarang</string>
+    <string name="sync_destination">Dicadangkan ke %1$s</string>
+    <string name="sync_retry_at">Coba lagi pukul %1$s</string>
+    <string name="sync_whats_waiting">Yang sedang menunggu</string>
+    <string name="sync_reason">Kata server</string>
+    <string name="sync_set_aside">Sisihkan yang ini</string>
+    <string name="sync_set_aside_note">Sisanya akan terkirim. Yang ini tetap di ponsel, dan tidak ada yang dihapus.</string>
+    <plurals name="sync_set_aside_count">
+        <item quantity="other">%1$d perubahan disisihkan</item>
+    </plurals>
+    <string name="sync_just_now">baru saja</string>
+    <string name="sync_safe_note">Tidak ada yang dihapus dari ponsel ini sebelum server menerimanya. Jika cadangan tidak pernah berhasil, catatan Anda tetap ada di sini.</string>
+    <plurals name="sync_changes_waiting">
+        <item quantity="other">%1$d perubahan menunggu</item>
+    </plurals>
+</resources>

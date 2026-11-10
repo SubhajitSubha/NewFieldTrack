@@ -1,341 +1,238 @@
 package com.example.fieldtrack
 
+import android.app.KeyguardManager
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import com.example.fieldtrack.core.onboarding.OnboardingPersistence
-import com.example.fieldtrack.core.onboarding.production.ProductionOnboardingStep
-import com.example.fieldtrack.core.onboarding.production.ProductionOnboardingPersistence
-import com.example.fieldtrack.core.onboarding.production.ProductionOnboardingEngine
-import com.example.fieldtrack.core.session.CurrentSessionProvider
-import com.example.fieldtrack.core.session.identityfoundation.IdentitySessionState
-import com.example.fieldtrack.core.startup.AppStartupState
-import com.example.fieldtrack.core.startup.StartupStateResolver
-import com.example.fieldtrack.ui.navigation.FieldFlowNavGraph
-import com.example.fieldtrack.ui.navigation.Screen
-import com.example.fieldtrack.ui.startup.StartupSplashScreen
-import com.example.fieldtrack.ui.theme.FieldFlowTheme
-import com.example.fieldtrack.data.local.entity.AppSettings
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Column
+import com.example.fieldtrack.data.update.UpdateNeed
+import com.example.fieldtrack.feature.help.PracticeBar
+import com.example.fieldtrack.feature.help.RatingBar
+import com.example.fieldtrack.feature.help.contactSupport
+import androidx.compose.ui.res.stringResource
+import com.example.fieldtrack.feature.lock.LockScreen
+import com.example.fieldtrack.feature.update.UpdateBar
+import com.example.fieldtrack.feature.update.UpdateRequiredScreen
+import com.example.fieldtrack.feature.update.openStorePage
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.fieldtrack.data.session.Startup
+import com.example.fieldtrack.data.sync.SyncWorker
+import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.AppTheme
+import com.example.fieldtrack.feature.FieldTrackApp
+
+/**
+ * Entry point for the redesigned app.
+ *
+ * The previous MainActivity drove a 35-route graph of screens backed by repositories
+ * that returned null; it is kept at MainActivity.legacy.kt.txt for reference while
+ * the remaining flows are rebuilt, and deleted once nothing is left to port.
+ */
+/** How long the launch window may wait for the session before giving up. */
+private const val MAX_SPLASH_MILLIS = 2_000L
 
 class MainActivity : ComponentActivity() {
 
-    private companion object {
-        /** Logcat tag for R2 identity-flow tracing (debug builds only). */
-        const val TAG_IDENTITY_FLOW = "IdentityFlow"
+    /**
+     * A job somebody asked to be taken to — the clock notification, pressed.
+     *
+     * Held here until the app has a signed-in screen to open it from; a press
+     * that arrives while the session is still being read is not lost, it waits.
+     */
+    private val openJobRequests = MutableStateFlow<String?>(null)
 
-        /** R4.2 — Bug-hunt tag for fresh-install onboarding diagnostics. */
-        const val TAG_IDENTITY_FLOW_DEBUG = "IdentityFlowDebug"
+    /** A tap on one of the app's own notifications, which opens the list of what the phone was told. */
+    private val openNoticesRequests = MutableStateFlow(false)
+
+    /** The context the system made for this activity, before the language was laid over it. */
+    private var systemBase: android.content.Context? = null
+
+    /** The chosen language is laid over everything this screen reads its text from. */
+    override fun attachBaseContext(newBase: android.content.Context) {
+        systemBase = newBase
+        super.attachBaseContext(com.example.fieldtrack.data.settings.AppLanguage.wrap(newBase))
     }
 
+    /**
+     * Printing from the system's own context: the language's context does not know it belongs to
+     * this activity, and the print service refuses anything that is not one.
+     */
+    override fun getSystemService(name: String): Any? =
+        if (name == PRINT_SERVICE) systemBase?.getSystemService(name) ?: super.getSystemService(name)
+        else super.getSystemService(name)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super, as the platform requires: this swaps the launch window's
+        // theme for the app's own.
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        // Get repositories from Application
+        // Held until the session is resolved from disk. Without this the app shows
+        // a blank paper-coloured frame for the moment it takes to read who is using
+        // it, which reads as a stall rather than as a launch.
         val app = application as FieldFlowApplication
-        OnboardingPersistence.init(app)
-        ProductionOnboardingPersistence.init(app)
-        val jobRepository = app.jobRepository
-        val customerRepository = app.customerRepository
-        val ratePreferences = app.ratePreferences
-        val customerFieldDao = app.customerFieldDao
-        val activeJobRepository = app.activeJobRepository
-        val syncManager = app.syncManager
-        val machineRepository = app.machineRepository
-        val paymentRepository = app.paymentRepository
-        val activeJobsRepository = app.activeJobsRepository
-        val settingsRepository = app.settingsRepository
-        val workPatternPreferences = app.workPatternPreferences
+        val splashStartedAt = SystemClock.uptimeMillis()
+        splash.setKeepOnScreenCondition {
+            // Time-bounded on purpose. A condition that can only be cleared by work
+            // completing is a condition that can hang the app on its own splash if
+            // that work ever fails; after this the startup gate takes over and says
+            // something, which is always better than a frozen logo.
+            app.sessionStore.startup.value is Startup.Loading &&
+                SystemClock.uptimeMillis() - splashStartedAt < MAX_SPLASH_MILLIS
+        }
 
+        // Only from a fresh launch, not a restore: after the system recreates the
+        // activity the intent is the old one, and the job it named was opened then.
+        if (savedInstanceState == null) takeOpenJob(intent)
+
+        // With the lock on, the task switcher must not show a picture of the farm's figures
+        // to whoever picks the phone up. Android 13 and later can be asked; earlier
+        // phones keep what they have, since the only fix there (a blank window on every
+        // screenshot) would also stop people sharing their own bills.
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            lifecycleScope.launch { app.appLock.enabled.collect { setRecentsScreenshotEnabled(!it) } }
+        }
+
+        enableEdgeToEdge()
         setContent {
-            val onboardingEngine = remember {
-                ProductionOnboardingEngine(
-                    sessionManager = app.sessionManager,
-                    organizationRepository = app.organizationRepository
-                )
-            }
-            val scope = rememberCoroutineScope()
-            val identityFoundationState by app.sessionManager.state.collectAsState()
-            val identitySession by app.sessionManager.currentSession.collectAsState()
-            val sessionRestoreCompleted by app.sessionManager.restoreCompleted.collectAsState()
-            val productionOnboardingState by ProductionOnboardingPersistence.state.collectAsState()
-            val currentSessionForIdentity by CurrentSessionProvider.session.collectAsState()
-            val onboardingStateForIdentity by OnboardingPersistence.state.collectAsState()
-            var productionOnboardingBusy by remember { mutableStateOf(false) }
-            var productionOnboardingError by remember { mutableStateOf<String?>(null) }
-            var startupState by remember { mutableStateOf<AppStartupState>(AppStartupState.Loading) }
-            var lastMembershipResolvedUserId by remember { mutableStateOf<String?>(null) }
-
-            LaunchedEffect(
-                sessionRestoreCompleted,
-                identityFoundationState,
-                identitySession?.userId,
-                currentSessionForIdentity?.userId,
-                productionOnboardingState.step,
-                onboardingStateForIdentity.profilePhone
-            ) {
-                if (!sessionRestoreCompleted) {
-                    startupState = AppStartupState.Loading
-                    return@LaunchedEffect
-                }
-
-                if (identityFoundationState != IdentitySessionState.AUTHENTICATED) {
-                    if (productionOnboardingState.step != ProductionOnboardingStep.OTP) {
-                        onboardingEngine.resetForLogin()
-                    }
-                    lastMembershipResolvedUserId = null
-                    startupState = StartupStateResolver.resolve(
-                        isAuthenticated = false,
-                        hasMembership = false
-                    )
-                    return@LaunchedEffect
-                }
-
-                if (productionOnboardingState.step == ProductionOnboardingStep.COMPLETED) {
-                    startupState = StartupStateResolver.resolve(
-                        isAuthenticated = true,
-                        hasMembership = true
-                    )
-                    return@LaunchedEffect
-                }
-
-                val resolvedUserId = identitySession?.userId ?: currentSessionForIdentity?.userId
-                if (resolvedUserId.isNullOrBlank()) {
-                    startupState = AppStartupState.StartupError(Throwable("Authenticated session missing user id"))
-                    return@LaunchedEffect
-                }
-
-                if (lastMembershipResolvedUserId == resolvedUserId) {
-                    startupState = StartupStateResolver.resolve(
-                        isAuthenticated = true,
-                        hasMembership = false
-                    )
-                    return@LaunchedEffect
-                }
-
-                startupState = AppStartupState.Loading
-                val fallbackName = currentSessionForIdentity?.displayName.orEmpty()
-                val fallbackMobile = onboardingStateForIdentity.profilePhone.orEmpty()
-                val restored = onboardingEngine.restoreMembershipContext(
-                    userId = resolvedUserId,
-                    fallbackDisplayName = fallbackName,
-                    fallbackMobile = fallbackMobile
-                )
-                if (restored) {
-                    startupState = StartupStateResolver.resolve(
-                        isAuthenticated = true,
-                        hasMembership = true
-                    )
-                } else {
-                    if (productionOnboardingState.step == ProductionOnboardingStep.OTP) {
-                        onboardingEngine.routeAuthenticatedUserWithoutMembership(
-                            userId = resolvedUserId,
-                            displayName = fallbackName.ifBlank { "Operator" },
-                            mobile = fallbackMobile
-                        )
-                    }
-                    lastMembershipResolvedUserId = resolvedUserId
-                    startupState = StartupStateResolver.resolve(
-                        isAuthenticated = true,
-                        hasMembership = false
-                    )
-                }
-            }
-
-            LaunchedEffect(identityFoundationState, productionOnboardingState.step) {
-                if (
-                    identityFoundationState == IdentitySessionState.AUTHENTICATED &&
-                    productionOnboardingState.step == ProductionOnboardingStep.OTP &&
-                    currentSessionForIdentity != null &&
-                    onboardingStateForIdentity.onboardingCompleted
-                ) {
-                    ProductionOnboardingPersistence.persist(
-                        productionOnboardingState.copy(
-                            step = ProductionOnboardingStep.COMPLETED,
-                            userId = currentSessionForIdentity?.userId,
-                            displayName = currentSessionForIdentity?.displayName.orEmpty(),
-                            mobileNumber = onboardingStateForIdentity.profilePhone.orEmpty(),
-                            organizationName = onboardingStateForIdentity.organizationName.orEmpty()
-                        )
-                    )
-                }
-                if (identityFoundationState == IdentitySessionState.UNAUTHENTICATED &&
-                    productionOnboardingState.step == ProductionOnboardingStep.COMPLETED
-                ) {
-                    onboardingEngine.resetForLogin()
-                }
-            }
-
-            // Observe theme preference from settings
-            val settings by settingsRepository.settings.collectAsState(
-                initial = AppSettings()
-            )
-            val darkTheme = when (settings.themeMode) {
-                "LIGHT" -> false
-                "DARK" -> true
-                else -> isSystemInDarkTheme()
-            }
-
-            LaunchedEffect(identityFoundationState, productionOnboardingState.step) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG_IDENTITY_FLOW, "IdentitySessionState = $identityFoundationState, step=${productionOnboardingState.step}")
-                }
-            }
-
-            // R4.2 — Bug-hunt diagnostics. LOGGING ONLY. No state mutation.
-            // Re-emits whenever any input to the resolver changes so a fresh
-            // install / app-data-clear trace can be read line-by-line from
-            // logcat. PROD is gated by BuildConfig.DEBUG.
-            LaunchedEffect(currentSessionForIdentity, onboardingStateForIdentity, identityFoundationState, productionOnboardingState.step) {
-                if (BuildConfig.DEBUG) {
-                    val s = currentSessionForIdentity
-                    val o = onboardingStateForIdentity
-                    Log.d(
-                        TAG_IDENTITY_FLOW_DEBUG,
-                        "session=${if (s == null) "null" else "present(role=${s.role},testUser=${s.role.isTestUser})"} " +
-                            "completed=${o.onboardingCompleted} " +
-                            "dismissed=${o.welcomeDismissed} " +
-                            "firstLaunch=${o.isFirstLaunch} " +
-                            "hasStartedFirstWork=${o.hasStartedFirstWork} " +
-                            "identityState=$identityFoundationState " +
-                            "onboardingStep=${productionOnboardingState.step}"
-                    )
-                }
-            }
-
-            FieldFlowTheme(darkTheme = darkTheme) {
+            AppTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars),
+                    color = FieldTrackTheme.colors.paper,
                 ) {
-                    if (startupState == AppStartupState.Loading) {
-                        StartupSplashScreen()
-                    } else {
-                        val rootStartDestination = when (startupState) {
-                            AppStartupState.AuthenticatedWithMembership -> Screen.Main.route
-                            AppStartupState.AuthenticatedWithoutMembership -> routeForOnboardingStep(productionOnboardingState.step)
-                            AppStartupState.Unauthenticated -> Screen.Login.route
-                            is AppStartupState.StartupError -> Screen.Login.route
-                            AppStartupState.Loading -> Screen.Login.route
-                            AppStartupState.Initializing -> Screen.Login.route
-                        }
-
-                        key(rootStartDestination) {
-                            val navController = rememberNavController()
-                            FieldFlowNavGraph(
-                                navController = navController,
-                                rootStartDestination = rootStartDestination,
-                                onboardingState = productionOnboardingState,
-                                onboardingBusy = productionOnboardingBusy,
-                                onboardingError = productionOnboardingError,
-                                onOtpSubmit = { mobile, otp ->
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.verifyOtp(mobile, otp)
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onOtpResend = { mobile ->
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.resendOtp(mobile)
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onAdvanceFromWelcome = {
-                                    onboardingEngine.advanceFromWelcome()
-                                },
-                                onRoleSelected = { role ->
-                                    onboardingEngine.selectRole(role)
-                                },
-                                onProfileSubmit = { name, path ->
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.submitProfile(name, path)
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onCreateOrganization = { orgName ->
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.createOrganization(orgName)
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onGoToInvite = {
-                                    onboardingEngine.goToInvite()
-                                },
-                                onSkipJoin = {
-                                    onboardingEngine.skipJoin()
-                                },
-                                onPrepareJoinPreview = { inviteCode ->
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.prepareJoinPreview(inviteCode)
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onConfirmJoin = {
-                                    scope.launch {
-                                        productionOnboardingBusy = true
-                                        productionOnboardingError = onboardingEngine.confirmJoinOrganization()
-                                        productionOnboardingBusy = false
-                                    }
-                                },
-                                onCancelJoinPreview = {
-                                    onboardingEngine.cancelJoinPreview()
-                                    productionOnboardingError = null
-                                },
-                                onContinueAfterSuccess = {
-                                    onboardingEngine.continueAfterSuccess()
-                                    productionOnboardingError = null
-                                },
-                                jobRepository = jobRepository,
-                                customerRepository = customerRepository,
-                                ratePreferences = ratePreferences,
-                                customerFieldDao = customerFieldDao,
-                                activeJobRepository = activeJobRepository,
-                                syncManager = syncManager,
-                                machineRepository = machineRepository,
-                                paymentRepository = paymentRepository,
-                                activeJobsRepository = activeJobsRepository,
-                                workPatternPreferences = workPatternPreferences
-                            )
-                        }
+                    val locked by app.appLock.locked.collectAsStateWithLifecycle()
+                    val unlockLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.StartActivityForResult()
+                    ) { result -> if (result.resultCode == RESULT_OK) app.appLock.unlock() }
+                    val askForLock = {
+                        val title = getString(R.string.lock_prompt_title)
+                        val body = getString(R.string.lock_prompt_body)
+                        val keyguard = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+                        val ask = keyguard.createConfirmDeviceCredentialIntent(title, body)
+                        // No lock on the phone any more: nothing to ask, so nothing to hold shut.
+                        if (ask == null) app.appLock.unlock() else unlockLauncher.launch(ask)
                     }
-
+                    // Asked for the moment it shuts, once; a cancelled prompt leaves the button.
+                    LaunchedEffect(locked) { if (locked) askForLock() }
+                    val update by app.updateGate.need.collectAsStateWithLifecycle()
+                    val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                    val practising = session?.let { app.sessionStore.isSample(it.orgId) } == true
+                    val rating by app.ratingPrompt.step.collectAsStateWithLifecycle()
+                    Box {
+                        Box(if (locked) Modifier.clearAndSetSemantics { } else Modifier) {
+                            if (update == UpdateNeed.Required) {
+                                UpdateRequiredScreen(onUpdate = { openStorePage(this@MainActivity) })
+                            } else Column {
+                                if (update == UpdateNeed.Available) {
+                                    UpdateBar(onUpdate = { openStorePage(this@MainActivity) }, onLater = app.updateGate::later)
+                                }
+                                if (practising) {
+                                    PracticeBar(onLeave = { app.runInBackground { app.sampleBusiness.remove() } })
+                                } else if (update != UpdateNeed.Available) {
+                                    val support = stringResource(R.string.support_email)
+                                    RatingBar(
+                                        step = rating,
+                                        canWrite = support.isNotBlank(),
+                                        onAnswer = app.ratingPrompt::answer,
+                                        onLater = app.ratingPrompt::later,
+                                        onRate = { openStorePage(this@MainActivity); app.ratingPrompt.finish() },
+                                        onWrite = {
+                                            contactSupport(
+                                                this@MainActivity, support,
+                                                getString(R.string.help_mail_subject), getString(R.string.help_mail_intro),
+                                            )
+                                            app.ratingPrompt.finish()
+                                        },
+                                        onNo = app.ratingPrompt::finish,
+                                    )
+                                }
+                                Box(Modifier.weight(1f)) {
+                                    FieldTrackApp(
+                                        openJobRequests = openJobRequests,
+                                        onOpenJobHandled = { openJobRequests.value = null },
+                                        openNoticesRequests = openNoticesRequests,
+                                        onOpenNoticesHandled = { openNoticesRequests.value = false },
+                                    )
+                                }
+                            }
+                        }
+                        if (locked) LockScreen(onUnlock = askForLock)
+                    }
                 }
             }
         }
     }
-}
 
-private fun routeForOnboardingStep(step: ProductionOnboardingStep): String = when (step) {
-    ProductionOnboardingStep.OTP -> Screen.Otp.route
-    ProductionOnboardingStep.WELCOME -> Screen.Welcome.route
-    ProductionOnboardingStep.ROLE_SELECTION -> Screen.RoleSelection.route
-    ProductionOnboardingStep.PROFILE -> Screen.OnboardingProfile.route
-    ProductionOnboardingStep.OWNER_ORGANIZATION -> Screen.CreateOrganization.route
-    ProductionOnboardingStep.JOIN_OPTIONS -> Screen.JoinOptions.route
-    ProductionOnboardingStep.OPERATOR_INVITE -> Screen.InviteCode.route
-    ProductionOnboardingStep.JOIN_PREVIEW -> Screen.JoinPreview.route
-    ProductionOnboardingStep.SUCCESS -> Screen.StartupSuccess.route
-    ProductionOnboardingStep.COMPLETED -> Screen.Main.route
+    /**
+     * Asks for a send every time the app is opened.
+     *
+     * Covers the gap the per-change trigger cannot: work recorded in a field with
+     * no signal, where the phone was then locked and carried home. The request is
+     * held by the system until there is a network, so opening the app in the yard
+     * is enough — nobody has to go looking for a button.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        takeOpenJob(intent)
+    }
+
+    private fun takeOpenJob(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_OPEN_JOB)?.let { openJobRequests.value = it }
+        if (intent?.getBooleanExtra(com.example.fieldtrack.notify.Push.EXTRA_OPEN_NOTICES, false) == true) {
+            openNoticesRequests.value = true
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        (application as FieldFlowApplication).appLock.onForeground()
+        // Forced: a person opening the app outranks whatever is queued, including
+        // a backoff left over from a morning with no signal.
+        SyncWorker.runNow(this, force = true)
+        (application as FieldFlowApplication).let { app ->
+            app.runInBackground { runCatching { app.updateGate.refresh() } }
+            // A purchase made earlier, or renewed since: told to the server, which checks it.
+            app.runInBackground { runCatching { app.purchaseClaims.claimActive() } }
+            // Whether the app has had a fair chance to be asked about.
+            app.runInBackground {
+                runCatching {
+                    val s = app.sessionStore.current()
+                    if (s != null && !app.sessionStore.isSample(s.orgId)) {
+                        app.ratingPrompt.evaluate(app.db.exportDao().completedJobs(s.orgId))
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Turning the phone or changing the language remakes this screen; neither is
+        // leaving the app, so neither starts the clock on the lock.
+        val app = application as FieldFlowApplication
+        if (!isChangingConfigurations && !app.appLock.locked.value) app.appLock.onBackground()
+    }
+
+    companion object {
+        /** The job a notification wants opened. */
+        const val EXTRA_OPEN_JOB = "openJobId"
+    }
 }

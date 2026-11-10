@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">কাদা করা (ধানের জমি)</string>
+    <string name="work_type_ridging">আল বাঁধা</string>
+    <string name="work_type_loading">মাল তোলা</string>
+    <string name="work_type_water">জল পৌঁছানো</string>
+    <string name="work_type_hire">মেশিন ভাড়া</string>
+    <string name="work_other_name">এই কাজের নাম কী?</string>
+    <string name="work_other_name_note">বিলে এটাই ছাপা হবে। খালি রাখলে \"অন্য\" লেখা হবে।</string>
+    <string name="work_attached">পেছনে কী লাগানো?</string>
+    <string name="work_pulled_by">কে টানল</string>
+    <string name="work_pulled_none">আমাদের নয়</string>
+    <string name="plan_advance_note">%1$s-এর অগ্রিম</string>
+    <string name="onboard_machine_more">অন্য ধরন</string>
+    <string name="plan_reason_other_what">কী হয়েছিল?</string>
+    <string name="paper_other_name">এই কাগজের নাম কী?</string>
+    <string name="paper_other_name_hint">রোড ট্যাক্স</string>
+    <string name="method_other">অন্য</string>
+    <string name="method_other_name">কীভাবে দিলেন?</string>
+    <string name="unit_decimal">শতক</string>
+    <string name="unit_cent">সেন্ট</string>
+    <string name="unit_marla">মারলা</string>
+    <string name="unit_are">আর</string>
+    <string name="unit_dunam">দুনাম</string>
+    <string name="unit_feddan">ফেদ্দান</string>
+    <string name="unit_rai">রাই</string>
+    <string name="unit_mu">মু</string>
+    <string name="unit_manzana">মানসানা</string>
+    <string name="unit_tarea">তারেয়া</string>
+    <string name="unit_alqueire">আলকেইরে</string>
+    <string name="unit_own">স্থানীয় একক</string>
+    <string name="land_more">অন্য একক</string>
+    <string name="land_own_name">একে কী বলেন?</string>
+    <string name="land_own_note">প্রথমবার এতে জমি মাপলে অ্যাপ জিজ্ঞেস করবে এক একরে কত হয়।</string>
+</resources>

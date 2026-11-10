@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">Fangueo</string>
+    <string name="work_type_ridging">Aporcado</string>
+    <string name="work_type_loading">Carga</string>
+    <string name="work_type_water">Suministro de agua</string>
+    <string name="work_type_hire">Alquiler de máquina</string>
+    <string name="work_other_name">¿Cómo se llama este trabajo?</string>
+    <string name="work_other_name_note">Sale en la factura. Déjelo vacío para llamarlo Otro.</string>
+    <string name="work_attached">¿Qué lleva enganchado?</string>
+    <string name="work_pulled_by">Tirado por</string>
+    <string name="work_pulled_none">No es nuestro</string>
+    <string name="plan_advance_note">Anticipo por %1$s</string>
+    <string name="onboard_machine_more">Otro tipo</string>
+    <string name="plan_reason_other_what">¿Qué pasó?</string>
+    <string name="paper_other_name">¿Cómo se llama este papel?</string>
+    <string name="paper_other_name_hint">Impuesto de circulación</string>
+    <string name="method_other">Otro</string>
+    <string name="method_other_name">¿Cómo se pagó?</string>
+    <string name="unit_decimal">Decimal</string>
+    <string name="unit_cent">Cent</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Área</string>
+    <string name="unit_dunam">Dunam</string>
+    <string name="unit_feddan">Feddan</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Unidad local</string>
+    <string name="land_more">Otra unidad</string>
+    <string name="land_own_name">¿Cómo la llaman?</string>
+    <string name="land_own_note">La primera vez que mida un campo en ella, la app pregunta cuántas hay en un acre.</string>
+</resources>

@@ -1,0 +1,1061 @@
+package com.example.fieldtrack.data.db.entity
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import com.example.fieldtrack.data.billing.Billing
+import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.data.db.FuelTerms
+import com.example.fieldtrack.data.db.BookingStatus
+import com.example.fieldtrack.data.db.BreakdownCategory
+import com.example.fieldtrack.data.db.CancelReason
+import com.example.fieldtrack.data.db.DayPart
+import com.example.fieldtrack.data.db.EntryMethod
+import com.example.fieldtrack.data.db.JobCostKind
+import com.example.fieldtrack.data.db.JobEventType
+import com.example.fieldtrack.data.db.JobStatus
+import com.example.fieldtrack.data.db.LedgerKind
+import com.example.fieldtrack.data.db.MachineKind
+import com.example.fieldtrack.data.db.PaperKind
+import com.example.fieldtrack.data.db.RequestStatus
+import com.example.fieldtrack.data.db.PlanTier
+import com.example.fieldtrack.data.db.MachineStatus
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.db.MemberRole
+import com.example.fieldtrack.data.db.PaymentMethod
+import com.example.fieldtrack.data.db.SyncState
+import kotlinx.serialization.Serializable
+import com.example.fieldtrack.data.db.TeamEventKind
+import com.example.fieldtrack.data.db.PayoutCovers
+
+/*
+ * The FieldTrack schema.
+ *
+ * Three rules run through all of it.
+ *
+ * 1. Money is whole rupees in a Long, never a floating point number, and never paise.
+ *    Nobody in this business splits a rupee. Measurements (3.5 acre) are Doubles; the
+ *    amount they produce is rounded to a whole rupee at the point of calculation.
+ *
+ * 2. Every row carries `orgId`. A driver can work for several businesses, so scoping
+ *    is not a UI filter — every query is constrained by the organisation whose session
+ *    is active, and there is no query that can return another business's rows.
+ *
+ * 3. Identifiers are UUIDs generated on the device. A job started in a dead zone has a
+ *    real identity immediately and never waits for a server to name it.
+ *
+ * There are deliberately no foreign keys. Rows arrive from sync in an order we do not
+ * control, and a constraint violation mid-sync would drop real work recorded in a
+ * field. Integrity is enforced in the repositories, where it can fail softly.
+ */
+
+// ------------------------------------------------------------------ organisation
+
+@Entity(tableName = "organisations")
+@Serializable
+data class OrgEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val area: String? = null,
+    val logoPath: String? = null,
+    /**
+     * What goes in the letterhead of a bill.
+     *
+     * All optional. A farmer trading under his own name has a village and a phone
+     * and nothing else, and a bill that prints empty labels for the rest looks like
+     * a form someone failed to fill in — so each line appears only when it is set.
+     */
+    val phone: String? = null,
+    val addressLine: String? = null,
+    val gstin: String? = null,
+    val upiId: String? = null,
+    /** What this business measures land in by default. Overridable per job. */
+    val defaultLandUnit: MeasureUnit = MeasureUnit.Acre,
+    /** The name of the business's own land unit, the one written [MeasureUnit.OwnLand]. */
+    val ownLandUnit: String? = null,
+    /**
+     * The currency this business keeps its books in, an ISO 4217 code. Every amount in
+     * every table is a whole number of that currency's minor unit.
+     *
+     * Rows from before currencies existed were all in rupees, which is why that is the
+     * default and not a guess from where the phone is.
+     */
+    @ColumnInfo(defaultValue = "INR")
+    val currencyCode: String = "INR",
+    /**
+     * The smallest amount a bill is rounded to, in minor units. 100 in a rupee business
+     * that never deals in paise; 1 where cents count.
+     */
+    @ColumnInfo(defaultValue = "100")
+    val moneyStepMinor: Long = 100,
+    /**
+     * The month the business's accounting year begins, 1 to 12. Bills are numbered
+     * within it and a statement can cover it. Rows from before this existed were all
+     * Indian, which is why April is the default and not January.
+     */
+    @ColumnInfo(defaultValue = "4")
+    val fiscalStartMonth: Int = 4,
+    /**
+     * The time zone the business's days are counted in, as a platform zone id such as
+     * `Asia/Kolkata`. Null follows the phone, which is right until a phone is set to
+     * the wrong zone or carried across one.
+     */
+    val timeZoneId: String? = null,
+    /**
+     * The ways customers pay this business, as [com.example.fieldtrack.data.db.PaymentMethod]
+     * names joined by commas. Null offers what is usual for the business's currency.
+     */
+    val paymentMethods: String? = null,
+    /** Bank or mobile-money details printed on a bill under "Pay to", one per line. */
+    val payDetails: String? = null,
+    /** What the business calls its sales tax (GST, VAT, sales tax), or null for none. */
+    val taxName: String? = null,
+    /**
+     * The tax rate in hundredths of a percent (1600 is 16%), or null for none. Prices are
+     * taken to include it: a bill shows how much of its total is tax, and nothing is added.
+     */
+    val taxPercentBps: Int? = null,
+    /**
+     * When this business's seasons begin, as [com.example.fieldtrack.data.season.SeasonCalendar]
+     * writes them. Null until somebody sets them, which reads as the usual June and
+     * November — and stays null rather than being filled in with those, so that the
+     * app can tell a business that chose them from one that has never been asked.
+     */
+    val seasons: String? = null,
+    /**
+     * The hour the plan's day turns over, 0 to 11. Null reads as 4 a.m.: a harvest
+     * crew working at 1 a.m. is still on yesterday's work, and "tomorrow" should not
+     * already have become today. Settable, because a business that starts at 2 a.m.
+     * or never works past midnight knows better than a default.
+     */
+    val planDayStartHour: Int? = null,
+    /** Whether a driver sees everybody's bookings, or only their own and the unassigned ones. */
+    val driversSeeAll: Boolean = false,
+    /**
+     * Whether the crew is asked for proof of work: the hour meter's reading and a photo of it,
+     * and a mark of where they were, at the start and at the finish. Off until the owner
+     * asks for it, and asked of nobody who is not set up to be.
+     */
+    val proofOfWork: Boolean = false,
+    /** Whether farmers may ask for work through the business's link, and the secret part of that link. */
+    val bookingLink: Boolean = false,
+    val bookingSlug: String? = null,
+    /** Whether the public page shows the rates on the rate card. Off until the owner chooses. */
+    val bookingShowRates: Boolean = false,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    /**
+     * Roles the owner has made, as a short list: a name and the switches it stands for.
+     *
+     * Kept on the business's own record rather than in a table of their own: it is a handful
+     * of lines, every member may read it, only the owner may write it, and that is exactly
+     * the rule this record already has. See [com.example.fieldtrack.data.session.CustomRoles].
+     */
+    val customRoles: String? = null,
+)
+
+/**
+ * One person's place in one organisation.
+ *
+ * A professional driver has several of these rows — two businesses in the same week,
+ * or a different one each season. Leaving does not delete the row: [active] goes
+ * false, read access stops, and the work they recorded stays with the business that
+ * owns it.
+ */
+@Entity(
+    tableName = "memberships",
+    indices = [
+        Index("orgId"),
+        Index("personId"),
+        Index(value = ["orgId", "personId"], unique = true),
+    ],
+)
+@Serializable
+data class MembershipEntity(
+    /**
+     * Deterministic: `{orgId}_{personId}`, built by [membershipId].
+     *
+     * Not a random id, because a security rule has to be able to find this row
+     * without being told where it is. Rules can fetch a document at a path they can
+     * construct, and cannot search a collection for one — so "is this caller a member
+     * here" is only answerable if the caller's own id is in the path. A random id
+     * with the person named in a field is unfindable to a rule, and the whole
+     * organisation has to be left open instead.
+     */
+    @PrimaryKey val id: String,
+    val orgId: String,
+    /** Stable identity of the person across organisations — their auth subject. */
+    val personId: String,
+    val displayName: String,
+    val phone: String? = null,
+    val photoPath: String? = null,
+    val role: MemberRole,
+    /**
+     * The identity this person used before they proved who they are, when this row took
+     * over from one.
+     *
+     * The old row is still on the server and cannot be taken down, so every phone is told
+     * which person is the same as which: a row whose person is named here is a left-behind
+     * identity and is not listed as somebody else.
+     */
+    val replacesPersonId: String? = null,
+
+    /** Money, rates and balances. False for an operator unless the owner grants it. */
+    val canSeeMoney: Boolean = false,
+    val canAddCustomers: Boolean = false,
+    /** Whether this person may close a bill and take payment, not just record work. */
+    val canCloseBills: Boolean = false,
+    /** May record money going out of the business. */
+    val canPayOut: Boolean = false,
+    /** May invite, remove and re-permission drivers — but never touch an owner. */
+    val canEditTeam: Boolean = false,
+    /** May add machines and keep their hours and service schedule. */
+    val canEditMachines: Boolean = false,
+    /** May book work for a day, give it a machine and a driver, move it and cancel it. */
+    val canPlanWork: Boolean = false,
+    /**
+     * May see what each person was paid.
+     *
+     * Kept on the membership rather than worked out on the phone, because the
+     * server has to be able to answer it: anything a rule cannot read, a rule
+     * cannot enforce, and a screen that merely declines to show a figure is not
+     * keeping it from anybody.
+     */
+    val canSeePeopleCost: Boolean = false,
+
+    val active: Boolean = true,
+    val joinedAt: Long,
+    val leftAt: Long? = null,
+    /**
+     * The invite code this person came in on, when they came in on one.
+     *
+     * Carried so a security rule can check it. Without it the server has no way to
+     * tell a driver who was invited from a stranger who learned an organisation's
+     * id, and the only thing standing between a business's books and anybody who
+     * signs in is that id staying secret — which is not a security measure, it is a
+     * hope. Null for an owner, who created the business rather than joined it.
+     */
+    val joinedWithCode: String? = null,
+    /**
+     * How much work this person's phone was still holding, last time it managed
+     * to reach the server.
+     *
+     * A beacon, not a record: it describes a handset's state right now rather
+     * than anything anybody did, and it is written straight to the server
+     * instead of through the outbox. Queueing it would be a loop — the write
+     * itself would be one more unsent change, so the count could never reach
+     * zero and every sync would raise another.
+     *
+     * Lets an owner see, before taking somebody off the team, that their phone
+     * has three jobs on it that have never arrived.
+     */
+    val unsentCount: Int = 0,
+    /** This phone's clock when it counted. Shown as "as of", never as fact. */
+    val unsentAt: Long? = null,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/** Where a membership lives, derivable by anyone who knows the two ids. */
+fun membershipId(orgId: String, personId: String): String = "${orgId}_$personId"
+
+/** An unredeemed invite code. One code, one organisation, one expiry. */
+@Entity(tableName = "invites", indices = [Index("orgId"), Index(value = ["code"], unique = true)])
+@Serializable
+data class InviteEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val code: String,
+    val role: MemberRole = MemberRole.Operator,
+    val canSeeMoney: Boolean = false,
+    val canAddCustomers: Boolean = false,
+    val canCloseBills: Boolean = false,
+    val createdAt: Long,
+    val expiresAt: Long,
+    val redeemedAt: Long? = null,
+    val redeemedByPersonId: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+// ---------------------------------------------------------------------- parties
+
+@Entity(tableName = "customers", indices = [Index("orgId"), Index(value = ["orgId", "name"])])
+@Serializable
+data class CustomerEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val name: String,
+    val phone: String? = null,
+    val village: String? = null,
+    val note: String? = null,
+    /** The language this customer reads, as a tag, for reminders and bills sent to them. Null follows the app. */
+    val language: String? = null,
+    /** The most this customer may owe before the app says so when work is booked or started. Null for no limit. */
+    val creditLimitMinor: Long? = null,
+    /** A day the owner asked to be reminded to chase this customer for money, as a plan-style epoch day. */
+    val chaseOnDay: Long? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    /** Soft delete: a customer with history is hidden, never removed. */
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+@Entity(tableName = "fields", indices = [Index("orgId"), Index("customerId")])
+@Serializable
+data class FieldEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val customerId: String,
+    /** Whatever the farmer calls it — "canal-side plot", not a survey number. */
+    val name: String,
+    val area: Double,
+    val unit: MeasureUnit,
+    val crop: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+// --------------------------------------------------------------------- machines
+
+@Entity(tableName = "machines", indices = [Index("orgId")])
+@Serializable
+data class MachineEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val name: String,
+    val kind: MachineKind,
+    /** What the owner calls a kind of machine the list does not have, when [kind] is Other. */
+    val typeLabel: String? = null,
+    val plate: String? = null,
+    val photoPath: String? = null,
+    val status: MachineStatus = MachineStatus.Idle,
+    /**
+     * The hour meter as somebody last said it was — NOT the machine's hours today.
+     *
+     * Hours worked since [hoursAsOf] are added on top, read off the jobs that were
+     * finished on this machine (see `MachineWithWork`). Nothing used to add them:
+     * the figure only ever changed when somebody typed a new one, so "service due
+     * in 250 hr" counted down from a number that never moved. Storing the reading
+     * and deriving the rest — rather than bumping this on every finished job —
+     * keeps two phones that both finish work offline from overwriting each
+     * other's hours when they sync.
+     */
+    val hoursUsed: Double = 0.0,
+    /**
+     * When [hoursUsed] was true. Work finished after this is added to it. Null on
+     * a machine written before this existed, which is read as [createdAt].
+     */
+    val hoursAsOf: Long? = null,
+    /** Service every N hours. Null means this machine is not on a schedule. */
+    val serviceIntervalHours: Double? = null,
+    val lastServiceAtHours: Double? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+@Entity(tableName = "fuel_entries", indices = [Index("orgId"), Index("machineId"), Index("jobId")])
+@Serializable
+data class FuelEntryEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val machineId: String,
+    val jobId: String? = null,
+    val litres: Double,
+    val costMinor: Long,
+    val atMillis: Long,
+    val byPersonId: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+@Entity(tableName = "service_records", indices = [Index("orgId"), Index("machineId")])
+@Serializable
+data class ServiceRecordEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val machineId: String,
+    val description: String,
+    val costMinor: Long? = null,
+    val atMachineHours: Double? = null,
+    val atMillis: Long,
+    val vendor: String? = null,
+    /** What was changed — "fuel filter, hydraulic oil". Free words, optional. */
+    val partsNote: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/**
+ * What a machine costs to own, kept apart from the machine.
+ *
+ * A machine document is readable by every member, a driver included. A loan
+ * instalment is the owner's business and nobody else's, and a document cannot
+ * hide one of its own fields — so it lives in a record of its own, with rules that
+ * let only an owner or a manager read it. The same split as a crew's wages
+ * ([JobCostAmountDoc]), and for the same reason.
+ *
+ * The id is the machine's id: one record per machine, written over by whoever
+ * last edited it.
+ */
+@Entity(tableName = "machine_finance", indices = [Index("orgId")])
+@Serializable
+data class MachineFinanceEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    /** Loan instalment, insurance and the like, per month. Null when none was entered. */
+    val monthlyMinor: Long? = null,
+    /**
+     * How many hours a year this machine works, when the owner knows.
+     *
+     * The loan is spread over these. Left blank, the last twelve months of recorded
+     * work stand in — once there are enough of them to mean anything.
+     */
+    val hoursPerYear: Int? = null,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    /**
+     * What the machine is worth on the books: when it was bought (an epoch day), for how
+     * much, what it should fetch at the end of its working life, and how many years that
+     * is. All optional; with the first three the asset register can say what it is worth
+     * today.
+     */
+    val purchasedDay: Long? = null,
+    val purchaseMinor: Long? = null,
+    val resaleMinor: Long? = null,
+    val lifeYears: Int? = null,
+    /**
+     * Whose machine this is; null is the same as [com.example.fieldtrack.data.db.MachineOwner.Own].
+     * For a machine that is not the business's own, the rest says who is paid for it and how.
+     * Filed here with the other private costs of a machine, for the same reason: what the
+     * business pays somebody for a tractor is not a driver's to read.
+     */
+    val ownerKind: com.example.fieldtrack.data.db.MachineOwner? = null,
+    /** The team member who owns it, when [ownerKind] is Member. */
+    val ownerPersonId: String? = null,
+    /** The name of the person it is hired from, when [ownerKind] is Outsider. */
+    val ownerName: String? = null,
+    val hireBasis: com.example.fieldtrack.data.db.HireBasis? = null,
+    /** The rate in minor units per hour, per day or per land unit, by [hireBasis]. */
+    val hireRateMinor: Long? = null,
+    /** Whole percent of what the work earned, when [hireBasis] is a share. */
+    val hireSharePercent: Int? = null,
+    /** From when the hire counts: work finished before this is not owed for. */
+    val hireFrom: Long? = null,
+)
+
+/**
+ * One paper a machine carries: its registration, insurance, fitness, permit or pollution
+ * certificate, with its number and the day it runs out.
+ *
+ * Seen by the whole team, since a driver is the one stopped at a checkpost. The photo is
+ * a [photoId] (see the photo store), never a path on somebody's phone.
+ */
+@Entity(tableName = "machine_papers", indices = [Index("orgId"), Index("machineId")])
+@Serializable
+data class MachinePaperEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val machineId: String,
+    val kind: PaperKind,
+    /** What the owner calls a paper the list has no word for, when [kind] is Other. */
+    val label: String? = null,
+    val number: String? = null,
+    /** The last day it is valid, as an epoch day in the business's own calendar. */
+    val expiresDay: Long? = null,
+    val note: String? = null,
+    val photoId: String? = null,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/**
+ * Money leaving the business.
+ *
+ * The mirror of the customer ledger, and deliberately not part of it: every row
+ * there belongs to a customer, and what a customer owes is summed from them.
+ * Wages belong to nobody outside the business.
+ *
+ * One shape covers all of it. A permanent driver, a man taken on for two days
+ * and three labourers nobody wrote a name for are the same event — money out,
+ * on a date, to somebody — and the only thing that differs is whether that
+ * somebody has an account here.
+ */
+@Entity(tableName = "payouts", indices = [Index("orgId"), Index("jobId")])
+@Serializable
+data class PayoutEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    /** Always positive. Money out is the whole point of the table. */
+    val amountMinor: Long,
+    val atMillis: Long,
+    /** What this can be laid against, which decides what it can total into. */
+    val covers: PayoutCovers,
+    /** Set when the person paid is on the team; null for labour with no account. */
+    val toPersonId: String? = null,
+    /** Written down either way, so the row still reads after a rename. */
+    val toName: String? = null,
+    /** How many people one payment covered. One for a named person. */
+    val headcount: Int = 1,
+    val jobId: String? = null,
+    /**
+     * The job cost this payment settles, when it settles one.
+     *
+     * The link that stops the same money being counted twice. A job's costs are
+     * totalled from [JobCostEntity] alone; a payment carrying this is the cash
+     * leaving against a cost already counted there, never a second cost. Which
+     * also means a cost can be settled in parts, by more than one payment, and
+     * what is still owed is the difference rather than a flag somebody has to
+     * remember to clear.
+     */
+    val jobCostId: String? = null,
+    val method: PaymentMethod? = null,
+    /** The payer's own name for the way, when [method] is Other. */
+    val methodLabel: String? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    /**
+     * How much of an advance this settles, when the payment is a wage that has an advance
+     * taken against it. The cash is [amountMinor]; this is value that never moves again,
+     * because it was counted as a cost when the advance was given.
+     */
+    @androidx.room.ColumnInfo(defaultValue = "0")
+    val recoversAdvanceMinor: Long = 0,
+    val createdAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    val deviceId: String? = null,
+    /**
+     * When this payment was taken back, if it was: entered by mistake, or paid twice.
+     *
+     * Like a customer's ledger the record is never deleted, so the history still shows what
+     * was written and what was done about it; but a voided payment counts for nothing in any
+     * total, in what is owed, or against an advance.
+     */
+    val voidedAt: Long? = null,
+    /** Who took it back: the record says what was done about a payment and by whom. */
+    val voidedByPersonId: String? = null,
+)
+
+/**
+ * The public half of a job cost: who worked, and on what.
+ *
+ * What every member of the business may read. Deliberately carries no rupees:
+ * Firestore rules grant or refuse a whole document and cannot hide one field,
+ * so a row readable by the driver who counted the heads would have put the
+ * crew's wages on his phone — where the screen hides them and the database
+ * does not. A hidden figure is a courtesy; a figure that was never sent is a
+ * boundary.
+ */
+@Serializable
+data class JobCostDoc(
+    val id: String,
+    val orgId: String,
+    val jobId: String,
+    val kind: JobCostKind,
+    val headcount: Int? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    val atMillis: Long,
+    val createdAt: Long,
+    val deviceId: String? = null,
+)
+
+/**
+ * The money on a job cost, filed where only the money people can read it.
+ *
+ * Its own document under the same id as the cost it prices, guarded exactly
+ * like a payment. Absent, for a reader who may not see wages, is
+ * indistinguishable from not yet priced — and that is the right thing for
+ * them to see.
+ */
+@Serializable
+data class JobCostAmountDoc(
+    val id: String,
+    val orgId: String,
+    val amountMinor: Long,
+    val updatedAt: Long,
+)
+
+/**
+ * What one job cost beyond the machine: the hands on it, and the money around it.
+ *
+ * Kept apart from [PayoutEntity] because the two answer different questions and
+ * are known by different people at different times. The driver standing in the
+ * field knows four men worked; he has no cash and no business seeing wages. The
+ * owner knows what they are owed, and pays on Saturday. Forcing both facts into
+ * one row would mean either the driver cannot record anything, or a payment row
+ * exists for money that has not moved.
+ *
+ * So this is the job's cost sheet and [PayoutEntity] is the till. This table is
+ * the only place a job-attached cost is totalled from; a payment that settles
+ * one points back here and is never counted as a cost again.
+ */
+@Entity(
+    tableName = "job_costs",
+    indices = [Index("orgId"), Index("jobId")],
+)
+@Serializable
+data class JobCostEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val jobId: String,
+    val kind: JobCostKind,
+    /**
+     * How many people, or null when nobody counted.
+     *
+     * Null is a real answer, not a missing one: a jamadar brings a gang and is
+     * paid by the acre, and nobody counts heads. A guessed number would look
+     * exactly like a counted one afterwards, and would quietly poison the only
+     * figure this count exists to produce — what a pair of hands costs.
+     */
+    val headcount: Int? = null,
+    /** Null until somebody who may pay has put a figure on it. */
+    val amountMinor: Long? = null,
+    val note: String? = null,
+    val byPersonId: String? = null,
+    val atMillis: Long,
+    val createdAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    val deviceId: String? = null,
+)
+
+/**
+ * One change to the team, written down as it happened.
+ *
+ * Append-only, and deliberately holding names rather than only ids. A log is
+ * read long after the fact, and "Harpal let Manjit see the money" has to go on
+ * saying that even if either of them is renamed afterwards. The ids are kept
+ * too, for anything that needs to follow a person rather than a name.
+ */
+@Entity(tableName = "team_events", indices = [Index("orgId")])
+@Serializable
+data class TeamEventEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val atMillis: Long,
+    val kind: TeamEventKind,
+    /** Who did it. Null when nobody did — somebody joining acts on themselves. */
+    val byPersonId: String? = null,
+    val byName: String = "",
+    /** Who it was done to, when that is a different person. */
+    val aboutPersonId: String? = null,
+    val aboutName: String? = null,
+    /** Whatever the sentence needs: a code, the permission that changed. */
+    val detail: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+@Entity(tableName = "breakdowns", indices = [Index("orgId"), Index("machineId"), Index("jobId")])
+@Serializable
+data class BreakdownEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val machineId: String,
+    val jobId: String? = null,
+    val category: BreakdownCategory,
+    val note: String? = null,
+    val photoPath: String? = null,
+    val reportedAt: Long,
+    val reportedByPersonId: String? = null,
+    val resolvedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+// ------------------------------------------------------------------------- work
+
+/**
+ * The rate card. A job picks up its rate from here so nobody retypes it in a field.
+ *
+ * A row with a [customerId] overrides the general rate for that customer — "what I
+ * charged Ramesh last time" is the number a contractor actually wants.
+ *
+ * [label] lets one kind of work carry more than one rate. Harvesting wheat and
+ * harvesting paddy are the same machine doing the same job for very different money,
+ * and a contractor who has to pick "Harvesting" and then retype the rate every time
+ * has a rate card that does not know his trade. Free text on purpose: the word is
+ * his, not a list this app decided on.
+ */
+@Entity(tableName = "rates", indices = [Index("orgId"), Index(value = ["orgId", "workType"])])
+@Serializable
+data class RateEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val workType: String,
+    val billingMode: BillingMode,
+    val unit: MeasureUnit,
+    val amountMinor: Long,
+    val customerId: String? = null,
+    val label: String? = null,
+    /** The terms this price usually comes with, which a new job starts from. */
+    @ColumnInfo(defaultValue = "0")
+    val minimumMinor: Long = 0,
+    @ColumnInfo(defaultValue = "0")
+    val arrivalMinor: Long = 0,
+    @ColumnInfo(defaultValue = "'Included'")
+    val fuelTerms: FuelTerms = FuelTerms.Included,
+    @ColumnInfo(defaultValue = "0")
+    val waitingRateMinor: Long = 0,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+/**
+ * One piece of paid work.
+ *
+ * [quantity] is always the billable figure in [unit] — acres, trips, quintals,
+ * kilometres, or hours. [elapsedSeconds] is tracked for every job regardless, because
+ * an owner wants machine utilisation even on work charged by the acre.
+ *
+ * [workedAt] and [recordedAt] differ whenever a job is typed in after the fact. Both
+ * are kept, and [entryMethod] says which kind of record this is.
+ */
+@Entity(
+    tableName = "jobs",
+    indices = [
+        Index("orgId"),
+        Index("customerId"),
+        Index("machineId"),
+        Index("operatorPersonId"),
+        Index(value = ["orgId", "status"]),
+        Index(value = ["orgId", "workedAt"]),
+        Index("bookingId"),
+    ],
+)
+@Serializable
+data class JobEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val customerId: String,
+    val fieldId: String? = null,
+    val machineId: String? = null,
+    /** Who did the work. An owner driving their own machine is recorded here too. */
+    val operatorPersonId: String? = null,
+    /** The booking this job was started from, if it was. What makes a booking "started". */
+    val bookingId: String? = null,
+
+    val workType: String,
+    val billingMode: BillingMode,
+    val unit: MeasureUnit,
+    val rateMinor: Long,
+    /**
+     * The amount this job's bill is rounded to, in minor units, taken from the business
+     * when the job was made. Kept on the job so that changing the business's setting
+     * later never moves a bill that already exists.
+     */
+    @ColumnInfo(defaultValue = "100")
+    val stepMinor: Long = 100,
+    val quantity: Double = 0.0,
+    /**
+     * What the trips on this job come to, added up as each one was made.
+     *
+     * Trip work is not quantity times rate. A contractor hauling for one farmer all
+     * day raises the price when the load gets heavier or the field gets further, and
+     * adds the next trip at the new rate rather than starting a second job. Each trip
+     * is therefore priced when it happens and banked here; the rate on the job is
+     * only what the NEXT trip will cost.
+     */
+    val tripTotalMinor: Long = 0,
+    /** The least this job is billed, whatever the work comes to ("minimum two hours"). 0 for none. */
+    @ColumnInfo(defaultValue = "0")
+    val minimumMinor: Long = 0,
+    /** A flat charge for getting the machine to the field. 0 for none. */
+    @ColumnInfo(defaultValue = "0")
+    val arrivalMinor: Long = 0,
+    /** Who pays for the diesel, which says what the rate covers. */
+    @ColumnInfo(defaultValue = "'Included'")
+    val fuelTerms: FuelTerms = FuelTerms.Included,
+    /** Diesel added to the bill at what it cost, fixed when the job is finished. */
+    @ColumnInfo(defaultValue = "0")
+    val fuelBilledMinor: Long = 0,
+    /** What an hour spent waiting for the customer is billed at. 0 means waiting is not billed. */
+    @ColumnInfo(defaultValue = "0")
+    val waitingRateMinor: Long = 0,
+    /** The waiting time worked out when the job was finished, at [waitingRateMinor] an hour. */
+    @ColumnInfo(defaultValue = "0")
+    val waitingMinor: Long = 0,
+    /** Taken off when the customer settles: a round-off, a discount. */
+    @ColumnInfo(defaultValue = "0")
+    val discountMinor: Long = 0,
+    /** A second machine on the same job, such as the implement behind a tractor. It wears; the tractor earns. */
+    val implementMachineId: String? = null,
+    /** More people on the job than the operator, as person ids joined by commas. */
+    val coOperatorIds: String? = null,
+    val elapsedSeconds: Long = 0,
+    val distanceMetres: Long? = null,
+
+    val status: JobStatus = JobStatus.Running,
+    /** When the work happened. */
+    val workedAt: Long,
+    /** When it was entered into the app. Equal to workedAt for a timed job. */
+    val recordedAt: Long,
+    val entryMethod: EntryMethod = EntryMethod.Timed,
+    val startedAt: Long? = null,
+    val completedAt: Long? = null,
+    /** Moment the timer last resumed; null while paused. Lets elapsed survive a kill. */
+    val runningSince: Long? = null,
+
+    val note: String? = null,
+    /**
+     * The bill this job was billed under, once it is finished.
+     *
+     * Split into the financial year and a number within it so the next number is a
+     * MAX over the year rather than a string comparison. Formatted for the eye as
+     * "2026-27/0241" — the shape an Indian accountant expects to see.
+     */
+    val billFy: String? = null,
+    val billSeq: Int? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+
+    val syncState: SyncState = SyncState.Pending,
+    /** Which device last wrote this row — the tiebreak in a field-level merge. */
+    val lastWriterDeviceId: String? = null,
+    /** Bumped on every local write, so a stale server copy is recognisable. */
+    val revision: Long = 1,
+    /** What the hour meter read when the work began and when it ended, if anybody noted it. */
+    val meterStart: Double? = null,
+    val meterEnd: Double? = null,
+    /** Where the phone was when the work began and when it ended, if it could say. */
+    val startLat: Double? = null,
+    val startLng: Double? = null,
+    val endLat: Double? = null,
+    val endLng: Double? = null,
+    /** Photos of the meter, by their id in the photo store; see [com.example.fieldtrack.data.photo.PhotoStore]. */
+    val startPhotoId: String? = null,
+    val endPhotoId: String? = null,
+) {
+    /**
+     * Whether the hours on the clock are what this job is billed for.
+     *
+     * Hourly work that ran on the phone bills from the clock. Hourly work entered
+     * afterwards bills the hours that were typed: the screen showed that figure and
+     * the times beside it are only a note of when, and may not match.
+     */
+    val billsFromClock: Boolean
+        get() = billingMode == BillingMode.PerHour && entryMethod != EntryMethod.Manual
+
+    /** What the work itself comes to, before any of the extras. */
+    val workAmountMinor: Long
+        get() = when (billingMode) {
+            // Trips carry their own prices; multiplying loses every rate change.
+            BillingMode.PerTrip -> tripTotalMinor
+            else -> Billing.amount(billingMode, quantity, rateMinor, stepMinor)
+        }
+
+    /**
+     * The bill for [work]: raised to the minimum, then the arrival charge, waiting time and
+     * billed diesel added, then the discount taken off. Never below nothing.
+     *
+     * The same arithmetic is written in SQL for totals ([JOB_AMOUNT_SQL]); a test holds the
+     * two together, because a total that differs from the bills under it is the one thing
+     * an owner finds out about from a customer.
+     */
+    fun amountFor(work: Long): Long =
+        (maxOf(work, minimumMinor) + arrivalMinor + fuelBilledMinor + waitingMinor - discountMinor)
+            .coerceAtLeast(0)
+
+    /** What this job is worth, rounded to the way the business bills. */
+    val amountMinor: Long
+        get() = amountFor(workAmountMinor)
+}
+
+/**
+ * Append-only timeline for a job: started, paused, a trip added, fuel put in.
+ *
+ * Kept separate from the job row so two devices recording different events during one
+ * handover both survive — events merge by union, where a single mutable job row would
+ * have to pick a winner.
+ */
+@Entity(tableName = "job_events", indices = [Index("jobId"), Index("orgId")])
+@Serializable
+data class JobEventEntity(
+    @PrimaryKey val id: String,
+    val jobId: String,
+    val orgId: String,
+    val type: JobEventType,
+    val atMillis: Long,
+    val byPersonId: String? = null,
+    val numericValue: Double? = null,
+    val textValue: String? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+// ----------------------------------------------------------------------- ledger
+
+/**
+ * One line of a customer's khata. Append-only, always.
+ *
+ * A balance is never stored and never edited — it is the sum of these rows. That is
+ * what lets an owner and a driver both take a payment while offline and have the two
+ * entries simply add up when they sync, instead of one silently overwriting the other.
+ *
+ * A mistake is fixed by writing an [LedgerKind.Adjustment] that reverses it and
+ * pointing [reversesEntryId] at the original. Nothing is ever deleted, so a customer
+ * disputing a figure can be walked through every line.
+ */
+@Entity(
+    tableName = "ledger_entries",
+    indices = [Index("orgId"), Index("customerId"), Index("jobId"), Index(value = ["orgId", "atMillis"])],
+)
+@Serializable
+data class LedgerEntryEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val customerId: String,
+    val kind: LedgerKind,
+    /** Always positive. [kind] decides which way it moves the balance. */
+    val amountMinor: Long,
+    val jobId: String? = null,
+    val method: PaymentMethod? = null,
+    /** The payer's own name for the way, when [method] is Other. */
+    val methodLabel: String? = null,
+    val note: String? = null,
+    val atMillis: Long,
+    val byPersonId: String? = null,
+    /** Set on a correcting entry to name the entry it cancels. */
+    val reversesEntryId: String? = null,
+    val createdAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+    val deviceId: String? = null,
+)
+
+// --------------------------------------------------------------------- bookings
+
+/**
+ * Work promised for a day: who it is for, what, and optionally which machine and
+ * which driver.
+ *
+ * A plan, not a job. A job is a running clock, and the live-job queries, the
+ * notification, machine status, billing and the season's earnings all hang off that;
+ * a booking is none of them and touches none of them. When somebody starts the work,
+ * the job it becomes carries [JobEntity.bookingId], and that link — not a status
+ * written here — is what makes the booking "started". So a driver's phone never has
+ * to write the plan, and two phones never fight over it.
+ *
+ * [day] is a local calendar day, as `LocalDate.toEpochDay`, not a moment: "Tuesday
+ * morning" must stay Tuesday whatever the phone's clock does afterwards.
+ */
+@Entity(tableName = "bookings", indices = [Index("orgId"), Index(value = ["orgId", "day"])])
+@Serializable
+data class BookingEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val customerId: String,
+    val fieldId: String? = null,
+    val workType: String,
+    val day: Long,
+    val part: DayPart = DayPart.WholeDay,
+    /** Minutes past midnight, when somebody named an hour. Shown, never enforced. */
+    val startMinute: Int? = null,
+    val machineId: String? = null,
+    val operatorPersonId: String? = null,
+    val note: String? = null,
+    val status: BookingStatus = BookingStatus.Planned,
+    val cancelReason: CancelReason? = null,
+    /** The reason in the planner's own words, when it was "something else". */
+    val cancelNote: String? = null,
+    /** How many times it has been moved to another day. Farmers reschedule; the owner should see how often. */
+    val movedCount: Int = 0,
+    /** A token taken when the work was booked, already on the customer's account as a payment. */
+    val advanceMinor: Long? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+// ----------------------------------------------------------------------- outbox
+
+/**
+ * The queue of local changes waiting to reach the server.
+ *
+ * Nothing in this app writes to the network directly. A mutation writes its row and
+ * appends here in one transaction, and a background worker drains the queue whenever
+ * there is signal. If the process dies between the two, the transaction rolls back and
+ * neither happened — which is the only acceptable outcome when the row is a payment.
+ */
+@Entity(tableName = "outbox", indices = [Index("createdAt"), Index("orgId"), Index("entityId")])
+@Serializable
+data class OutboxEntity(
+    @PrimaryKey(autoGenerate = true) val seq: Long = 0,
+    val orgId: String,
+    val tableName: String,
+    val entityId: String,
+    val operation: com.example.fieldtrack.data.db.OutboxOp,
+    val payloadJson: String,
+    val createdAt: Long,
+    val attempts: Int = 0,
+    val lastAttemptAt: Long? = null,
+    val lastError: String? = null,
+    /**
+     * When the user set this change aside, if they have.
+     *
+     * A change the server refuses holds the whole queue, which is right: letting
+     * later changes jump it would put events on the server before the jobs they
+     * belong to. But a refusal that can never succeed would then stop the app ever
+     * syncing again, so there has to be a way past it — and the only honest one is
+     * the user deciding, having been told what the server said.
+     *
+     * Set aside, never deleted. The row stays here with its payload intact, so a
+     * change somebody made is still a change somebody made, and a later version of
+     * this app can offer to send it again.
+     */
+    val blockedAt: Long? = null,
+)
+
+
+/**
+ * A farmer's request for work, made on the business's public page.
+ *
+ * Written by the server, not by any phone: the person asking is nobody in the business. It is
+ * a request and nothing more; no booking exists until somebody who plans accepts it, and the
+ * farmer is told nothing by the app, only by the owner picking up the phone.
+ */
+@Entity(tableName = "booking_requests", indices = [Index("orgId")])
+@Serializable
+data class BookingRequestEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val name: String,
+    val phone: String? = null,
+    val village: String? = null,
+    val workType: String? = null,
+    /** The day they asked for, as an epoch day, or null for "when you can". */
+    val day: Long? = null,
+    val note: String? = null,
+    val status: RequestStatus = RequestStatus.New,
+    /** The booking made from it, once accepted. */
+    val bookingId: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val syncState: SyncState = SyncState.Pending,
+)
+
+
+/**
+ * What a business has paid for, as the server knows it.
+ *
+ * Written by our server alone, after it has checked a purchase with the store; a phone only reads
+ * it. The id is the business's. The plan runs to [untilDay] (an epoch day), and the app allows a
+ * grace after that before the extras stop, so a lapse of signal or a slow renewal never switches
+ * anything off in the middle of a season.
+ */
+@Entity(tableName = "entitlements", indices = [Index("orgId")])
+@Serializable
+data class EntitlementEntity(
+    @PrimaryKey val id: String,
+    val orgId: String,
+    val tier: PlanTier = PlanTier.Free,
+    val untilDay: Long? = null,
+    /** Bought at the founding price, which is kept for as long as it is renewed. */
+    val founding: Boolean = false,
+    val updatedAt: Long = 0,
+)

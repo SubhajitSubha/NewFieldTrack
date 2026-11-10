@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the P-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="menu_your_profile">Profil Anda</string>
+    <string name="menu_change_business">Ganti</string>
+    <string name="menu_money_note">Yang masuk, yang keluar, dan laporan</string>
+    <string name="menu_settings_note">Bahasa, warna, notifikasi, usaha Anda</string>
+    <plurals name="menu_requests_new">
+        <item quantity="other">%d baru</item>
+    </plurals>
+    <string name="biz_sheet_title">Usaha Anda</string>
+    <string name="biz_unnamed">Usaha tempat Anda bekerja</string>
+    <string name="biz_sheet_here">Anda bekerja di sini</string>
+    <string name="settings_phone">Di ponsel ini</string>
+    <string name="settings_theme_phone">Seperti ponsel saya</string>
+    <string name="settings_numbers">Angka dan minggu</string>
+    <string name="settings_numbers_note">Cara jumlah uang ditulis, dan hari awal minggu</string>
+    <string name="settings_link_on">Aktif: petani bisa meminta pekerjaan dari tautan Anda</string>
+    <string name="settings_records">Catatan Anda</string>
+    <string name="profile_saved">Tersimpan.</string>
+    <string name="profile_unsaved_title">Simpan perubahan?</string>
+    <string name="profile_unsaved_body">Anda mengubah data Anda tetapi belum menyimpannya.</string>
+    <string name="profile_unsaved_leave">Keluar tanpa menyimpan</string>
+    <string name="search_bar_prompt">Cari petani, lahan, mesin, atau pekerjaan dengan nama, desa, nomor ponsel, atau pelat nomor.</string>
+    <string name="search_close_cd">Tutup pencarian</string>
+    <string name="search_clear_cd">Hapus yang diketik</string>
+    <string name="money_to_collect">Petani masih berutang %1$s</string>
+    <string name="money_got_paid">Uang diterima</string>
+    <string name="money_received_who">Siapa yang membayar?</string>
+    <string name="money_pay_someone">Bayar seseorang</string>
+    <string name="money_people_row">Orang dan sewa</string>
+    <string name="money_people_note">Apa yang menjadi hak dan sudah dibayar ke setiap orang dan setiap pemilik mesin</string>
+    <string name="money_reports_row">Laporan dan harga</string>
+    <string name="money_reports_note">Musim, laporan pendapatan untuk bank, nilai mesin, tarif Anda</string>
+    <string name="money_reports_note_short">Tarif Anda, dan harga cepat untuk satu pekerjaan</string>
+    <string name="mh_hidden_farmers">Tagihan dan pembayaran petani tidak ditampilkan untuk Anda.</string>
+    <string name="mh_hidden_people">Yang dibayarkan ke orang tidak ditampilkan untuk Anda.</string>
+    <string name="team_add_person">Tambah orang</string>
+    <string name="team_add_how">Apakah dia akan memakai aplikasi di ponselnya sendiri?</string>
+    <string name="team_add_invite">Ya, kirimi kode</string>
+    <string name="team_add_invite_note">Dia memasang aplikasi lalu bergabung ke usaha Anda dengan kode</string>
+    <string name="team_add_write">Tidak, catat saja</string>
+    <string name="team_add_write_note">Nama dan nomornya, supaya Anda bisa memberi kerja dan membayarnya</string>
+    <string name="team_status_on">Di %1$s · %2$s</string>
+    <string name="team_status_paused">Berhenti sementara di %1$s</string>
+    <string name="team_advance_left">Uang muka %1$s yang harus kembali</string>
+    <string name="team_hire_left">Terutang %1$s untuk mesinnya</string>
+    <string name="team_manage">Kelola</string>
+    <string name="team_call_cd">Telepon %1$s</string>
+    <string name="member_tab_work">Pekerjaan</string>
+    <string name="member_tab_money">Uang</string>
+    <string name="member_tab_access">Yang boleh dia lakukan</string>
+    <string name="member_recent_work">Pekerjaan terakhir</string>
+    <string name="person_pay_back_button">Batalkan pembayaran ini</string>
+    <string name="team_everyone">Semua</string>
+    <string name="team_one_owner_action">Pilih orang lain sebagai pemilik juga</string>
+    <string name="jobs_filter_all">Semua</string>
+    <string name="jobs_none_all">Belum ada pekerjaan selesai.</string>
+    <string name="jobs_search">Petani, sopir, atau pekerjaannya</string>
+    <string name="jobs_start_cd">Mulai kerja</string>
+    <string name="machines_search">Nama atau pelat mesin</string>
+    <string name="fleet_your_machines">Mesin Anda</string>
+    <string name="fleet_upkeep_note">Servis yang jatuh tempo, surat yang habis, yang rusak dan biayanya</string>
+    <string name="money_hub_reports">Laporan</string>
+    <string name="money_hub_prices">Harga Anda</string>
+    <string name="money_hub_rates_note">Tarif Anda untuk setiap jenis pekerjaan</string>
+</resources>

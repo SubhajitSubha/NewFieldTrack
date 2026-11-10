@@ -1,0 +1,3239 @@
+package com.example.fieldtrack.feature
+
+import androidx.compose.runtime.key
+
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
+
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.movableContentOf
+import com.example.fieldtrack.designsystem.component.FtNavRail
+import com.example.fieldtrack.designsystem.layout.LocalWidthClass
+import com.example.fieldtrack.designsystem.layout.ReadableWidth
+import com.example.fieldtrack.designsystem.layout.WidthClass
+
+import kotlinx.coroutines.flow.MutableStateFlow
+
+import kotlinx.coroutines.flow.StateFlow
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.feature.fields.MeasureDestination
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.fieldtrack.FieldFlowApplication
+import com.example.fieldtrack.data.db.BillingMode
+import com.example.fieldtrack.R
+import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.session.Capabilities
+import com.example.fieldtrack.data.db.MemberRole
+import com.example.fieldtrack.data.session.Startup
+import com.example.fieldtrack.designsystem.component.FtBottomBar
+import com.example.fieldtrack.document.Document
+import com.example.fieldtrack.document.DocumentShare
+import com.example.fieldtrack.document.Letterhead
+import com.example.fieldtrack.document.Party
+import com.example.fieldtrack.document.PaymentLine
+import com.example.fieldtrack.document.WorkLine
+import com.example.fieldtrack.document.amountInWords
+import com.example.fieldtrack.designsystem.component.FtNavDestination
+import com.example.fieldtrack.designsystem.format.quantity
+import com.example.fieldtrack.designsystem.format.money
+import com.example.fieldtrack.designsystem.icon.FieldTrackIcons
+import com.example.fieldtrack.designsystem.theme.FieldTrackTheme
+import com.example.fieldtrack.feature.customer.AddCustomerScreen
+import com.example.fieldtrack.feature.customer.AddCustomerViewModel
+import com.example.fieldtrack.feature.customer.CustomersScreen
+import com.example.fieldtrack.feature.customer.CustomersViewModel
+import com.example.fieldtrack.feature.customer.EditCustomerViewModel
+import com.example.fieldtrack.feature.customer.LedgerScreen
+import com.example.fieldtrack.feature.customer.StatementPickJobsScreen
+import com.example.fieldtrack.feature.customer.StatementScreen
+import com.example.fieldtrack.feature.customer.StatementViewModel
+import com.example.fieldtrack.feature.customer.DateRangeSheet
+import com.example.fieldtrack.feature.customer.statementDocumentFor
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.fieldtrack.feature.customer.CustomerTab
+import com.example.fieldtrack.feature.customer.LedgerViewModel
+import com.example.fieldtrack.feature.customer.RecordPaymentScreen
+import com.example.fieldtrack.feature.customer.RecordPaymentViewModel
+import com.example.fieldtrack.feature.home.HomeScreen
+import com.example.fieldtrack.feature.home.AlertActions
+import com.example.fieldtrack.feature.home.HomeKind
+import com.example.fieldtrack.feature.home.YardHomeScreen
+import com.example.fieldtrack.feature.home.YardHomeViewModel
+import com.example.fieldtrack.feature.home.dealsWithCustomers
+import com.example.fieldtrack.feature.home.homeKindFor
+import com.example.fieldtrack.feature.fleet.FleetScreen
+import com.example.fieldtrack.feature.fleet.FleetViewModel
+import com.example.fieldtrack.feature.home.HomeViewModel
+import com.example.fieldtrack.feature.jobs.AmendJobScreen
+import com.example.fieldtrack.feature.jobs.AmendJobViewModel
+import com.example.fieldtrack.feature.fields.FieldDetailScreen
+import com.example.fieldtrack.feature.fields.FieldDetailViewModel
+import com.example.fieldtrack.feature.fields.FieldEditScreen
+import com.example.fieldtrack.feature.fields.FieldEditViewModel
+import com.example.fieldtrack.feature.fields.FieldsScreen
+import com.example.fieldtrack.feature.fields.FieldsViewModel
+import com.example.fieldtrack.feature.money.SeasonScreen
+import com.example.fieldtrack.feature.money.SeasonViewModel
+import com.example.fieldtrack.feature.jobs.JobCostScreen
+import com.example.fieldtrack.feature.jobs.JobCostViewModel
+import com.example.fieldtrack.feature.jobs.JobDetailScreen
+import com.example.fieldtrack.feature.jobs.JobDetailViewModel
+import com.example.fieldtrack.feature.jobs.JobsScreen
+import com.example.fieldtrack.feature.jobs.JobsViewModel
+import com.example.fieldtrack.feature.machine.AddMachineScreen
+import com.example.fieldtrack.feature.machine.OwnerActions
+import com.example.fieldtrack.feature.machine.AddMachineViewModel
+import com.example.fieldtrack.feature.machine.EditMachineViewModel
+import com.example.fieldtrack.feature.machine.MachinesScreen
+import com.example.fieldtrack.feature.machine.MachinesViewModel
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.fieldtrack.feature.join.JoinScreen
+import com.example.fieldtrack.feature.join.JoinStep
+import com.example.fieldtrack.feature.join.JoinViewModel
+import com.example.fieldtrack.feature.invite.InviteScreen
+import com.example.fieldtrack.feature.invite.InviteViewModel
+import com.example.fieldtrack.feature.driver.DriverHomeScreen
+import com.example.fieldtrack.feature.driver.DriverJobsScreen
+import com.example.fieldtrack.feature.driver.DriverJobsViewModel
+import com.example.fieldtrack.feature.driver.DriverHomeViewModel
+import com.example.fieldtrack.feature.machine.FuelLogScreen
+import com.example.fieldtrack.feature.machine.FuelLogViewModel
+import com.example.fieldtrack.feature.machine.MachineDetailScreen
+import com.example.fieldtrack.feature.machine.MachineDetailViewModel
+import com.example.fieldtrack.feature.upkeep.UpkeepScreen
+import com.example.fieldtrack.feature.upkeep.UpkeepViewModel
+import com.example.fieldtrack.data.auth.FirebasePhoneAuth
+import com.example.fieldtrack.feature.signin.SignInScreen
+import com.example.fieldtrack.feature.signin.SignInStep
+import com.example.fieldtrack.feature.signin.SignInViewModel
+import com.example.fieldtrack.feature.calculator.PriceScreen
+import com.example.fieldtrack.feature.plan.BookingFormActions
+import com.example.fieldtrack.feature.plan.BookingFormScreen
+import com.example.fieldtrack.feature.plan.BookingFormViewModel
+import com.example.fieldtrack.feature.plan.PlanScreen
+import com.example.fieldtrack.feature.plan.PlanSettingsScreen
+import com.example.fieldtrack.feature.plan.PlanSettingsViewModel
+import com.example.fieldtrack.feature.plan.PlanViewModel
+import com.example.fieldtrack.feature.region.MoneySettingsScreen
+import com.example.fieldtrack.feature.region.MoneySettingsViewModel
+import com.example.fieldtrack.feature.orgs.NewBusinessScreen
+import com.example.fieldtrack.feature.orgs.NewBusinessViewModel
+import com.example.fieldtrack.feature.search.SearchResultsPane
+import com.example.fieldtrack.feature.search.SearchViewModel
+import com.example.fieldtrack.feature.season.SeasonsScreen
+import com.example.fieldtrack.feature.season.SeasonsViewModel
+import com.example.fieldtrack.feature.calculator.PriceViewModel
+import com.example.fieldtrack.feature.rates.RateCardScreen
+import com.example.fieldtrack.feature.rates.RateCardViewModel
+import com.example.fieldtrack.feature.orgs.BusinessSheet
+import com.example.fieldtrack.feature.orgs.OrgSwitcherViewModel
+import com.example.fieldtrack.feature.more.BackupScreen
+import com.example.fieldtrack.feature.more.BackupViewModel
+import com.example.fieldtrack.feature.more.MoreScreen
+import com.example.fieldtrack.feature.more.SettingsScreen
+import com.example.fieldtrack.feature.more.SettingsViewModel
+import com.example.fieldtrack.feature.more.SettingsActions
+import com.example.fieldtrack.feature.more.PhonePrefs
+import com.example.fieldtrack.feature.more.PricingScreen
+import com.example.fieldtrack.feature.more.PricingViewModel
+import com.example.fieldtrack.feature.more.BookingLinkScreen
+import com.example.fieldtrack.feature.more.BookingLinkViewModel
+import com.example.fieldtrack.feature.plan.RequestsScreen
+import com.example.fieldtrack.feature.plan.RequestsViewModel
+import com.example.fieldtrack.feature.money.IncomeStatementScreen
+import com.example.fieldtrack.feature.money.IncomeStatementViewModel
+import com.example.fieldtrack.feature.machine.AssetRegisterScreen
+import com.example.fieldtrack.feature.machine.AssetRegisterViewModel
+import com.example.fieldtrack.feature.machine.PaperEditScreen
+import com.example.fieldtrack.feature.machine.PaperEditViewModel
+import com.example.fieldtrack.feature.machine.WorthScreen
+import com.example.fieldtrack.feature.machine.WorthViewModel
+import com.example.fieldtrack.feature.help.HelpScreen
+import com.example.fieldtrack.feature.help.TourScreen
+import com.example.fieldtrack.feature.help.contactSupport
+import com.example.fieldtrack.feature.more.RemindersScreen
+import com.example.fieldtrack.notify.PushKind
+import com.example.fieldtrack.notify.PushRegistrar
+import com.example.fieldtrack.notify.ReminderKind
+import com.example.fieldtrack.notify.Reminders
+import com.example.fieldtrack.feature.more.ExportScreen
+import com.example.fieldtrack.feature.more.ExportViewModel
+import com.example.fieldtrack.feature.more.ProfileActions
+import com.example.fieldtrack.feature.more.ProfileScreen
+import com.example.fieldtrack.feature.more.ProfileViewModel
+import com.example.fieldtrack.feature.more.MoreViewModel
+import com.example.fieldtrack.feature.onboarding.OnboardingScreen
+import com.example.fieldtrack.feature.onboarding.OnboardingStep
+import com.example.fieldtrack.feature.onboarding.OnboardingViewModel
+import com.example.fieldtrack.feature.work.FinishScreen
+import com.example.fieldtrack.feature.work.FinishViewModel
+import com.example.fieldtrack.feature.work.LiveWorkScreen
+import com.example.fieldtrack.feature.work.AskToShowClockOnce
+import com.example.fieldtrack.feature.more.DisplayScreen
+import com.example.fieldtrack.feature.work.LiveWorkViewModel
+import com.example.fieldtrack.feature.work.NewMachineSheet
+import com.example.fieldtrack.feature.team.AddMemberSheet
+import com.example.fieldtrack.feature.team.MemberScreen
+import com.example.fieldtrack.feature.team.MemberViewModel
+import com.example.fieldtrack.feature.team.TeamScreen
+import com.example.fieldtrack.feature.team.TeamViewModel
+import com.example.fieldtrack.feature.work.ClockSheet
+import com.example.fieldtrack.feature.work.DayPickerSheet
+import com.example.fieldtrack.feature.work.PastWorkScreen
+import com.example.fieldtrack.feature.work.PastWorkViewModel
+import com.example.fieldtrack.feature.work.PickCustomerSheet
+import com.example.fieldtrack.feature.work.StartWorkScreen
+import com.example.fieldtrack.feature.work.StartWorkViewModel
+import kotlinx.coroutines.launch
+import com.example.fieldtrack.data.auth.formatPhone
+import com.example.fieldtrack.feature.invite.SentCodesScreen
+import com.example.fieldtrack.feature.invite.SentCodesViewModel
+import com.example.fieldtrack.feature.team.HandOverScreen
+import com.example.fieldtrack.feature.team.HandOverViewModel
+import com.example.fieldtrack.feature.team.DuplicatePair
+import com.example.fieldtrack.feature.team.TeamActivityScreen
+import com.example.fieldtrack.feature.team.TeamActivityViewModel
+import com.example.fieldtrack.feature.money.MoneyOutScreen
+import com.example.fieldtrack.feature.money.MoneyOutViewModel
+import com.example.fieldtrack.feature.money.PayOutScreen
+import com.example.fieldtrack.feature.money.PayOutViewModel
+import com.example.fieldtrack.feature.money.MachineProfitScreen
+import com.example.fieldtrack.feature.money.MachineProfitViewModel
+
+internal object Routes {
+    const val HOME = "home"
+    const val START = "start"
+    const val START_FOR = "start/{customerId}"
+    const val START_ON_FIELD = "start-on/{fieldId}"
+    const val FIELDS = "customer/{customerId}/fields"
+    const val FIELD_NEW = "customer/{customerId}/fields/new"
+    const val FIELD = "field/{fieldId}"
+    const val SEASON = "season"
+    const val FIELD_EDIT = "field/{fieldId}/edit"
+    const val MEASURE = "field-measure/{unit}"
+    const val START_BOOKING = "start-booking/{bookingId}"
+    const val PLAN = "plan"
+    const val BOOKING = "plan/booking?id={id}&day={day}"
+    const val PLAN_SETTINGS = "more/profile/plan"
+    const val MONEY_SETTINGS = "more/profile/money"
+    const val PAST_WORK = "start/past"
+    const val NEW_CUSTOMER = "customer/new"
+    const val LIVE = "live/{jobId}"
+    const val FINISH = "finish/{jobId}"
+    const val CUSTOMERS = "customers"
+    const val MACHINES = "machines"
+    const val NEW_MACHINE = "machines/new"
+    const val EDIT_MACHINE = "machines/{machineId}/edit"
+    const val MORE = "more"
+    const val NOTICES = "notices"
+    const val MONEY_HISTORY = "more/money-history"
+    const val PROFILE = "more/profile"
+    const val SEASONS_EDIT = "more/profile/seasons"
+    const val TEAM = "more/team"
+    const val ROLES = "more/team/roles"
+    const val ROLE = "more/team/roles/{roleId}"
+    fun role(id: String?) = "more/team/roles/${id ?: "new"}"
+    const val MEMBER = "more/team/{membershipId}?tab={tab}"
+    const val BACKUP = "more/backup"
+    const val DISPLAY = "more/display"
+    /** Every preference, in one place. */
+    const val SETTINGS = "more/settings"
+    /** Everything about money, behind one door. */
+    const val MONEY = "more/money"
+    const val MONEY_REPORTS = "more/money/reports"
+    /** A team member's own pay, for somebody who may not see anybody else's. */
+    const val MY_PAY = "more/my-pay"
+    const val EXPORT = "more/export"
+    const val REMINDERS = "more/reminders"
+    const val HELP = "more/help"
+    const val ASSETS = "more/assets"
+    const val INCOME = "more/income"
+    const val REQUESTS = "plan/requests"
+    const val BOOKING_LINK = "more/booking-link"
+    const val PLAN_PRICE = "more/plan?need={need}"
+    fun planPrice(need: com.example.fieldtrack.data.plan.Need? = null) = "more/plan?need=${need?.name.orEmpty()}"
+    const val PAPER = "machines/{machineId}/papers/{paperId}"
+    const val WORTH = "machines/{machineId}/worth"
+    const val TOUR = "tour"
+    const val RATES = "more/rates"
+    const val PRICE = "more/price"
+    const val JOIN_ANOTHER = "more/businesses/join"
+    const val NEW_BUSINESS = "more/businesses/new"
+    const val UPKEEP = "fleet/upkeep"
+    const val INVITE = "more/team/invite"
+    const val SENT_CODES = "more/team/invite/sent"
+    const val HAND_OVER = "more/team/handover"
+    const val TEAM_CHANGES = "more/team/changes"
+    const val MONEY_OUT = "more/money-out"
+    const val PAY_OUT = "more/money-out/pay?person={person}"
+    fun payOut(personId: String? = null) = "more/money-out/pay?person=${personId.orEmpty()}"
+    /** A member's page opened on what they have been paid. */
+    fun personPay(membershipId: String) = "more/team/$membershipId?tab=Money"
+    const val MACHINE_PROFIT = "machines/{machineId}/made"
+    const val MACHINE = "machines/{machineId}"
+    const val FUEL = "machines/{machineId}/fuel"
+    const val JOBS = "jobs"
+    const val JOB = "jobs/{jobId}"
+    const val AMEND = "jobs/{jobId}/amend"
+    const val JOB_COST = "jobs/{jobId}/cost?costId={costId}"
+    const val FLEET = "fleet"
+
+    /**
+     * The tabs the bottom bar switches between.
+     *
+     * The same four places in the same order for everybody (Home, Jobs, Customers, Machines),
+     * and a person who may not use one simply does not have it: nothing is moved to make
+     * room. What used to be the More tab is the menu behind the picture at the top.
+     *
+     * Three tracks, not two. A solo owner has no drivers to watch and no fleet to
+     * speak of, so those tabs would be a dashboard of one. A business owner gets
+     * them and reaches individual machines through Fleet.
+     *
+     * A driver gets neither, and the reason is worth stating: the business's
+     * customers and its fleet are not theirs. Their tabs are their own work and the
+     * machines they drive. Until this existed the bar branched on business mode — a
+     * preference the *owner* sets about themselves — so a driver signing in was
+     * handed the owner's screens and told to get on with it.
+     *
+     * Which track is decided by [homeKindFor], from what a person is trusted
+     * with. A senior driver who takes the money at the gate swaps Machines for
+     * Customers, because the khata is what they reach for; a yard home without
+     * the customer book (someone given the machines but not the money) drops
+     * that tab rather than showing a list of names with nothing behind them.
+     */
+    fun roots(kind: HomeKind, can: Capabilities) = when (kind) {
+        HomeKind.Field -> listOfNotNull(
+            HOME, JOBS, CUSTOMERS.takeIf { dealsWithCustomers(can) }, MACHINES,
+        )
+        HomeKind.Yard -> listOfNotNull(
+            HOME, JOBS,
+            CUSTOMERS.takeIf { Capability.SeeMoney in can || Capability.EditCustomers in can },
+            FLEET,
+        )
+        HomeKind.Solo -> listOf(HOME, JOBS, CUSTOMERS, MACHINES)
+    }
+    const val LEDGER = "customer/{customerId}"
+    const val PAY = "customer/{customerId}/pay"
+    const val EDIT_CUSTOMER = "customer/{customerId}/edit"
+    const val STATEMENT = "customer/{customerId}/statement"
+    const val STATEMENT_JOBS = "customer/{customerId}/statement/jobs"
+
+    fun live(jobId: String) = "live/$jobId"
+
+    fun fields(customerId: String) = "customer/$customerId/fields"
+    fun newField(customerId: String) = "customer/$customerId/fields/new"
+    fun field(fieldId: String) = "field/$fieldId"
+    fun editField(fieldId: String) = "field/$fieldId/edit"
+    fun measure(unit: MeasureUnit) = "field-measure/${unit.name}"
+    fun startOnField(fieldId: String) = "start-on/$fieldId"
+    fun startBooking(bookingId: String) = "start-booking/$bookingId"
+
+    /** A booking's own screen: a new one when [id] is null, starting on [day] if given. */
+    fun booking(id: String? = null, day: Long? = null) =
+        "plan/booking?id=${id.orEmpty()}&day=${day ?: -1}"
+
+    /** The cost sheet for one job, optionally opened on a cost already there. */
+    fun jobCost(jobId: String, costId: String? = null) =
+        "jobs/$jobId/cost?costId=${costId.orEmpty()}"
+    fun finish(jobId: String) = "finish/$jobId"
+    fun ledger(customerId: String) = "customer/$customerId"
+    fun pay(customerId: String) = "customer/$customerId/pay"
+    fun editCustomer(customerId: String) = "customer/$customerId/edit"
+}
+
+/**
+ * The work loop, end to end.
+ *
+ * Only the routes the redesigned flow needs. The pre-redesign navigation graph still
+ * exists under ui/navigation and is retired as each of its screens is replaced.
+ */
+@Composable
+fun FieldTrackApp(
+    /** For tests, which drive navigation themselves. The app lets [businessNavController] make it. */
+    navController: NavHostController? = null,
+    /** A job to go straight to, from the clock notification. */
+    openJobRequests: StateFlow<String?> = MutableStateFlow(null),
+    onOpenJobHandled: () -> Unit = {},
+    /** A tap on one of the app's own notifications: open the list of what the phone was told. */
+    openNoticesRequests: StateFlow<Boolean> = MutableStateFlow(false),
+    onOpenNoticesHandled: () -> Unit = {},
+) {
+    val app = LocalContext.current.applicationContext as FieldFlowApplication
+    val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { app.sessionStore.load() }
+
+    val controller = navController ?: businessNavController(startup)
+
+    AppTheme {
+      // Signing in and setting up are single columns too, and get the same
+      // readable width on a wide window; the signed-in shell sets its own.
+      Box(
+          Modifier
+              .fillMaxSize()
+              .background(FieldTrackTheme.colors.paper),
+          contentAlignment = Alignment.TopCenter,
+      ) {
+      Box(
+          Modifier
+              .fillMaxHeight()
+              .then(
+                  if (startup is Startup.Ready) Modifier.fillMaxWidth()
+                  else Modifier.widthIn(max = ReadableWidth).fillMaxWidth()
+              )
+      ) {
+        when (startup) {
+            // Resolving the session is a local database read, so this is a flicker
+            // rather than a wait — but something has to be on screen during it.
+            is Startup.Loading -> SplashScreen()
+
+            is Startup.NeedsSignIn -> {
+                // Firebase's phone flow needs the hosting Activity for its reCAPTCHA
+                // and Play Integrity checks, so it has to be fished out of context.
+                val activity = LocalContext.current as? android.app.Activity
+                val scope = rememberCoroutineScope()
+                val vm: SignInViewModel = viewModel {
+                    SignInViewModel(
+                        auth = FirebasePhoneAuth(activityProvider = { activity }),
+                        google = com.example.fieldtrack.data.auth.FirebaseGoogleAuth(
+                            context = app,
+                            activityProvider = { activity },
+                        ),
+                        defaultDial = com.example.fieldtrack.data.auth.PhoneNumbers.dialOf(
+                            com.example.fieldtrack.data.region.Region.detect(app).country
+                        ) ?: com.example.fieldtrack.data.auth.PhoneNumbers.LEGACY_DIAL,
+                        onSignedIn = { user ->
+                            app.sessionStore.recordSignIn(user.uid, user.phone, user.email)
+                            // An account turned off must not be signed back into
+                            // simply by proving the number again. Checked here as
+                            // well as on every sync, because sign-in is the one
+                            // moment somebody locked out is certain to try.
+                            val disabled = runCatching {
+                                app.remoteRestore.isAccountDisabled(user.uid)
+                            }.getOrDefault(false)
+                            if (disabled) {
+                                app.sessionStore.lockOutDisabledAccount()
+                                return@SignInViewModel
+                            }
+                            app.sessionStore.clearAccountDisabled()
+                            // Same number, same work. Before offering to set up a
+                            // business, ask the server whether this person already
+                            // has one — a new handset should hand somebody their
+                            // records, not a blank app and a setup wizard.
+                            app.sessionStore.restoreFor(
+                                personId = user.uid,
+                                restore = app.remoteRestore,
+                                applier = app.restoreApplier,
+                            )
+                        },
+                    )
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                BackHandler(enabled = state.step == SignInStep.Code) { vm.changeNumber() }
+                SignInScreen(
+                    state = state,
+                    onPhone = vm::setPhone,
+                    onGoogle = vm::signInWithGoogle,
+                    onCode = vm::setCode,
+                    onSendCode = vm::sendCode,
+                    onVerify = vm::verify,
+                    onResend = vm::resend,
+                    onChangeNumber = vm::changeNumber,
+                    accountTurnedOff = app.sessionStore.accountDisabled(),
+                    // Nothing behind this: it is the first thing the app shows.
+                    onBack = null,
+                )
+            }
+
+            is Startup.NeedsOnboarding -> {
+                // Signed in but in no business yet. A driver was sent a code and has
+                // nothing to set up; an owner has no code and everything to. Asking
+                // first costs one tap for the owner and saves the driver from
+                // creating a business they did not want and cannot easily undo.
+                var askedForCode by rememberSaveable { mutableStateOf(false) }
+
+                if (!askedForCode) {
+                    val scope = rememberCoroutineScope()
+                    val vm: JoinViewModel = viewModel {
+                        JoinViewModel(
+                            lookup = app.inviteLookup,
+                            suggestedName = "",
+                            onJoin = { invite, name ->
+                                val me = app.sessionStore.load()
+                                val personId = app.sessionStore.personIdOrNull()
+                                    ?: return@JoinViewModel
+                                app.teamRepository.redeemInvite(
+                                    invite = invite,
+                                    personId = personId,
+                                    displayName = name,
+                                    phone = app.sessionStore.signedInPhone(),
+                                )
+                                app.sessionStore.adoptMembership(invite.orgId)
+                            },
+                        )
+                    }
+                    val joinState by vm.state.collectAsStateWithLifecycle()
+                    BackHandler(enabled = joinState.step == JoinStep.Preview) { vm.back() }
+                    // The name of the business they were taken off, if that is
+                    // why they are here. Looked up locally: the membership row is
+                    // kept, so the name survives the removal.
+                    val removedOrgId = app.sessionStore.removedFrom()
+                    var removedName by remember(removedOrgId) { mutableStateOf<String?>(null) }
+                    val unknownBusiness = stringResource(R.string.join_removed_unknown)
+                    LaunchedEffect(removedOrgId) {
+                        removedName = removedOrgId?.let {
+                            app.db.orgDao().findOrg(it)?.name?.ifBlank { null } ?: unknownBusiness
+                        }
+                    }
+                    JoinScreen(
+                        state = joinState,
+                        removedFrom = removedName,
+                        onCode = vm::setCode,
+                        onName = vm::setName,
+                        onCheck = vm::check,
+                        onJoin = vm::join,
+                        onBack = {
+                            if (joinState.step == JoinStep.Preview) vm.back()
+                            else askedForCode = true
+                        },
+                        onSkip = {
+                            app.sessionStore.clearRemovedNotice()
+                            askedForCode = true
+                        },
+                    )
+                    return@AppTheme
+                }
+
+                val vm: OnboardingViewModel = appViewModel { OnboardingViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                BackHandler(enabled = state.step != OnboardingStep.Welcome) { vm.back() }
+                OnboardingScreen(
+                    state = state,
+                    onBack = { vm.back() },
+                    onOwnerKind = vm::setOwnerKind,
+                    onName = vm::setName,
+                    onBusinessName = vm::setBusinessName,
+                    onCurrency = vm::setCurrency,
+                    onLandUnit = vm::setLandUnit,
+                    onMachineKind = vm::setMachineKind,
+                    onMachineName = vm::setMachineName,
+                    onMachineTypeLabel = vm::setMachineTypeLabel,
+                    onOwnLandUnit = vm::setOwnLandUnit,
+                    onNext = {
+                        // The last step writes everything; the rest just advance.
+                        if (state.step == OnboardingStep.Machine) vm.finishSetup() else vm.next()
+                    },
+                    onFinish = { vm.start() },
+                )
+            }
+
+            is Startup.Ready -> MainGraph(controller, openJobRequests, onOpenJobHandled, openNoticesRequests, onOpenNoticesHandled)
+        }
+      }
+      }
+    }
+}
+
+/**
+ * One navigation history per business, not one for the life of the app.
+ *
+ * A controller remembers the screens that were open and, for each tab, the screens
+ * that were stacked on it. Kept across a switch of business, it handed the next
+ * business the last one's: the Machines tab reopened on the other business's
+ * machines, and a machine page opened in one could come back in another. A fresh
+ * controller starts at Home, which is where a switch should land anyway.
+ *
+ * Keyed on who is working for whom. The session goes through Loading for other
+ * reasons too — a permission refreshed from the server, say — and that must not
+ * throw anybody back to Home, so Loading keeps the last business's controller;
+ * signing out or having no business yet forgets it.
+ */
+@Composable
+private fun businessNavController(startup: Startup): NavHostController {
+    val last = remember { arrayOfNulls<String>(1) }
+    when (startup) {
+        is Startup.Ready -> last[0] = "${startup.session.orgId}/${startup.session.personId}"
+        Startup.Loading -> Unit
+        else -> last[0] = null
+    }
+    return key(last[0]) { rememberNavController() }
+}
+
+/** Which home, and so which tabs, the signed-in person gets. Field until the session is read. */
+private fun homeKindOf(startup: Startup, business: Boolean): HomeKind =
+    (startup as? Startup.Ready)?.session
+        ?.let { homeKindFor(it.role, it.can, business) }
+        ?: HomeKind.Field
+
+/** Held for the instant it takes to read the session off disk. */
+@Composable
+private fun SplashScreen() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(FieldTrackTheme.colors.paper)
+    )
+}
+
+@Composable
+private fun MainGraph(
+    navController: NavHostController,
+    openJobRequests: StateFlow<String?>,
+    onOpenJobHandled: () -> Unit,
+    openNoticesRequests: StateFlow<Boolean>,
+    onOpenNoticesHandled: () -> Unit,
+) {
+    val app = LocalContext.current.applicationContext as FieldFlowApplication
+
+    val openNotices by openNoticesRequests.collectAsStateWithLifecycle()
+    LaunchedEffect(openNotices) {
+        if (!openNotices) return@LaunchedEffect
+        if (navController.currentDestination?.route != Routes.NOTICES) {
+            navController.navigate(Routes.NOTICES) { launchSingleTop = true }
+        }
+        onOpenNoticesHandled()
+    }
+
+    // On the first screen a signed-in person sees, not only once a clock has started:
+    // work booked for them is news the moment it happens.
+    com.example.fieldtrack.feature.work.AskForNotificationsOnce()
+
+    // Once, right after setting up or joining: the short tour.
+    LaunchedEffect(Unit) {
+        if (app.sessionStore.tourPending()) {
+            app.sessionStore.tourShown()
+            navController.navigate(Routes.TOUR)
+        }
+    }
+
+    val openJob by openJobRequests.collectAsStateWithLifecycle()
+    LaunchedEffect(openJob) {
+        val jobId = openJob ?: return@LaunchedEffect
+        // On top of wherever the person was, so back returns them there — unless
+        // they were already on this job, where a second copy would need two backs.
+        if (navController.currentBackStackEntry?.arguments?.getString("jobId") != jobId ||
+            navController.currentDestination?.route != Routes.LIVE
+        ) {
+            navController.navigate(Routes.live(jobId)) { launchSingleTop = true }
+        }
+        onOpenJobHandled()
+    }
+    val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+    val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val kind = homeKindOf(startup, business)
+    val driver = kind == HomeKind.Field
+    val roots = Routes.roots(kind, (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()))
+
+    val entry by navController.currentBackStackEntryAsState()
+    val tab = roots.indexOf(entry?.destination?.route)
+
+    // One host, moved rather than rebuilt when the layout around it changes — a
+    // foldable opened mid-job must not lose the screen it was on.
+    val host = remember(navController) { movableContentOf { MainNavHost(navController) } }
+    val route = entry?.destination?.route
+
+    val drawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
+    val drawerScope = rememberCoroutineScope()
+    val closeMenu: () -> Unit = { drawerScope.launch { drawerState.close() } }
+    // The menu's numbers are read fresh each time it is opened, not once when the app began.
+    var menuOpens by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
+    val openMenu: () -> Unit = { menuOpens += 1; drawerScope.launch { drawerState.open() } }
+    BackHandler(enabled = drawerState.isOpen) { closeMenu() }
+    val startupNow by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val initials = initialsOf((startupNow as? Startup.Ready)?.session?.displayName.orEmpty())
+    val noticeOrg = (startupNow as? Startup.Ready)?.session?.orgId
+    val unreadNotices by (if (noticeOrg == null) kotlinx.coroutines.flow.flowOf(0) else app.noticeInbox.unread(noticeOrg))
+        .collectAsStateWithLifecycle(0)
+
+    // Search opens over the screen you are on, in the bar itself, the way other apps do it.
+    var searching by rememberSaveable { mutableStateOf(false) }
+    val searchVm: SearchViewModel = appViewModel { SearchViewModel(it) }
+    val searchState by searchVm.state.collectAsStateWithLifecycle()
+    val searchTyped by searchVm.typed.collectAsStateWithLifecycle()
+    val closeSearch: () -> Unit = { searching = false; searchVm.setQuery("") }
+    // Leaving the main screens, or opening the menu, puts the bar back.
+    LaunchedEffect(tab, drawerState.isOpen) { if (tab < 0 || drawerState.isOpen) closeSearch() }
+    BackHandler(enabled = searching) { closeSearch() }
+    fun fromSearch(route: String) { closeSearch(); navController.navigate(route) }
+
+    // The menu is for the main screens: on a job in progress or a bill being written it
+    // stays shut, because anything that invites you to wander off is a way to lose work.
+    androidx.compose.material3.ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = tab >= 0 || drawerState.isOpen,
+        drawerContent = {
+            androidx.compose.material3.ModalDrawerSheet(
+                drawerContainerColor = FieldTrackTheme.colors.paper,
+                modifier = Modifier.widthIn(max = androidx.compose.ui.unit.Dp(340f)),
+            ) {
+                if (menuOpens > 0) SideMenu(
+                    navController, roots, inDrawer = true, onClose = closeMenu,
+                    key = "menu-$menuOpens",
+                )
+            }
+        },
+    ) {
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(FieldTrackTheme.colors.paper)
+    ) {
+        val width = WidthClass.of(maxWidth)
+        CompositionLocalProvider(LocalWidthClass provides width) {
+            val content: @Composable () -> Unit = {
+                // Every single-column screen kept to a readable width on a wide
+                // window, here once rather than in forty screens. The screens that
+                // lay themselves out in columns get the whole width to do it in.
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .then(
+                                if (route in FULL_WIDTH_ROUTES) Modifier.fillMaxWidth()
+                                else Modifier.widthIn(max = ReadableWidth).fillMaxWidth()
+                            )
+                    ) { host() }
+                }
+            }
+            // The bar belongs to the tabs only. On a job in progress or a bill being
+            // written, anything that invites you to wander off is a way to lose work.
+            if (!width.wide) {
+                Column(Modifier.fillMaxSize()) {
+                    if (tab >= 0) RootBar(
+                        initials = initials,
+                        menuContentDescription = stringResource(R.string.menu_open_cd),
+                        searchContentDescription = stringResource(R.string.menu_search_cd),
+                        onMenu = openMenu,
+                        onSearch = { searching = true },
+                        unread = unreadNotices,
+                        notificationsContentDescription = stringResource(R.string.notices_title),
+                        onNotifications = { navController.navigate(Routes.NOTICES) },
+                        searching = searching,
+                        query = searchTyped,
+                        onQuery = searchVm::setQuery,
+                        onCloseSearch = closeSearch,
+                    )
+                    Box(Modifier.weight(1f)) {
+                        content()
+                        if (searching) SearchResultsPane(
+                            state = searchState,
+                            onCustomer = { fromSearch(Routes.ledger(it)) },
+                            onField = { fromSearch(Routes.fields(it)) },
+                            onMachine = { fromSearch("machines/$it") },
+                            onJob = { fromSearch("jobs/$it") },
+                            onMember = { fromSearch("more/team/$it") },
+                        )
+                    }
+                    // Hidden while searching: the keyboard covers it anyway, and the
+                    // back arrow in the bar is the one way out.
+                    if (tab >= 0 && !searching) {
+                        FtBottomBar(
+                            destinations = bottomDestinations(roots, driver),
+                            selectedIndex = tab,
+                            onSelect = { index -> navController.switchTab(roots[index]) },
+                        )
+                    }
+                }
+            } else {
+                // On its side or on a tablet the tabs go down the edge: a bar along
+                // the bottom spends height a landscape screen does not have.
+                Row(Modifier.fillMaxSize()) {
+                    if (tab >= 0) {
+                        FtNavRail(
+                            destinations = bottomDestinations(roots, driver),
+                            selectedIndex = tab,
+                            onSelect = { index -> navController.switchTab(roots[index]) },
+                        )
+                    }
+                    Column(Modifier.weight(1f)) {
+                        if (tab >= 0) RootBar(
+                            initials = initials,
+                            menuContentDescription = stringResource(R.string.menu_open_cd),
+                            searchContentDescription = stringResource(R.string.menu_search_cd),
+                            onMenu = openMenu,
+                            onSearch = { searching = true },
+                            unread = unreadNotices,
+                            notificationsContentDescription = stringResource(R.string.notices_title),
+                            onNotifications = { navController.navigate(Routes.NOTICES) },
+                            searching = searching,
+                            query = searchTyped,
+                            onQuery = searchVm::setQuery,
+                            onCloseSearch = closeSearch,
+                        )
+                        Box(Modifier.weight(1f)) {
+                            content()
+                            if (searching) SearchResultsPane(
+                                state = searchState,
+                                onCustomer = { fromSearch(Routes.ledger(it)) },
+                                onField = { fromSearch(Routes.fields(it)) },
+                                onMachine = { fromSearch("machines/$it") },
+                                onJob = { fromSearch("jobs/$it") },
+                                onMember = { fromSearch("more/team/$it") },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    }
+}
+
+/**
+ * Screens that arrange themselves across a wide window — two columns, or a
+ * full-bleed ground — and so are not held to [ReadableWidth] by the shell.
+ */
+private val FULL_WIDTH_ROUTES = setOf(
+    Routes.HOME, Routes.LIVE, Routes.JOB, Routes.LEDGER, Routes.MACHINE, Routes.FLEET,
+)
+
+/**
+ * The bar, built from the very list the taps navigate to.
+ *
+ * These used to be two lists kept in step by hand — one deciding what the bar said,
+ * the other deciding where a tap went. They drifted the moment a third track
+ * appeared, and a driver tapping "Customers" would have been taken to Machines
+ * instead: the label and the destination disagreeing is worse than either being
+ * wrong on its own, because the app then lies about where it is sending you.
+ * Deriving one from the other makes that impossible rather than merely fixed.
+ */
+@Composable
+private fun bottomDestinations(roots: List<String>, driver: Boolean) = roots.map { route ->
+    when (route) {
+        Routes.HOME -> FtNavDestination(
+            FieldTrackIcons.Home, stringResource(R.string.nav_home),
+        )
+        // A driver's jobs tab is his own work, not the yard's.
+        Routes.JOBS -> FtNavDestination(
+            FieldTrackIcons.Play,
+            stringResource(if (driver) R.string.driver_my_work else R.string.nav_jobs),
+        )
+        Routes.CUSTOMERS -> FtNavDestination(
+            FieldTrackIcons.Customer, stringResource(R.string.nav_customers),
+        )
+        Routes.FLEET -> FtNavDestination(
+            FieldTrackIcons.Tractor, stringResource(R.string.nav_fleet),
+        )
+        Routes.MACHINES -> FtNavDestination(
+            FieldTrackIcons.Tractor, stringResource(R.string.nav_machines),
+        )
+        else -> FtNavDestination(FieldTrackIcons.More, stringResource(R.string.nav_more))
+    }
+}
+
+/**
+ * Moves between tabs without stacking them.
+ *
+ * Without this, tapping Home then Customers then Home three times leaves six screens
+ * on the back stack and the device back button walks a trail nobody remembers making.
+ */
+internal fun NavHostController.switchTab(route: String) {
+    navigate(route) {
+        popUpTo(Routes.HOME) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/**
+ * Opens a screen from somewhere that is not the tab bar.
+ *
+ * A screen that is a tab for this person is switched to as a tab; anything else is
+ * pushed, with a way back. See the note where this is used for what goes wrong
+ * when a tab is pushed.
+ */
+internal fun NavHostController.openScreen(route: String, tabs: List<String>) {
+    if (route in tabs) switchTab(route) else navigate(route)
+}
+
+/**
+ * What was the More tab, now the menu behind the picture at the top. One copy of the
+ * wiring serves the drawer and the old screen, so a row cannot lead somewhere different
+ * depending on how the menu was opened. [onClose] shuts the drawer before going on.
+ */
+@Composable
+private fun SideMenu(
+    navController: NavHostController,
+    roots: List<String>,
+    inDrawer: Boolean,
+    onClose: () -> Unit,
+    key: String? = null,
+) {
+    val vm: MoreViewModel = appViewModel(key = key) { MoreViewModel(it) }
+    val state by vm.state.collectAsStateWithLifecycle()
+    fun go(route: String): () -> Unit = { onClose(); navController.navigate(route) }
+    var choosingBusiness by rememberSaveable { mutableStateOf(false) }
+    MoreScreen(
+        state = state,
+        inDrawer = inDrawer,
+        onProfile = go(Routes.PROFILE),
+        onChangeBusiness = { choosingBusiness = true },
+        onTeam = go(Routes.TEAM),
+        onMoney = go(Routes.MONEY),
+        onRequests = go(Routes.REQUESTS),
+        onSettings = go(Routes.SETTINGS),
+        onHelp = go(Routes.HELP),
+        onMyPay = go(Routes.MY_PAY),
+    )
+    if (choosingBusiness) {
+        val orgs: OrgSwitcherViewModel = appViewModel { OrgSwitcherViewModel(it) }
+        val orgState by orgs.state.collectAsStateWithLifecycle()
+        BusinessSheet(
+            state = orgState,
+            // Switching builds a fresh history for the business, which starts at Home.
+            onSwitch = { orgId -> orgs.switchTo(orgId) { choosingBusiness = false; onClose() } },
+            onJoinAnother = { choosingBusiness = false; go(Routes.JOIN_ANOTHER)() },
+            onStartNew = { choosingBusiness = false; go(Routes.NEW_BUSINESS)() },
+            onDismissRefusal = orgs::clearRefusal,
+            onDismiss = { choosingBusiness = false },
+        )
+    }
+}
+
+@Composable
+private fun MainNavHost(navController: NavHostController) {
+    val app = LocalContext.current.applicationContext as FieldFlowApplication
+    // Hiding an affordance someone may not use is a courtesy; the repository refuses
+    // the call regardless, which is the boundary that actually holds.
+    val canEditCustomers = remember {
+        app.sessionStore.current()?.can?.let { Capability.EditCustomers in it } ?: false
+    }
+
+    // Opening a screen that is also a tab has to go through the tab bar's own
+    // route. Pushed on top of another screen it looked right — the bar showed it
+    // selected — but the history said otherwise: Machines opened from More sat on
+    // top of More, and tapping the More tab restored that whole pair and landed
+    // back on Machines, so More could not be reached again.
+    val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+    val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+    val roots = Routes.roots(
+        homeKindOf(startup, business),
+        (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()),
+    )
+    val open: (String) -> Unit = { route -> navController.openScreen(route, roots) }
+
+    NavHost(navController = navController, startDestination = Routes.HOME) {
+
+            composable(Routes.HOME) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val session = (startup as? Startup.Ready)?.session
+
+                val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                if (session == null) return@composable
+
+                // Every alert leads somewhere already on the map. A tab is switched
+                // to rather than pushed, so back from Customers is not back to Home
+                // twice over.
+                val alertActions = remember(navController) {
+                    object : AlertActions {
+                        override fun liveJob(jobId: String) =
+                            navController.navigate(Routes.live(jobId))
+                        override fun machine(machineId: String) =
+                            navController.navigate("machines/$machineId")
+                        override fun fuel(machineId: String) =
+                            navController.navigate("machines/$machineId/fuel")
+                        override fun customer(customerId: String) =
+                            navController.navigate("customer/$customerId")
+                        override fun customers() = navController.switchTab(Routes.CUSTOMERS)
+                        override fun moneyOut() = navController.navigate(Routes.MONEY_OUT)
+                        override fun sync() = navController.navigate(Routes.BACKUP)
+                        override fun requests() = navController.navigate(Routes.REQUESTS)
+                    }
+                }
+
+                // Three homes, not one with parts hidden. Someone on a machine, someone
+                // who is the whole business, and someone watching a crew are asking
+                // three different questions when they open the app.
+                when (homeKindFor(session.role, session.can, business)) {
+                    HomeKind.Field -> {
+                        val vm: DriverHomeViewModel = appViewModel { DriverHomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        DriverHomeScreen(
+                            state = state,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenMachine = { id -> navController.navigate("machines/$id") },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
+                        )
+                    }
+                    HomeKind.Solo -> {
+                        val vm: HomeViewModel = appViewModel { HomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        HomeScreen(
+                            state = state,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onOpenCustomers = { navController.switchTab(Routes.CUSTOMERS) },
+                            onOpenSeason = { navController.navigate(Routes.SEASON) },
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            // Opens the job's own record. Correcting it is one of the things
+                            // offered there, rather than the only thing a tap can mean.
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
+                        )
+                    }
+                    HomeKind.Yard -> {
+                        val vm: YardHomeViewModel = appViewModel { YardHomeViewModel(it) }
+                        val state by vm.state.collectAsStateWithLifecycle()
+                        YardHomeScreen(
+                            state = state,
+                            canRecord = Capability.RecordWork in session.can,
+                            onStartWork = { navController.navigate(Routes.START) },
+                            onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                            onOpenLive = { navController.navigate(Routes.live(it)) },
+                            onPause = vm::pause,
+                            onResume = vm::resume,
+                            onOpenJob = { id -> navController.navigate("jobs/$id") },
+                            onOpenJobs = { navController.switchTab(Routes.JOBS) },
+                            onOpenFleet = { navController.switchTab(Routes.FLEET) },
+                            onOpenCustomers = { navController.switchTab(Routes.CUSTOMERS) },
+                            onOpenSeason = { navController.navigate(Routes.SEASON) },
+                            onOpenBackup = { navController.navigate(Routes.BACKUP) },
+                            alertActions = alertActions,
+                            onOpenPlan = { navController.navigate(Routes.PLAN) },
+                        )
+                    }
+                }
+            }
+
+            // Two ways in: the big green button, and the plus on a customer's own
+            // page. Same screen; the second just arrives with the customer known.
+            composable(Routes.START) { StartWorkDestination(navController, null) }
+
+            // A third way in: standing on a plot and tapping "start work here".
+            // The field names its own customer, so step one is answered too.
+            composable(Routes.START_ON_FIELD) { entry ->
+                StartWorkDestination(
+                    navController,
+                    forCustomerId = null,
+                    forFieldId = entry.arguments?.getString("fieldId"),
+                )
+            }
+
+            composable(Routes.START_BOOKING) { entry ->
+                StartWorkDestination(
+                    navController,
+                    forCustomerId = null,
+                    forBookingId = entry.arguments?.getString("bookingId"),
+                )
+            }
+
+            composable(Routes.PLAN) {
+                val vm: PlanViewModel = appViewModel { PlanViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PlanScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onDay = vm::pick,
+                    onStep = vm::step,
+                    onNew = { navController.navigate(Routes.booking(day = state.day)) },
+                    onOpen = { navController.navigate(Routes.booking(id = it)) },
+                    onStart = { navController.navigate(Routes.startBooking(it)) },
+                )
+            }
+
+            composable(
+                Routes.BOOKING,
+                arguments = listOf(
+                    navArgument("id") { defaultValue = ""; nullable = false },
+                    navArgument("day") { type = NavType.LongType; defaultValue = -1L },
+                ),
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty().ifBlank { null }
+                val day = entry.arguments?.getLong("day")?.takeIf { it >= 0 }
+                val vm: BookingFormViewModel = appViewModel(key = "booking-${'$'}{id.orEmpty()}") {
+                    BookingFormViewModel(it, id, day)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val leave = { navController.popBackStack(); Unit }
+                BookingFormScreen(
+                    state = state,
+                    onBack = leave,
+                    actions = BookingFormActions(
+                        onQuery = vm::setQuery,
+                        onCustomer = vm::selectCustomer,
+                        onNewFarmer = { navController.navigate(Routes.NEW_CUSTOMER) },
+                        onField = vm::selectField,
+                        onWork = vm::selectWorkType,
+                        onOtherName = vm::nameOther,
+                        onDay = vm::setDay,
+                        onPart = vm::setPart,
+                        onTime = vm::setStartMinute,
+                        onMachine = vm::selectMachine,
+                        onDriver = vm::selectDriver,
+                        onNote = vm::setNote,
+                        onAdvance = vm::setAdvance,
+                        onAdvanceMethod = vm::setAdvanceMethod,
+                        onAdvanceMethodLabel = vm::setAdvanceMethodLabel,
+                        onSave = { vm.save(leave) },
+                        onCancel = { reason, note -> vm.cancel(reason, note, leave) },
+                        onDone = { vm.markDone(leave) },
+                        onReopen = { vm.reopen(leave) },
+                    ),
+                )
+            }
+
+            composable(Routes.PLAN_SETTINGS) {
+                val vm: PlanSettingsViewModel = appViewModel { PlanSettingsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PlanSettingsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onHour = vm::stepHour,
+                    onDriversSeeAll = vm::setDriversSeeAll,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(
+                Routes.PLAN_PRICE,
+                arguments = listOf(navArgument("need") { defaultValue = ""; nullable = false }),
+            ) { entry ->
+                val need = entry.arguments?.getString("need")?.let { name -> com.example.fieldtrack.data.plan.Need.entries.firstOrNull { it.name == name } }
+                val vm: PricingViewModel = appViewModel { PricingViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val activity = LocalContext.current as? android.app.Activity
+                PricingScreen(
+                    state = state,
+                    need = need,
+                    onBuy = { offer -> activity?.let { vm.buy(it, offer) } },
+                    onRestore = vm::restore,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.REQUESTS) {
+                val vm: RequestsViewModel = appViewModel { RequestsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                RequestsScreen(
+                    state = state,
+                    onAccept = { id -> vm.accept(id) { bookingId -> navController.navigate(Routes.booking(id = bookingId)) } },
+                    onDecline = vm::decline,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.BOOKING_LINK) {
+                val vm: BookingLinkViewModel = appViewModel { BookingLinkViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val needsPlan by vm.needsPlan.collectAsStateWithLifecycle()
+                LaunchedEffect(needsPlan) {
+                    if (needsPlan) {
+                        vm.needsPlan.value = false
+                        navController.navigate(Routes.planPrice(com.example.fieldtrack.data.plan.Need.BookingLink))
+                    }
+                }
+                BookingLinkScreen(
+                    state = state,
+                    onChange = vm::set,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.INCOME) {
+                val vm: IncomeStatementViewModel = appViewModel { IncomeStatementViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                IncomeStatementScreen(
+                    state = state,
+                    onPeriod = vm::choose,
+                    onShare = { vm.share(context) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.ASSETS) {
+                val vm: AssetRegisterViewModel = appViewModel { AssetRegisterViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AssetRegisterScreen(
+                    state = state,
+                    onOpen = { id -> navController.navigate("machines/$id/worth") },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PAPER) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val paperId = entry.arguments?.getString("paperId")?.takeIf { it != "new" }
+                val vm: PaperEditViewModel = appViewModel(key = "$machineId/$paperId") { PaperEditViewModel(it, machineId, paperId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PaperEditScreen(
+                    state = state,
+                    onKind = vm::setKind,
+                    onNumber = vm::setNumber,
+                    onLabel = vm::setLabel,
+                    onExpires = vm::setExpires,
+                    onNote = vm::setNote,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onRemove = { vm.remove { navController.popBackStack() } },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.WORTH) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: WorthViewModel = appViewModel(key = machineId) { WorthViewModel(it, machineId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                WorthScreen(
+                    state = state,
+                    onDay = vm::setDay,
+                    onPrice = vm::setPrice,
+                    onResale = vm::setResale,
+                    onLife = vm::setLife,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.TOUR) {
+                TourScreen(onDone = { navController.popBackStack() })
+            }
+
+            composable(Routes.HELP) {
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                val support = stringResource(R.string.support_email)
+                var practising by remember { mutableStateOf(app.sessionStore.sampleOrgId() != null) }
+                HelpScreen(
+                    hasSupport = support.isNotBlank(),
+                    practiceExists = practising,
+                    onTour = { navController.navigate(Routes.TOUR) },
+                    onPractice = {
+                        scope.launch {
+                            if (app.sampleBusiness.start()) {
+                                practising = true
+                                navController.popBackStack(Routes.HOME, inclusive = false)
+                            }
+                        }
+                    },
+                    onRate = { com.example.fieldtrack.feature.update.openStorePage(context) },
+                    onContact = {
+                        contactSupport(
+                            context, support, context.getString(R.string.help_mail_subject), context.getString(R.string.help_mail_intro),
+                        )
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.REMINDERS) {
+                val settings = app.reminderSettings
+                val plan by settings.enabled(ReminderKind.Plan).collectAsStateWithLifecycle()
+                val dues by settings.enabled(ReminderKind.Dues).collectAsStateWithLifecycle()
+                val service by settings.enabled(ReminderKind.Service).collectAsStateWithLifecycle()
+                val papers by settings.enabled(ReminderKind.Papers).collectAsStateWithLifecycle()
+                val paperDays by settings.paperWarnDays.collectAsStateWithLifecycle()
+                val evening by settings.eveningHour.collectAsStateWithLifecycle()
+                val morning by settings.morningHour.collectAsStateWithLifecycle()
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                val pushOn = PushKind.entries.associateWith { app.pushSettings.enabled(it).collectAsStateWithLifecycle().value }
+                val context = LocalContext.current
+                var blocked by remember { mutableStateOf(!app.workClockNotifier.canPost()) }
+                val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                    blocked = !app.workClockNotifier.canPost()
+                }
+                RemindersScreen(
+                    on = mapOf(ReminderKind.Plan to plan, ReminderKind.Dues to dues, ReminderKind.Service to service, ReminderKind.Papers to papers),
+                    paperDays = paperDays,
+                    onPaperDays = settings::setPaperWarnDays,
+                    eveningHour = evening,
+                    morningHour = morning,
+                    canDues = session?.let { Capability.SeeMoney in it.can } == true,
+                    canService = session?.let { Capability.EditMachines in it.can } == true,
+                    blocked = blocked,
+                    onToggle = { kind, enabled ->
+                        settings.set(kind, enabled)
+                        Reminders.schedule(context, settings)
+                        if (enabled && android.os.Build.VERSION.SDK_INT >= 33 && !app.workClockNotifier.canPost()) {
+                            askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        blocked = !app.workClockNotifier.canPost()
+                    },
+                    push = PushKind.entries.associateWith { pushOn[it] != false },
+                    canPayments = session?.let { Capability.SeeMoney in it.can } == true,
+                    canRequests = session?.let { Capability.PlanWork in it.can } == true,
+                    canTeam = session?.let { Capability.EditTeam in it.can } == true,
+                    onPush = { kind, enabled ->
+                        app.pushSettings.set(kind, enabled)
+                        app.runInBackground { PushRegistrar(app).sync() }
+                        if (enabled && android.os.Build.VERSION.SDK_INT >= 33 && !app.workClockNotifier.canPost()) {
+                            askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        blocked = !app.workClockNotifier.canPost()
+                    },
+                    onEvening = { settings.setEvening(it); Reminders.schedule(context, settings) },
+                    onMorning = { settings.setMorning(it); Reminders.schedule(context, settings) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.EXPORT) {
+                val vm: ExportViewModel = appViewModel { ExportViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                ExportScreen(
+                    state = state,
+                    onPeriod = vm::setPeriod,
+                    onExport = { vm.export(context) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.DISPLAY) {
+                val settings = app.displaySettings
+                val grouping by settings.grouping.collectAsStateWithLifecycle()
+                val weekStart by settings.weekStart.collectAsStateWithLifecycle()
+                DisplayScreen(
+                    grouping = grouping,
+                    weekStart = weekStart,
+                    onGrouping = settings::setGrouping,
+                    onWeekStart = settings::setWeekStart,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.SEASON) {
+                val vm: SeasonViewModel = appViewModel { SeasonViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                SeasonScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onWindow = vm::setWindow,
+                    onChangeSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                )
+            }
+
+
+            composable(Routes.NOTICES) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val orgId = (startup as? Startup.Ready)?.session?.orgId ?: return@composable
+                val notices by app.noticeInbox.forOrg(orgId).collectAsStateWithLifecycle(emptyList())
+                // What was new when the list opened stays marked while it is read, and is
+                // marked as seen once the person leaves; marking at once would show nothing.
+                val newOnes = remember { app.noticeInbox.all.value.filter { it.orgId == orgId && !it.read }.map { it.id }.toSet() }
+                androidx.compose.runtime.DisposableEffect(orgId) {
+                    onDispose { app.noticeInbox.markAllRead(orgId) }
+                }
+                com.example.fieldtrack.feature.more.NoticesScreen(
+                    notices = notices,
+                    unreadIds = newOnes,
+                    onBack = { navController.popBackStack() },
+                    onOpen = { event ->
+                        when (event) {
+                            com.example.fieldtrack.notify.PushEvent.BreakdownReported,
+                            com.example.fieldtrack.notify.PushEvent.BreakdownFixed ->
+                                navController.openScreen(if (Routes.FLEET in roots) Routes.FLEET else Routes.MACHINES, roots)
+                            com.example.fieldtrack.notify.PushEvent.MemberJoined -> navController.navigate(Routes.TEAM)
+                            com.example.fieldtrack.notify.PushEvent.RequestNew -> navController.navigate(Routes.REQUESTS)
+                            com.example.fieldtrack.notify.PushEvent.BookingNew,
+                            com.example.fieldtrack.notify.PushEvent.BookingChanged,
+                            com.example.fieldtrack.notify.PushEvent.BookingCancelled -> navController.navigate(Routes.PLAN)
+                            com.example.fieldtrack.notify.PushEvent.JobHanded -> navController.openScreen(Routes.JOBS, roots)
+                            com.example.fieldtrack.notify.PushEvent.PaymentRecorded -> navController.openScreen(Routes.CUSTOMERS, roots)
+                            com.example.fieldtrack.notify.PushEvent.SosRaised -> navController.openScreen(Routes.JOBS, roots)
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.MONEY_SETTINGS) {
+                val vm: MoneySettingsViewModel = appViewModel { MoneySettingsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MoneySettingsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onCurrency = vm::setCurrency,
+                    onWholeUnits = vm::setWholeUnits,
+                    onFiscalStartMonth = vm::setFiscalStartMonth,
+                    onTimeZone = vm::setTimeZone,
+                    onToggleMethod = vm::toggleMethod,
+                    onPayDetails = vm::setPayDetails,
+                    onTaxName = vm::setTaxName,
+                    onTaxPercent = vm::setTaxPercent,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.SEASONS_EDIT) {
+                val vm: SeasonsViewModel = appViewModel { SeasonsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                SeasonsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onDay = vm::setDay,
+                    onMonth = vm::setMonth,
+                    onAdd = vm::add,
+                    onRemove = vm::remove,
+                    onUsual = vm::useUsual,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.FIELDS) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: FieldsViewModel = appViewModel(key = "fields-${'$'}customerId") {
+                    FieldsViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                FieldsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onAdd = { navController.navigate(Routes.newField(customerId)) },
+                    onOpen = { id -> navController.navigate(Routes.field(id)) },
+                )
+            }
+
+            composable(Routes.MEASURE) { entry ->
+                // Back to the form with the size and unit, which it picks up from its own
+                // saved state; a unit name that is not one falls back to the usual.
+                val unit = entry.arguments?.getString("unit")
+                    ?.let { name -> MeasureUnit.entries.firstOrNull { it.name == name } } ?: MeasureUnit.Acre
+                MeasureDestination(
+                    unit = unit,
+                    onBack = { navController.popBackStack() },
+                    onUse = { area, chosen ->
+                        navController.previousBackStackEntry?.savedStateHandle?.run {
+                            set(MEASURED_AREA, area)
+                            set(MEASURED_UNIT, chosen.name)
+                        }
+                        navController.popBackStack()
+                    },
+                )
+            }
+
+            composable(Routes.FIELD_NEW) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                FieldEditDestination(navController, entry, customerId = customerId, fieldId = null)
+            }
+
+            composable(Routes.FIELD_EDIT) { entry ->
+                val fieldId = entry.arguments?.getString("fieldId").orEmpty()
+                FieldEditDestination(navController, entry, customerId = "", fieldId = fieldId)
+            }
+
+            composable(Routes.FIELD) { entry ->
+                val fieldId = entry.arguments?.getString("fieldId").orEmpty()
+                val vm: FieldDetailViewModel = appViewModel(key = "field-${'$'}fieldId") {
+                    FieldDetailViewModel(it, fieldId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val noMaps = stringResource(R.string.field_maps_missing)
+                FieldDetailScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(Routes.editField(fieldId)) },
+                    onOpenMaps = {
+                        val lat = state.latitude
+                        val lng = state.longitude
+                        if (lat != null && lng != null) {
+                            // geo: with a label, so the pin arrives named rather
+                            // than as a bare dot the driver has to guess at.
+                            val label = Uri.encode(state.name)
+                            val geo = Uri.parse("geo:${'$'}lat,${'$'}lng?q=${'$'}lat,${'$'}lng(${'$'}label)")
+                            val intent = Intent(Intent.ACTION_VIEW, geo)
+                            // Tried rather than asked about. From Android 11,
+                            // resolveActivity answers null for anything outside
+                            // this app's <queries> declaration even when two map
+                            // apps are installed — so asking first reported "no
+                            // map app" on a phone that had one.
+                            runCatching { context.startActivity(intent) }
+                                .onFailure {
+                                    Toast.makeText(context, noMaps, Toast.LENGTH_LONG).show()
+                                }
+                        }
+                    },
+                    onStartWork = { navController.navigate(Routes.startOnField(fieldId)) },
+                )
+            }
+
+            composable(Routes.START_FOR) { entry ->
+                StartWorkDestination(
+                    navController,
+                    entry.arguments?.getString("customerId"),
+                )
+            }
+
+            composable(Routes.PAST_WORK) {
+                val vm: PastWorkViewModel = appViewModel { PastWorkViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                var picking by remember { mutableStateOf(false) }
+                var pickingDate by remember { mutableStateOf(false) }
+                var pickingFrom by remember { mutableStateOf(false) }
+                var pickingTo by remember { mutableStateOf(false) }
+
+                val pastContext = LocalContext.current
+                PastWorkScreen(
+                    state = state,
+                    onSpoken = { text ->
+                        val (workWords, unitWords) = com.example.fieldtrack.feature.work.spokenWords(pastContext)
+                        vm.applySpoken(vm.understand(text, workWords, unitWords))
+                    },
+                    onBack = { navController.popBackStack() },
+                    onDay = vm::setDay,
+                    onPickDate = { pickingDate = true },
+                    onPickCustomer = { picking = true },
+                    onMachine = vm::selectMachine,
+                    onWorkType = vm::selectWorkType,
+                    onPartner = vm::selectPartner,
+                    onOtherName = vm::nameOther,
+                    onBillingMode = vm::setBillingMode,
+                    onUnit = vm::setUnit,
+                    onQuantity = vm::setQuantity,
+                    onRate = vm::setRate,
+                    onTerms = vm::setTerms,
+                    onPickFrom = { pickingFrom = true },
+                    onPickTo = { pickingTo = true },
+                    onForgetTimes = vm::forgetTimes,
+                    onSave = {
+                        // Straight into the bill: the reason for typing in old work
+                        // is that it has not been charged for yet.
+                        vm.save { jobId ->
+                            navController.navigate(Routes.finish(jobId)) {
+                                popUpTo(Routes.HOME)
+                            }
+                        }
+                    },
+                )
+
+                if (picking) {
+                    PickCustomerSheet(
+                        customers = state.customers,
+                        query = state.query,
+                        onQuery = vm::setQuery,
+                        onPick = { vm.selectCustomer(it); picking = false },
+                        onDismiss = { picking = false },
+                    )
+                }
+                if (pickingDate) {
+                    DayPickerSheet(
+                        selectedMillis = state.dayMillis,
+                        onDismiss = { pickingDate = false },
+                        onPicked = { vm.setDay(it); pickingDate = false },
+                    )
+                }
+                if (pickingFrom) {
+                    ClockSheet(
+                        minutes = state.fromMinutes,
+                        onDismiss = { pickingFrom = false },
+                        onPicked = { vm.setFrom(it); pickingFrom = false },
+                    )
+                }
+                if (pickingTo) {
+                    ClockSheet(
+                        minutes = state.toMinutes,
+                        onDismiss = { pickingTo = false },
+                        onPicked = { vm.setTo(it); pickingTo = false },
+                    )
+                }
+            }
+
+            composable(Routes.CUSTOMERS) {
+                val vm: CustomersViewModel = appViewModel { CustomersViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                CustomersScreen(
+                    state = state,
+                    onBack = null,
+                    onQuery = vm::setQuery,
+                    onToggleOwing = vm::toggleOnlyOwing,
+                    onAdd = { navController.navigate(Routes.NEW_CUSTOMER) },
+                    onOpen = { navController.navigate(Routes.ledger(it)) },
+                )
+            }
+
+            composable(Routes.LEDGER) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: LedgerViewModel = appViewModel(key = "ledger-$customerId") {
+                    LedgerViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                var tab by rememberSaveable { mutableStateOf(CustomerTab.Khata) }
+                val context = LocalContext.current
+                val ledgerScope = rememberCoroutineScope()
+                val fallbackName = stringResource(R.string.app_name)
+
+                LedgerScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onCall = {
+                        state.customerPhone?.let { phone ->
+                            context.startActivity(
+                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                            )
+                        }
+                    },
+                    onRecordPayment = { navController.navigate(Routes.pay(customerId)) },
+                    // Opens the job's own record. Correcting it is one of the things
+                    // offered there, rather than the only thing a tap can mean.
+                    onOpenJob = { id -> navController.navigate("jobs/$id") },
+                    onStatement = {
+                        navController.navigate("customer/$customerId/statement")
+                    },
+                    onFields = { navController.navigate(Routes.fields(customerId)) },
+                    onNewJob = {
+                        navController.navigate("start/$customerId") { launchSingleTop = true }
+                    },
+                    tab = tab,
+                    onTab = { tab = it },
+                    onChase = if (state.canSeeMoney) ({ days: Int? -> vm.chaseIn(days); Unit }) else null,
+                    onReceipt = { paymentId ->
+                        val row = state.payments.firstOrNull { it.id == paymentId }
+                        ledgerScope.launch {
+                            vm.receiptFor(
+                                paymentId = paymentId,
+                                methodLabel = methodName(context, row?.method, row?.methodLabel),
+                                dateLabel = dayMonthYear(row?.atMillis ?: System.currentTimeMillis()),
+                            )?.let {
+                                runCatching {
+                                    com.example.fieldtrack.document.DocumentShare.share(
+                                        context, it, context.getString(R.string.receipt_share_title),
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    // Keyed by the JOB's id, which is what a payment points at — a
+                    // ledger entry id here would silently match nothing.
+                    jobTitles = state.jobs.mapNotNull { job ->
+                        job.jobId?.to(buildString {
+                            append(workLabel(job.workType))
+                            if (job.billingMode != BillingMode.Fixed && job.quantity > 0) {
+                                append(" ")
+                                append(measure(job.quantity, job.unit))
+                            }
+                        })
+                    }.toMap(),
+                    onEdit = if (canEditCustomers) {
+                        { navController.navigate(Routes.editCustomer(customerId)) }
+                    } else null,
+                    onRemind = {
+                        // In a chat with the customer when WhatsApp is there, with where to
+                        // pay and how old the debt is, in the language they read.
+                        val text = com.example.fieldtrack.document.ReminderText.build(
+                            context = context,
+                            language = state.customerLanguage,
+                            businessName = state.businessName.ifBlank { fallbackName },
+                            balanceMinor = state.balanceMinor,
+                            style = com.example.fieldtrack.designsystem.format.Money.style,
+                            oldestDays = state.oldestDebtMillis?.let {
+                                ((System.currentTimeMillis() - it) / 86_400_000L).toInt()
+                            },
+                            payDetails = state.payDetails,
+                            upiId = state.upiId,
+                        )
+                        com.example.fieldtrack.feature.Sharing.message(context, state.customerPhone, text)
+                    },
+                )
+            }
+
+            composable(Routes.EDIT_CUSTOMER) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: EditCustomerViewModel = appViewModel(key = "edit-$customerId") {
+                    EditCustomerViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val allowed by vm.allowed.collectAsStateWithLifecycle()
+                AddCustomerScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onPhone = vm::setPhone,
+                    onVillage = vm::setVillage,
+                    onCreditLimit = vm::setCreditLimit,
+                    onLanguage = vm::setLanguage,
+                    onOpening = null,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    titleRes = R.string.edit_customer_title,
+                    saveLabelRes = R.string.edit_save,
+                    readOnlyNotice = if (allowed) null
+                    else stringResource(R.string.edit_not_allowed),
+                )
+            }
+
+            composable(Routes.STATEMENT) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: StatementViewModel = appViewModel(key = "statement-$customerId") {
+                    StatementViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                var pickingDates by remember { mutableStateOf(false) }
+                val chooserTitle = stringResource(R.string.statement_chooser)
+                val failed = stringResource(R.string.statement_failed)
+                val document = statementDocumentFor(vm.sources())
+
+                StatementScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onPeriod = vm::setPeriod,
+                    onPickDates = { pickingDates = true },
+                    onContent = vm::setContent,
+                    onPickJobs = { navController.navigate("customer/$customerId/statement/jobs") },
+                    onPreview = {
+                        scope.launch {
+                            runCatching { DocumentShare.print(context, document) }
+                                .onFailure { Toast.makeText(context, failed, Toast.LENGTH_LONG).show() }
+                        }
+                    },
+                    onSend = {
+                        if (!state.working) {
+                            vm.setWorking(true)
+                            scope.launch {
+                                runCatching { DocumentShare.share(context, document, chooserTitle) }
+                                    .onFailure { Toast.makeText(context, failed, Toast.LENGTH_LONG).show() }
+                                vm.setWorking(false)
+                            }
+                        }
+                    },
+                )
+
+                if (pickingDates) {
+                    DateRangeSheet(
+                        onDismiss = { pickingDates = false },
+                        onPicked = { start, end ->
+                            vm.setCustomRange(start, end)
+                            pickingDates = false
+                        },
+                    )
+                }
+            }
+
+            composable(Routes.STATEMENT_JOBS) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                // Scoped to the statement screen's own nav entry rather than this
+                // one, so a tick here is the same selection its summary is counting.
+                // A plain appViewModel would hand this route a second instance.
+                val parent = remember(entry) { navController.getBackStackEntry(Routes.STATEMENT) }
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val vm: StatementViewModel = viewModel(
+                    viewModelStoreOwner = parent,
+                    key = "statement-$customerId",
+                    factory = rememberSimpleFactory { StatementViewModel(app, customerId) },
+                )
+                val state by vm.state.collectAsStateWithLifecycle()
+                StatementPickJobsScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onToggle = vm::togglePicked,
+                    onClear = vm::clearPicked,
+                    onDone = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.PAY) { entry ->
+                val customerId = entry.arguments?.getString("customerId").orEmpty()
+                val vm: RecordPaymentViewModel = appViewModel(key = "pay-$customerId") {
+                    RecordPaymentViewModel(it, customerId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val business = state.customerName
+
+                RecordPaymentScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onAmount = vm::setAmount,
+                    onTakeAll = vm::takeAll,
+                    onMethod = vm::setMethod,
+                    onInKind = vm::setInKind,
+                    onMethodLabel = vm::setMethodLabel,
+                    onSaveAndSend = {
+                        vm.save { paid ->
+                            val text = context.getString(
+                                R.string.ledger_reminder_text,
+                                business,
+                                money((state.owedMinor - paid).coerceAtLeast(0)),
+                            )
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            }
+                            context.startActivity(Intent.createChooser(send, null))
+                            navController.popBackStack()
+                        }
+                    },
+                    onJustSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.JOBS) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+
+                // The same tab, a different list. An owner's jobs are the yard's
+                // work; a driver's are their own, and showing them everybody's
+                // would be handing them a list they cannot act on and did not do.
+                val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                if (homeKindOf(startup, business) == HomeKind.Field) {
+                    val driverVm: DriverJobsViewModel =
+                        appViewModel { DriverJobsViewModel(it) }
+                    val driverState by driverVm.state.collectAsStateWithLifecycle()
+                    DriverJobsScreen(
+                        state = driverState,
+                        onPeriod = driverVm::setPeriod,
+                        onAddPastWork = { navController.navigate(Routes.PAST_WORK) },
+                        onOpenJob = { id -> navController.navigate("jobs/$id") },
+                    )
+                    return@composable
+                }
+
+                val vm: JobsViewModel = appViewModel { JobsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                JobsScreen(
+                    state = state,
+                    onFilter = vm::setFilter,
+                    onOpen = { job -> navController.navigate("jobs/${job.id}") },
+                    onQuery = vm::setQuery,
+                    // The same "+" that adds a customer on Customers and a machine on Fleet.
+                    onStart = { navController.navigate(Routes.START) }.takeIf { state.canStart },
+                )
+            }
+
+            composable(Routes.JOB) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val vm: JobDetailViewModel = appViewModel(key = "job-$jobId") {
+                    JobDetailViewModel(it, jobId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+
+                val summaryMeasure = if (state.billingMode == BillingMode.Fixed) null
+                else measure(state.quantity, state.unit)
+                JobDetailScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onOpenLive = { navController.navigate(Routes.live(jobId)) },
+                    onAmend = { navController.navigate("jobs/$jobId/amend") }
+                        .takeIf { state.canAmend && state.finished },
+                    // A khata is the money record. There is no useful version of
+                    // it with the money taken out, so somebody who may not see
+                    // amounts does not open it — rather than opening an empty one.
+                    onOpenCustomer = {
+                        if (state.customerId.isNotBlank() && state.canSeeMoney) {
+                            navController.navigate("customer/${'$'}{state.customerId}")
+                        }
+                    },
+                    onCall = state.operatorPhone?.takeIf { it.isNotBlank() }?.let { number ->
+                        {
+                            val dial = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${'$'}number")
+                            }
+                            runCatching { context.startActivity(dial) }
+                            Unit
+                        }
+                    },
+                    // Offered to anyone who may record work, because the person
+                    // who knows how many hands were on it is the one who was there.
+                    onShareSummary = if (state.finished && state.canSeeMoney) {
+                        {
+                            val text = com.example.fieldtrack.document.JobSummaryText.build(
+                                context = context,
+                                language = state.customerLanguage,
+                                businessName = state.businessName,
+                                workTitle = workLabel(context, state.workType),
+                                measureLabel = summaryMeasure,
+                                dateLabel = dayMonthYear(state.workedAtMillis),
+                                quote = state.quote,
+                                totalMinor = state.amountMinor,
+                                style = com.example.fieldtrack.designsystem.format.Money.style,
+                                payDetails = state.payDetails,
+                            )
+                            com.example.fieldtrack.feature.Sharing.message(context, state.customerPhone, text)
+                        }
+                    } else null,
+                    onAddCost = { navController.navigate(Routes.jobCost(jobId)) }
+                        .takeIf { state.canRecordCost },
+                    onPayCost = { costId: String ->
+                        navController.navigate(Routes.jobCost(jobId, costId))
+                    }.takeIf { state.canPriceCost },
+                )
+            }
+
+            composable(
+                Routes.JOB_COST,
+                arguments = listOf(
+                    navArgument("costId") { defaultValue = ""; nullable = false },
+                ),
+            ) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val costId = entry.arguments?.getString("costId").orEmpty().ifBlank { null }
+                val vm: JobCostViewModel = appViewModel(key = "jobcost-${'$'}jobId-${'$'}costId") {
+                    JobCostViewModel(it, jobId, costId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                JobCostScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onKind = vm::setKind,
+                    onHeadcount = vm::setHeadcount,
+                    onUncounted = vm::setUncounted,
+                    onCounted = vm::setCounted,
+                    onAmount = vm::setAmount,
+                    onNote = vm::setNote,
+                    onPaid = vm::setPaid,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.AMEND) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val vm: AmendJobViewModel = appViewModel(key = "amend-$jobId") {
+                    AmendJobViewModel(it, jobId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AmendJobScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onQuantity = vm::setQuantity,
+                    onRate = vm::setRate,
+                    onReason = vm::setReason,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.FLEET) {
+                val vm: FleetViewModel = appViewModel { FleetViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val machinesVm: MachinesViewModel = appViewModel { MachinesViewModel(it) }
+                val machines by machinesVm.state.collectAsStateWithLifecycle()
+                val planGuard = rememberPlanGuard(navController)
+                FleetScreen(
+                    state = state,
+                    onUpkeep = { navController.navigate(Routes.UPKEEP) },
+                    machines = machines,
+                    onOpenMachine = { id -> navController.navigate("machines/$id") },
+                    onAdd = {
+                        planGuard(com.example.fieldtrack.data.plan.Need.MoreMachines) { navController.navigate(Routes.NEW_MACHINE) }
+                    }.takeIf { machines.canEdit },
+                )
+            }
+
+            composable(Routes.UPKEEP) {
+                val vm: UpkeepViewModel = appViewModel { UpkeepViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val draft by vm.draft.collectAsStateWithLifecycle()
+                UpkeepScreen(
+                    state = state,
+                    draft = draft,
+                    onBack = { navController.popBackStack() },
+                    onMarkRepaired = vm::markRepaired,
+                    onLogRepair = vm::logRepair,
+                    onLogService = { vm.logService() },
+                    onDraftMachine = vm::setDraftMachine,
+                    onDraftDescription = vm::setDraftDescription,
+                    onDraftCost = vm::setDraftCost,
+                    onDraftVendor = vm::setDraftVendor,
+                    onDraftParts = vm::setDraftParts,
+                    onDraftSave = vm::saveDraft,
+                    onDraftDismiss = vm::dismissDraft,
+                )
+            }
+
+            composable(Routes.MACHINES) {
+                val vm: MachinesViewModel = appViewModel { MachinesViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                // Whether this is a tab depends on the track, so whether it needs a
+                // way back does too.
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val business by app.sessionStore.businessMode.collectAsStateWithLifecycle()
+                val startup by app.sessionStore.startup.collectAsStateWithLifecycle()
+                val kind = homeKindOf(startup, business)
+                val isTab = Routes.MACHINES in Routes.roots(
+                    kind, (startup as? Startup.Ready)?.session?.can ?: Capabilities(emptySet()),
+                )
+                val planGuard = rememberPlanGuard(navController)
+                MachinesScreen(
+                    state = state,
+                    onAdd = { planGuard(com.example.fieldtrack.data.plan.Need.MoreMachines) { navController.navigate(Routes.NEW_MACHINE) } },
+                    // Opens the machine rather than the form. Everyone can look at
+                    // what a machine has been doing; only an owner can rename it,
+                    // and that now lives behind the pencil on the detail screen.
+                    onEdit = { id -> navController.navigate("machines/$id") },
+                    // A tab for some, a pushed screen (from Fleet, or a senior
+                    // driver's own machine) for others.
+                    onBack = if (!isTab) ({ navController.popBackStack(); Unit }) else null,
+                )
+            }
+
+            composable(Routes.MACHINE) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: MachineDetailViewModel = appViewModel {
+                    MachineDetailViewModel(it, machineId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val reporting by vm.reporting.collectAsStateWithLifecycle()
+                val service by vm.service.collectAsStateWithLifecycle()
+                MachineDetailScreen(
+                    state = state,
+                    reporting = reporting,
+                    service = service,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate("machines/$machineId/edit") }
+                        .takeIf { state.canEdit },
+                    onFuel = { navController.navigate("machines/$machineId/fuel") },
+                    // Service and Breakdown are different things, and used to go to
+                    // the same fleet-wide screen. Service logs work done on THIS
+                    // machine; Breakdown says this machine is broken now.
+                    // Both open a sheet here rather than sending the user to the
+                    // fleet-wide screen. Tapping Service used to land them on a
+                    // different page with a sheet over it, and dismissing it left
+                    // them somewhere they never asked to be.
+                    onService = vm::logService,
+                    onBreakdown = vm::reportBreakdown,
+                    onWhatItMade = {
+                        navController.navigate("machines/$machineId/made")
+                    },
+                    onPaper = { paperId -> navController.navigate("machines/$machineId/papers/${paperId ?: "new"}") },
+                    onWorth = if (state.canSeeWorth) ({ navController.navigate("machines/$machineId/worth") }) else null,
+                    onSaveBreakdown = vm::saveBreakdown,
+                    move = vm.move.collectAsStateWithLifecycle().value,
+                    onMoveChoose = vm::chooseForBooked,
+                    onMovePick = vm::moveBookedTo,
+                    onMoveCancel = vm::cancelMove,
+                    hire = vm.hire.collectAsStateWithLifecycle().value,
+                    onHire = { navController.navigate(Routes.MONEY_OUT) },
+                    onDismissReport = vm::dismissReport,
+                    onServiceDescription = vm::setServiceDescription,
+                    onServiceCost = vm::setServiceCost,
+                    onServiceVendor = vm::setServiceVendor,
+                    onServiceParts = vm::setServiceParts,
+                    onSaveService = vm::saveService,
+                    onDismissService = vm::dismissService,
+                    onOpenJob = { id -> navController.navigate("jobs/$id") },
+                )
+            }
+
+            composable(Routes.FUEL) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: FuelLogViewModel = appViewModel { FuelLogViewModel(it, machineId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val draft by vm.draft.collectAsStateWithLifecycle()
+                FuelLogScreen(
+                    state = state,
+                    draft = draft,
+                    onBack = { navController.popBackStack() },
+                    onAdd = vm::add,
+                    onLitres = vm::setLitres,
+                    onCost = vm::setCost,
+                    onSave = vm::save,
+                    onDismiss = vm::dismiss,
+                )
+            }
+
+            composable(Routes.NEW_MACHINE) {
+                val vm: AddMachineViewModel = appViewModel { AddMachineViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AddMachineScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onKind = vm::setKind,
+                    onTypeLabel = vm::setTypeLabel,
+                    onName = vm::setName,
+                    onPlate = vm::setPlate,
+                    onHours = vm::setHours,
+                    onServiceEvery = vm::setServiceEvery,
+                    onMonthly = vm::setMonthly,
+                    onHoursPerYear = vm::setHoursPerYear,
+                    owner = OwnerActions(
+                        onOwner = vm::setOwner, onPerson = vm::setOwnerPerson, onName = vm::setOwnerName,
+                        onBasis = vm::setHireBasis, onRate = vm::setHireRate, onShare = vm::setHireShare,
+                    ),
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.EDIT_MACHINE) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: EditMachineViewModel = appViewModel(key = "edit-machine-$machineId") {
+                    EditMachineViewModel(it, machineId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val allowed by vm.allowed.collectAsStateWithLifecycle()
+                AddMachineScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onKind = vm::setKind,
+                    onTypeLabel = vm::setTypeLabel,
+                    onName = vm::setName,
+                    onPlate = vm::setPlate,
+                    onHours = vm::setHours,
+                    onServiceEvery = vm::setServiceEvery,
+                    onMonthly = vm::setMonthly,
+                    onHoursPerYear = vm::setHoursPerYear,
+                    owner = OwnerActions(
+                        onOwner = vm::setOwner, onPerson = vm::setOwnerPerson, onName = vm::setOwnerName,
+                        onBasis = vm::setHireBasis, onRate = vm::setHireRate, onShare = vm::setHireShare,
+                    ),
+                    onSave = { vm.save { navController.popBackStack() } },
+                    titleRes = R.string.edit_machine_title,
+                    saveLabelRes = R.string.edit_save,
+                    readOnlyNotice = if (allowed) null
+                    else stringResource(R.string.edit_not_allowed),
+                )
+            }
+
+            composable(Routes.MORE) {
+                SideMenu(navController, roots, inDrawer = false, onClose = {})
+            }
+
+            composable(Routes.PRICE) {
+                val vm: PriceViewModel = appViewModel { PriceViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                PriceScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onWorkType = vm::selectWorkType,
+                    onBillingMode = vm::setBillingMode,
+                    onUnit = vm::setUnit,
+                    onRate = vm::setRate,
+                    onPickRate = vm::pickRate,
+                    onQuantity = vm::setQuantity,
+                    onHours = vm::setHours,
+                    onMinutes = vm::setMinutes,
+                )
+            }
+
+            composable(Routes.RATES) {
+                val vm: RateCardViewModel = appViewModel { RateCardViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val draft by vm.draft.collectAsStateWithLifecycle()
+                val confirmDelete by vm.confirmDelete.collectAsStateWithLifecycle()
+                RateCardScreen(
+                    state = state,
+                    draft = draft,
+                    confirmDelete = confirmDelete,
+                    onBack = { navController.popBackStack() },
+                    onAdd = vm::add,
+                    onEdit = vm::edit,
+                    onPerCustomer = vm::setPerCustomer,
+                    onDraftWorkType = vm::setWorkType,
+                    onDraftBillingMode = vm::setBillingMode,
+                    onDraftUnit = vm::setUnit,
+                    onDraftAmount = vm::setAmount,
+                    onDraftLabel = vm::setLabel,
+                    onDraftOtherName = vm::nameOther,
+                    onDraftTerms = vm::setTerms,
+                    onDraftSave = vm::saveDraft,
+                    onDraftDismiss = vm::dismissDraft,
+                    onAskDelete = vm::askDelete,
+                    onConfirmDelete = vm::confirmDeleteNow,
+                    onDismissDelete = vm::dismissDelete,
+                )
+            }
+
+            composable(Routes.BACKUP) {
+                val vm: BackupViewModel = appViewModel { BackupViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                BackupScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onBackUpNow = vm::backUpNow,
+                    onSetAside = vm::setAsideBlocked,
+                )
+            }
+
+            composable(Routes.TEAM) {
+                val vm: TeamViewModel = appViewModel { TeamViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                var adding by remember { mutableStateOf(false) }
+
+                val planGuard = rememberPlanGuard(navController)
+                TeamScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onOpenMember = { id -> navController.navigate("more/team/$id") },
+                    onAddMember = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { adding = true } }.takeIf { state.canEditTeam },
+                    onInvite = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { navController.navigate(Routes.INVITE) } }
+                        .takeIf { state.canEditTeam },
+                    onSentCodes = { navController.navigate(Routes.SENT_CODES) }
+                        .takeIf { state.canEditTeam },
+                    onHandOver = { navController.navigate(Routes.HAND_OVER) }
+                        .takeIf { state.canEditTeam },
+                    onChanges = { navController.navigate(Routes.TEAM_CHANGES) }
+                        .takeIf { state.canEditTeam },
+                    onRoles = { navController.navigate(Routes.ROLES) }
+                        .takeIf { (startup as? Startup.Ready)?.session?.let { Capability.EditBusiness in it.can } == true },
+                    onMergeDuplicate = if (state.canEditTeam) {
+                        { pair: DuplicatePair -> vm.merge(pair) {} }
+                    } else null,
+                    onNotDuplicate = if (state.canEditTeam) {
+                        { pair: DuplicatePair -> vm.notTheSamePerson(pair) }
+                    } else null,
+                    onCall = { number ->
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$number") })
+                        }
+                    },
+                )
+
+                if (adding) {
+                    AddMemberSheet(
+                        onDismiss = { adding = false },
+                        onAdd = { name, phone ->
+                            adding = false
+                            scope.launch {
+                                val session = app.sessionStore.load() ?: return@launch
+                                runCatching {
+                                    app.teamRepository.addMember(
+                                        orgId = session.orgId,
+                                        can = session.can,
+                                        displayName = name,
+                                        phone = phone,
+                                    )
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+
+            composable(Routes.MACHINE_PROFIT) { entry ->
+                val machineId = entry.arguments?.getString("machineId").orEmpty()
+                val vm: MachineProfitViewModel =
+                    appViewModel { MachineProfitViewModel(it, machineId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MachineProfitScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onSeeMoneyOut = { navController.navigate(Routes.MONEY_OUT) },
+                    onEditMachine = { navController.navigate("machines/$machineId/edit") },
+                )
+            }
+
+            composable(Routes.MONEY_OUT) {
+                val vm: MoneyOutViewModel = appViewModel { MoneyOutViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                MoneyOutScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onPay = { navController.navigate(Routes.payOut()) },
+                    onStartHirePay = vm::startHirePay,
+                    onHireAmount = vm::setHireAmount,
+                    onHireMethod = vm::setHireMethod,
+                    onHireMethodLabel = vm::setHireMethodLabel,
+                    onSaveHirePay = vm::saveHirePay,
+                    onDismissHirePay = vm::dismissHirePay,
+                )
+            }
+
+            composable(
+                Routes.PAY_OUT,
+                arguments = listOf(androidx.navigation.navArgument("person") {
+                    type = androidx.navigation.NavType.StringType
+                    defaultValue = ""
+                }),
+            ) { entry ->
+                val vm: PayOutViewModel = appViewModel { PayOutViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                // From a person's own page the person is already chosen.
+                val person = entry.arguments?.getString("person").orEmpty()
+                LaunchedEffect(person) { if (person.isNotBlank()) vm.setPerson(person) }
+                val context = LocalContext.current
+                var upiAsk by remember { mutableStateOf(false) }
+                var upiNote by remember { mutableStateOf<Int?>(null) }
+                // What the UPI app said when it came back: saved if it went, asked if it cannot say.
+                val upiLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                    val reply = result.data?.getStringExtra("response")
+                        ?: result.data?.getStringExtra("Status")?.let { "Status=$it" }
+                    val outcome = com.example.fieldtrack.data.payments.Upi.parseReply(reply)
+                    when (outcome.status) {
+                        com.example.fieldtrack.data.payments.Upi.Status.Success ->
+                            vm.saveAsUpi(outcome.transactionId) { navController.popBackStack() }
+                        com.example.fieldtrack.data.payments.Upi.Status.Failure -> upiNote = R.string.payout_upi_failed
+                        else -> upiAsk = true
+                    }
+                }
+                PayOutScreen(
+                    state = state,
+                    onPayByUpi = { link ->
+                        upiNote = null
+                        runCatching { upiLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+                            .onFailure { upiNote = R.string.payout_upi_no_app }
+                    },
+                    onNote = vm::setNote,
+                    onBack = { navController.popBackStack() },
+                    onPerson = vm::setPerson,
+                    onHeadcount = vm::setHeadcount,
+                    onAmount = vm::setAmount,
+                    onCovers = vm::setCovers,
+                    onRecover = vm::setRecover,
+                    onJob = vm::setJob,
+                    onMethod = vm::setMethod,
+                    onMethodLabel = vm::setMethodLabel,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+                upiNote?.let { note ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { upiNote = null },
+                        text = { Text(stringResource(note)) },
+                        confirmButton = { androidx.compose.material3.TextButton(onClick = { upiNote = null }) { Text(stringResource(R.string.action_close_cd)) } },
+                    )
+                }
+                if (upiAsk) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { upiAsk = false },
+                        title = { Text(stringResource(R.string.payout_upi_ask_title)) },
+                        text = { Text(stringResource(R.string.payout_upi_ask_body)) },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                upiAsk = false
+                                vm.saveAsUpi(null) { navController.popBackStack() }
+                            }) { Text(stringResource(R.string.payout_upi_ask_yes)) }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { upiAsk = false }) { Text(stringResource(R.string.payout_upi_ask_no)) }
+                        },
+                    )
+                }
+            }
+
+            composable(Routes.TEAM_CHANGES) {
+                val vm: TeamActivityViewModel = appViewModel { TeamActivityViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                TeamActivityScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.HAND_OVER) {
+                val vm: HandOverViewModel = appViewModel { HandOverViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                HandOverScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onChoose = vm::choose,
+                    onStepBack = vm::setStepBack,
+                    onConfirm = { vm.confirm { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.SENT_CODES) {
+                val planGuard = rememberPlanGuard(navController)
+                val vm: SentCodesViewModel = appViewModel { SentCodesViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val businessName = state.businessName
+                SentCodesScreen(
+                    state = state,
+                    nowMillis = vm.now(),
+                    onBack = { navController.popBackStack() },
+                    onShare = { code ->
+                        val text = context.getString(
+                            R.string.invite_share_text, businessName, code,
+                        )
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                },
+                                null,
+                            )
+                        )
+                    },
+                    onRevoke = vm::revoke,
+                    onInviteMore = { planGuard(com.example.fieldtrack.data.plan.Need.TeamMember) { navController.navigate(Routes.INVITE) } },
+                )
+            }
+
+            composable(Routes.INVITE) {
+                val vm: InviteViewModel = appViewModel { InviteViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                val shareText = stringResource(
+                    R.string.invite_share_text, state.businessName, state.code.orEmpty(),
+                )
+                val copiedMessage = stringResource(R.string.invite_copied)
+                InviteScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onMakeCode = vm::makeCode,
+                    onNewCode = vm::newCode,
+                    onRevoke = vm::revoke,
+                    onCopy = {
+                        val clipboard = context.getSystemService(ClipboardManager::class.java)
+                        clipboard?.setPrimaryClip(ClipData.newPlainText("code", it))
+                        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+                    },
+                    onShare = {
+                        // Plain ACTION_SEND rather than a WhatsApp-only intent: the
+                        // chooser reaches whatever the owner actually uses, and does
+                        // not fail on a phone without WhatsApp installed.
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                },
+                                null,
+                            )
+                        )
+                    },
+                    onSeeMoney = vm::setSeeMoney,
+                    onAddCustomers = vm::setAddCustomers,
+                    onCloseBills = vm::setCloseBills,
+                    daysLeft = { expiresAt ->
+                        // Rounded up, not truncated. A code made a moment ago lasts
+                        // seven days; dividing leaves 6.99 and floor turns that into
+                        // "works for 6 days", which is the app understating itself
+                        // and an owner wondering what happened to the seventh.
+                        val remaining = (expiresAt - System.currentTimeMillis())
+                            .coerceAtLeast(0L)
+                        ((remaining + 86_399_999L) / 86_400_000L).toInt()
+                    },
+                )
+            }
+
+            composable(
+                Routes.MEMBER,
+                arguments = listOf(navArgument("tab") { type = NavType.StringType; defaultValue = "" }),
+            ) { entry ->
+                val membershipId = entry.arguments?.getString("membershipId").orEmpty()
+                val vm: MemberViewModel = appViewModel(key = "member-$membershipId") {
+                    MemberViewModel(it, membershipId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                var tab by rememberSaveable {
+                    mutableStateOf(
+                        com.example.fieldtrack.feature.team.MemberTab.entries
+                            .firstOrNull { it.name == entry.arguments?.getString("tab") }
+                            ?: com.example.fieldtrack.feature.team.MemberTab.Work
+                    )
+                }
+                val payVm: com.example.fieldtrack.feature.money.PersonPayViewModel =
+                    appViewModel(key = "pay-$membershipId") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, membershipId) }
+                val pay by payVm.state.collectAsStateWithLifecycle()
+
+                MemberScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onPhone = vm::setPhone,
+                    onPreset = vm::setPreset,
+                    onSeeMoney = vm::setSeeMoney,
+                    onAddCustomers = vm::setAddCustomers,
+                    onCloseBills = vm::setCloseBills,
+                    onEditTeam = vm::setEditTeam,
+                    onEditMachines = vm::setEditMachines,
+                    onPlanWork = vm::setPlanWork,
+                    onPayOut = vm::setPayOut,
+                    onSeePeopleCost = vm::setSeePeopleCost,
+                    onCustomRole = vm::setCustomRole,
+                    onRoles = { navController.navigate(Routes.ROLES) }.takeIf { state.editableByOwnerOnly },
+                    tab = tab,
+                    onTab = { tab = it },
+                    pay = pay.takeIf { state.canSeePay },
+                    onPay = { navController.navigate(Routes.payOut(membershipId.substringAfterLast('_'))) },
+                    onTakeBack = payVm::takeBack,
+                    onJob = { navController.navigate("jobs/$it") },
+                    onHandover = vm::recordHandover,
+                    details = com.example.fieldtrack.feature.team.MemberDetailsActions(
+                        onParticulars = vm::setParticulars,
+                        onSavePayout = vm::savePayout,
+                        onSavePayTerms = vm::savePayTerms,
+                    ),
+                    // Stays on the page: the Save button goes away and the page shows what was saved.
+                    onSave = { vm.save {} },
+                    onSetActive = { active ->
+                        vm.setActive(active) { navController.popBackStack() }
+                    },
+                    onCall = state.phone?.takeIf { it.isNotBlank() }?.let { number ->
+                        {
+                            val dial = Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:$number")
+                            }
+                            runCatching { context.startActivity(dial) }
+                            Unit
+                        }
+                    },
+                )
+            }
+
+            composable(Routes.ROLES) {
+                val vm: com.example.fieldtrack.feature.team.RolesViewModel = appViewModel { com.example.fieldtrack.feature.team.RolesViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.team.RolesScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onNew = { navController.navigate(Routes.role(null)) },
+                    onOpen = { navController.navigate(Routes.role(it)) },
+                )
+            }
+
+            composable(Routes.ROLE) { entry ->
+                val roleId = entry.arguments?.getString("roleId")?.takeIf { it != "new" }
+                val vm: com.example.fieldtrack.feature.team.RoleEditViewModel =
+                    appViewModel(key = "role-${roleId ?: "new"}") { com.example.fieldtrack.feature.team.RoleEditViewModel(it, roleId) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                com.example.fieldtrack.feature.team.RoleEditScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onStartFrom = vm::startFrom,
+                    onChange = vm::change,
+                    onSave = { vm.save { navController.popBackStack() } },
+                    onDelete = { vm.delete { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.JOIN_ANOTHER) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val vm: JoinViewModel = viewModel {
+                    JoinViewModel(
+                        lookup = app.inviteLookup,
+                        suggestedName = app.sessionStore.current()?.displayName.orEmpty(),
+                        onJoin = { invite, name ->
+                            val personId = app.sessionStore.personIdOrNull()
+                                ?: return@JoinViewModel
+                            app.teamRepository.redeemInvite(
+                                invite = invite,
+                                personId = personId,
+                                displayName = name,
+                                phone = app.sessionStore.signedInPhone(),
+                            )
+                            // Joining is also switching: somebody who types a code
+                            // means to start working for those people now.
+                            app.sessionStore.adoptMembership(invite.orgId)
+                        },
+                    )
+                }
+                val joinState by vm.state.collectAsStateWithLifecycle()
+                BackHandler(enabled = joinState.step == JoinStep.Preview) { vm.back() }
+                JoinScreen(
+                    state = joinState,
+                    removedFrom = null,
+                    onCode = vm::setCode,
+                    onName = vm::setName,
+                    onCheck = vm::check,
+                    onJoin = vm::join,
+                    onBack = {
+                        if (joinState.step == JoinStep.Preview) vm.back()
+                        else navController.popBackStack()
+                    },
+                    // Already in a business; there is nothing to skip to.
+                    onSkip = null,
+                )
+            }
+
+            composable(Routes.NEW_BUSINESS) {
+                val vm: NewBusinessViewModel = appViewModel { NewBusinessViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                NewBusinessScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onCurrency = vm::setCurrency,
+                    onLandUnit = vm::setLandUnit,
+                    onOwnLandUnit = vm::setOwnLandUnit,
+                    // The switch builds a fresh history for the new business, which starts at Home.
+                    onCreate = { vm.create {} },
+                )
+            }
+
+            composable(Routes.SETTINGS) {
+                val app = LocalContext.current.applicationContext as FieldFlowApplication
+                val scope = rememberCoroutineScope()
+                val activity = LocalContext.current as? android.app.Activity
+                var unsent by remember { mutableStateOf(0) }
+                LaunchedEffect(Unit) { unsent = app.sessionStore.unsentCount() }
+                val vm: SettingsViewModel = appViewModel { SettingsViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val proofNeedsPlan by vm.needsPlan.collectAsStateWithLifecycle()
+                LaunchedEffect(proofNeedsPlan) {
+                    if (proofNeedsPlan) {
+                        vm.needsPlan.value = false
+                        navController.navigate(Routes.planPrice(com.example.fieldtrack.data.plan.Need.ProofOfWork))
+                    }
+                }
+                val googleAuth = remember { com.example.fieldtrack.data.auth.FirebaseGoogleAuth(context = app, activityProvider = { activity }) }
+                var googleEmail by remember { mutableStateOf(googleAuth.linkedEmail() ?: state.signedInEmail) }
+                var googleNote by remember { mutableStateOf<Int?>(null) }
+                var deleteFailed by remember { mutableStateOf(false) }
+                val display = app.displaySettings
+                val lock = app.appLock
+                val prefs = PhonePrefs(
+                    language = display.language.collectAsStateWithLifecycle().value,
+                    theme = display.theme.collectAsStateWithLifecycle().value,
+                    biggerText = display.biggerText.collectAsStateWithLifecycle().value,
+                    lockAvailable = remember { lock.available() },
+                    lockOn = lock.enabled.collectAsStateWithLifecycle().value,
+                    lockAfter = lock.after.collectAsStateWithLifecycle().value,
+                )
+                // The own unit's name as typed, ahead of the save that waits for a pause.
+                val ownLandTyping by vm.ownLandTyping.collectAsStateWithLifecycle()
+                SettingsScreen(
+                    state = ownLandTyping?.let { state.copy(ownLandUnit = it) } ?: state,
+                    prefs = prefs,
+                    onBack = { navController.popBackStack() },
+                    actions = SettingsActions(
+                        onLanguage = { tag ->
+                            display.setLanguage(tag)
+                            // The text is read from the context the activity was made with.
+                            activity?.recreate()
+                        },
+                        onTheme = display::setTheme,
+                        onBiggerText = display::setBiggerText,
+                        onLock = lock::setEnabled,
+                        onLockAfter = lock::setAfter,
+                        onNotifications = { navController.navigate(Routes.REMINDERS) },
+                        onNumbers = { navController.navigate(Routes.DISPLAY) },
+                        onLandUnit = { vm.setLandUnit(it) },
+                        onOwnLandUnit = vm::setOwnLandUnit,
+                        onMoney = { navController.navigate(Routes.MONEY_SETTINGS) },
+                        onSeasons = { navController.navigate(Routes.SEASONS_EDIT) },
+                        onPlan = { navController.navigate(Routes.PLAN_SETTINGS) },
+                        onBookingLink = { navController.navigate(Routes.BOOKING_LINK) },
+                        onPricing = { navController.navigate(Routes.planPrice()) },
+                        onProofOfWork = { vm.setProofOfWork(it) },
+                        onBusinessMode = vm::setBusinessMode,
+                        onBackup = { navController.navigate(Routes.BACKUP) },
+                        onExport = { navController.navigate(Routes.EXPORT) },
+                        onSignOut = {
+                            scope.launch {
+                                // While still signed in: the server only lets a person remove their own phone.
+                                app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
+                                app.sessionStore.signOut(
+                                    FirebasePhoneAuth(activityProvider = { activity })
+                                )
+                            }
+                        },
+                        // The only owner cannot leave: a business nobody owns can
+                        // never be changed again by anyone.
+                        onLeave = if (state.canLeave) {
+                            {
+                                scope.launch {
+                                    runCatching {
+                                        app.teamRepository.leaveOrg(state.orgId, state.personId)
+                                        app.sessionStore.signOut(null)
+                                    }
+                                }
+                            }
+                        } else null,
+                        onDeleteAccount = {
+                            scope.launch {
+                                deleteFailed = false
+                                app.sessionStore.personIdOrNull()?.let { com.example.fieldtrack.notify.PushRegistrar(app).forget(it) }
+                                val result = app.sessionStore.deleteAccount(
+                                    app.syncTransport, FirebasePhoneAuth(activityProvider = { activity }),
+                                )
+                                if (result == com.example.fieldtrack.data.session.SessionStore.DeletionResult.CouldNotReachServer) {
+                                    deleteFailed = true
+                                }
+                            }
+                        },
+                    ),
+                    unsentCount = unsent,
+                    deleteFailed = deleteFailed,
+                    google = if (googleAuth.available) {
+                        com.example.fieldtrack.feature.more.GoogleLink(
+                            email = googleEmail,
+                            note = googleNote?.let { stringResource(it) },
+                            onAdd = {
+                                scope.launch {
+                                    googleNote = null
+                                    when (googleAuth.link()) {
+                                        is com.example.fieldtrack.data.auth.GoogleResult.Done -> {
+                                            googleEmail = googleAuth.linkedEmail()
+                                            app.sessionStore.recordLinkedEmail(googleEmail)
+                                        }
+                                        com.example.fieldtrack.data.auth.GoogleResult.AlreadyUsed ->
+                                            googleNote = R.string.account_google_taken
+                                        com.example.fieldtrack.data.auth.GoogleResult.NoAccount ->
+                                            googleNote = R.string.account_google_none
+                                        else -> Unit
+                                    }
+                                }
+                            },
+                        )
+                    } else null,
+                )
+            }
+
+            // You and your business, on one page that is itself the form.
+            composable(Routes.PROFILE) {
+                val vm: ProfileViewModel = appViewModel { ProfileViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                ProfileScreen(
+                    state = state,
+                    actions = ProfileActions(
+                        onYourName = vm::setYourName,
+                        onBusinessName = vm::setBusinessName,
+                        onPhone = vm::setPhone,
+                        onAddress = vm::setAddress,
+                        onGstin = vm::setGstin,
+                        onUpiId = vm::setUpiId,
+                        onSave = { vm.save() },
+                        onDiscard = vm::discard,
+                        onParticulars = vm::setParticulars,
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            // The money page, and the old history route that now leads to it.
+            listOf(Routes.MONEY, Routes.MONEY_HISTORY).forEach { route ->
+                composable(route) {
+                    val vm: com.example.fieldtrack.feature.money.MoneyHistoryViewModel =
+                        appViewModel { com.example.fieldtrack.feature.money.MoneyHistoryViewModel(it) }
+                    val state by vm.state.collectAsStateWithLifecycle()
+                    com.example.fieldtrack.feature.money.MoneyHistoryScreen(
+                        state = state,
+                        onBack = { navController.popBackStack() },
+                        actions = com.example.fieldtrack.feature.money.MoneyActions(
+                            onFilter = vm::setFilter,
+                            onPeriod = vm::setPeriod,
+                            onQuery = vm::setQuery,
+                            onOpen = { target ->
+                                when (target) {
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Customer -> navController.navigate(Routes.ledger(target.customerId))
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Person -> navController.navigate(Routes.personPay(target.membershipId))
+                                    is com.example.fieldtrack.feature.money.HistoryOpen.Machine -> navController.navigate("machines/${target.machineId}")
+                                }
+                            },
+                            onReceived = { navController.navigate(Routes.pay(it)) },
+                            onPaySomeone = { navController.navigate(Routes.payOut(null)) },
+                            onPeople = { navController.navigate(Routes.MONEY_OUT) },
+                            onReports = { navController.navigate(Routes.MONEY_REPORTS) },
+                        ),
+                    )
+                }
+            }
+
+            composable(Routes.MY_PAY) {
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                val me = session ?: return@composable
+                val id = com.example.fieldtrack.data.db.entity.membershipId(me.orgId, me.personId)
+                val vm: com.example.fieldtrack.feature.money.PersonPayViewModel =
+                    appViewModel(key = "pay-$id") { com.example.fieldtrack.feature.money.PersonPayViewModel(it, id) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                Column(Modifier.fillMaxSize().background(FieldTrackTheme.colors.paper)) {
+                    com.example.fieldtrack.designsystem.component.FtTopBar(
+                        title = stringResource(R.string.my_pay_title),
+                        onBack = { navController.popBackStack() },
+                        backContentDescription = stringResource(R.string.action_back_cd),
+                    )
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = FieldTrackTheme.dimens.screenPadding),
+                    ) {
+                        com.example.fieldtrack.feature.money.PersonPayContent(state = state, onPay = {}, onTakeBack = {})
+                        Box(Modifier.height(FieldTrackTheme.dimens.space4))
+                    }
+                }
+            }
+
+            composable(Routes.MONEY_REPORTS) {
+                val session by app.sessionStore.session.collectAsStateWithLifecycle(initialValue = null)
+                com.example.fieldtrack.feature.money.MoneyReportsScreen(
+                    access = com.example.fieldtrack.feature.money.MoneyHubAccess(
+                        customerMoney = session?.canSeeMoney == true,
+                        peopleCost = session?.let { Capability.SeePeopleCost in it.can } == true,
+                    ),
+                    onBack = { navController.popBackStack() },
+                    onSeason = { navController.navigate(Routes.SEASON) },
+                    onIncome = { navController.navigate(Routes.INCOME) },
+                    onAssets = { navController.navigate(Routes.ASSETS) },
+                    onRates = { navController.navigate(Routes.RATES) },
+                    onPrice = { navController.navigate(Routes.PRICE) },
+                )
+            }
+
+            composable(Routes.NEW_CUSTOMER) {
+                val vm: AddCustomerViewModel = appViewModel { AddCustomerViewModel(it) }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AddCustomerScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onName = vm::setName,
+                    onPhone = vm::setPhone,
+                    onVillage = vm::setVillage,
+                    onCreditLimit = vm::setCreditLimit,
+                    onLanguage = vm::setLanguage,
+                    onOpening = vm::setOpening,
+                    onSave = { vm.save { navController.popBackStack() } },
+                )
+            }
+
+            composable(Routes.LIVE) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val vm: LiveWorkViewModel = appViewModel(key = jobId) {
+                    LiveWorkViewModel(it, jobId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                AskToShowClockOnce()
+                LiveWorkScreen(
+                    state = state,
+                    onIncrease = { vm.increase() },
+                    onDecrease = { vm.decrease() },
+                    onAddTrip = { vm.addTrip() },
+                    onUndoTrip = { vm.undoTrip() },
+                    onPause = { vm.pause() },
+                    onResume = { vm.resume() },
+                    onFinish = { navController.navigate(Routes.finish(jobId)) },
+                    onNote = vm::addNote,
+                    onRate = vm::setRate,
+                    onFuel = vm::addFuel,
+                    onBreakdown = vm::reportBreakdown,
+                    onAskForHelp = vm::askForHelp,
+                    onSwapMachine = { machineId ->
+                        vm.changeMachine(machineId) { next ->
+                            // The work carries on in a new job: go to it, and leave the finished one behind.
+                            if (next != jobId) navController.navigate(Routes.live(next)) {
+                                popUpTo(Routes.live(jobId)) { inclusive = true }
+                            }
+                        }
+                    },
+                    onHandOver = vm::handOver,
+                    // The job row is gone, so the screen showing it has to go too.
+                    onDiscard = { vm.discard { navController.popBackStack() } },
+                    onAmount = vm::setQuantity,
+                    onStopClockAt = { vm.stopClockAt(it) },
+                    onClockIsRight = vm::confirmClock,
+                    onProof = vm::noteProof,
+                )
+            }
+
+            composable(Routes.FINISH) { entry ->
+                val jobId = entry.arguments?.getString("jobId").orEmpty()
+                val vm: FinishViewModel = appViewModel(key = "finish-$jobId") {
+                    FinishViewModel(it, jobId)
+                }
+                val state by vm.state.collectAsStateWithLifecycle()
+                val payment by vm.payment.collectAsStateWithLifecycle()
+                val discountText by vm.discountText.collectAsStateWithLifecycle()
+                val step by vm.step.collectAsStateWithLifecycle()
+                val received by vm.receivedMinor.collectAsStateWithLifecycle()
+                val finalBalance by vm.finalBalance.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+
+                val goHome = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                }
+
+                val receiptText = receiptFor(state, received, finalBalance ?: 0L)
+                val billDocument = billDocumentFor(
+                    state = state,
+                    receivedMinor = received,
+                    finalBalanceMinor = finalBalance ?: 0L,
+                    method = payment.method,
+                    methodOwnName = payment.methodLabel,
+                )
+                val scope = rememberCoroutineScope()
+                var makingPdf by remember { mutableStateOf(false) }
+                val chooserTitle = stringResource(R.string.finish_pdf_chooser)
+                val pdfFailed = stringResource(R.string.finish_pdf_failed)
+                val labour by vm.labour.collectAsStateWithLifecycle()
+
+                FinishScreen(
+                    step = step,
+                    state = state,
+                    payment = payment,
+                    receivedMinor = received,
+                    finalBalanceMinor = finalBalance ?: 0L,
+                    onBack = { if (vm.back()) navController.popBackStack() },
+                    onToBill = vm::toBill,
+                    onChooseAll = vm::chooseAll,
+                    onChooseSome = vm::chooseSome,
+                    onChooseNothing = vm::chooseNothing,
+                    onAmount = vm::setAmount,
+                    onMethod = vm::setMethod,
+                    onMethodLabel = vm::setMethodLabel,
+                    discountText = discountText,
+                    onDiscount = vm::setDiscount,
+                    labour = labour,
+                    onAnyLabour = vm::setAnyLabour,
+                    onLabourHeadcount = vm::setLabourHeadcount,
+                    onLabourUncounted = vm::setLabourUncounted,
+                    onLabourCounted = vm::setLabourCounted,
+                    onSave = { vm.save {} },
+                    makingPdf = makingPdf,
+                    onPdf = {
+                        if (!makingPdf) {
+                            makingPdf = true
+                            scope.launch {
+                                runCatching {
+                                    DocumentShare.share(context, billDocument, chooserTitle)
+                                }.onFailure {
+                                    Toast.makeText(context, pdfFailed, Toast.LENGTH_LONG).show()
+                                }
+                                makingPdf = false
+                            }
+                        }
+                    },
+                    onPrint = {
+                        scope.launch {
+                            runCatching { DocumentShare.print(context, billDocument) }
+                                .onFailure {
+                                    Toast.makeText(context, pdfFailed, Toast.LENGTH_LONG).show()
+                                }
+                        }
+                    },
+                    onSms = {
+                        // An SMS goes to the number on the customer record when there
+                        // is one; otherwise the chooser lets them pick a recipient.
+                        val sms = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse(
+                                "smsto:" + state.customerPhone.orEmpty().filter(Char::isDigit)
+                            )
+                            putExtra("sms_body", receiptText)
+                        }
+                        runCatching { context.startActivity(sms) }
+                    },
+                    onCopy = {
+                        val clipboard = context.getSystemService(ClipboardManager::class.java)
+                        clipboard?.setPrimaryClip(
+                            ClipData.newPlainText(state.customerName, receiptText)
+                        )
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.finish_copied),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    },
+                    onShare = {
+                        // A plain text share for now: it reaches WhatsApp, SMS and
+                        // anything else installed. The rendered image receipt from the
+                        // designs needs a bitmap pipeline and comes with the khata work.
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, receiptText)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    },
+                    onDone = { goHome() },
+                )
+            }
+        }
+}
+
+/**
+ * The finished job as a printable bill.
+ *
+ * Built here rather than in the view model because every label on it — the unit, the
+ * payment method, the date format — is a resource, and a bill with the wrong word for
+ * "bigha" on it is worse than no bill.
+ */
+@Composable
+private fun billDocumentFor(
+    state: com.example.fieldtrack.feature.work.FinishState,
+    receivedMinor: Long,
+    finalBalanceMinor: Long,
+    method: com.example.fieldtrack.data.db.PaymentMethod?,
+    methodOwnName: String? = null,
+): Document.Bill {
+    val unit = unitName(state.unit)
+    val dateLabel = dayMonthYear(state.billedAtMillis ?: System.currentTimeMillis())
+    val methodLabel = methodName(method ?: com.example.fieldtrack.data.db.PaymentMethod.Cash, methodOwnName)
+    return Document.Bill(
+        style = com.example.fieldtrack.designsystem.format.Money.style,
+        letterhead = Letterhead(
+            businessName = state.businessName,
+            addressLine = state.businessAddress?.ifBlank { null },
+            phone = state.businessPhone?.ifBlank { null },
+            gstin = state.businessGstin?.ifBlank { null },
+            upiId = state.businessUpiId?.ifBlank { null },
+            payDetails = state.businessPayDetails?.ifBlank { null },
+            taxName = state.businessTaxName?.ifBlank { null },
+            taxPercentBps = state.businessTaxBps,
+        ),
+        customer = Party(
+            name = state.customerName,
+            addressLine = state.customerVillage?.ifBlank { null },
+            phone = state.customerPhone?.ifBlank { null }?.let { formatPhone(it) },
+        ),
+        billNumber = state.billNumber,
+        dateLabel = dateLabel,
+        workedOnLabel = dateLabel,
+        machineLabel = state.machineName,
+        lines = listOf(
+            WorkLine(
+                title = workLabel(state.workType),
+                detail = if (state.fuelTerms == com.example.fieldtrack.data.db.FuelTerms.CustomerSupplies) {
+                    stringResource(R.string.bill_diesel_theirs)
+                } else null,
+                measure = if (state.billingMode == BillingMode.Fixed) null else measure(state.quantity, state.unit),
+                rate = if (state.ratesVaried) {
+                    stringResource(R.string.finish_rate_varies)
+                } else {
+                    stringResource(
+                        R.string.start_rate_per_amount,
+                        money(state.rateMinor),
+                        unit,
+                    )
+                },
+                amountMinor = state.quote?.takeIf { it.hasExtras }?.workMinor ?: state.jobAmountMinor,
+            )
+        ) + extraBillLines(state),
+        previousBalanceMinor = state.previousBalanceMinor,
+        payments = if (receivedMinor > 0) {
+            listOf(PaymentLine(dateLabel, methodLabel, receivedMinor))
+        } else emptyList(),
+        balanceMinor = finalBalanceMinor.coerceAtLeast(0),
+        balanceInWords = amountInWords(finalBalanceMinor.coerceAtLeast(0), com.example.fieldtrack.designsystem.format.Money.style),
+    )
+}
+
+/** The lines under the work on a bill: a minimum applied, arrival, waiting, diesel, a discount. */
+@Composable
+private fun extraBillLines(state: com.example.fieldtrack.feature.work.FinishState): List<WorkLine> {
+    val q = state.quote ?: return emptyList()
+    return buildList {
+        if (q.minimumTopUpMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_minimum), amountMinor = q.minimumTopUpMinor))
+        if (q.arrivalMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_arrival), amountMinor = q.arrivalMinor))
+        if (q.waitingMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_waiting), amountMinor = q.waitingMinor))
+        if (q.fuelMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_diesel), amountMinor = q.fuelMinor))
+        // A discount is a line that takes away; a negative amount says so without a new column.
+        if (q.discountMinor > 0) add(WorkLine(title = stringResource(R.string.finish_line_discount), amountMinor = -q.discountMinor))
+    }
+}
+
+/** The receipt as plain text, in the order the paper bill reads. */
+@Composable
+private fun receiptFor(
+    state: com.example.fieldtrack.feature.work.FinishState,
+    receivedMinor: Long,
+    finalBalanceMinor: Long,
+): String {
+    val unit = unitName(state.unit)
+    val remaining = finalBalanceMinor.coerceAtLeast(0)
+    return buildString {
+        appendLine(state.businessName.ifBlank { stringResource(R.string.app_name) })
+        // The letterhead, each line only when the business has filled it in.
+        listOfNotNull(
+            state.businessAddress?.takeIf { it.isNotBlank() },
+            state.businessPhone?.takeIf { it.isNotBlank() }?.let { formatPhone(it) },
+        ).joinToString(" · ").takeIf { it.isNotBlank() }?.let { appendLine(it) }
+        appendLine()
+        appendLine("${state.customerName}")
+        appendLine(
+            listOfNotNull(workLabel(state.workType), measure(state.quantity, state.unit).takeIf { state.billingMode != BillingMode.Fixed })
+                .joinToString(" ") + " — ${money(state.jobAmountMinor)}"
+        )
+        if (state.previousBalanceMinor != 0L) {
+            appendLine("${stringResource(R.string.money_old_balance)} — ${money(state.previousBalanceMinor)}")
+        }
+        if (receivedMinor > 0) {
+            appendLine("${stringResource(R.string.money_paid_today)} — ${money(receivedMinor)}")
+        }
+        appendLine("${stringResource(R.string.money_balance)} — ${money(remaining)}")
+        state.businessUpiId?.takeIf { it.isNotBlank() }?.let {
+            appendLine()
+            appendLine(stringResource(R.string.finish_pay_upi, it))
+        }
+        appendLine()
+        // The same footer the printed bill carries, so a WhatsApp message and a
+        // paper copy of the same job can be matched up when one is disputed.
+        appendLine(
+            listOfNotNull(
+                state.billedAtMillis?.let { dayMonthYear(it) },
+                state.billNumber?.let { stringResource(R.string.finish_bill_no, it) },
+                stringResource(R.string.finish_made_with),
+            ).joinToString(" · ")
+        )
+    }
+}
+
+private const val MEASURED_AREA = "measuredArea"
+private const val MEASURED_UNIT = "measuredUnit"
+
+/** Writing a plot down, or correcting one. One screen, two ways in. */
+@Composable
+private fun FieldEditDestination(
+    navController: NavHostController,
+    entry: NavBackStackEntry,
+    customerId: String,
+    fieldId: String?,
+) {
+    val vm: FieldEditViewModel = appViewModel(
+        key = "field-edit-${'$'}{fieldId ?: customerId}"
+    ) {
+        FieldEditViewModel(it, customerId, fieldId)
+    }
+    val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // A size walked out on the measuring screen, taken once and cleared so that
+    // coming back to this form later does not apply it again.
+    val handle = entry.savedStateHandle
+    val measured by handle.getStateFlow<Double?>(MEASURED_AREA, null).collectAsStateWithLifecycle()
+    LaunchedEffect(measured) {
+        val area = measured ?: return@LaunchedEffect
+        handle.get<String>(MEASURED_UNIT)
+            ?.let { name -> MeasureUnit.entries.firstOrNull { it.name == name } }
+            ?.let { vm.applyMeasured(area, it) }
+        handle[MEASURED_AREA] = null
+        handle[MEASURED_UNIT] = null
+    }
+
+    FieldEditScreen(
+        state = state,
+        onBack = { navController.popBackStack() },
+        onName = vm::setName,
+        onArea = vm::setArea,
+        onUnit = vm::setUnit,
+        onCrop = vm::setCrop,
+        onMeasure = { navController.navigate(Routes.measure(state.unit)) },
+        onDropPin = { vm.dropPin(context) },
+        onSave = { vm.save { navController.popBackStack() } },
+        // Back twice: the field's own screen is about to stop existing.
+        onRemove = {
+            vm.remove {
+                navController.popBackStack()
+                navController.popBackStack()
+            }
+        },
+    )
+}
+
+/**
+ * The start-work wizard.
+ *
+ * Pulled out of the graph because it has two entry points — the home button and a
+ * customer's own page — and the only difference between them is whether step one has
+ * already been answered.
+ */
+@Composable
+private fun StartWorkDestination(
+    navController: NavHostController,
+    forCustomerId: String?,
+    forFieldId: String? = null,
+    forBookingId: String? = null,
+) {
+            val vm: StartWorkViewModel = appViewModel(
+                key = "start-${forCustomerId.orEmpty()}-${forFieldId.orEmpty()}-${forBookingId.orEmpty()}"
+            ) {
+        StartWorkViewModel(it, forCustomerId, forFieldId, forBookingId)
+    }
+            val state by vm.state.collectAsStateWithLifecycle()
+            var addingMachine by remember { mutableStateOf(false) }
+            val scope = rememberCoroutineScope()
+
+            // Back steps through the wizard before it leaves it, so a mis-tap on
+            // step three does not throw away the customer picked on step one.
+            val leave = { if (vm.back()) navController.popBackStack() else true }
+            BackHandler { leave() }
+
+            StartWorkScreen(
+                state = state,
+                onBack = { leave() },
+                onQuery = vm::setQuery,
+                onNewCustomer = { navController.navigate(Routes.NEW_CUSTOMER) },
+                onNewMachine = { addingMachine = true },
+                onSelectCustomer = { vm.selectCustomer(it); vm.next() },
+                onSelectMachine = vm::selectMachine,
+                onSelectField = vm::selectField,
+                onSelectWorkType = vm::selectWorkType,
+                onUseBooking = vm::useBooking,
+                onDropBooking = vm::dropBooking,
+                onBillingMode = vm::setBillingMode,
+                onUnit = vm::setUnit,
+                onRate = vm::setRate,
+                onTerms = vm::setTerms,
+                onSuggestion = vm::applySuggestion,
+                onSelectPartner = vm::selectPartner,
+                onOtherName = vm::nameOther,
+                onNext = vm::next,
+                onStart = {
+                    scope.launch {
+                        vm.start()?.let { jobId ->
+                            navController.navigate(Routes.live(jobId)) {
+                                popUpTo(Routes.HOME)
+                            }
+                        }
+                    }
+                },
+            )
+
+            if (addingMachine) {
+                NewMachineSheet(
+                    onDismiss = { addingMachine = false },
+                    onAdd = { name, kind, typeLabel ->
+                        vm.createMachine(name, kind, typeLabel)
+                        addingMachine = false
+                    },
+                )
+            }
+}
+
+
+/**
+ * Something the free plan will not add, asked for: go on if the plan allows it, and otherwise
+ * to the plan screen saying which thing asked. Reads only what is on the phone, so it answers
+ * offline; and it only ever stops *adding*, never what is already there.
+ */
+@Composable
+private fun rememberPlanGuard(navController: NavHostController): (com.example.fieldtrack.data.plan.Need, () -> Unit) -> Unit {
+    val app = LocalContext.current.applicationContext as FieldFlowApplication
+    val scope = rememberCoroutineScope()
+    return { need, proceed ->
+        scope.launch {
+            val orgId = app.sessionStore.load()?.orgId
+            if (orgId == null || app.planGate.allows(orgId, need)) proceed()
+            else navController.navigate(Routes.planPrice(need))
+        }
+    }
+}

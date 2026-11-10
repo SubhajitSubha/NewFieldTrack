@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation of the R-series words. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="work_type_puddling">Kutifua shamba la mpunga</string>
+    <string name="work_type_ridging">Kutengeneza matuta</string>
+    <string name="work_type_loading">Kupakia</string>
+    <string name="work_type_water">Kusambaza maji</string>
+    <string name="work_type_hire">Kukodisha mashine</string>
+    <string name="work_other_name">Kazi hii inaitwaje?</string>
+    <string name="work_other_name_note">Inaonekana kwenye bili. Acha wazi iitwe Nyingine.</string>
+    <string name="work_attached">Nini kimefungwa nyuma?</string>
+    <string name="work_pulled_by">Inavutwa na</string>
+    <string name="work_pulled_none">Si yetu</string>
+    <string name="plan_advance_note">Malipo ya awali ya %1$s</string>
+    <string name="onboard_machine_more">Aina nyingine</string>
+    <string name="plan_reason_other_what">Nini kilitokea?</string>
+    <string name="paper_other_name">Karatasi hii inaitwaje?</string>
+    <string name="paper_other_name_hint">Kodi ya barabara</string>
+    <string name="method_other">Nyingine</string>
+    <string name="method_other_name">Ililipwa vipi?</string>
+    <string name="unit_decimal">Desimali</string>
+    <string name="unit_cent">Senti</string>
+    <string name="unit_marla">Marla</string>
+    <string name="unit_are">Ari</string>
+    <string name="unit_dunam">Dunam</string>
+    <string name="unit_feddan">Fedani</string>
+    <string name="unit_rai">Rai</string>
+    <string name="unit_mu">Mu</string>
+    <string name="unit_manzana">Manzana</string>
+    <string name="unit_tarea">Tarea</string>
+    <string name="unit_alqueire">Alqueire</string>
+    <string name="unit_own">Kipimo cha hapa</string>
+    <string name="land_more">Kipimo kingine</string>
+    <string name="land_own_name">Mnakiitaje?</string>
+    <string name="land_own_note">Mara ya kwanza ukipima shamba kwacho, programu itauliza ngapi zinafanya ekari moja.</string>
+</resources>

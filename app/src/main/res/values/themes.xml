@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <!--
+       The launch window.
+
+       Painted in the app's own green with the FieldTrack mark, so the first thing on
+       screen is the app rather than a white flash of the device default. The activity
+       swaps to the main theme as soon as Compose takes over.
+    -->
+    <style name="Theme.FieldTrack.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_green</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.FieldTrack</item>
+    </style>
+
+    <style name="Theme.FieldTrack" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+    </style>
 </resources>

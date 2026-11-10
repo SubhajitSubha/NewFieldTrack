@@ -1,0 +1,358 @@
+package com.example.fieldtrack.data
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.example.fieldtrack.data.db.MeasureUnit
+import com.example.fieldtrack.data.db.MemberRole
+import com.example.fieldtrack.data.db.SyncQueue
+import com.example.fieldtrack.data.session.Capabilities
+import com.example.fieldtrack.data.session.Capability
+import com.example.fieldtrack.data.session.SessionStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Correcting your own name and your business.
+ *
+ * Two things are easy to get wrong here and silent when they are. A solo farmer's
+ * business name has to follow their own, because it is the name on every bill. And
+ * both rows have to reach the outbox, because a rename that lives only on the handset
+ * looks exactly like one that worked.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class SessionEditTest {
+
+    private lateinit var h: TestHarness
+    private lateinit var store: SessionStore
+
+    @Before fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("fieldtrack.session", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+        h = TestHarness()
+        store = SessionStore(context, h.db, h.clock, h.ids)
+    }
+
+    @After fun tearDown() = h.close()
+
+    private suspend fun onboard(isBusiness: Boolean, business: String = "Harpal") {
+        store.completeOnboarding(
+            displayName = "Harpal",
+            businessName = business,
+            landUnit = MeasureUnit.Acre,
+            isBusiness = isBusiness,
+        )
+        store.activate()
+    }
+
+    private suspend fun outboxTables() =
+        h.db.outboxDao().nextBatch(100).map { it.tableName }
+
+    @Test
+    fun `renaming yourself never renames the business`() = runTest {
+        // A bill goes out under the organisation's name. Letting a profile edit
+        // rewrite it destroyed a trading name the moment somebody corrected the
+        // spelling of their own, and a solo owner had no field to put it back in.
+        onboard(isBusiness = false, business = "Harpal Agro Works")
+        store.updateProfile("Harpal Singh")
+
+        val session = store.current()!!
+        assertEquals("Harpal Singh", session.displayName)
+        assertEquals("Harpal Agro Works", session.businessName)
+        assertEquals(
+            "the name at the top of the bill is untouched",
+            "Harpal Agro Works",
+            h.db.orgDao().observeOrg(session.orgId).first()!!.name,
+        )
+    }
+
+    @Test
+    fun `a solo farmer who named no business trades under their own name`() = runTest {
+        // Onboarding defaults it, which is a starting point rather than a rule: they
+        // can set a trading name afterwards and it will stick.
+        onboard(isBusiness = false, business = "Harpal")
+        assertEquals("Harpal", store.current()!!.businessName)
+
+        store.updateBusiness(
+            name = "Harpal Agro Works", landUnit = MeasureUnit.Acre,
+            phone = null, addressLine = null, gstin = null, upiId = null,
+        )
+        store.updateProfile("Harpal Singh")
+
+        assertEquals("Harpal Agro Works", store.current()!!.businessName)
+    }
+
+    @Test
+    fun `a real business keeps its own name when the owner renames themselves`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        store.updateProfile("Harpal Singh")
+
+        val session = store.current()!!
+        assertEquals("Harpal Singh", session.displayName)
+        assertEquals("Singh Agro Services", session.businessName)
+    }
+
+    @Test
+    fun `renaming yourself queues the membership for upload`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        store.updateProfile("Harpal Singh")
+
+        assertTrue(
+            "a rename that never reaches the outbox is lost on this handset",
+            SyncQueue.TABLE_MEMBERSHIPS in outboxTables(),
+        )
+    }
+
+    @Test
+    fun `renaming yourself sends the name and none of the switches`() = runTest {
+        // The row on this phone may be behind what the owner has set since. A whole
+        // row would carry the old switches and put them back on the server.
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        store.updateProfile("Harpal Singh")
+
+        val sent = h.db.outboxDao().nextBatch(100)
+            .last { it.tableName == SyncQueue.TABLE_MEMBERSHIPS }
+        val fields = Json.parseToJsonElement(sent.payloadJson).jsonObject.keys
+        assertTrue("displayName" in fields)
+        assertEquals(emptyList<String>(), fields.filter { it.startsWith("can") || it == "role" })
+    }
+
+    @Test
+    fun `what the owner changes reaches a session that is already open`() = runTest {
+        // The session is a copy taken at load. The pull wrote the owner's change to
+        // the rows and nothing told the copy, so a driver given a new switch saw
+        // nothing until the app was killed and reopened.
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        val before = store.current()!!
+        val dao = h.db.orgDao()
+
+        // The same person, now an operator the owner has given nothing.
+        val mine = dao.membership(before.orgId, before.personId)!!
+        dao.upsertMembership(mine.copy(role = MemberRole.Operator, canPlanWork = false))
+        store.refreshFromStorage()
+        assertFalse(Capability.PlanWork in store.current()!!.can)
+
+        // A switch is turned on, one the old four-field check never looked at.
+        dao.upsertMembership(dao.membership(before.orgId, before.personId)!!.copy(canPlanWork = true))
+        store.refreshFromStorage()
+        assertTrue("the new switch is seen at once", Capability.PlanWork in store.current()!!.can)
+
+        // The business is renamed and its land unit changed on somebody else's phone.
+        dao.upsertOrg(dao.findOrg(before.orgId)!!.copy(name = "Singh Agro Works", defaultLandUnit = MeasureUnit.Bigha))
+        store.refreshFromStorage()
+        assertEquals("Singh Agro Works", store.current()!!.businessName)
+        assertEquals(MeasureUnit.Bigha, store.current()!!.landUnit)
+    }
+
+    @Test
+    fun `refreshing the session changes nothing when nothing changed`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro Services")
+        val before = store.current()
+
+        store.refreshFromStorage()
+
+        assertEquals(before, store.current())
+    }
+
+    @Test
+    fun `renaming the business queues the organisation and keeps the new unit`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro")
+        store.updateBusiness(
+            name = "Singh Agro Services",
+            landUnit = MeasureUnit.Bigha,
+            phone = "9876543210",
+            addressLine = "Village Kheri, Fatehabad",
+            gstin = "06ABCDE1234F1Z5",
+            upiId = "singhagro@okaxis",
+        )
+
+        val session = store.current()!!
+        assertEquals("Singh Agro Services", session.businessName)
+        assertEquals(MeasureUnit.Bigha, session.landUnit)
+        assertTrue(SyncQueue.TABLE_ORGS in outboxTables())
+    }
+
+    @Test
+    fun `setting up queues both rows it creates`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro")
+        val tables = outboxTables()
+        assertTrue(SyncQueue.TABLE_ORGS in tables)
+        assertTrue(SyncQueue.TABLE_MEMBERSHIPS in tables)
+    }
+
+    @Test
+    fun `the letterhead is kept and blanks are stored as nothing`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro")
+        store.updateBusiness(
+            name = "Singh Agro",
+            landUnit = MeasureUnit.Acre,
+            phone = "9876543210",
+            addressLine = "  Village Kheri  ",
+            gstin = "   ",
+            upiId = "singhagro@okaxis",
+        )
+
+        val org = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
+        assertEquals("9876543210", org.phone)
+        assertEquals("trimmed before it reaches a bill", "Village Kheri", org.addressLine)
+        assertEquals("a blank GSTIN is absent, not an empty line on the bill", null, org.gstin)
+        assertEquals("singhagro@okaxis", org.upiId)
+    }
+
+    @Test
+    fun `correcting your own name leaves the letterhead alone`() = runTest {
+        onboard(isBusiness = false)
+        store.updateBusiness(
+            name = "Harpal",
+            landUnit = MeasureUnit.Acre,
+            phone = "9876543210",
+            addressLine = "Village Kheri",
+            gstin = null,
+            upiId = "harpal@okaxis",
+        )
+        store.updateProfile("Harpal Singh")
+
+        val org = h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!
+        assertEquals("the business keeps its own name", "Harpal", org.name)
+        assertEquals("the phone on every bill survives a rename", "9876543210", org.phone)
+        assertEquals("harpal@okaxis", org.upiId)
+    }
+
+    @Test
+    fun `an owner may rename the business and a plain driver may not`() = runTest {
+        onboard(isBusiness = true, business = "Singh Agro")
+        assertTrue(Capability.EditBusiness in store.current()!!.can)
+
+        val driver = Capabilities.of(
+            com.example.fieldtrack.data.db.entity.MembershipEntity(
+                id = "m", orgId = "o", personId = "p", displayName = "Jaswant",
+                role = com.example.fieldtrack.data.db.MemberRole.Operator,
+                joinedAt = 0, updatedAt = 0,
+            )
+        )
+        assertFalse(Capability.EditBusiness in driver)
+    }
+
+    // ------------------------------------------------------------------ money
+
+    @Test
+    fun `a business starts in the currency it was set up in and keeps its rounding`() = runTest {
+        store.completeOnboarding(
+            displayName = "Wanjiru", businessName = "Wanjiru Farm Hire", landUnit = MeasureUnit.Acre,
+            isBusiness = true, currencyCode = "KES", moneyStepMinor = 1,
+        )
+        store.activate()
+        val session = store.current()!!
+        assertEquals("KES", session.currencyCode)
+        assertEquals("KES", session.money.currencyCode)
+        assertEquals("what is on screen follows the business", "KES", com.example.fieldtrack.designsystem.format.Money.style.currencyCode)
+        val org = h.db.orgDao().observeOrg(session.orgId).first()!!
+        assertEquals("KES", org.currencyCode)
+        assertEquals(1L, org.moneyStepMinor)
+    }
+
+    @Test
+    fun `the currency can change until the books have an amount in them`() = runTest {
+        onboard(isBusiness = true)
+        assertEquals(SessionStore.MoneyChange.Saved, store.updateMoney("USD", 1))
+        assertEquals("USD", store.current()!!.currencyCode)
+        assertEquals("USD", h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!.currencyCode)
+        assertTrue("and it is queued to reach the other phones", "organisations" in outboxTables())
+
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(
+                id = "c1", orgId = store.current()!!.orgId, name = "Ramesh", createdAt = 1, updatedAt = 1,
+            )
+        )
+        h.db.ledgerDao().insert(
+            com.example.fieldtrack.data.db.entity.LedgerEntryEntity(
+                id = "l1", orgId = store.current()!!.orgId, customerId = "c1",
+                kind = com.example.fieldtrack.data.db.LedgerKind.Charge, amountMinor = 5_000,
+                atMillis = 1, createdAt = 1,
+            )
+        )
+        assertEquals(
+            "a rupee could not be read as a dollar",
+            SessionStore.MoneyChange.CurrencyLocked, store.updateMoney("EUR", 1),
+        )
+        assertEquals("USD", store.current()!!.currencyCode)
+    }
+
+    @Test
+    fun `how bills are rounded can change whenever, and the currency stays`() = runTest {
+        onboard(isBusiness = true)
+        val orgId = store.current()!!.orgId
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(
+                id = "c1", orgId = orgId, name = "Ramesh", createdAt = 1, updatedAt = 1,
+            )
+        )
+        h.db.ledgerDao().insert(
+            com.example.fieldtrack.data.db.entity.LedgerEntryEntity(
+                id = "l1", orgId = orgId, customerId = "c1",
+                kind = com.example.fieldtrack.data.db.LedgerKind.Charge, amountMinor = 5_000,
+                atMillis = 1, createdAt = 1,
+            )
+        )
+        assertEquals(SessionStore.MoneyChange.Saved, store.updateMoney("INR", 1))
+        assertEquals(1L, store.current()!!.moneyStepMinor)
+        assertEquals("INR", store.current()!!.currencyCode)
+    }
+
+    // --------------------------------------------------------------- calendar
+
+    @Test
+    fun `the accounting year and the zone are kept, queued, and followed by the screens`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(7, "Australia/Sydney")
+        val session = store.current()!!
+        assertEquals(7, session.fiscalStartMonth)
+        assertEquals("Australia/Sydney", session.timeZoneId)
+        val org = h.db.orgDao().observeOrg(session.orgId).first()!!
+        assertEquals(7, org.fiscalStartMonth)
+        assertEquals("Australia/Sydney", org.timeZoneId)
+        assertEquals("what counts the day follows the business", java.time.ZoneId.of("Australia/Sydney"), com.example.fieldtrack.data.region.BusinessClock.zone)
+        assertEquals(7, com.example.fieldtrack.data.region.BusinessClock.fiscalStartMonth)
+        assertTrue("it reaches the other phones", "organisations" in outboxTables())
+        com.example.fieldtrack.data.region.BusinessClock.use(null, 4)
+    }
+
+    @Test
+    fun `a zone the phone does not know is not saved`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(4, "Mars/Olympus")
+        assertEquals(null, store.current()!!.timeZoneId)
+        assertEquals(null, h.db.orgDao().observeOrg(store.current()!!.orgId).first()!!.timeZoneId)
+    }
+
+    @Test
+    fun `a bill is numbered in the year of the business it belongs to`() = runTest {
+        onboard(isBusiness = true)
+        store.updateCalendar(1, "UTC")
+        val orgId = store.current()!!.orgId
+        h.db.customerDao().upsert(
+            com.example.fieldtrack.data.db.entity.CustomerEntity(id = "c1", orgId = orgId, name = "Ramesh", createdAt = 1, updatedAt = 1)
+        )
+        val job = h.work.startJob(
+            orgId = orgId, customerId = "c1", workType = "Rotavator",
+            billingMode = com.example.fieldtrack.data.db.BillingMode.PerAcre, unit = MeasureUnit.Acre, rateMinor = 100_000,
+        )
+        h.work.setQuantity(orgId, job, 2.0)
+        h.work.complete(orgId, job)
+        val year = h.work.observeJob(orgId, job).first()!!.billFy
+        assertEquals("a calendar-year business numbers from January", java.time.Instant.ofEpochMilli(h.nowMillis).atZone(java.time.ZoneId.of("UTC")).year.toString(), year)
+        com.example.fieldtrack.data.region.BusinessClock.use(null, 4)
+    }
+}

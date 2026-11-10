@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft translation. To be read by a native speaker before it ships. -->
+<resources>
+    <string name="app_name">FieldTrack</string>
+
+    <string name="action_continue">এগিয়ে যান</string>
+    <string name="action_save">সেভ করুন</string>
+    <string name="action_cancel">বাতিল</string>
+    <string name="action_back_cd">পিছনে যান</string>
+    <string name="action_close_cd">বন্ধ করুন</string>
+    <string name="action_more_cd">আরও বিকল্প</string>
+    <string name="action_not_now">এখন নয়</string>
+    <string name="action_see_all">সব দেখুন</string>
+    <string name="action_change">বদলান</string>
+    <string name="action_try_again">এখনই আবার চেষ্টা করুন</string>
+    <string name="action_send_whatsapp">হোয়াটসঅ্যাপে পাঠান</string>
+    <string name="action_speak_cd">টাইপ না করে মুখে বলুন</string>
+    <string name="action_use_location_cd">আমার এখনকার জায়গা ব্যবহার করুন</string>
+    <string name="action_add_photo">ছবি যোগ করুন</string>
+    <string name="action_call_cd">%1$s-কে ফোন করুন</string>
+    <string name="action_notifications_cd">বার্তা</string>
+
+    <string name="status_running">চলছে</string>
+    <string name="status_paused">থামানো আছে</string>
+    <string name="status_completed">শেষ হয়েছে</string>
+    <string name="status_due">টাকা বাকি</string>
+    <string name="status_idle">বসে আছে</string>
+    <string name="status_breakdown">খারাপ হয়েছে</string>
+    <string name="status_settled">মিটে গেছে</string>
+    <string name="status_unpaid">বাকি</string>
+    <string name="status_paid">মিটিয়েছে</string>
+    <string name="status_added_by_hand">হাতে লেখা</string>
+
+    <string name="nav_home">হোম</string>
+    <string name="nav_jobs">কাজ</string>
+    <string name="nav_my_work">আমার কাজ</string>
+    <string name="nav_customers">গ্রাহক</string>
+    <string name="nav_machines">মেশিন</string>
+    <string name="nav_fleet">বহর</string>
+    <string name="nav_more">আরও</string>
+
+    <string name="work_start">কাজ শুরু করুন</string>
+    <string name="work_start_caption">কাজ করার সময় ঘড়ি চলবে</string>
+    <string name="work_start_offline_caption">নেটওয়ার্ক ছাড়াই চলে</string>
+    <string name="work_pause">থামান</string>
+    <string name="work_resume">চালিয়ে যান</string>
+    <string name="work_finish">শেষ করুন</string>
+    <string name="work_time_on_job">এই কাজে সময়</string>
+    <string name="work_area_done">জমি করা হয়েছে</string>
+    <string name="work_amount_done">কতটা হয়েছে</string>
+    <string name="work_next_trip_rate">পরের খেপ %1$s</string>
+    <string name="finish_rate_varies">আলাদা আলাদা দর</string>
+    <string name="work_trips_done">খেপ হয়েছে</string>
+    <string name="work_earning_so_far">এখন পর্যন্ত আয়</string>
+    <string name="work_one_more_trip">আরও এক খেপ</string>
+    <string name="work_undo_trip_cd">শেষ খেপটি বাদ দিন</string>
+    <string name="work_increase_cd">%1$s বাড়ান</string>
+    <string name="work_decrease_cd">%1$s কমান</string>
+    <string name="work_hand_over_title">কাজটি অন্য কাউকে দিন</string>
+    <string name="work_hand_over_caption">মালিক বা চালক — ঘড়ি চলতে থাকবে</string>
+    <string name="work_discard_title">এই কাজ ফেলে দিন</string>
+    <string name="work_discard_caption">কিছুই সেভ হবে না</string>
+
+    <string name="work_type_amount_cd">তার বদলে পরিমাণ লিখুন</string>
+    <string name="work_type_amount_title">কতটা হয়েছে?</string>
+    <string name="work_type_amount_save">সেভ করুন</string>
+    <string name="work_more">আরও</string>
+    <string name="work_more_cd">এই কাজে আরও যা করতে পারেন</string>
+    <string name="work_actions_title">আরও কাজের বিকল্প</string>
+    <string name="work_back_to_work">কাজে ফিরুন</string>
+    <string name="work_hand_over_nobody">আপনার দলে এখনও কেউ নেই</string>
+    <string name="work_rate_title">দর বদলান</string>
+    <string name="work_rate_caption">এখন %1$s</string>
+    <string name="work_rate_save">দর সেভ করুন</string>
+    <string name="work_breakdown_title">মেশিন খারাপ হয়েছে</string>
+    <string name="work_breakdown_caption">ঘড়ি থামবে আর লেখা থাকবে</string>
+    <string name="work_breakdown_what">কী গোলমাল হয়েছে?</string>
+    <string name="work_breakdown_note">আর কিছু? (না লিখলেও চলবে)</string>
+    <string name="work_breakdown_note_hint">লিফট ধরে রাখছে না</string>
+    <string name="work_breakdown_save">লিখে রাখুন আর ঘড়ি থামান</string>
+    <string name="work_note_title">নোট লিখুন</string>
+    <string name="work_note_short">নোট</string>
+    <string name="work_note_caption">এই কাজের সঙ্গে থাকবে</string>
+    <string name="work_note_hint">জমি খুব ভেজা ছিল</string>
+    <string name="work_note_save">নোট সেভ করুন</string>
+    <string name="work_fuel_title">তেল</string>
+    <string name="work_fuel_caption">এই কাজে যে ডিজেল ভরা হয়েছে</string>
+    <string name="work_fuel_litres">লিটার</string>
+    <string name="work_fuel_cost">কত খরচ হয়েছে</string>
+    <string name="work_fuel_note">এটা আপনার খরচ — গ্রাহকের বিলে ধরা হবে না।</string>
+    <string name="work_fuel_save">তেলের হিসাব সেভ করুন</string>
+    <string name="work_fuel_no_machine">তেলের হিসাব রাখতে কাজে একটি মেশিন বেছে নিন।</string>
+    <string name="work_discard_confirm">এই কাজ ফেলে দেবেন?</string>
+    <string name="work_discard_confirm_body">ঘড়ি, মাপজোক আর এই কাজে যা লিখেছেন, সব মুছে যাবে। গ্রাহকের বিল হবে না।</string>
+    <string name="work_discard_confirm_action">হ্যাঁ, ফেলে দিন</string>
+    <string name="breakdown_hydraulics">হাইড্রোলিক</string>
+    <string name="breakdown_engine">ইঞ্জিন</string>
+    <string name="breakdown_tyre">টায়ার</string>
+    <string name="breakdown_electrical">বিদ্যুতের গোলমাল</string>
+    <string name="breakdown_implement">সঙ্গের যন্ত্র</string>
+    <string name="breakdown_other">অন্য কিছু</string>
+
+    <string name="billing_per_land">প্রতি %1$s</string>
+    <string name="billing_per_acre_caption">যত জমি করবেন</string>
+    <string name="billing_per_hour">ঘণ্টা প্রতি</string>
+    <string name="billing_per_hour_caption">কাজে যত সময় লাগে</string>
+    <string name="billing_per_trip">খেপ প্রতি</string>
+    <string name="billing_per_trip_caption">যত বোঝা বওয়া হয়</string>
+    <string name="billing_per_unit">একক প্রতি</string>
+    <string name="billing_per_unit_caption">বস্তা, কুইন্টাল, পিস</string>
+    <string name="billing_per_km">কিমি প্রতি</string>
+    <string name="billing_per_km_caption">যত দূর মাল বওয়া হয়</string>
+    <string name="billing_fixed">বাঁধা দাম</string>
+    <string name="billing_fixed_caption">ঠিক করা একটি টাকা</string>
+    <string name="billing_per_day">দিন প্রতি</string>
+    <string name="billing_per_day_caption">মেশিন আর চালক দিন হিসাবে ভাড়া</string>
+
+    <string name="unit_acre">একর</string>
+    <string name="unit_bigha">বিঘা</string>
+    <string name="unit_kanal">কানাল</string>
+    <string name="unit_guntha">গুন্ঠা</string>
+    <string name="unit_katha">কাঠা</string>
+    <string name="unit_hour">ঘণ্টা</string>
+    <string name="unit_trip">খেপ</string>
+    <string name="unit_piece">পিস</string>
+    <string name="unit_quintal">কুইন্টাল</string>
+    <string name="unit_bag">বস্তা</string>
+    <string name="unit_km">কিমি</string>
+    <string name="unit_hectare">হেক্টর</string>
+    <string name="unit_sqm">বর্গমিটার</string>
+    <string name="unit_bale">গাঁট</string>
+    <string name="unit_tonne">টন</string>
+    <string name="unit_bushel">বুশেল</string>
+    <string name="unit_kg">কেজি</string>
+    <string name="unit_litre">লিটার</string>
+    <string name="unit_day">দিন</string>
+
+    <plurals name="field_earned_jobs">
+        <item quantity="one">%d টি কাজ থেকে</item>
+        <item quantity="other">%d টি কাজ থেকে</item>
+    </plurals>
+    <plurals name="fields_count">
+        <item quantity="one">%d টি জমি</item>
+        <item quantity="other">%d টি জমি</item>
+    </plurals>
+    <plurals name="fields_jobs_here">
+        <item quantity="one">এখানে %d টি কাজ</item>
+        <item quantity="other">এখানে %d টি কাজ</item>
+    </plurals>
+    <plurals name="money_out_unpriced">
+        <item quantity="one">%d টি খরচের দাম কেউ লেখেনি</item>
+        <item quantity="other">%d টি খরচের দাম কেউ লেখেনি</item>
+    </plurals>
+    <plurals name="count_jobs">
+        <item quantity="one">%d টি কাজ</item>
+        <item quantity="other">%d টি কাজ</item>
+    </plurals>
+    <plurals name="count_trips">
+        <item quantity="one">%d খেপ</item>
+        <item quantity="other">%d খেপ</item>
+    </plurals>
+    <string name="time_today">আজ</string>
+    <plurals name="count_days">
+        <item quantity="one">%d দিন</item>
+        <item quantity="other">%d দিন</item>
+    </plurals>
+    <plurals name="count_customers">
+        <item quantity="one">%d জন গ্রাহক</item>
+        <item quantity="other">%d জন গ্রাহক</item>
+    </plurals>
+    <plurals name="count_machines">
+        <item quantity="one">%d টি মেশিন</item>
+        <item quantity="other">%d টি মেশিন</item>
+    </plurals>
+
+    <string name="money_today">আজ</string>
+    <string name="money_owed_to_you">আপনার পাওনা</string>
+    <string name="money_total_due">মোট বাকি</string>
+    <string name="money_old_balance">আগের বাকি</string>
+    <string name="money_paid_today">আজ দিয়েছেন</string>
+    <string name="money_balance">বাকি</string>
+    <string name="money_received">টাকা পেয়েছেন</string>
+    <string name="money_did_they_pay">এখন কি টাকা দিয়েছেন?</string>
+    <string name="money_paid_all">সব</string>
+    <string name="money_paid_some">কিছুটা</string>
+    <string name="money_paid_none">কিছু না</string>
+    <string name="money_paid_none_caption">বাকিতে</string>
+    <string name="money_how_much_given">কত টাকা দিলেন?</string>
+    <string name="money_left_after">এরপর বাকি থাকল</string>
+    <string name="method_cash">নগদ</string>
+    <string name="method_upi">UPI</string>
+    <string name="method_bank">ব্যাংক</string>
+    <string name="method_cheque">চেক</string>
+    <string name="method_mobile_money">মোবাইল মানি</string>
+    <string name="method_card">কার্ড</string>
+    <string name="method_in_kind">ফসল বা শস্যে</string>
+
+    <string name="sync_title">সেভ ও ব্যাকআপ</string>
+    <string name="sync_offline_title">এখন নেটওয়ার্ক নেই</string>
+    <string name="sync_offline_body">কাজ চালিয়ে যান। সব কিছু এই ফোনে লেখা থাকছে, নেটওয়ার্ক এলে নিজে থেকেই চলে যাবে।</string>
+    <string name="sync_automatic">এটা নিজে থেকেই হয়। আপনাকে কিছু করতে হবে না।</string>
+    <string name="sync_waiting">পাঠানোর অপেক্ষায়</string>
+    <string name="sync_last_backup">শেষ ব্যাকআপ %1$s</string>
+    <string name="sync_conflict_title">একই কাজ দুজনে বদলেছেন</string>
+    <string name="sync_conflict_action">মিলিয়ে নিন</string>
+    <string name="sync_all_safe">সব ব্যাকআপ হয়ে গেছে</string>
+    <string name="sync_all_safe_body">এই ফোনের সব কাজ, টাকা পাওয়া আর গ্রাহকের তথ্য সার্ভারেও আছে।</string>
+    <string name="sync_sending">ব্যাকআপ হচ্ছে…</string>
+    <string name="sync_sending_body">যা বাকি আছে তা পাঠানো হচ্ছে। আপনি কাজ চালিয়ে যান — এটা পিছনে নিজে থেকেই চলবে।</string>
+    <string name="sync_never">এখনও ব্যাকআপ হয়নি</string>
+    <string name="sync_nothing_waiting">পাঠানোর কিছু বাকি নেই</string>
+    <string name="sync_nothing_waiting_body">এই ফোনের কিছুই সার্ভারে যাওয়ার অপেক্ষায় নেই। এখন থেকে যা লিখবেন তা নিজে থেকেই চলে যাবে।</string>
+    <string name="sync_waiting_title">নেটওয়ার্কের অপেক্ষায়</string>
+    <string name="sync_blocked_title">একটি বদল সেভ করা যায়নি</string>
+    <string name="sync_blocked_body">আপনার কাজ এই ফোনে নিরাপদ আছে, কিছুই হারায়নি। সার্ভার একটি বদল নেয়নি, তাই তার পরের গুলো পিছনে আটকে আছে।</string>
+    <string name="sync_no_backend_title">ব্যাকআপ চালু নেই</string>
+    <string name="sync_no_backend_body">সব কিছু এই ফোনে সেভ আছে। ব্যাকআপ চালু হলেই পাঠানোর জন্য তৈরি।</string>
+    <string name="sync_now">তবুও এখনই পাঠান</string>
+    <string name="sync_destination">%1$s-এ ব্যাকআপ হচ্ছে</string>
+    <string name="sync_retry_at">পরের চেষ্টা %1$s-এ</string>
+    <string name="sync_whats_waiting">কী কী বাকি আছে</string>
+    <string name="sync_reason">সার্ভার কী বলেছে</string>
+    <string name="sync_set_aside">এটা আলাদা করে রাখুন</string>
+    <string name="sync_set_aside_note">বাকিগুলো চলে যাবে। এটা ফোনেই থাকবে, কিছু মোছা হবে না।</string>
+    <plurals name="sync_set_aside_count">
+        <item quantity="one">%1$d টি বদল আলাদা করা আছে</item>
+        <item quantity="other">%1$d টি বদল আলাদা করা আছে</item>
+    </plurals>
+    <string name="sync_just_now">এইমাত্র</string>
+    <string name="sync_safe_note">সার্ভারে না পৌঁছানো পর্যন্ত এই ফোন থেকে কিছু সরানো হয় না। ব্যাকআপ কখনও না হলেও আপনার খাতাপত্র এখানেই থাকবে।</string>
+    <plurals name="sync_changes_waiting">
+        <item quantity="one">%1$d টি বদল অপেক্ষায়</item>
+        <item quantity="other">%1$d টি বদল অপেক্ষায়</item>
+    </plurals>
+</resources>

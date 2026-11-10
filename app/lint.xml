@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+
+    <!--
+      Every user-visible string must come from a resource, so that dropping in
+      values-hi/strings.xml later is a translation job and not a refactor.
+
+      This is an error, not a warning: a hardcoded string that reaches main is one
+      that silently stays English forever.
+
+      The legacy screens under ui/ predate this rule and are being replaced flow by
+      flow. They are exempt until they go — not because the rule does not apply to
+      them, but because failing the build on code already scheduled for deletion
+      helps nobody. Remove each ignore as its screen is rewritten.
+    -->
+    <issue id="HardcodedText" severity="error">
+        <ignore path="src/main/java/com/example/fieldtrack/ui/**" />
+        <ignore path="src/main/java/com/example/ui/**" />
+        <ignore path="src/main/java/com/example/MainActivity.kt" />
+    </issue>
+
+    <!-- Same reasoning for the other localisation checks. -->
+    <issue id="SetTextI18n" severity="error">
+        <ignore path="src/main/java/com/example/fieldtrack/ui/**" />
+    </issue>
+
+    <!-- Catch text that will clip or overlap once a Hindi translation lands. -->
+    <issue id="RelativeOverlap" severity="warning" />
+
+    <!-- Contrast and touch targets are load-bearing for this audience. -->
+    <issue id="ContentDescription" severity="error">
+        <ignore path="src/main/java/com/example/fieldtrack/ui/**" />
+    </issue>
+
+    <!-- Not useful here: the design system owns its own typography and spacing. -->
+    <issue id="UnusedResources" severity="ignore" />
+
+</lint>
